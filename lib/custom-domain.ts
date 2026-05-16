@@ -87,10 +87,21 @@ export async function resolveCustomDomain(host: string | null): Promise<Resolved
   const cached = cache.get(h);
   if (cached && Date.now() - cached.resolvedAt < TTL_MS) return cached.value;
 
-  const org = await prisma.organisation.findFirst({
-    where: { customDomain: h },
-    select: { id: true, slug: true, name: true },
-  });
+  // DB lookup is wrapped — the login page calls this on every render and
+  // a transient Supabase blip (cold-start, env var misconfig) shouldn't
+  // 500 the entire sign-in flow. On failure, treat the host as "not a
+  // custom domain"; the caller falls back to the default branding.
+  let org: { id: string; slug: string; name: string } | null = null;
+  try {
+    org = await prisma.organisation.findFirst({
+      where: { customDomain: h },
+      select: { id: true, slug: true, name: true },
+    });
+  } catch (err) {
+    console.error("[custom-domain] DB lookup failed, falling back to default", { host: h, err: err instanceof Error ? err.message : String(err) });
+    // Don't cache a failed lookup — let the next request retry.
+    return { host: h, isCustomDomain: false };
+  }
 
   const value: ResolvedDomain = org
     ? { host: h, isCustomDomain: true, org }
