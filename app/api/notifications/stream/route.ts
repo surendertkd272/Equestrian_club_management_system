@@ -17,6 +17,15 @@ export const dynamic = "force-dynamic";
 // that's 200 reads/min — set NOTIF_SSE_POLL_MS=30000 in env if needed.
 const POLL_MS = Math.max(3_000, Math.min(60_000, Number(process.env.NOTIF_SSE_POLL_MS ?? "10000")));
 const KEEPALIVE_MS = 30_000;
+// Self-close 5 seconds before the platform's serverless function timeout
+// kicks in. On Vercel Hobby this is 60s, Pro is 300s. Closing voluntarily
+// avoids the "function timed out" error log every cycle; the browser's
+// EventSource then auto-reconnects within a second. Override with
+// NOTIF_SSE_MAX_LIFETIME_MS if you're on Enterprise.
+const MAX_LIFETIME_MS = Math.max(
+  10_000,
+  Number(process.env.NOTIF_SSE_MAX_LIFETIME_MS ?? "55000"),
+);
 
 // Per-user connection cap. A misbehaving client (browser bug, leaked tab,
 // scripted abuse) could open dozens of SSE connections; each holds a DB
@@ -53,6 +62,7 @@ export async function GET() {
   let released = false;
   let lastCount = -1;
   let lastKeepaliveAt = Date.now();
+  const openedAt = Date.now();
 
   const stream = new ReadableStream({
     async start(controller) {
@@ -68,6 +78,12 @@ export async function GET() {
 
       try {
         while (!cancelled) {
+          // Self-close just before the platform's serverless timeout.
+          // Client EventSource will reconnect automatically.
+          if (Date.now() - openedAt >= MAX_LIFETIME_MS) {
+            controller.enqueue(encoder.encode(": reconnect\n\n"));
+            break;
+          }
           const count = await prisma.notification.count({
             where: { userId: session!.userId, readAt: null },
           });
