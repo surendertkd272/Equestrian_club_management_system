@@ -13,3 +13,4 @@ prisma/migrations/dev/
 # Local-fs uploads (dev only; prod uses S3/R2 — see lib/storage.ts)
 public/uploads/*
 !public/uploads/.gitkeep
+claude-skills
