@@ -17,6 +17,12 @@ export const metadata: Metadata = {
     icon: "/icons/icon-192.svg",
     apple: "/icons/icon-192.svg",
   },
+  // Modern PWA spec — Chrome/Edge/Firefox honour `mobile-web-app-capable`;
+  // Safari still reads the apple-prefixed one (emitted via `appleWebApp`).
+  // Setting both silences the deprecation warning in DevTools.
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
