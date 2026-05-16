@@ -1,0 +1,20 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/sweep?secret=$CRON_SECRET",
+      "schedule": "0 2 * * *"
+    }
+  ],
+  "functions": {
+    "app/api/cron/sweep/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/reports/monthly-dispatch/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/notifications/stream/route.ts": {
+      "maxDuration": 900
+    }
+  }
+}

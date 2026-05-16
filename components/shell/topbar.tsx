@@ -1,0 +1,120 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { LogOut, Phone } from "lucide-react";
+import type { SessionPayload } from "@/lib/auth";
+import { CommandPalette } from "./cmdk";
+import { NotificationsDropdown } from "./notifications-dropdown";
+
+export type EmergencyContact = { label: string; number: string; type: string };
+
+const TYPE_TONE: Record<string, string> = {
+  vet: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  ambulance: "bg-rose-50 text-rose-700 border-rose-200",
+  police: "bg-blue-50 text-blue-700 border-blue-200",
+  fire: "bg-amber-50 text-amber-700 border-amber-200",
+  manager: "bg-violet-50 text-violet-700 border-violet-200",
+  other: "bg-muted text-muted-foreground border",
+};
+
+export function TopBar({
+  session,
+  centre,
+  allCentres,
+  unreadCount,
+  emergencyContacts,
+  photoUrl,
+}: {
+  session: SessionPayload;
+  centre: { id: string; name: string; slug: string } | null;
+  allCentres: { id: string; name: string; slug: string }[];
+  unreadCount: number;
+  emergencyContacts?: EmergencyContact[];
+  photoUrl?: string | null;
+}) {
+  const router = useRouter();
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    // Wipe the service-worker stale-while-revalidate cache. Without this,
+    // the next user on the same device could load this session's pages
+    // from cache (no auth header is needed for a SW hit). The cache holds
+    // GETs only, but those still expose names, photos, etc.
+    try {
+      if ("serviceWorker" in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration();
+        reg?.active?.postMessage({ type: "PURGE_CACHE" });
+      }
+    } catch {}
+    router.push("/login");
+    router.refresh();
+  }
+
+  const contacts = emergencyContacts ?? [];
+
+  return (
+    <div className="border-b bg-card">
+      <header className="flex h-16 items-center justify-between px-6">
+        <div className="flex items-center gap-3">
+          <div className="text-sm">
+            <div className="font-semibold">
+              {session.role === "SUPER_ADMIN" ? "All centres" : centre?.name ?? "—"}
+            </div>
+            <div className="text-xs text-muted-foreground">{session.role.replaceAll("_", " ")}</div>
+          </div>
+          {allCentres.length > 1 && (
+            <Badge variant="outline" className="ml-2">
+              {allCentres.length} centres
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <CommandPalette />
+          <NotificationsDropdown initialUnread={unreadCount} />
+          <Link href="/account" className="flex items-center gap-2 text-right text-sm hover:underline" title="Account settings">
+            {photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={photoUrl} alt="" className="h-8 w-8 rounded-full border object-cover" />
+            ) : (
+              <span className="grid h-8 w-8 place-items-center rounded-full border bg-muted text-xs font-semibold uppercase">
+                {session.name.split(" ").slice(0, 2).map((p) => p[0]).join("")}
+              </span>
+            )}
+            <div className="font-medium">{session.name}</div>
+          </Link>
+          <Button variant="outline" size="sm" onClick={logout}>
+            <LogOut className="h-4 w-4" /> Sign out
+          </Button>
+        </div>
+      </header>
+
+      {contacts.length > 0 && (
+        // PDF §3 "Emergency Contact Board" — keep these tappable for staff
+        // who are on the field with a phone, not in front of a desk.
+        <div className="flex flex-wrap items-center gap-2 border-t bg-muted/30 px-6 py-1.5 text-xs">
+          <span className="font-semibold uppercase tracking-wide text-muted-foreground">
+            <Phone className="mr-1 inline h-3 w-3" />
+            Emergency:
+          </span>
+          {contacts.slice(0, 8).map((c, i) => (
+            <a
+              key={i}
+              href={`tel:${c.number.replace(/[^\d+]/g, "")}`}
+              className={`rounded border px-2 py-0.5 hover:brightness-95 ${TYPE_TONE[c.type] ?? TYPE_TONE.other}`}
+            >
+              <span className="font-medium">{c.label}</span>
+              <span className="ml-1 font-mono">{c.number}</span>
+            </a>
+          ))}
+          {contacts.length > 8 && (
+            <Link href="/centres" className="text-muted-foreground hover:underline">
+              + {contacts.length - 8} more
+            </Link>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

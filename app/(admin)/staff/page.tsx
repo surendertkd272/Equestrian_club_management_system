@@ -1,0 +1,86 @@
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
+import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { formatDate } from "@/lib/utils";
+
+export const dynamic = "force-dynamic";
+
+export default async function StaffPage() {
+  const session = (await getSession())!;
+  const centreId = scopeCentre(session);
+  const where = centreWhere(centreId);
+
+  const staff = await prisma.staff.findMany({
+    where,
+    include: { user: { select: { name: true, email: true, phone: true, status: true } } },
+    orderBy: { joiningDate: "desc" },
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Staff</h1>
+          <p className="text-sm text-muted-foreground">§4.8 · {staff.length} member{staff.length === 1 ? "" : "s"}</p>
+        </div>
+        <Button asChild>
+          <Link href="/staff/new">
+            <Plus className="h-4 w-4" /> Add staff
+          </Link>
+        </Button>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>All staff</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <table className="w-full text-sm">
+            <thead className="text-left text-xs uppercase text-muted-foreground">
+              <tr>
+                <th className="pb-2">Name</th>
+                <th className="pb-2">Role</th>
+                <th className="pb-2">Email</th>
+                <th className="pb-2">Phone</th>
+                <th className="pb-2">Joined</th>
+                <th className="pb-2">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {staff.map((s) => (
+                <tr key={s.id} className="border-t">
+                  <td className="py-2 font-medium">{s.user.name}</td>
+                  <td className="py-2">
+                    <Badge variant="outline">{s.role.replaceAll("_", " ")}</Badge>
+                  </td>
+                  <td className="py-2">{s.user.email}</td>
+                  <td className="py-2">{s.user.phone ?? "—"}</td>
+                  <td className="py-2">{formatDate(s.joiningDate)}</td>
+                  <td className="py-2">
+                    <Badge variant={s.status === "active" ? "success" : "warning"}>{s.status}</Badge>
+                  </td>
+                </tr>
+              ))}
+              {staff.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                    No staff yet.{" "}
+                    <Link href="/staff/new" className="text-primary underline">
+                      Add the first one
+                    </Link>
+                    .
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

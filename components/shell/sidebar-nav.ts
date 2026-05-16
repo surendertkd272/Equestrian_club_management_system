@@ -1,0 +1,105 @@
+// Pure data + filter logic for the sidebar. Kept JSX-free so tests can import
+// `filterSidebarNav` without pulling in the React render path (Vitest + Vite's
+// "use client" handling chokes on the sidebar.tsx file otherwise).
+
+import type { Role } from "@/lib/roles";
+import type { FeatureKey } from "@/lib/features";
+
+const ALL_STAFF: Role[] = [
+  "SUPER_ADMIN",
+  "CENTRE_MANAGER",
+  "HEAD_COACH",
+  "COACH",
+  "STABLE_MANAGER",
+  "INVENTORY_MANAGER",
+  "COMPETITION_MANAGER",
+  "GROOM",
+  "FARRIER",
+  "VET",
+  "ACCOUNTANT",
+  "EXAMINER",
+  "JURY",
+];
+
+// Icons are looked up by name in the React render layer; we keep just the
+// identifier here so this file stays JSX-free.
+export type NavItem = {
+  href: string;
+  label: string;
+  iconName: string;
+  perm?: Role[];
+  feature?: FeatureKey;
+};
+
+export type NavGroup = { group: string; items: NavItem[] };
+
+export const NAV: NavGroup[] = [
+  {
+    group: "Overview",
+    items: [
+      { href: "/dashboard", label: "Dashboard", iconName: "LayoutDashboard", perm: ALL_STAFF },
+      { href: "/analytics", label: "Analytics", iconName: "LineChart", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "ACCOUNTANT"], feature: "analytics" },
+      { href: "/centres", label: "Clubs (HQ)", iconName: "Building2", perm: ["SUPER_ADMIN"] },
+      { href: "/users", label: "Users (HQ)", iconName: "UserCog", perm: ["SUPER_ADMIN"] },
+      { href: "/hq-dashboard", label: "HQ Comparative", iconName: "LineChart", perm: ["SUPER_ADMIN"], feature: "hq-dashboard" },
+    ],
+  },
+  {
+    group: "AMS · Athletes",
+    items: [
+      { href: "/riders", label: "Riders", iconName: "Users", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER", "COMPETITION_MANAGER"] },
+      { href: "/batches", label: "Batches", iconName: "CalendarClock", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"] },
+      { href: "/lessons", label: "Lessons", iconName: "CalendarDays", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"] },
+      { href: "/attendance", label: "Attendance", iconName: "CalendarCheck2", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"], feature: "attendance" },
+      { href: "/progress", label: "Progress", iconName: "TrendingUp", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"], feature: "skill-tracking" },
+      { href: "/exams", label: "Exams", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "EXAMINER", "JURY"], feature: "external-exams" },
+      { href: "/competitions", label: "Competitions", iconName: "Trophy", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "COMPETITION_MANAGER", "JURY"], feature: "competitions" },
+    ],
+  },
+  {
+    group: "CMS · Centre",
+    items: [
+      { href: "/staff", label: "Staff", iconName: "Users2", perm: ["SUPER_ADMIN", "CENTRE_MANAGER"] },
+      { href: "/staff-attendance", label: "Staff Attendance", iconName: "UserCheck", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER"], feature: "staff-attendance" },
+      { href: "/training", label: "Training & Certs", iconName: "GraduationCap", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH"], feature: "training-certs" },
+      { href: "/leave-requests", label: "Leave Requests", iconName: "CalendarX", perm: ALL_STAFF, feature: "leave-requests" },
+      { href: "/tasks", label: "Tasks", iconName: "ListChecks", perm: ALL_STAFF, feature: "tasks" },
+      { href: "/approvals", label: "Approvals", iconName: "FileCheck", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "INVENTORY_MANAGER", "ACCOUNTANT", "STABLE_MANAGER"], feature: "approvals" },
+      { href: "/facility-bookings", label: "Facility Bookings", iconName: "Building", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH"], feature: "facility-bookings" },
+      { href: "/equipment", label: "Tack & Equipment", iconName: "Package", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "STABLE_MANAGER", "INVENTORY_MANAGER", "HEAD_COACH", "GROOM"], feature: "inventory" },
+      { href: "/tack", label: "Individual Tack", iconName: "Package", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "STABLE_MANAGER", "INVENTORY_MANAGER", "GROOM"], feature: "inventory" },
+      { href: "/medicines", label: "Vet Medicines", iconName: "Pill", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "VET", "INVENTORY_MANAGER", "ACCOUNTANT"], feature: "vet-records" },
+      { href: "/consumables", label: "First-Aid Consumables", iconName: "BandageIcon", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "VET", "STABLE_MANAGER", "INVENTORY_MANAGER", "GROOM"], feature: "consumables" },
+      { href: "/horses", label: "Horses", iconName: "Rabbit", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "VET", "STABLE_MANAGER", "FARRIER", "GROOM"], feature: "horse-management" },
+      { href: "/vaccinations", label: "Vaccinations", iconName: "Syringe", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "VET", "STABLE_MANAGER"], feature: "vet-records" },
+      { href: "/farriery", label: "Farriery", iconName: "Hammer", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "STABLE_MANAGER", "FARRIER"], feature: "farriery" },
+      // Grooms + farriers are routinely first to spot injuries; coach roles
+      // and the vet need to see them too.
+      { href: "/injuries", label: "Injury Log", iconName: "BandageIcon", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "VET", "STABLE_MANAGER", "GROOM", "FARRIER"], feature: "injuries" },
+      { href: "/events", label: "Events", iconName: "CalendarRange", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COMPETITION_MANAGER"], feature: "events" },
+      { href: "/teams", label: "Teams / Squads", iconName: "Flag", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COMPETITION_MANAGER"], feature: "teams" },
+    ],
+  },
+  {
+    group: "Money & Records",
+    items: [
+      { href: "/finance", label: "Finance", iconName: "Receipt", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "ACCOUNTANT"], feature: "fee-collection" },
+      { href: "/reports", label: "Reports", iconName: "FileText", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER"], feature: "reports" },
+      { href: "/certificates", label: "Certificates", iconName: "Award", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "EXAMINER", "COMPETITION_MANAGER"], feature: "certificates" },
+      { href: "/accreditations", label: "Accreditations", iconName: "Shield", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COMPETITION_MANAGER"], feature: "accreditations" },
+      { href: "/notifications", label: "Notifications", iconName: "Bell", perm: ALL_STAFF },
+      { href: "/audit", label: "Audit Log", iconName: "Shield", perm: ["SUPER_ADMIN"] },
+    ],
+  },
+];
+
+export function filterSidebarNav(role: Role, features: ReadonlySet<FeatureKey>): NavGroup[] {
+  return NAV.map((group) => ({
+    ...group,
+    items: group.items.filter((it) => {
+      if (it.perm && !it.perm.includes(role)) return false;
+      if (it.feature && !features.has(it.feature)) return false;
+      return true;
+    }),
+  })).filter((g) => g.items.length > 0);
+}

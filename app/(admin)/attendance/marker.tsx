@@ -1,0 +1,173 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import type { AttendanceStatus } from "@/lib/schemas/attendance";
+import { Check, X, Clock, ShieldAlert } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type Rider = { id: string; firstName: string; lastName: string };
+type Existing = { riderId: string; status: string; reason: string | null };
+
+const NEXT_STATE: Record<AttendanceStatus, AttendanceStatus> = {
+  present: "absent",
+  absent: "late",
+  late: "excused",
+  excused: "present",
+};
+
+const STATUS_META: Record<AttendanceStatus, { label: string; short: string; cls: string; icon: any }> = {
+  present: { label: "Present", short: "P", cls: "bg-emerald-100 text-emerald-800 border-emerald-300", icon: Check },
+  absent: { label: "Absent", short: "A", cls: "bg-red-100 text-red-800 border-red-300", icon: X },
+  late: { label: "Late", short: "L", cls: "bg-amber-100 text-amber-800 border-amber-300", icon: Clock },
+  excused: { label: "Excused", short: "E", cls: "bg-blue-100 text-blue-800 border-blue-300", icon: ShieldAlert },
+};
+
+export function AttendanceMarker({
+  batchId,
+  date,
+  roster,
+  existing,
+  canEdit,
+}: {
+  batchId: string;
+  date: string;
+  roster: Rider[];
+  existing: Existing[];
+  canEdit: boolean;
+}) {
+  const initial = useMemo(() => {
+    const map: Record<string, AttendanceStatus | undefined> = {};
+    for (const e of existing) {
+      if ((["present", "absent", "late", "excused"] as const).includes(e.status as AttendanceStatus)) {
+        map[e.riderId] = e.status as AttendanceStatus;
+      }
+    }
+    return map;
+  }, [existing]);
+
+  const [state, setState] = useState<Record<string, AttendanceStatus | undefined>>(initial);
+  const [saving, setSaving] = useState(false);
+  const router = useRouter();
+
+  const stats = useMemo(() => {
+    const out = { present: 0, absent: 0, late: 0, excused: 0, untouched: 0 };
+    for (const r of roster) {
+      const s = state[r.id];
+      if (!s) out.untouched++;
+      else out[s]++;
+    }
+    return out;
+  }, [state, roster]);
+
+  function cycle(riderId: string) {
+    setState((s) => ({ ...s, [riderId]: s[riderId] ? NEXT_STATE[s[riderId] as AttendanceStatus] : "present" }));
+  }
+
+  function setAll(status: AttendanceStatus) {
+    const next: Record<string, AttendanceStatus> = {};
+    for (const r of roster) next[r.id] = status;
+    setState(next);
+  }
+
+  async function save() {
+    const entries = roster
+      .map((r) => ({ riderId: r.id, status: state[r.id] }))
+      .filter((e): e is { riderId: string; status: AttendanceStatus } => !!e.status);
+    if (entries.length === 0) {
+      toast.error("Nothing to save — tap names or use 'Mark all present'.");
+      return;
+    }
+    setSaving(true);
+    const res = await fetch("/api/attendance/mark", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ batchId, date, entries }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.error ?? "Save failed");
+      return;
+    }
+    const data = await res.json();
+    toast.success(`Saved ${data.count} record${data.count === 1 ? "" : "s"}.`);
+    router.refresh();
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2 text-xs">
+          <Badge variant="success">P {stats.present}</Badge>
+          <Badge variant="destructive">A {stats.absent}</Badge>
+          <Badge variant="warning">L {stats.late}</Badge>
+          <Badge variant="outline">E {stats.excused}</Badge>
+          {stats.untouched > 0 && <Badge variant="outline">Untouched {stats.untouched}</Badge>}
+        </div>
+        {canEdit && (
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={() => setAll("present")} className="border-emerald-400 text-emerald-700 hover:bg-emerald-50">
+              All P
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setAll("absent")} className="border-rose-400 text-rose-700 hover:bg-rose-50">
+              All A
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setAll("late")} className="border-amber-400 text-amber-700 hover:bg-amber-50">
+              All L
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setAll("excused")} className="border-blue-400 text-blue-700 hover:bg-blue-50">
+              All E
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setState({})}>
+              Clear
+            </Button>
+            <Button size="sm" onClick={save} disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <ul className="divide-y rounded-md border">
+        {roster.map((r) => {
+          const s = state[r.id];
+          const meta = s ? STATUS_META[s] : null;
+          return (
+            <li key={r.id} className="flex items-center justify-between px-4 py-2.5">
+              <div className="font-medium">
+                {r.firstName} {r.lastName}
+              </div>
+              <button
+                type="button"
+                onClick={() => canEdit && cycle(r.id)}
+                disabled={!canEdit}
+                className={cn(
+                  "flex h-9 min-w-32 items-center justify-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors",
+                  meta ? meta.cls : "border-dashed text-muted-foreground hover:bg-muted",
+                  !canEdit && "cursor-not-allowed opacity-60",
+                )}
+                title="Tap to cycle: P → A → L → E"
+              >
+                {meta ? (
+                  <>
+                    <meta.icon className="h-4 w-4" /> {meta.label}
+                  </>
+                ) : (
+                  <>Tap to mark</>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="text-xs text-muted-foreground">
+        Tip: tap a rider's button to cycle Present → Absent → Late → Excused. The roster status saves with your user id
+        for audit trail.
+      </p>
+    </div>
+  );
+}

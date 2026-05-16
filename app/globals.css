@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --primary: 142 71% 30%;          /* equestrian green */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 36 33% 95%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 36 65% 50%;            /* saddle tan */
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 142 71% 30%;
+    --radius: 0.6rem;
+  }
+
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground; font-feature-settings: "rlig" 1, "calt" 1; }
+}
+
+@media print {
+  /* Default page is A4 portrait; specific pages can override via inline <style>. */
+  @page { size: A4; margin: 12mm; }
+  body { background: white !important; }
+  /* Hide admin chrome on print */
+  aside, header, .print\:hidden { display: none !important; }
+  main { padding: 0 !important; }
+  /* Avoid card backgrounds turning grey on print */
+  .bg-muted, .bg-muted\/40, .bg-muted\/30 { background: transparent !important; }
+}

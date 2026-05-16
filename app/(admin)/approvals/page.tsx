@@ -1,0 +1,135 @@
+import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
+import { scopeCentre } from "@/lib/tenancy";
+import { can } from "@/lib/permissions";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { formatDate } from "@/lib/utils";
+import { ReviewButtons } from "./approvals-client";
+
+export const dynamic = "force-dynamic";
+
+export default async function ApprovalsPage() {
+  const session = (await getSession())!;
+  const centreId = scopeCentre(session);
+  const canReview = can(session.role, "leave.approve");
+
+  const where: any = {};
+  if (centreId) where.centreId = centreId;
+
+  const rows = await prisma.approvalRequest.findMany({
+    where,
+    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+    take: 200,
+  });
+
+  // Resolve requester names in one round-trip.
+  const requesterIds = Array.from(new Set(rows.map((r) => r.requestedBy)));
+  const requesters = requesterIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: requesterIds } },
+        select: { id: true, name: true, role: true },
+      })
+    : [];
+  const userById = new Map(requesters.map((u) => [u.id, u]));
+
+  const pending = rows.filter((r) => r.status === "pending");
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Approvals</h1>
+        <p className="text-sm text-muted-foreground">
+          Pending requests for things that need a manager's sign-off — asset issuance,
+          expense items, anything an upstream module raises.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Kpi label="Pending" value={pending.length} tone={pending.length > 0 ? "amber" : undefined} />
+        <Kpi label="Approved" value={rows.filter((r) => r.status === "approved").length} />
+        <Kpi label="Rejected" value={rows.filter((r) => r.status === "rejected").length} />
+        <Kpi label="Total" value={rows.length} />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Requests</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {rows.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              No approval requests yet.
+            </p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="px-2 py-2">Request</th>
+                  <th className="px-2 py-2">From</th>
+                  <th className="px-2 py-2">Type</th>
+                  <th className="px-2 py-2">Status</th>
+                  <th className="px-2 py-2">Created</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => {
+                  const user = userById.get(r.requestedBy);
+                  const isMine = r.requestedBy === session.userId;
+                  return (
+                    <tr key={r.id} className="border-t align-top">
+                      <td className="px-2 py-2">
+                        <div className="font-medium">{r.title}</div>
+                        {r.body && <div className="mt-0.5 text-xs text-muted-foreground">{r.body}</div>}
+                        {r.reviewNotes && (
+                          <div className="mt-1 rounded bg-muted/40 px-2 py-1 text-xs">
+                            <span className="text-muted-foreground">Review:</span> {r.reviewNotes}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-2 py-2 text-xs">
+                        {user?.name ?? "—"}
+                        {user && <div className="text-[10px] text-muted-foreground">{user.role}</div>}
+                      </td>
+                      <td className="px-2 py-2 text-xs font-mono">{r.entityType}</td>
+                      <td className="px-2 py-2">
+                        <Badge
+                          variant={
+                            r.status === "approved" ? "success"
+                            : r.status === "rejected" ? "destructive"
+                            : r.status === "cancelled" ? "outline"
+                            : "warning"
+                          }
+                        >
+                          {r.status}
+                        </Badge>
+                      </td>
+                      <td className="px-2 py-2 text-xs text-muted-foreground">{formatDate(r.createdAt)}</td>
+                      <td className="px-2 py-2 text-right">
+                        {r.status === "pending" && (
+                          <ReviewButtons id={r.id} canReview={canReview} isMine={isMine} />
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function Kpi({ label, value, tone }: { label: string; value: number; tone?: "amber" }) {
+  return (
+    <div className="rounded-lg border bg-card p-3">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className={`mt-1 text-2xl font-semibold ${tone === "amber" ? "text-amber-700 dark:text-amber-400" : ""}`}>
+        {value}
+      </div>
+    </div>
+  );
+}

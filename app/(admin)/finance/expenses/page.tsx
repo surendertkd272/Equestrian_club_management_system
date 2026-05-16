@@ -1,0 +1,156 @@
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
+import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { can } from "@/lib/permissions";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, Plus } from "lucide-react";
+import { formatDate } from "@/lib/utils";
+
+export const dynamic = "force-dynamic";
+
+function inr(n: number): string {
+  return `₹${Math.round(n).toLocaleString("en-IN")}`;
+}
+
+export default async function ExpensesPage({
+  searchParams,
+}: {
+  searchParams: { group?: string; paid?: string };
+}) {
+  const session = (await getSession())!;
+  if (!can(session.role, "finance.read")) {
+    return <div className="p-4 text-sm text-muted-foreground">No access.</div>;
+  }
+  const centreId = scopeCentre(session);
+  const where: any = { ...centreWhere(centreId) };
+  if (searchParams.paid === "paid") where.paid = true;
+  if (searchParams.paid === "due") where.paid = false;
+
+  let categoryFilter: { id: string }[] | null = null;
+  if (searchParams.group) {
+    const cats = await prisma.expenseCategory.findMany({
+      where: { group: searchParams.group },
+      select: { id: true },
+    });
+    categoryFilter = cats;
+    where.categoryId = { in: cats.map((c) => c.id) };
+  }
+
+  const [expenses, totals] = await Promise.all([
+    prisma.expense.findMany({
+      where,
+      include: { category: { select: { name: true, group: true } }, vendor: { select: { name: true } } },
+      orderBy: { spentAt: "desc" },
+      take: 200,
+    }),
+    prisma.expense.aggregate({ where, _sum: { amount: true }, _count: true }),
+  ]);
+
+  const canManage = can(session.role, "expense.manage");
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/finance">
+              <ChevronLeft className="h-4 w-4" /> Finance
+            </Link>
+          </Button>
+          <h1 className="mt-1 text-2xl font-bold">Expenses</h1>
+          <p className="text-sm text-muted-foreground">
+            {totals._count} entries · Total {inr(totals._sum.amount ?? 0)}
+          </p>
+        </div>
+        {canManage && (
+          <Button asChild>
+            <Link href="/finance/expenses/new">
+              <Plus className="h-4 w-4" /> New expense
+            </Link>
+          </Button>
+        )}
+      </div>
+
+      <Card>
+        <CardHeader>
+          <form method="get" className="flex flex-wrap items-end gap-2 text-sm">
+            <div>
+              <label className="mb-1 block text-xs uppercase text-muted-foreground">Group</label>
+              <select
+                name="group"
+                defaultValue={searchParams.group ?? ""}
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">All</option>
+                <option value="operating">Operating</option>
+                <option value="salaries">Salaries</option>
+                <option value="vet">Vet</option>
+                <option value="feed">Feed</option>
+                <option value="maintenance">Maintenance</option>
+                <option value="utilities">Utilities</option>
+                <option value="tax">Tax</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs uppercase text-muted-foreground">Paid</label>
+              <select
+                name="paid"
+                defaultValue={searchParams.paid ?? ""}
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">All</option>
+                <option value="paid">Paid only</option>
+                <option value="due">Due only</option>
+              </select>
+            </div>
+            <Button type="submit" size="sm" variant="outline">Filter</Button>
+          </form>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="pb-2">Date</th>
+                  <th className="pb-2">Description</th>
+                  <th className="pb-2">Category</th>
+                  <th className="pb-2">Vendor</th>
+                  <th className="pb-2">Amount</th>
+                  <th className="pb-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {expenses.map((e) => (
+                  <tr key={e.id} className="border-t">
+                    <td className="py-2">{formatDate(e.spentAt)}</td>
+                    <td className="py-2">{e.description}</td>
+                    <td className="py-2 text-xs">
+                      {e.category.name}
+                      <Badge variant="outline" className="ml-1 text-[10px] uppercase">{e.category.group}</Badge>
+                    </td>
+                    <td className="py-2 text-xs">{e.vendor?.name ?? "—"}</td>
+                    <td className="py-2 font-mono">{inr(e.amount)}</td>
+                    <td className="py-2">
+                      <Badge variant={e.paid ? "success" : "warning"}>{e.paid ? "paid" : "due"}</Badge>
+                    </td>
+                  </tr>
+                ))}
+                {expenses.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                      No expenses match these filters.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

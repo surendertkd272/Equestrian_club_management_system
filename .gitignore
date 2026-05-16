@@ -1,0 +1,15 @@
+node_modules
+.next
+.env
+.env.local
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+prisma/dev.db
+prisma/dev.db-journal
+prisma/migrations/dev/
+.vercel
+.turbo
+# Local-fs uploads (dev only; prod uses S3/R2 — see lib/storage.ts)
+public/uploads/*
+!public/uploads/.gitkeep

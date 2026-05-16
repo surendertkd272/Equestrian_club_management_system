@@ -1,0 +1,169 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+
+export function NewHorseForm() {
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    breed: "",
+    sex: "gelding",
+    ageYears: "",
+    heightHh: "",
+    microchip: "",
+    ownership: "club",
+    stableNo: "",
+    diet: "",
+    // Insurance — all optional
+    insurerName: "",
+    insurancePolicyNo: "",
+    insurancePremium: "",
+    insuranceValidFrom: "",
+    insuranceValidTo: "",
+  });
+
+  function set<K extends keyof typeof form>(k: K, v: string) {
+    setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    const payload: any = { ...form };
+    if (form.ageYears === "") delete payload.ageYears;
+    if (form.heightHh === "") delete payload.heightHh;
+    if (form.insurancePremium === "") delete payload.insurancePremium;
+    for (const k of ["insurerName", "insurancePolicyNo", "insuranceValidFrom", "insuranceValidTo"]) {
+      if (payload[k] === "") delete payload[k];
+    }
+    const res = await fetch("/api/horses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.error ?? "Failed");
+      return;
+    }
+    const data = await res.json();
+    toast.success("Horse added");
+    router.push(`/horses/${data.id}`);
+    router.refresh();
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label>Name *</Label>
+          <Input required value={form.name} onChange={(e) => set("name", e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Breed</Label>
+          <Input value={form.breed} onChange={(e) => set("breed", e.target.value)} placeholder="Marwari, Sindhi…" />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Sex</Label>
+          <Select value={form.sex} onChange={(e) => set("sex", e.target.value)}>
+            <option value="mare">Mare</option>
+            <option value="gelding">Gelding</option>
+            <option value="stallion">Stallion</option>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Age (years)</Label>
+          <Input
+            type="number"
+            min={0}
+            max={50}
+            value={form.ageYears}
+            onChange={(e) => set("ageYears", e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Height (hh)</Label>
+          <Input
+            type="number"
+            step="0.1"
+            min={8}
+            max={20}
+            value={form.heightHh}
+            onChange={(e) => set("heightHh", e.target.value)}
+            placeholder="15.1"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Ownership</Label>
+          <Select value={form.ownership} onChange={(e) => set("ownership", e.target.value)}>
+            <option value="club">Club</option>
+            <option value="private">Private</option>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Stable #</Label>
+          <Input value={form.stableNo} onChange={(e) => set("stableNo", e.target.value)} placeholder="A1" />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Microchip</Label>
+          <Input value={form.microchip} onChange={(e) => set("microchip", e.target.value)} />
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label>Dietary notes</Label>
+        <Textarea
+          value={form.diet}
+          onChange={(e) => set("diet", e.target.value)}
+          placeholder="2 kg pellets twice daily, no oats…"
+        />
+      </div>
+
+      <fieldset className="rounded-md border p-3">
+        <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Insurance (optional)
+        </legend>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label>Insurer</Label>
+            <Input value={form.insurerName} onChange={(e) => set("insurerName", e.target.value)} placeholder="Bajaj Allianz" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Policy #</Label>
+            <Input value={form.insurancePolicyNo} onChange={(e) => set("insurancePolicyNo", e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Annual premium (₹)</Label>
+            <Input
+              type="number"
+              min={0}
+              value={form.insurancePremium}
+              onChange={(e) => set("insurancePremium", e.target.value)}
+            />
+          </div>
+          <div /> {/* spacer */}
+          <div className="space-y-1.5">
+            <Label>Valid from</Label>
+            <Input type="date" value={form.insuranceValidFrom} onChange={(e) => set("insuranceValidFrom", e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Valid to</Label>
+            <Input type="date" value={form.insuranceValidTo} onChange={(e) => set("insuranceValidTo", e.target.value)} />
+          </div>
+        </div>
+      </fieldset>
+
+      <Button type="submit" disabled={saving} className="w-full">
+        {saving ? "Adding…" : "Add horse"}
+      </Button>
+    </form>
+  );
+}

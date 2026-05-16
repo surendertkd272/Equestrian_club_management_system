@@ -1,0 +1,99 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
+import { can } from "@/lib/permissions";
+import { updateTaskSchema } from "@/lib/schemas/task";
+import { audit } from "@/lib/audit";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
+
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
+
+  const body = await req.json().catch(() => null);
+  const parsed = updateTaskSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
+  }
+  const d = parsed.data;
+
+  const task = await prisma.task.findUnique({ where: { id: params.id } });
+  if (!task) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  if (session.role !== "SUPER_ADMIN" && task.centreId !== session.centreId) {
+    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  }
+
+  // Field edits (title/description/dueAt/reassign) require task.assign.
+  // Status flips and proof attachments require task.complete OR the assignee themselves OR task.assign.
+  const isAssignee = task.assigneeId && task.assigneeId === session.userId;
+  const isCompleteOnly =
+    (d.status !== undefined || d.proofUrl !== undefined) &&
+    d.title === undefined &&
+    d.description === undefined &&
+    d.assigneeId === undefined &&
+    d.dueAt === undefined;
+
+  if (isCompleteOnly) {
+    if (!(isAssignee || can(session.role, "task.complete") || can(session.role, "task.assign"))) {
+      return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+    }
+  } else {
+    if (!can(session.role, "task.assign")) {
+      return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+    }
+  }
+
+  if (d.assigneeId !== undefined && d.assigneeId !== null) {
+    const u = await prisma.user.findUnique({ where: { id: d.assigneeId } });
+    if (!u || u.centreId !== task.centreId) {
+      return NextResponse.json({ error: "INVALID_ASSIGNEE" }, { status: 400 });
+    }
+  }
+
+  const updated = await prisma.task.update({
+    where: { id: task.id },
+    data: {
+      ...(d.title !== undefined ? { title: d.title } : {}),
+      ...(d.description !== undefined ? { description: d.description || null } : {}),
+      ...(d.assigneeId !== undefined ? { assigneeId: d.assigneeId } : {}),
+      ...(d.dueAt !== undefined ? { dueAt: d.dueAt ? new Date(d.dueAt) : null } : {}),
+      ...(d.status !== undefined ? { status: d.status } : {}),
+      ...(d.proofUrl !== undefined ? { proofUrl: d.proofUrl } : {}),
+    },
+  });
+
+  await audit({
+    userId: session.userId,
+    action: d.status ? `task.${d.status}` : "task.update",
+    tableName: "task",
+    rowId: task.id,
+    before: task,
+    after: updated,
+  });
+
+  return NextResponse.json({ ok: true, status: updated.status });
+}
+
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  if (!can(session.role, "task.assign")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+
+  const task = await prisma.task.findUnique({ where: { id: params.id } });
+  if (!task) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  if (session.role !== "SUPER_ADMIN" && task.centreId !== session.centreId) {
+    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  }
+
+  await prisma.task.delete({ where: { id: task.id } });
+  await audit({
+    userId: session.userId,
+    action: "delete",
+    tableName: "task",
+    rowId: task.id,
+    before: task,
+  });
+  return NextResponse.json({ ok: true });
+}

@@ -1,0 +1,110 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+
+type Config = {
+  legalName: string;
+  gstin: string | null;
+  hsnCode: string | null;
+  panNo: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  state: string | null;
+  pincode: string | null;
+  country: string;
+  billingEmail: string | null;
+  supportEmail: string | null;
+  invoicePrefix: string;
+  defaultTaxBps: number;
+};
+
+export function BillingConfigForm({ initial }: { initial: Config }) {
+  const router = useRouter();
+  const [form, setForm] = useState(initial);
+  const [busy, setBusy] = useState(false);
+
+  function set<K extends keyof Config>(k: K, v: Config[K]) {
+    setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  async function save() {
+    setBusy(true);
+    const res = await fetch("/api/owner/platform-billing", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    setBusy(false);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      toast.error(data.error ?? "Failed");
+      return;
+    }
+    toast.success("Saved.");
+    router.refresh();
+  }
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <Field label="Legal entity name" value={form.legalName} onChange={(v) => set("legalName", v)} />
+      <Field label="GSTIN (15 chars)" value={form.gstin ?? ""} onChange={(v) => set("gstin", v || null)} placeholder="29ABCDE1234F1Z5" />
+      <Field label="HSN / SAC code" value={form.hsnCode ?? ""} onChange={(v) => set("hsnCode", v || null)} placeholder="9984" />
+      <Field label="PAN" value={form.panNo ?? ""} onChange={(v) => set("panNo", v || null)} placeholder="ABCDE1234F" />
+      <Field label="Address line 1" value={form.addressLine1 ?? ""} onChange={(v) => set("addressLine1", v || null)} />
+      <Field label="Address line 2" value={form.addressLine2 ?? ""} onChange={(v) => set("addressLine2", v || null)} />
+      <Field label="City" value={form.city ?? ""} onChange={(v) => set("city", v || null)} />
+      <Field label="State" value={form.state ?? ""} onChange={(v) => set("state", v || null)} placeholder="Karnataka" />
+      <Field label="Pincode" value={form.pincode ?? ""} onChange={(v) => set("pincode", v || null)} />
+      <Field label="Country" value={form.country} onChange={(v) => set("country", v)} />
+      <Field label="Billing email" value={form.billingEmail ?? ""} onChange={(v) => set("billingEmail", v || null)} type="email" />
+      <Field label="Support email" value={form.supportEmail ?? ""} onChange={(v) => set("supportEmail", v || null)} type="email" />
+      <Field label="Invoice prefix" value={form.invoicePrefix} onChange={(v) => set("invoicePrefix", v)} placeholder="EW" />
+      <div>
+        <Label className="text-xs text-slate-400">Default GST rate (basis points)</Label>
+        <Input
+          type="number"
+          value={form.defaultTaxBps}
+          onChange={(e) => set("defaultTaxBps", Number(e.target.value))}
+          className="border-slate-700 bg-slate-950 text-slate-100"
+        />
+        <div className="mt-1 text-xs text-slate-500">1800 = 18% (current SaaS GST rate in India)</div>
+      </div>
+      <div className="md:col-span-2 flex justify-end">
+        <Button onClick={save} disabled={busy}>{busy ? "Saving…" : "Save changes"}</Button>
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+}) {
+  return (
+    <div>
+      <Label className="text-xs text-slate-400">{label}</Label>
+      <Input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="border-slate-700 bg-slate-950 text-slate-100"
+      />
+    </div>
+  );
+}

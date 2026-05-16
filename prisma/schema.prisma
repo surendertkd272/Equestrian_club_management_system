@@ -1,0 +1,2443 @@
+// Equiwings Central Admin Panel — data model
+// Multi-tenant: every centre-scoped row carries centre_id.
+// Dev: SQLite. Prod: switch provider to "postgresql" and run prisma migrate.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// AUTH / TENANCY
+// ──────────────────────────────────────────────────────────────────────────
+
+model Organisation {
+  id        String   @id @default(cuid())
+  slug      String   @unique // URL identifier — e.g. "equiwings"
+  name      String
+  logoUrl   String?
+
+  // Lifecycle / billing (plan drives the feature set via lib/plans.ts)
+  status             String    @default("active") // active | trial | past_due | suspended
+  plan               String    @default("starter") // starter | pro | enterprise (lib/plans.ts)
+  contactName        String?
+  billingEmail       String?
+  phone              String?
+  trialEndsAt        DateTime?
+  onboardedAt        DateTime  @default(now())
+  // Offboarding lifecycle. When the owner schedules a tenant for
+  // decommission, offboardingScheduledAt + offboardingNotes are stamped
+  // and status moves to "offboarding". The sweep at lib/sweeps.ts hard-
+  // deletes everything after the grace period.
+  offboardingScheduledAt DateTime?
+  offboardingNotes       String?
+  offboardingScrubbedAt  DateTime?
+  // Stripe — columns staged for V1.1 wire-up; status is hand-flippable until then.
+  stripeCustomerId   String?
+  subscriptionStatus String?
+  currentPeriodEnd   DateTime?
+  // Razorpay Subscriptions — used in India where Stripe card recurring
+  // is unreliable. One subscription per org; status mirrors Razorpay
+  // states (created/authenticated/active/halted/cancelled).
+  razorpaySubscriptionId String?
+  razorpaySubscriptionStatus String?
+
+  // Custom domain — tenant points a CNAME (e.g. app.royalriders.com) at our
+  // host. SSL + DNS verification happen at the hosting layer; this column is
+  // metadata so the owner portal can record + display the alias. Null = the
+  // tenant uses the platform default host (with optional /t/<slug>/ prefix).
+  customDomain          String?   @unique
+  customDomainVerifiedAt DateTime?
+
+  settings  String? // JSON-as-text for SQLite portability
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Tenant's own billing identity — captured at onboarding so we can
+  // print compliant invoices on the SaaS subscription. State is the
+  // Indian state name (used to compute CGST+SGST vs IGST).
+  billingGstin   String?
+  billingState   String?
+  billingAddress String?
+
+  centres  Centre[]
+  features OrgFeature[]
+  saasInvoices SaasInvoice[]
+  // HQ users (typically SUPER_ADMIN) whose centreId is null — the org link
+  // is recorded here directly. Centre-scoped users find their org via the
+  // centre table instead.
+  hqUsers  User[]       @relation("HqUsers")
+}
+
+// Per-organisation feature toggle. Source of truth: if a row says enabled=true,
+// the feature shows up regardless of plan. Plan changes rewrite this table;
+// Enterprise can deviate (à-la-carte overrides), Starter/Pro can't.
+model OrgFeature {
+  orgId      String
+  featureKey String // see lib/features.ts
+  enabled    Boolean  @default(false)
+  enabledAt  DateTime @default(now())
+  enabledBy  String? // PlatformUser.id of the toggler
+
+  org Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@id([orgId, featureKey])
+  @@index([featureKey])
+}
+
+// Per-plan pricing + Razorpay plan IDs. One row per commercial tier
+// (starter / pro / enterprise) — keyed by plan name so the row id stays
+// stable across renames. The public /pricing page + the owner portal
+// both read from here. Razorpay plan IDs stored here override the env
+// fallback in lib/razorpay.ts → bumping prices no longer requires a
+// redeploy, only a Razorpay plan create + a paste into this table.
+//
+// The tagline + highlight columns power the marketing display; isVisible
+// lets the owner hide a tier temporarily without losing the config.
+model PlatformPricing {
+  key                   String   @id // "starter" | "pro" | "enterprise"
+  label                 String   @default("")
+  tagline               String   @default("")
+  // Display ₹ amounts. annualInrPerMonth is the price shown when "billed
+  // annually" — typical ~15-20% discount vs monthlyInr.
+  monthlyInr            Int      @default(0)
+  annualInrPerMonth     Int      @default(0)
+  // Marketing flags.
+  highlight             Boolean  @default(false)
+  isVisible             Boolean  @default(true)
+  // Razorpay plan IDs — owner sets after creating the plans in their
+  // dashboard. Empty string falls back to the env var of the same name.
+  razorpayPlanIdMonthly String?
+  razorpayPlanIdAnnual  String?
+  sortOrder             Int      @default(0)
+  updatedAt             DateTime @updatedAt
+  updatedBy             String?
+}
+
+// Single-row config table for the SaaS provider's own billing identity.
+// Stores the legal entity name, GSTIN, HSN/SAC, registered address,
+// invoice prefix, and currency — used when we issue invoices to tenants
+// for the SaaS subscription itself (NOT the per-tenant invoices to
+// riders). One row is expected; we use a fixed id="default" so upserts
+// stay simple. Owner-portal-managed; read-only to tenants.
+model PlatformBillingConfig {
+  id              String   @id @default("default")
+  legalName       String   @default("Equiwings Technologies Pvt Ltd")
+  gstin           String?  // e.g. 29ABCDE1234F1Z5 — 15 chars
+  hsnCode         String?  @default("9984") // SAC for "Education services" (sample default)
+  panNo           String?  // standalone PAN for non-GST invoices
+  addressLine1    String?
+  addressLine2    String?
+  city            String?
+  state           String?
+  pincode         String?
+  country         String   @default("IN")
+  // Billing email + support email shown on invoices and in welcome flows.
+  billingEmail    String?
+  supportEmail    String?
+  // Invoice numbering. Prefix + zero-padded counter — bumped atomically
+  // each time the platform issues an invoice. Format: EW-2026-000123.
+  invoicePrefix   String   @default("EW")
+  invoiceCounter  Int      @default(0)
+  // Default tax rate in basis points (1800 = 18%). India's standard GST
+  // on SaaS services is 18% in 2026; legal entity / customer state may
+  // require IGST vs CGST+SGST split — the actual invoice-time calc lives
+  // in lib/saas-billing.ts and reads this default.
+  defaultTaxBps   Int      @default(1800)
+  updatedAt       DateTime @updatedAt
+  updatedBy       String?
+}
+
+// Platform-to-tenant invoice. Generated when a tenant is charged for the
+// SaaS subscription (monthly/annual). Mirrors the structure of the
+// tenant-internal Invoice table but lives on the platform side so the
+// totals never get mixed with tenant revenue. GST is computed at issue
+// time from PlatformBillingConfig.defaultTaxBps + the tenant's state.
+// Platform-wide announcements. The owner publishes them; every tenant
+// dashboard renders the latest non-dismissed entries. Use sparingly —
+// each one shows up at the top of the dashboard until the user dismisses.
+// Targeted via planFilter / roleFilter (CSV; "*" or null = everyone).
+model Announcement {
+  id           String   @id @default(cuid())
+  title        String
+  body         String
+  // Optional CTA link rendered as a button on the dashboard card.
+  ctaLabel     String?
+  ctaHref      String?
+  severity     String   @default("info") // info | success | warning | maintenance
+  planFilter   String?  // CSV of plan keys, e.g. "starter,pro" — null = all
+  roleFilter   String?  // CSV of tenant roles — null = all
+  publishedAt  DateTime?
+  expiresAt    DateTime?
+  createdBy    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  dismissals   AnnouncementDismissal[]
+
+  @@index([publishedAt, expiresAt])
+}
+
+// Per-user dismissal tracking so the same announcement doesn't re-appear
+// after a "Got it" click. Composite primary key (userId, announcementId).
+model AnnouncementDismissal {
+  userId         String
+  announcementId String
+  dismissedAt    DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@id([userId, announcementId])
+  @@index([announcementId])
+}
+
+// Net Promoter Score / qualitative feedback. Captured via the in-app
+// widget; surfaces in the owner portal aggregate dashboard.
+model NpsResponse {
+  id        String   @id @default(cuid())
+  userId    String?  // null when the user is no longer reachable (deletion sweep)
+  orgId     String?
+  score     Int      // 0–10
+  comment   String?
+  context   String?  // free-text page slug or feature name
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, createdAt])
+  @@index([score])
+}
+
+model SaasInvoice {
+  id              String   @id @default(cuid())
+  orgId           String
+  number          String   @unique // e.g. EW-2026-000123
+  periodStart     DateTime
+  periodEnd       DateTime
+  plan            String   // starter | pro | enterprise — snapshot
+  // Amounts in INR rupees. Subtotal + tax = total. We snapshot the line
+  // text so a later plan rename doesn't retroactively mutate old invoices.
+  description     String
+  subtotal        Int
+  taxBps          Int      // 1800 = 18%
+  taxAmount       Int
+  total           Int
+  currency        String   @default("INR")
+  // Tenant-side billing snapshot at issue time (frozen).
+  billingName     String?
+  billingGstin    String?
+  billingEmail    String?
+  billingState    String?
+  // Status: due → paid (via Stripe/Razorpay) or void (manually cancelled).
+  status          String   @default("due") // due | paid | void
+  issuedAt        DateTime @default(now())
+  paidAt          DateTime?
+  // External payment ref — Razorpay subscription id or Stripe invoice id.
+  externalRef     String?
+  pdfUrl          String?
+
+  org Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, issuedAt])
+  @@index([status, issuedAt])
+}
+
+// Platform team — runs the owner portal. Separate auth domain (separate cookie,
+// separate session) from tenant Users to prevent any chance of cross-leak.
+// Roles: OWNER_ADMIN (full), OWNER_EDITOR (no billing / no suspend), OWNER_BILLING.
+model PlatformUser {
+  id           String   @id @default(cuid())
+  role         String   @default("OWNER_ADMIN") // OWNER_ADMIN | OWNER_EDITOR | OWNER_BILLING
+  name         String
+  email        String   @unique
+  passwordHash String
+  status       String   @default("active") // active | suspended
+  twoFactor    Boolean  @default(false)
+  // Base32-encoded TOTP shared secret. Populated by /owner/account/security
+  // enrollment; cleared when the user disables 2FA.
+  totpSecret   String?
+  // Replay protection — counter step of the last accepted TOTP code. A
+  // second login attempt with the same code (within the ±1 step window)
+  // is rejected because it can't strictly increase this number.
+  totpLastStep BigInt?
+  // SHA-256 hashes of one-shot recovery codes. JSON array. Used as a
+  // fallback when the user has lost their authenticator. Each entry is
+  // removed when consumed so no code is reusable.
+  totpRecoveryCodesJson String?
+  // Same purpose as User.tokenVersion — bumped on password reset / 2FA
+  // disable / "sign out everywhere" to invalidate any active owner session.
+  tokenVersion Int @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  auditLogs           PlatformAuditLog[]
+  passwordResetTokens OwnerPasswordResetToken[]
+}
+
+// Audit trail for platform-team actions only (separate from tenant AuditLog so
+// the two streams never get mixed and either can be exported independently).
+model PlatformAuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String // owner.tenant_created | owner.plan_changed | owner.feature_toggled | owner.tenant_suspended | ...
+  orgId     String? // target org, when applicable
+  before    String?
+  after     String?
+  ip        String?
+  userAgent String?
+  at        DateTime @default(now())
+
+  actor PlatformUser? @relation(fields: [actorId], references: [id])
+
+  @@index([orgId, at])
+  @@index([at])
+}
+
+model Centre {
+  id        String   @id @default(cuid())
+  orgId     String
+  name      String
+  slug      String   @unique
+  address   String?
+  gstNo     String?
+  managerId String?
+  settings  String?
+  // PDF §3 — Emergency Contact Board. JSON array of
+  // { label, number, type } so each centre lists its on-call vet, nearest
+  // equine hospital, ambulance, electricity / water emergency, etc.
+  emergencyContactsJson String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org              Organisation     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  users            User[]
+  riders           Rider[]
+  staff            Staff[]
+  batches          Batch[]
+  horses           Horse[]
+  assets           Asset[]
+  medicines        Medicine[]
+  tasks            Task[]
+  facilities       Facility[]
+  competitions     Competition[]
+  feePlans         FeePlan[]
+  invoices         Invoice[]
+  certificates     Certificate[]
+  assessments      Assessment[]
+  progressLevels   ProgressLevel[]
+  exams            Exam[]
+  examSittings     ExamSitting[]
+  scoringTemplates ScoringTemplate[]
+  staffAttendances StaffAttendance[]
+  leaveRequests    LeaveRequest[]
+  equipmentStocks  EquipmentStock[]
+  events           Event[]
+  vendors          Vendor[]
+  expenses         Expense[]
+  lessons          Lesson[]
+  feedPlans        FeedPlan[]
+}
+
+// Role is a string union enforced at the app layer (see lib/roles.ts).
+// SQLite doesn't support Prisma enums; on Postgres you can convert this to a native enum.
+
+model User {
+  id           String   @id @default(cuid())
+  centreId     String?  // null for HQ super admins
+  // Explicit org binding for HQ users whose centreId is null (SUPER_ADMIN).
+  // Centre-scoped users derive their org via centre.orgId; the column is
+  // optional so existing rows pre-backfill continue to work. New
+  // SUPER_ADMIN provisioning sets this; tenancy checks (suspended-tenant
+  // block, owner impersonation belongs-check) prefer it when present and
+  // fall back to centre.orgId when absent.
+  orgId        String?
+  role         String   // Role (lib/roles.ts)
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String
+  status       String   @default("active") // active | suspended
+  twoFactor    Boolean  @default(false)
+  // TOTP secret for tenant-side 2FA. Same shape as PlatformUser TOTP
+  // (base32-encoded shared secret, last-step replay protection,
+  // hashed recovery codes). Cleared when the user disables 2FA.
+  totpSecret               String?
+  totpLastStep             BigInt?
+  totpRecoveryCodesJson    String?
+  // DPDPA Section 12 right-to-erasure. When set, the user has formally
+  // requested account deletion. A 30-day grace window lets the user
+  // cancel — the sweep at lib/sweeps.ts:sweepDpdpaDeletions hard-deletes
+  // after the grace expires. While in this state the session is killed
+  // (getSession sees status≠active via the deletion gate) and the user
+  // can sign in only to cancel the request.
+  deletionRequestedAt DateTime?
+  // Email-verification gate. Null when a verified email is on file
+  // (legacy rows + admin-created users with status="active" treated as
+  // verified). Non-null = pending: the verifyEmailToken row is the active
+  // proof and certain sensitive ops (impersonation target, password
+  // reset trigger) are blocked until verification.
+  emailVerifiedAt DateTime?
+  // Set true whenever HQ generates a temp password (create / reset). The
+  // session middleware forces the user through /account/rotate on next sign-in
+  // before reaching any other page. Cleared once they pick a new password.
+  mustChangePassword Boolean @default(false)
+  // Monotonic counter embedded in every JWT for this user. Incrementing
+  // invalidates every active session for the user at once — used on
+  // password reset / "sign out everywhere". Without this, a stolen JWT
+  // cookie remains valid until expiry even after a forced password change.
+  tokenVersion Int @default(0)
+  // Per-user notification delivery preferences. JSON shape:
+  //   { inApp: true, email: true, sms: false, whatsapp: true,
+  //     quietHoursStart: "22:00", quietHoursEnd: "07:00" }
+  // Missing fields fall back to safe defaults in lib/notify-prefs.ts.
+  notifPrefsJson String?
+  // Avatar URL, served from the upload route. Empty falls back to initials.
+  photoUrl     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  centre   Centre?  @relation(fields: [centreId], references: [id])
+  org      Organisation? @relation("HqUsers", fields: [orgId], references: [id])
+  rider    Rider?
+  staff    Staff?
+
+  auditLogs        AuditLog[]
+  notifications    Notification[]
+  staffAttendances StaffAttendance[]
+  leaveRequests    LeaveRequest[]
+  parentLinks      ParentLink[]
+  passwordResetTokens PasswordResetToken[]
+  emailVerifyTokens EmailVerifyToken[]
+  announcementDismissals AnnouncementDismissal[]
+  npsResponses           NpsResponse[]
+}
+
+// Public forgot-password flow. We mint a SHA-256-hashed token on request;
+// the email/SMS carries the plaintext. The unhashed value is never stored.
+// Single-use: tokenUsedAt flips on first redeem. 30-min expiry by default.
+model PasswordResetToken {
+  id          String   @id @default(cuid())
+  userId      String
+  // SHA-256 of the plaintext token. We compare a fresh hash of the inbound
+  // value against this column at redeem time.
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  requestedIp String?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+// Email verification token. Same shape as PasswordResetToken — SHA-256
+// hashed, single-use, 7-day TTL. Issued at user creation (super-admin
+// onboarding + new admin-created users) and on email-change requests.
+// Verification flips User.emailVerifiedAt and consumes the row.
+model EmailVerifyToken {
+  id        String   @id @default(cuid())
+  userId    String
+  email     String   // snapshot of the address being verified (in case it changes mid-flow)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+// Same shape as PasswordResetToken but for PlatformUser (owner portal). Kept
+// as a separate model so the FK constraint can cascade properly and the two
+// auth domains never share table state.
+model OwnerPasswordResetToken {
+  id          String   @id @default(cuid())
+  ownerId     String
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  requestedIp String?
+  createdAt   DateTime @default(now())
+
+  owner PlatformUser @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, expiresAt])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// RIDERS (AMS §4.1)
+// ──────────────────────────────────────────────────────────────────────────
+
+model Rider {
+  id             String    @id @default(cuid())
+  centreId       String
+  userId         String?   @unique
+  // Personal
+  firstName      String
+  lastName       String
+  photoUrl       String?
+  dob            DateTime
+  placeOfBirth   String?
+  nationality    String?
+  gender         String?   // male | female | other
+  maritalStatus  String?
+  // ID
+  aadhaarNo      String?   // store last4 in UI; encrypt full at rest in prod
+  aadhaarDocUrl  String?
+  // Contact
+  mobile         String
+  email          String?
+  // Preferred language for parent communications (SMS / WhatsApp / email).
+  // Two-letter ISO 639-1 code; lib/sms.ts looks up the matching template
+  // body in lib/i18n-sms.ts. Defaults to "en" when null.
+  preferredLanguage String?  // en | hi | ta | te | bn | mr | gu | kn | ml | pa
+  school         String?   // PRD §4 Module 1 — name of the rider's school
+  education      String?
+  occupation     String?
+  // Address
+  addressPresent   String?
+  addressPermanent String?
+  pincode          String?
+  // Parents
+  fatherName     String?
+  fatherPhone    String?
+  motherName     String?
+  motherPhone    String?
+  // Emergency
+  emergencyName  String?
+  emergencyPhone String?
+  // Anthropometrics
+  heightCm       Float?
+  weightKg       Float?
+  bmi            Float?
+  // Medical
+  medicalNotes   String?
+  allergies      String?
+  // Riding profile
+  currentLevel   String?   // links logically to ProgressLevel.name
+  joiningDate    DateTime  @default(now())
+  batchId        String?
+  coachId        String?
+  // Indemnity (audit trail)
+  indemnitySignedAt   DateTime?
+  indemnitySignerIp   String?
+  indemnitySignerUa   String?
+  indemnityDocUrl     String?
+  // DPDPA Section 9 — verifiable parental consent for minors. Captured at
+  // registration when dob makes the rider < 18. Stored together as one
+  // JSON blob so the audit trail keeps the exact wording the parent
+  // agreed to (the text changes when ToS rev bumps). Schema:
+  //   { signedAt, parentName, parentRelation, parentPhone, ip, ua,
+  //     consentText: "...", consentVersion: "v1" }
+  // Null for adult riders or pre-DPDPA records.
+  parentalConsentJson String?
+  // Status
+  status         String    @default("pending_payment") // pending_payment | active | suspended | cancelled
+  registrationPaid Boolean @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  centre   Centre @relation(fields: [centreId], references: [id])
+  user     User?  @relation(fields: [userId], references: [id])
+  batch    Batch? @relation(fields: [batchId], references: [id])
+  attendances Attendance[]
+  invoices    Invoice[]
+  skillStatus RiderSkillStatus[]
+  certificates Certificate[]
+  competitionEntries CompetitionEntry[]
+  horseAllocations HorseAllocation[]
+  exams       Exam[]
+  parentLinks ParentLink[]
+  eventRegistrations EventRegistration[]
+  accreditations Accreditation[]
+
+  @@index([centreId])
+  @@index([batchId])
+  @@index([status])
+}
+
+model Batch {
+  id        String  @id @default(cuid())
+  centreId  String
+  name      String
+  dayOfWeek String  // CSV: "Mon,Wed,Fri"
+  startTime String  // "06:00"
+  endTime   String  // "07:00"
+  coachId   String?
+  level     String?
+  createdAt DateTime @default(now())
+
+  centre   Centre  @relation(fields: [centreId], references: [id])
+  riders   Rider[]
+  attendances Attendance[]
+  lessons  Lesson[]
+
+  @@index([centreId])
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  riderId   String
+  batchId   String
+  date      DateTime
+  status    String   // present | absent | late | excused
+  reason    String?
+  markedBy  String?
+  markedAt  DateTime @default(now())
+
+  rider Rider @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  batch Batch @relation(fields: [batchId], references: [id])
+
+  @@unique([riderId, batchId, date])
+  @@index([date])
+}
+
+// A specific instance of a Batch on a given date. Batches define the
+// recurring slot (Mon/Wed/Fri 6–7am with this coach); Lesson is the
+// concrete session that happens at a specific date. Lessons let us
+// cancel/reschedule a single occurrence, swap coach for one day, mark
+// the session complete, and bind per-rider horse allocations to the
+// session — none of which the static Batch row can model.
+model Lesson {
+  id        String   @id @default(cuid())
+  centreId  String
+  batchId   String?  // null when the lesson was created ad-hoc (make-up, clinic)
+  date      DateTime // the date+start time of the session
+  endAt     DateTime
+  coachId   String?  // overrides batch.coachId for this one session
+  status    String   @default("scheduled") // scheduled | completed | cancelled | rescheduled
+  notes     String?
+  // When status=rescheduled, points at the make-up Lesson that replaces it.
+  rescheduledToId String?
+  createdBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  centre Centre @relation(fields: [centreId], references: [id])
+  batch  Batch? @relation(fields: [batchId], references: [id])
+  allocations HorseAllocation[]
+
+  @@index([centreId, date])
+  @@index([batchId, date])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// PROGRESS & ASSESSMENTS (AMS §4.3, §4.4)
+// ──────────────────────────────────────────────────────────────────────────
+
+model ProgressLevel {
+  id        String @id @default(cuid())
+  centreId  String
+  name      String
+  order     Int
+  centre    Centre @relation(fields: [centreId], references: [id])
+  skills    Skill[]
+  assessments Assessment[]
+
+  @@unique([centreId, name])
+}
+
+model Skill {
+  id          String @id @default(cuid())
+  levelId     String
+  discipline  String  // normal | gymkhana | dressage | tent_pegging | endurance | jumping
+  name        String
+  description String?
+
+  level   ProgressLevel @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  riderStatus RiderSkillStatus[]
+}
+
+model RiderSkillStatus {
+  riderId    String
+  skillId    String
+  status     String   // not_started | in_progress | mastered
+  coachNotes String?
+  videoUrl   String?
+  updatedAt  DateTime @updatedAt
+
+  rider Rider @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([riderId, skillId])
+}
+
+model Assessment {
+  id          String   @id @default(cuid())
+  centreId    String
+  levelId     String?
+  type        String   // theory | practical | oral | stable_mgmt
+  scheduledAt DateTime
+  examinerId  String?
+  horseId     String?
+  facilityId  String?
+  status      String   @default("scheduled") // scheduled | completed | cancelled
+
+  centre Centre         @relation(fields: [centreId], references: [id])
+  level  ProgressLevel? @relation(fields: [levelId], references: [id])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// STAFF (CMS §4.8)
+// ──────────────────────────────────────────────────────────────────────────
+
+model Staff {
+  id           String   @id @default(cuid())
+  centreId     String
+  userId       String   @unique
+  role         String   // Role (lib/roles.ts)
+  joiningDate  DateTime @default(now())
+  kycDocsJson  String?
+  salaryBand   String?
+  status       String   @default("active")
+
+  centre Centre @relation(fields: [centreId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([centreId])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// HORSES & FACILITIES (CMS §4.13, §4.16)
+// ──────────────────────────────────────────────────────────────────────────
+
+model Horse {
+  id          String   @id @default(cuid())
+  centreId    String
+  name        String
+  breed       String?
+  sex         String?
+  ageYears    Int?
+  heightHh    Float?
+  microchip   String?
+  ownership   String?  // club | private
+  // PDF §4 "Insurance Records" — structured fields rather than just a URL.
+  // Expiry is surfaced via lib/sweeps.ts so the manager gets a heads-up
+  // before the policy lapses.
+  insuranceDocUrl     String?
+  insurerName         String?
+  insurancePolicyNo   String?
+  insurancePremium    Float?   // INR
+  insuranceValidFrom  DateTime?
+  insuranceValidTo    DateTime?
+  stableNo    String?
+  diet        String?
+  status      String   @default("active") // active | rest | retired
+  createdAt   DateTime @default(now())
+
+  centre      Centre @relation(fields: [centreId], references: [id])
+  allocations HorseAllocation[]
+  usages      MedicineUsage[]
+  farrierVisits      FarrierVisit[]
+  healthLogs         HorseHealthLog[]
+  injuries           InjuryLog[]
+  vaccinationSchedules VaccinationSchedule[]
+  feedPlan             FeedPlan?
+  vetChecks            VetCheck[]
+
+  @@index([centreId])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// COURSES & STAFF CERTIFICATIONS (PRD — Groom/Coach Management & Courses)
+// ──────────────────────────────────────────────────────────────────────────
+// Internal training programmes a club runs for its own staff — e.g. "Groom
+// Level 1", "Stable Safety Refresher". Each Course has enrolments (which staff
+// signed up) and certifications (who passed, when, valid-until).
+model Course {
+  id           String   @id @default(cuid())
+  centreId     String
+  title        String
+  description  String?
+  targetRoles  String?  // CSV of Role keys this course is aimed at
+  durationHrs  Int?
+  passingMark  Int?     // optional pct
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  enrolments     CourseEnrolment[]
+  certifications StaffCertification[]
+
+  @@index([centreId, active])
+}
+
+model CourseEnrolment {
+  id         String   @id @default(cuid())
+  courseId   String
+  userId     String   // staff user
+  startedAt  DateTime @default(now())
+  finishedAt DateTime?
+  status     String   @default("enrolled") // enrolled | in_progress | completed | dropped
+  finalMark  Int?     // 0–100
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, userId])
+  @@index([userId, status])
+}
+
+// Issued certificate of completion. Decoupled from CourseEnrolment so we can
+// also record external certifications (BHS / EFI / EQ-IND etc) by leaving
+// courseId null and filling in issuer fields.
+model StaffCertification {
+  id           String   @id @default(cuid())
+  centreId     String
+  userId       String
+  courseId     String?
+  title        String
+  issuer       String?  // external issuer name when courseId is null
+  serialNo     String?  @unique
+  issuedAt     DateTime @default(now())
+  validUntil   DateTime?
+  fileUrl      String?
+
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
+  @@index([centreId, userId])
+  @@index([validUntil])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// FACILITY BOOKING (PRD — Exam Logistics & Scheduling)
+// ──────────────────────────────────────────────────────────────────────────
+// A facility (indoor arena, outdoor arena, classroom) booked for a window.
+// Insert enforces no overlap per (facilityId × [startAt, endAt)).
+model FacilityBooking {
+  id          String   @id @default(cuid())
+  facilityId  String
+  centreId    String
+  purpose     String   // exam | competition | lesson | maintenance | other
+  refType     String?  // exam | competition | task | other (free-text)
+  refId       String?  // foreign key into the referencing module
+  title       String
+  startAt     DateTime
+  endAt       DateTime
+  createdBy   String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([facilityId, startAt])
+  @@index([centreId, startAt])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// APPROVAL WORKFLOW
+// ──────────────────────────────────────────────────────────────────────────
+// Generic multi-step approval queue. Today wired to high-value asset
+// issuances + (future) PO requests, but the entityType / entityId free-text
+// pattern means we can hang it off anything without bloating Asset.
+model ApprovalRequest {
+  id            String   @id @default(cuid())
+  centreId      String
+  entityType    String   // asset_issuance | po_request | event_expense | ...
+  entityId      String   // free-text id into the originating table
+  title         String
+  body          String?
+  requestedBy   String   // user.id
+  status        String   @default("pending") // pending | approved | rejected | cancelled
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  reviewNotes   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([centreId, status])
+  @@index([entityType, entityId])
+  @@index([requestedBy])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// CONSUMABLES INVENTORY (PDF §2 — Wound & Bandaging Supplies)
+// ──────────────────────────────────────────────────────────────────────────
+// Separate from Asset (durable, one row per physical item) and Medicine
+// (regulated drugs with batch + expiry tracking). Consumables are stuff like
+// gauze, vet wrap, cotton, disposable gloves, bandage scissors — usage drops
+// the count, reorder threshold triggers a sweep notification.
+model Consumable {
+  id               String   @id @default(cuid())
+  centreId         String
+  name             String   // "Sterile gauze pad — 10x10cm"
+  category         String   // bandage | dressing | hygiene | tool | other
+  unit             String   // "pad" | "roll" | "bottle" | "pack" | "pair" | "each"
+  qty              Int      @default(0)
+  reorderThreshold Int      @default(10)
+  supplier         String?
+  storageLocation  String?
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  movements ConsumableMovement[]
+
+  @@index([centreId, category])
+  @@index([centreId, qty])
+}
+
+// Stock movements — in (purchase), out (used), adjust (correction, theft, etc).
+// Provides an audit-able usage history per item.
+model ConsumableMovement {
+  id           String   @id @default(cuid())
+  consumableId String
+  direction    String   // in | out | adjust
+  qty          Int      // positive integer; direction encodes sign
+  reason       String?  // "first-aid kit refill", "stock count correction"
+  byUserId     String?
+  at           DateTime @default(now())
+
+  consumable Consumable @relation(fields: [consumableId], references: [id], onDelete: Cascade)
+
+  @@index([consumableId, at])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// COMPETITION OPERATIONS (PDF §4 — Event Operations)
+// ──────────────────────────────────────────────────────────────────────────
+// Four small models that flesh out the existing Competition flow:
+//   StartListEntry  — running order per class on event day
+//   PrizeAward      — what was awarded for each placement
+//   Sponsor         — who funded the event + their contribution
+// "Draw of lots" is handled inline: a single Competition-level boolean
+// (`drawCompleted`) plus per-entry `drawOrder`. No separate table needed.
+
+model StartListEntry {
+  id            String   @id @default(cuid())
+  competitionId String
+  className     String   // matches a class in classesJson
+  entryId       String   // FK into CompetitionEntry
+  order         Int      // 1, 2, 3, ... within (competitionId, className)
+  drawnAt       DateTime @default(now())
+
+  competition Competition      @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  entry       CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@unique([competitionId, className, order])
+  @@unique([competitionId, className, entryId])
+  @@index([competitionId, className])
+}
+
+model PrizeAward {
+  id            String   @id @default(cuid())
+  competitionId String
+  className     String
+  placement     Int      // 1 = gold, 2 = silver, 3 = bronze
+  title         String   // "Winner", "Runner-up", "Best Junior", etc.
+  cashAmount    Float?   // INR
+  trophyLabel   String?
+  sponsoredById String?  // optional — points at a Sponsor row
+  notes         String?
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  sponsor     Sponsor?    @relation(fields: [sponsoredById], references: [id], onDelete: SetNull)
+
+  @@unique([competitionId, className, placement])
+  @@index([competitionId])
+}
+
+model Sponsor {
+  id            String   @id @default(cuid())
+  competitionId String
+  name          String
+  tier          String   // title | platinum | gold | silver | bronze | partner
+  contactName   String?
+  contactPhone  String?
+  contactEmail  String?
+  contribution  Float?   // INR
+  notes         String?
+  logoUrl       String?
+
+  competition Competition  @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  prizes      PrizeAward[]
+
+  @@index([competitionId, tier])
+}
+
+// PDF §4 — Farrier Schedule. One row per visit (past or planned). Combined
+// with the FARRIER role + farriery feature flag this completes the spec.
+// `scheduledAt` is when the visit is *planned*; `completedAt` records when it
+// actually happened. `farrierName` is denormalised so historical visits
+// survive a farrier leaving the club.
+model FarrierVisit {
+  id           String   @id @default(cuid())
+  centreId     String
+  horseId      String
+  farrierName  String
+  farrierUserId String? // null for external farriers we don't onboard as users
+  scheduledAt  DateTime
+  completedAt  DateTime?
+  workType     String   // trim | shoe_full | shoe_partial | reset | other
+  hoofNotes    String?  // e.g. "left fore — slight crack, sealed"
+  cost         Float?
+  nextDueAt    DateTime? // computed at completion (typically +6 weeks)
+  status       String   @default("scheduled") // scheduled | completed | skipped | cancelled
+  createdBy    String?
+  createdAt    DateTime @default(now())
+
+  horse  Horse  @relation(fields: [horseId], references: [id], onDelete: Cascade)
+
+  @@index([centreId, scheduledAt])
+  @@index([horseId, scheduledAt])
+  @@index([status])
+}
+
+// PDF §4 — Horse Temperature Chart. Daily vitals: temp, heart rate,
+// respiration, weight if measured. Designed to be chartable so the vet can
+// spot trends; we store one row per check-in (a horse may be checked AM/PM
+// when ill so we don't dedup by date).
+model HorseHealthLog {
+  id            String   @id @default(cuid())
+  horseId       String
+  centreId      String
+  recordedAt    DateTime @default(now())
+  recordedBy    String?  // user.id
+  tempC         Float?   // normal range 37.2 – 38.3
+  heartRateBpm  Int?     // normal 28 – 44 at rest
+  respirationRpm Int?    // normal 8 – 16 at rest
+  weightKg      Float?
+  appetite      String?  // good | reduced | none
+  manure        String?  // normal | dry | loose | watery | none
+  notes         String?
+
+  horse  Horse  @relation(fields: [horseId], references: [id], onDelete: Cascade)
+
+  @@index([horseId, recordedAt])
+  @@index([centreId, recordedAt])
+}
+
+// PDF §4 — Injury Treatment Log. Tracks an injury from discovery through
+// recovery. `subjectType` is "horse" or "rider" so we don't need two parallel
+// models; subjectId points at the right table by convention.
+model InjuryLog {
+  id            String   @id @default(cuid())
+  centreId      String
+  subjectType   String   // horse | rider
+  subjectId     String
+  occurredAt    DateTime
+  location      String?  // e.g. "left fore fetlock"
+  severity      String   @default("minor") // minor | moderate | severe
+  cause         String?
+  initialNotes  String
+  treatmentJson String?  // serialised array of { at, by, treatment, notes }
+  recoveredAt   DateTime?
+  status        String   @default("active") // active | recovering | recovered | chronic
+  reportedBy    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  horse Horse? @relation(fields: [horseSubjectId], references: [id], onDelete: SetNull)
+  // Prisma needs an explicit relation column for the optional horse link; we
+  // mirror subjectId into horseSubjectId when subjectType="horse" so we can
+  // surface "all injuries for this horse" with a fast join.
+  horseSubjectId String?
+
+  @@index([centreId, occurredAt])
+  @@index([subjectType, subjectId])
+  @@index([status])
+}
+
+// PDF §4 — Vaccination Schedules. Records the *plan* (per horse, per vaccine
+// type). When an actual dose is administered via MedicineUsage, the sweep
+// re-stamps `lastGivenAt` and recomputes `nextDueAt = lastGivenAt + intervalDays`.
+model VaccinationSchedule {
+  id           String   @id @default(cuid())
+  centreId     String
+  horseId      String
+  vaccineKey   String   // tetanus | ehv | influenza | rabies | dewormer | custom
+  vaccineLabel String   // free-text label, copied from Medicine.name when known
+  intervalDays Int      // 365 for tetanus annual, 180 for biannual, etc.
+  firstDueAt   DateTime?
+  lastGivenAt  DateTime?
+  nextDueAt    DateTime
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  horse Horse @relation(fields: [horseId], references: [id], onDelete: Cascade)
+
+  @@unique([horseId, vaccineKey])
+  @@index([centreId, nextDueAt])
+}
+
+model HorseAllocation {
+  id         String   @id @default(cuid())
+  horseId    String
+  riderId    String?
+  purpose    String   // lesson | exam | competition
+  // When purpose=lesson and the allocation is for a concrete session,
+  // this points at the Lesson row. Older allocations created before the
+  // Lesson model existed leave it null and use startAt/endAt directly.
+  lessonId   String?
+  startAt    DateTime
+  endAt      DateTime
+  notes      String?
+  createdBy  String?
+  createdAt  DateTime @default(now())
+
+  horse  Horse   @relation(fields: [horseId], references: [id])
+  rider  Rider?  @relation(fields: [riderId], references: [id])
+  lesson Lesson? @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  @@index([horseId, startAt])
+  @@index([lessonId])
+}
+
+// Per-horse feeding plan. JSON-as-text keeps the SQLite-portable rule the
+// rest of the schema follows; a ration is a list of items with quantity
+// + unit. `Horse.diet` was a free-text string — kept for now (existing
+// data) but new entries should go through FeedPlan so the daily view +
+// vet review can read structured data.
+//
+// Shape of rationsJson:
+// [
+//   { "time": "morning", "items": [{ "feed": "Hay", "qty": 5, "unit": "kg" }] },
+//   { "time": "noon",    "items": [{ "feed": "Oats", "qty": 2, "unit": "kg" }] },
+//   { "time": "evening", "items": [...] }
+// ]
+model FeedPlan {
+  id          String   @id @default(cuid())
+  centreId    String
+  horseId     String   @unique // one active plan per horse; swap in-place
+  rationsJson String
+  notes       String?
+  updatedBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  centre Centre @relation(fields: [centreId], references: [id])
+  horse  Horse  @relation(fields: [horseId], references: [id], onDelete: Cascade)
+
+  @@index([centreId])
+}
+
+model Facility {
+  id       String @id @default(cuid())
+  centreId String
+  name     String
+  type     String // indoor_arena | outdoor_arena | classroom | stable
+  capacity Int?
+
+  centre Centre @relation(fields: [centreId], references: [id])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// TACK / SCHOOL ASSETS (CMS §4.10, §4.11)
+// ──────────────────────────────────────────────────────────────────────────
+
+model Asset {
+  id            String   @id @default(cuid())
+  centreId      String
+  category      String   // tack | school_equipment
+  subcategory   String?
+  name          String   // e.g. "Wintec All-Purpose Saddle"
+  brand         String?
+  qrCode        String   @unique // human-readable scan code, e.g. EW-TACK-A7K3F2
+  status        String   @default("new") // new | in_use | repair | retired
+  purchaseDate  DateTime?
+  cost          Float?
+  depreciation  String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  centre       Centre             @relation(fields: [centreId], references: [id])
+  issuances    AssetIssuance[]
+  maintenance  AssetMaintenance[]
+
+  @@index([centreId, status])
+  @@index([centreId, category])
+}
+
+model AssetIssuance {
+  id                String    @id @default(cuid())
+  assetId           String
+  // Who currently holds it. One of these three should be set.
+  issuedToUserId    String?
+  issuedToRiderId   String?
+  issuedToHorseId   String?
+  issuedBy          String    // userId of staff who issued
+  issuedAt          DateTime  @default(now())
+  returnedAt        DateTime?
+  returnedBy        String?
+  conditionAtReturn String?   // good | damaged | lost
+  note              String?
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId, returnedAt])
+  @@index([issuedToRiderId])
+  @@index([issuedToHorseId])
+}
+
+model AssetMaintenance {
+  id          String    @id @default(cuid())
+  assetId     String
+  issue       String    // free-text description
+  vendor      String?
+  cost        Float?
+  scheduledAt DateTime?
+  repairedAt  DateTime?
+  createdBy   String
+  createdAt   DateTime  @default(now())
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId, repairedAt])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// VET (CMS §4.12)
+// ──────────────────────────────────────────────────────────────────────────
+
+model Medicine {
+  id              String   @id @default(cuid())
+  centreId        String
+  name            String
+  generic         String?
+  category        String   // nsaid | antibiotic | wound | supplement | vaccine | dewormer
+  schedule        String?  // schedule_h | schedule_x | null
+  batchNo         String
+  mfgDate         DateTime?
+  expDate         DateTime
+  qty             Int      @default(0)
+  reorderThreshold Int     @default(5)
+  supplier        String?
+  storageLocation String?
+  coldChain       Boolean  @default(false)
+
+  centre Centre @relation(fields: [centreId], references: [id])
+  usages MedicineUsage[]
+
+  @@index([centreId, expDate])
+}
+
+model MedicineUsage {
+  id              String   @id @default(cuid())
+  medicineId      String
+  horseId         String
+  vetUserId       String
+  dose            String
+  route           String   // oral | im | iv | topical
+  reason          String?
+  usedAt          DateTime @default(now())
+  withdrawalUntil DateTime?
+
+  medicine Medicine @relation(fields: [medicineId], references: [id])
+  horse    Horse    @relation(fields: [horseId], references: [id])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// TASKS (CMS §4.9)
+// ──────────────────────────────────────────────────────────────────────────
+
+model Task {
+  id          String   @id @default(cuid())
+  centreId    String
+  title       String
+  description String?
+  // Categorises the task — lets us pull "all dress rehearsals" or "all stable
+  // cleaning tasks" with one query. PDF Phase-1 explicitly calls out dress
+  // rehearsals; we don't model them as a separate table.
+  kind        String?  // generic | dress_rehearsal | stable | feeding | rehearsal | …
+  assigneeId  String?
+  dueAt       DateTime?
+  recurrence  String?
+  status      String   @default("open") // open | in_progress | done | overdue | escalated
+  proofUrl    String?
+  createdAt   DateTime @default(now())
+
+  centre Centre @relation(fields: [centreId], references: [id])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// COMPETITIONS (§4.14)
+// ──────────────────────────────────────────────────────────────────────────
+
+model Competition {
+  id            String   @id @default(cuid())
+  centreId      String
+  name          String
+  slug          String   @unique // for public scoreboard URL
+  scope         String   @default("internal") // internal | inter_school | state | national (PRD §4 Module 6)
+  // Discipline drives scoring + tie-break rules in lib/discipline.ts. Each
+  // discipline interprets CompetitionEntry.score / faults / time / breakdown
+  // differently — dressage averages judge %, jumping ranks by faults then
+  // time, eventing combines dressage+xc+sj, gymkhana ranks fastest time.
+  discipline    String   @default("generic") // generic | dressage | jumping | eventing | gymkhana
+  startDate     DateTime
+  endDate       DateTime
+  venue         String?
+  status        String   @default("draft") // draft | open_for_entries | live | completed | cancelled
+  classesJson   String   // JSON: [{ name, fee, ageGroup?, maxEntries? }]
+  entryDeadline DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Phase-1 spec lifted; flags wired up by the competition-ops layer:
+  // drawCompleted flips to true once the draw of lots has been finalised.
+  // Once true, the start-list table is treated as immutable by the UI.
+  drawCompleted Boolean @default(false)
+
+  centre       Centre             @relation(fields: [centreId], references: [id])
+  entries      CompetitionEntry[]
+  startList    StartListEntry[]
+  prizes       PrizeAward[]
+  sponsors     Sponsor[]
+  rounds       CompetitionRound[]
+  certificates Certificate[]
+  officials    CompetitionOfficial[]
+  gymkhanaGames    GymkhanaGame[]
+  vetChecks        VetCheck[]
+  stableAllocations StableAllocation[]
+  drugTests        DrugTest[]
+  protests         Protest[]
+  externalEntries  ExternalEntry[]
+  ticketTiers      TicketTier[]
+  tickets          Ticket[]
+
+  @@index([centreId, status])
+}
+
+model CompetitionEntry {
+  id            String   @id @default(cuid())
+  competitionId String
+  riderId       String
+  className     String
+  horseId       String?  // optional, some classes are tack-bound
+  teamId        String?  // optional — entry contributes to this team's score
+  status        String   @default("entered") // entered | withdrawn | scratched
+  paid          Boolean  @default(false)
+  placement     Int?     // 1, 2, 3, ... null = not placed
+  // Numeric score interpretation depends on Competition.discipline:
+  //   generic, dressage  → higher is better
+  //   jumping, gymkhana  → ranking falls back to (faults asc, time asc)
+  //   eventing           → aggregate; per-phase data in roundsJson
+  score         Float?
+  faults        Float?
+  time          Float?   // seconds
+  // Per-round / per-phase results (eventing dressage+xc+sj; multi-heat
+  // jumping). Array of { roundNumber, name, faults?, time?, score? }.
+  roundsJson    String?
+  // Refund tracking for withdrawn entries that had paid invoices.
+  refundedAt    DateTime?
+  refundInvoiceId String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  rider       Rider       @relation(fields: [riderId], references: [id])
+  team        Team?       @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  startList   StartListEntry[]
+  roundScores CompetitionRoundScore[]
+  gymkhanaResults GymkhanaResult[]
+
+  @@index([competitionId, className])
+  @@index([teamId])
+  @@unique([competitionId, riderId, className])
+}
+
+// One round / heat / phase within a class. Examples:
+//   • Jumping: round 1 + jump-off → two rows per class
+//   • Eventing: dressage / cross-country / show-jumping → three rows
+//   • Dressage: single round most of the time
+model CompetitionRound {
+  id            String   @id @default(cuid())
+  competitionId String
+  className     String
+  roundNumber   Int
+  name          String   // "Round 1", "Jump-off", "Cross-country"
+  // Optional discipline override per round (eventing has phase-specific rules).
+  phase         String?  // dressage | cross_country | show_jumping | jump_off
+  // Jumping-specific timing. timeAllowed in seconds drives time-fault
+  // calculation (1 fault per 4s over allowed, ceiled). timeLimit > allowed
+  // is the elimination threshold. Both null for non-timed rounds.
+  timeAllowedSec Float?
+  timeLimitSec   Float?
+  // Cross-country specific. optimumTimeSec is the target finish; courses
+  // are scored as 0.4 penalty/sec over optimum, with separate fast-finish
+  // rules (no benefit for going under in most rule sets). Speed is for
+  // documentation + course-program rendering.
+  optimumTimeSec Float?
+  speedMpm       Int?
+  courseLengthM  Int?
+  // Dressage-specific: which test template the round uses (DressageTest).
+  // Lets judges open the right scoresheet without a free-text lookup.
+  dressageTestId String?
+  // CDI dressage averaging mode. Controls how multiple judges' results
+  // combine into one round score:
+  //   "simple"        → average judge percentages (default, used at most levels).
+  //   "trimmed_mean"  → drop highest + lowest, average the rest. Used on
+  //                     5-judge FEI panels to dampen outliers.
+  //   "per_movement"  → per-movement marks averaged across judges, then
+  //                     one combined percentage computed. Mathematically
+  //                     distinct from averaging percentages.
+  judgingMode    String?
+  // CCI eventing dressage→penalty conversion. The factor multiplies
+  // (100 - percentage) to produce penalty points. FEI 2020+ uses 0.4;
+  // older rule sets used 0.6; some lower-tier events use 1.0. When null,
+  // the round stays as a percentage score (non-eventing dressage rounds).
+  dressagePenaltyFactor Float?
+  createdAt     DateTime @default(now())
+
+  competition  Competition             @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  scores       CompetitionRoundScore[]
+  jumpEfforts  JumpEffort[]
+  dressageSheets DressageScoresheet[]
+  dressageTest DressageTest?           @relation(fields: [dressageTestId], references: [id], onDelete: SetNull)
+  fences       CourseFence[]
+
+  @@unique([competitionId, className, roundNumber])
+  @@index([competitionId])
+}
+
+// One row per (round, entry, fence number, effort). Captures fence-by-fence
+// detail for show-jumping rounds. The aggregate `faults` on
+// CompetitionRoundScore and CompetitionEntry remains canonical for
+// placement — this table powers the detailed scoresheet and lets the
+// frontend show "5 faults = 1 rail at jump 4 + 1 refusal at 7a".
+//
+// Faults math (FEI Table A):
+//   • knockdown      = 4 faults
+//   • 1st refusal    = 4 faults
+//   • 2nd refusal    = 4 faults
+//   • 3rd refusal    = elimination
+//   • fall of horse or rider = elimination
+//   • time over allowed = ceil((time − timeAllowedSec) / 4) faults
+//
+// We don't enforce eliminations programmatically — the judge marks it,
+// and the API recomputes the aggregate `faults` on the round score.
+model JumpEffort {
+  id        String   @id @default(cuid())
+  roundId   String
+  entryId   String
+  fenceNo   String   // "1", "4a", "4b" — string to support combinations
+  knockdown Boolean  @default(false)
+  refusal   Int      @default(0)   // count at this specific fence
+  eliminated Boolean @default(false)
+  fall      Boolean  @default(false)
+  notes     String?
+  createdAt DateTime @default(now())
+
+  round CompetitionRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@index([roundId, entryId])
+  @@index([entryId])
+}
+
+// Dressage test catalog — SUPER_ADMIN curated. One row per official test
+// (Prelim 14, Novice 27, Elementary 43...). Federation `body` tracks
+// origin; centres can also add custom internal tests with body="custom".
+//
+// movementsJson shape:
+//   [{ no: 1, letter: "A,X", description: "Enter working trot", coefficient: 1 },
+//    { no: 2, letter: "C", description: "Track left, working trot rising", coefficient: 1 },
+//    ...]
+// collectiveMarksJson shape (end-of-test marks):
+//   [{ name: "Paces", coefficient: 1 },
+//    { name: "Impulsion", coefficient: 1 },
+//    { name: "Submission", coefficient: 1 },
+//    { name: "Rider position", coefficient: 1 }]
+// maxScore = (sum of movement coefficients × 10) + (sum of collective coefficients × 10).
+model DressageTest {
+  id                  String   @id @default(cuid())
+  code                String   @unique
+  name                String
+  level               String   // preliminary | novice | elementary | medium | advanced
+  body                String   @default("EFI") // EFI | BHS | FEI | custom
+  movementsJson       String
+  collectiveMarksJson String?
+  maxScore            Float
+  active              Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  rounds        CompetitionRound[]
+  scoresheets   DressageScoresheet[]
+}
+
+// One scoresheet per (round, entry, judge). Captures one judge's marks
+// for one ride. marksJson is [{ no: 1, mark: 7.5, comment: "..." }, ...],
+// collectiveMarksJson [{ name: "Paces", mark: 7, comment: "..." }, ...].
+// `percentage` is server-computed at submit time.
+model DressageScoresheet {
+  id           String   @id @default(cuid())
+  roundId      String
+  entryId      String
+  testId       String
+  judgeUserId  String
+  judgePosition String? // C | E | B | M | H — judge's seat around the arena
+  marksJson    String
+  collectiveMarksJson String?
+  percentage   Float?
+  submittedAt  DateTime?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  round CompetitionRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  test  DressageTest     @relation(fields: [testId], references: [id])
+
+  @@unique([roundId, entryId, judgeUserId])
+  @@index([entryId])
+  @@index([judgeUserId])
+}
+
+// Gymkhana game template. A gymkhana day = N games per class. Riders
+// play every game; combined ranking = sum of per-game positions.
+// scoringType "time" → fastest wins (faults add penaltyPerFault seconds);
+// scoringType "points" → highest points wins (judge-assigned).
+model GymkhanaGame {
+  id              String   @id @default(cuid())
+  competitionId   String
+  className       String
+  name            String
+  orderIndex      Int      @default(0)
+  scoringType     String   @default("time")
+  penaltyPerFault Float    @default(5)
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  competition Competition       @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  results     GymkhanaResult[]
+
+  @@unique([competitionId, className, name])
+  @@index([competitionId, className])
+}
+
+model GymkhanaResult {
+  id         String   @id @default(cuid())
+  gameId     String
+  entryId    String
+  time       Float?
+  faults     Int      @default(0)
+  points     Float?
+  position   Int?
+  eliminated Boolean  @default(false)
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  game  GymkhanaGame     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  entry CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, entryId])
+  @@index([entryId])
+}
+
+// Course design — fence-by-fence layout. Renders as a strip chart on the
+// round detail page + appears on the printed course program.
+model CourseFence {
+  id         String  @id @default(cuid())
+  roundId    String
+  fenceNo    String  // "1", "4a", "4b"
+  orderIndex Int     @default(0)
+  heightCm   Int?
+  spreadCm   Int?
+  type       String? // vertical | oxer | triple_bar | water | ditch | bank | combination | open
+  notes      String?
+
+  round CompetitionRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, fenceNo])
+  @@index([roundId, orderIndex])
+}
+
+// Vet checks — pre/post-event horse soundness inspections.
+model VetCheck {
+  id            String   @id @default(cuid())
+  competitionId String
+  horseId       String?
+  horseName     String
+  riderName     String?
+  phase         String   // pre_event | first_horse_inspection | hold_reinspect | second_horse_inspection | post_event | trot_up
+  status        String   @default("pass") // pass | hold | fail | not_presented
+  vetUserId     String?
+  notes         String?
+  performedAt   DateTime @default(now())
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  horse       Horse?      @relation(fields: [horseId], references: [id], onDelete: SetNull)
+
+  @@index([competitionId, phase])
+}
+
+// Stable allocation for visiting horses. Free-text horse/rider names
+// because cross-tenant visitors don't have rows in Horse/Rider.
+model StableAllocation {
+  id            String   @id @default(cuid())
+  competitionId String
+  boxNo         String
+  horseId       String?
+  horseName     String
+  riderName     String
+  arrivalAt     DateTime?
+  departureAt   DateTime?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+
+  @@unique([competitionId, boxNo])
+  @@index([competitionId])
+}
+
+// Drug test (medication control) — chain-of-custody record. The lab
+// result is stored as a status only; detailed reports stay with the lab.
+model DrugTest {
+  id               String   @id @default(cuid())
+  competitionId    String
+  horseId          String?
+  horseName        String
+  riderName        String
+  sampleType       String   // urine | blood | hair
+  sampleId         String   // barcode
+  collectedAt      DateTime @default(now())
+  collectedBy      String?
+  submittedToLabAt DateTime?
+  labRef           String?
+  resultStatus     String   @default("pending") // pending | negative | positive | inconclusive
+  resultAt         DateTime?
+  notes            String?
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+
+  @@unique([competitionId, sampleId])
+  @@index([competitionId, resultStatus])
+}
+
+// Protest / appeal record.
+model Protest {
+  id            String   @id @default(cuid())
+  competitionId String
+  filedByUserId String?
+  filedByName   String
+  subject       String
+  body          String
+  feePaid       Boolean  @default(false)
+  feeAmount     Float?
+  status        String   @default("filed") // filed | upheld | dismissed | withdrawn
+  ruling        String?
+  ruledByUserId String?
+  ruledAt       DateTime?
+  filedAt       DateTime @default(now())
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+
+  @@index([competitionId, status])
+}
+
+// External rider entry — submitted via the public competition page by
+// visiting competitors who aren't users of the host academy. We hold them
+// in a pending queue until the organiser approves; on approval, we mint
+// a CompetitionEntry against a synthetic Rider row scoped to the host
+// centre (so the rest of the system can render the start list etc.
+// without special-casing externals).
+//
+// Two-step verification: the entrant gets a magic-link email; clicking it
+// flips `verifiedAt`. Unverified entries get auto-purged after 7 days.
+model ExternalEntry {
+  id            String   @id @default(cuid())
+  competitionId String
+  className     String
+  // Rider details — captured at entry time, replicated to the synthetic
+  // Rider row on approval. We don't deduplicate; if the same email enters
+  // twice we treat them as two distinct submissions.
+  firstName       String
+  lastName        String
+  email           String
+  mobile          String
+  dob             DateTime?
+  parentName      String?
+  parentRelation  String?
+  parentPhone     String?
+  // Federation accreditation, optional but required for state+/national scope.
+  accreditationBody   String?  // EFI | BHS | FEI | ...
+  accreditationNumber String?
+  accreditationExpiry DateTime?
+  // Horse details — free-text for now; visitor's own horse rarely matches a Horse row.
+  horseName       String?
+  horseBreed      String?
+  horseHeightHh   Float?
+  // Lifecycle
+  status        String   @default("pending") // pending | approved | rejected | cancelled
+  verifiedAt    DateTime?
+  approvedAt    DateTime?
+  approvedBy    String?
+  approvedEntryId String?  // FK to the CompetitionEntry created on approval
+  rejectionReason String?
+  // Magic-link verification — hashed token + expiry, mirroring PasswordResetToken pattern.
+  verifyTokenHash String?  @unique
+  verifyExpiresAt DateTime?
+  filedAt       DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+
+  @@index([competitionId, status])
+  @@index([email])
+}
+
+// Ticket tier for spectator sales. Owner-defined: name, price, capacity.
+// Capacity null = unlimited. Public ticket-buy uses the tier's price to
+// mint Razorpay orders; tickets without a price are "free" tickets that
+// just need an email + a head-count.
+model TicketTier {
+  id            String   @id @default(cuid())
+  competitionId String
+  name          String   // "Day pass", "VIP stand", "Family of 4"
+  priceInr      Int      @default(0)
+  capacity      Int?     // null = unlimited
+  description   String?
+  active        Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  tickets     Ticket[]
+
+  @@unique([competitionId, name])
+  @@index([competitionId])
+}
+
+// Issued ticket. One row per quantity (so "Family of 4 × 1" = 4 rows).
+// QR code is just the ticket id — the scanner posts the id to /check-in
+// and we flip checkedInAt + record the user who scanned.
+model Ticket {
+  id            String   @id @default(cuid())
+  competitionId String
+  tierId        String
+  buyerName     String
+  buyerEmail    String
+  buyerPhone    String?
+  // Razorpay payment ref when paid; null for free tickets.
+  paymentRef    String?
+  paidAt        DateTime?
+  // Each row = one head. The buyer might purchase 4 tickets in one flow;
+  // they get 4 rows that share the same `groupId` (UUID).
+  groupId       String
+  // Check-in tracking.
+  checkedInAt   DateTime?
+  checkedInBy   String?
+  // Status: issued = active, voided = cancelled by organiser.
+  status        String   @default("issued") // issued | voided
+  createdAt     DateTime @default(now())
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  tier        TicketTier  @relation(fields: [tierId], references: [id], onDelete: Cascade)
+
+  @@index([competitionId, status])
+  @@index([groupId])
+  @@index([buyerEmail])
+}
+
+// Competition officials — judges, TDs, course designers, stewards. Distinct
+// from the per-ride judging mechanics above; this table records who was
+// in which role at the show, for the official record + the printed program.
+// One row per (competition, user, role). User can hold multiple roles in
+// the same comp (e.g., judge in two classes + TD overall).
+model CompetitionOfficial {
+  id            String   @id @default(cuid())
+  competitionId String
+  userId        String
+  role          String   // ground_jury_president | ground_jury | td | course_designer | steward | judge_c | judge_e | judge_b | judge_m | judge_h | technical_delegate | veterinarian
+  // CSV of class names this role covers; null = all classes in the comp.
+  classNames    String?
+  appointedBy   String?
+  appointedAt   DateTime @default(now())
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+
+  @@unique([competitionId, userId, role])
+  @@index([competitionId, role])
+}
+
+// Score for one (entry, round) pair. The aggregate that drives placement
+// lives on CompetitionEntry; per-round detail lives here.
+model CompetitionRoundScore {
+  id        String   @id @default(cuid())
+  roundId   String
+  entryId   String
+  score     Float?
+  faults    Float?
+  time      Float?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  round CompetitionRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  entry CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@unique([roundId, entryId])
+  @@index([entryId])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// FINANCE (§4.20)
+// ──────────────────────────────────────────────────────────────────────────
+
+model FeePlan {
+  id                String  @id @default(cuid())
+  centreId          String
+  levelName         String
+  monthlyAmount     Float
+  registrationAmount Float
+
+  centre Centre @relation(fields: [centreId], references: [id])
+
+  @@unique([centreId, levelName])
+}
+
+model Invoice {
+  id        String   @id @default(cuid())
+  centreId  String
+  riderId   String
+  amount    Float
+  gstAmount Float    @default(0)
+  dueDate   DateTime
+  status    String   @default("due") // due | paid | overdue | refunded
+  kind      String   // registration | monthly | exam | event
+  createdAt DateTime @default(now())
+
+  centre   Centre   @relation(fields: [centreId], references: [id])
+  rider    Rider    @relation(fields: [riderId], references: [id])
+  payments Payment[]
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  invoiceId String
+  amount    Float
+  method    String   // razorpay | cash | cheque | upi
+  txnRef    String?
+  paidAt    DateTime @default(now())
+  clearedAt DateTime?
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// CERTIFICATES (§4.21)
+// ──────────────────────────────────────────────────────────────────────────
+
+model Certificate {
+  id        String   @id @default(cuid())
+  centreId  String
+  riderId   String
+  // Source exam for promotion certificates. Optional so participation and
+  // winner-style certs (issued without a formal exam) still fit the table.
+  examId    String?
+  // Source competition for winner / participation certificates. Issued
+  // automatically when an entry is placed (1st/2nd/3rd) or when a comp is
+  // marked complete (all non-withdrawn entries get participation certs).
+  competitionId String?
+  type      String   // promotion | participation | winner | event_attendance
+  levelName String?
+  serialNo  String   @unique
+  pdfUrl    String?
+  qrCode    String
+  signedBy  String?
+  // Bulk-issue grouping. When the bulk panel mints N certs from one
+  // event/exam-sitting/competition, every cert in the batch shares this
+  // value so we can show "Bulk batch · 27 issued · 14 Mar".
+  batchTag  String?
+  // Revocation — soft state so the verify page can render REVOKED instead
+  // of a normal cert page. Hard delete is avoided so audit history stays.
+  revokedAt DateTime?
+  revokedBy String?
+  revokeReason String?
+  issuedAt  DateTime @default(now())
+
+  centre      Centre       @relation(fields: [centreId], references: [id])
+  rider       Rider        @relation(fields: [riderId], references: [id])
+  exam        Exam?        @relation(fields: [examId], references: [id], onDelete: SetNull)
+  competition Competition? @relation(fields: [competitionId], references: [id], onDelete: SetNull)
+
+  @@index([examId])
+  @@index([competitionId])
+  @@index([centreId, revokedAt])
+  @@index([batchTag])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// EXAMS — promotion exam scheduling + scoring (ported from exam module)
+// Distinct from Assessment (which models broad theory/practical sittings);
+// Exam is the formal level-promotion test driven by a ScoringTemplate.
+// ──────────────────────────────────────────────────────────────────────────
+
+// HQ-curated catalog of exam levels. SUPER_ADMIN owns this — one row per
+// (discipline, order), so the list of levels stays clean and consistent
+// across every centre. Centre-specific rubric overrides live on
+// ScoringTemplate; without an override, ScoringTemplate falls back to
+// ExamLevel.defaultRubricJson.
+model ExamLevel {
+  id              String   @id @default(cuid())
+  // Discipline track this level belongs to (general / dressage / jumping /
+  // eventing / gymkhana / endurance / vaulting / polo). Matches the
+  // disciplines used in lib/discipline.ts.
+  discipline      String   @default("general")
+  // Sort order within a discipline. 1 = entry level, increases with
+  // difficulty.
+  orderIndex      Int
+  // Short identifier shown in lists (e.g. "1", "Stage 2", "D", "Adv-I").
+  code            String
+  // Long human-friendly name shown on certificates ("Beginner",
+  // "Foundation", "Preliminary").
+  name            String
+  // Percentage pass threshold for this level. Cascaded into
+  // ScoringTemplate at create time but each centre can override.
+  passThreshold   Int      @default(70)
+  // Default rubric (JSON of ScoringCategory[]). Centres can override per
+  // centre via a custom ScoringTemplate row.
+  defaultRubricJson String?
+  // Minimum examiner authority — only EXAMINER rows whose
+  // ExaminerAuthority covers this level can lead an exam at this level.
+  // Soft hint for now; not strictly enforced.
+  minExaminerLevel  Int?
+  description     String?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  updatedBy       String?
+
+  templates ScoringTemplate[]
+
+  @@unique([discipline, orderIndex])
+  @@unique([discipline, code])
+  @@index([discipline, active])
+}
+
+model ScoringTemplate {
+  id            String   @id @default(cuid())
+  centreId      String
+  // Soft link to the canonical level row. Optional so legacy templates
+  // created before the catalog existed keep working.
+  examLevelId   String?
+  levelKey      String   // "1" | "2" | "3" | "4" — matches Exam.level
+  levelName     String   // "Level 1 — Beginner", etc.
+  passThreshold Int      @default(70) // percentage to pass
+  categoriesJson String  // serialized ScoringCategory[]
+  updatedAt     DateTime @updatedAt
+  updatedBy     String?
+
+  centre    Centre     @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  examLevel ExamLevel? @relation(fields: [examLevelId], references: [id], onDelete: SetNull)
+
+  @@unique([centreId, levelKey])
+  @@index([examLevelId])
+}
+
+model Exam {
+  id            String   @id @default(cuid())
+  centreId      String
+  riderId       String
+  examinerId    String   // FK to User (primary / lead judge)
+  examinerName  String   // denormalised so historical exams survive renames
+  level         Int      // 1..N, matches ScoringTemplate.levelKey
+  date          DateTime // exam day (date-only, stored as UTC midnight)
+  time          String   @default("09:00") // HH:MM 24h
+  status        String   @default("scheduled") // scheduled | in_progress | completed
+  // Numeric total. When the exam has co-judges, this is the average of each
+  // judge's numericSum() over the rubric (so a single field still drives
+  // rider-facing UI, certificates, parent SMS, etc.).
+  totalScore    Float?
+  // Legacy single-judge score map. Co-judge data lives on ExamJudge.scoresJson.
+  scoresJson    String?
+  passed        Boolean?
+  // Deductions are subtracted from the rubric total before pass/fail. Used
+  // for course faults, time penalties, refusals, etc. that aren't rubric
+  // items per se.
+  deductions    Float    @default(0)
+  timeFaults    Float    @default(0)
+  // PRD "Test-day support" — grooms / helpers assigned to this exam.
+  // JSON array of user.id strings; never deep enough to warrant its own table.
+  supportStaffJson String?
+  // Re-attempt link — points to the previous failed exam at this level for
+  // the same rider. Lets the result card show "Attempt 2".
+  previousExamId  String?
+  attemptNumber   Int     @default(1)
+  // Sitting groups multiple exams happening on the same day with the same
+  // examiner / level (saves typing each one in).
+  sittingId       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  centre       Centre        @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  rider        Rider         @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  certificates Certificate[]
+  judges       ExamJudge[]
+  attachments  ExamAttachment[]
+  previousExam Exam?         @relation("ExamReattempt", fields: [previousExamId], references: [id], onDelete: SetNull)
+  retakes      Exam[]        @relation("ExamReattempt")
+  sitting      ExamSitting?  @relation(fields: [sittingId], references: [id], onDelete: SetNull)
+
+  @@index([centreId, status])
+  @@index([examinerId])
+  @@index([riderId])
+  @@index([sittingId])
+}
+
+// One row per judge scoring a single exam. The lead judge (Exam.examinerId)
+// is mirrored here as the row with `position = 1` — keeps the math uniform
+// when the exam has only one judge.
+model ExamJudge {
+  id          String   @id @default(cuid())
+  examId      String
+  judgeId     String   // FK to User
+  judgeName   String   // denormalised
+  position    Int      @default(1) // 1 = lead, 2 = co-judge, …
+  // Per-judge score map and computed numeric total. Null until the judge
+  // submits their card.
+  scoresJson  String?
+  subTotal    Float?
+  submittedAt DateTime?
+
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, judgeId])
+  @@unique([examId, position])
+  @@index([judgeId])
+}
+
+// File attachments per exam — video clips, evidence photos, scanned judge
+// sheets (sealed envelopes from offline / remote exams).
+model ExamAttachment {
+  id         String   @id @default(cuid())
+  examId     String
+  kind       String   // video | photo | sheet | other
+  url        String
+  caption    String?
+  uploadedBy String?
+  uploadedAt DateTime @default(now())
+
+  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([examId])
+}
+
+// A scheduled sitting — multiple riders take the same level on the same day
+// with the same examiner. Lets us schedule "Saturday's Level 2" in one shot
+// instead of 12 individual rows.
+model ExamSitting {
+  id           String   @id @default(cuid())
+  centreId     String
+  level        Int
+  date         DateTime
+  examinerId   String
+  examinerName String
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  centre Centre @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  exams  Exam[]
+
+  @@index([centreId, date])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// TEAMS / SQUADS (PRD — "overall team performance")
+// ──────────────────────────────────────────────────────────────────────────
+// A named group of riders the centre fields together — e.g. "Senior Show
+// Jumping Squad 2026". Riders can be on multiple teams (junior + senior).
+model Team {
+  id        String   @id @default(cuid())
+  centreId  String
+  name      String
+  season    String?  // free text — "2026", "Spring 2026", etc.
+  discipline String?
+  captainId String?  // rider.id
+  active    Boolean  @default(true)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members          TeamMember[]
+  competitionEntries CompetitionEntry[]
+
+  @@index([centreId, active])
+}
+
+model TeamMember {
+  id       String   @id @default(cuid())
+  teamId   String
+  riderId  String
+  position String?  // free text — "Captain", "Reserve", or domain-specific
+  joinedAt DateTime @default(now())
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, riderId])
+  @@index([riderId])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// NOTIFICATIONS (§4.22)
+// In-app feed today; SMS/WhatsApp/Email dispatch is a future provider wire-up.
+// One row per (recipient, event). Multi-recipient broadcasts insert N rows.
+// ──────────────────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String    // recipient
+  centreId  String?   // for cross-centre filtering on HQ dashboards
+  type      String    // "rider.onboarded" | "exam.passed" | "exam.failed" | "medicine.withdrawal" | "task.assigned" | ...
+  title     String
+  body      String
+  link      String?   // optional in-app URL the click takes you to
+  channel   String    @default("in_app") // in_app | sms | email | whatsapp
+  payload   String?   // serialised metadata (JSON)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([centreId, createdAt])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// AUDIT (§4.23)
+// ──────────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  tableName String
+  rowId     String
+  before    String?
+  after     String?
+  ip        String?
+  userAgent String?
+  at        DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([tableName, rowId])
+  @@index([at])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// STAFF ATTENDANCE (PRD §4 Module 2)
+// One row per (staff user, day). Day boundary matches the date passed by the
+// marker — keep it date-only to dedup correctly across timezones.
+// ──────────────────────────────────────────────────────────────────────────
+
+model StaffAttendance {
+  id            String    @id @default(cuid())
+  userId        String
+  centreId      String
+  date          DateTime
+  status        String    // present | absent | late | leave
+  checkInAt     DateTime?
+  checkOutAt    DateTime?
+  overtimeHours Float?
+  notes         String?
+  markedBy      String?   // user.id who marked it; plain string (no FK)
+  markedAt      DateTime  @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  centre Centre @relation(fields: [centreId], references: [id])
+
+  @@unique([userId, date])
+  @@index([centreId, date])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// PARENT ↔ RIDER LINKAGE (PRD §3, Phase 2 — parent portal)
+// Many-to-many. relationship is a free-text label (father | mother | guardian)
+// — keeps onboarding from getting stuck on edge cases (legal guardians, etc.).
+// ──────────────────────────────────────────────────────────────────────────
+
+model ParentLink {
+  id           String   @id @default(cuid())
+  parentUserId String
+  riderId      String
+  relationship String   // father | mother | guardian
+  createdAt    DateTime @default(now())
+
+  parent User  @relation(fields: [parentUserId], references: [id], onDelete: Cascade)
+  rider  Rider @relation(fields: [riderId], references: [id], onDelete: Cascade)
+
+  @@unique([parentUserId, riderId])
+  @@index([parentUserId])
+  @@index([riderId])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// LEAVE REQUESTS (PRD §4 Module 2)
+// Staff submit; manager/head-coach approves. status = pending|approved|
+// rejected|cancelled. reviewedBy is a plain string so we don't need a second
+// User back-relation just for reviewers.
+// ──────────────────────────────────────────────────────────────────────────
+
+model LeaveRequest {
+  id          String    @id @default(cuid())
+  userId      String
+  centreId    String
+  startDate   DateTime
+  endDate     DateTime
+  reason      String
+  status      String    @default("pending")
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  reviewNotes String?
+  createdAt   DateTime  @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  centre Centre @relation(fields: [centreId], references: [id])
+
+  @@index([userId, status])
+  @@index([centreId, status])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// EQUIPMENT (HQ catalog + per-centre inventory)
+// ──────────────────────────────────────────────────────────────────────────
+//
+// Two-tier model:
+//   • EquipmentCatalog — single platform-wide list of every standard item
+//     an equestrian club needs. HQ (SUPER_ADMIN) curates this.
+//   • EquipmentStock   — per (centre, catalog item) qty + threshold. Each
+//     centre manages its own stock; HQ sees the aggregated matrix.
+//
+// Threshold logic: stock falls below max(stock.threshold, catalog.defaultThreshold)
+// → one notification to the centre's INVENTORY_MANAGER and to every
+// SUPER_ADMIN. Dedup is by lastLowNotifiedAt vs. lastRestockedAt.
+
+model EquipmentCatalog {
+  id              String  @id @default(cuid())
+  category        String  // saddlery | bridlery | protection | rider | stable | grooming | feed | tackroom | arena | vet
+  name            String
+  // Shorter token used as a column header on HQ matrix views.
+  code            String  @unique
+  unit            String  @default("piece") // piece | pair | set | metre | kg | litre
+  defaultThreshold Int    @default(5) // reorder point applied when no per-centre override
+  notes           String?
+  active          Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  stocks EquipmentStock[]
+
+  @@index([category, active])
+}
+
+model EquipmentStock {
+  id          String   @id @default(cuid())
+  centreId    String
+  catalogId   String
+  qty         Int      @default(0)
+  // Per-centre override of the catalog default. Null → use catalog.
+  threshold   Int?
+  notes       String?
+  // Used by the low-stock sweep to dedup notifications. If a centre keeps
+  // ordering 2 of an item that needs 5, we don't want a notify every day.
+  // A restock (qty increase) resets lastLowNotifiedAt so the next time we
+  // dip below threshold, the sweep fires again.
+  lastLowNotifiedAt DateTime?
+  lastRestockedAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  centre  Centre           @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  catalog EquipmentCatalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+  movements EquipmentStockMovement[]
+
+  @@unique([centreId, catalogId])
+  @@index([centreId])
+}
+
+// Per-stock audit trail: who changed qty, by how much, and why. Lets HQ
+// reconstruct shrinkage or theft questions later.
+model EquipmentStockMovement {
+  id        String   @id @default(cuid())
+  stockId   String
+  delta     Int      // positive = restock, negative = consumption/loss
+  reason    String   // restock | consumed | lost | damaged | adjustment | initial
+  notes     String?
+  actorId   String?
+  at        DateTime @default(now())
+
+  stock EquipmentStock @relation(fields: [stockId], references: [id], onDelete: Cascade)
+
+  @@index([stockId, at])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// EVENTS (clinics, schooling, demos, parent days, fundraisers, externals)
+// ──────────────────────────────────────────────────────────────────────────
+//
+// Distinct from `Competition` (which carries classes / draw / prizes /
+// scoreboard). Events are simpler logistical gatherings — a clinic, a
+// schooling day, a fundraiser. Some events live entirely at one centre;
+// "external" events are off-site (members travelling to another club).
+
+model Event {
+  id          String   @id @default(cuid())
+  centreId    String   // host centre, even for externals (the centre running the trip)
+  title       String
+  type        String   // clinic | schooling | demo | parent_day | fundraiser | external_show | camp | open_house | other
+  description String?
+  // External-event metadata. Null for in-house events.
+  externalVenue   String?
+  externalHostOrg String?
+  startDate   DateTime
+  endDate     DateTime
+  // Optional registration fee per rider; 0 means free attendance.
+  fee         Float    @default(0)
+  // Soft capacity. Null = unlimited. Hit-cap is a UI hint, not enforced
+  // server-side (waitlists belong to a future iteration).
+  capacity    Int?
+  // Visibility — published events show on the public /events/<slug>/page;
+  // private events are admin-only.
+  isPublic    Boolean  @default(false)
+  slug        String?  @unique
+  status      String   @default("draft") // draft | open | live | completed | cancelled
+  contactName String?
+  contactPhone String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  centre        Centre              @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  registrations EventRegistration[]
+
+  @@index([centreId, status])
+  @@index([startDate])
+}
+
+model EventRegistration {
+  id          String   @id @default(cuid())
+  eventId     String
+  riderId     String
+  status      String   @default("registered") // registered | attended | no_show | cancelled
+  paid        Boolean  @default(false)
+  // Optional notes from the registration form (dietary, room sharing, …).
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  rider Rider @relation(fields: [riderId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, riderId])
+  @@index([eventId, status])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// FINANCE — expenses + vendors (income side is Invoice/Payment already)
+// ──────────────────────────────────────────────────────────────────────────
+//
+// Centres book operating expenses against categories (feed, vet, salaries,
+// fuel, …). Each expense optionally points at a Vendor for accounts-payable
+// reporting. The P&L cards on /finance subtract these from invoice
+// payments to give net income.
+
+model ExpenseCategory {
+  id        String   @id @default(cuid())
+  // Curated by SUPER_ADMIN. Categories are platform-wide (every centre
+  // books against the same chart of accounts so HQ rollups are sensible).
+  code      String   @unique
+  name      String
+  group     String   // operating | salaries | vet | feed | maintenance | utilities | tax | other
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  expenses Expense[]
+}
+
+model Vendor {
+  id        String   @id @default(cuid())
+  centreId  String   // a vendor is centre-scoped (different centres may use
+                     // different suppliers)
+  name      String
+  contactName String?
+  phone     String?
+  email     String?
+  gstin     String?
+  notes     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  centre   Centre    @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  expenses Expense[]
+
+  @@index([centreId, active])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  centreId    String
+  categoryId  String
+  vendorId    String?
+  amount      Float
+  gstAmount   Float    @default(0)
+  // Date of the expense as it actually occurred (vs createdAt = when it
+  // was booked into the system). Used for P&L window queries.
+  spentAt     DateTime
+  description String
+  invoiceRef  String?  // vendor invoice number / receipt ref
+  paid        Boolean  @default(false)
+  paidAt      DateTime?
+  method      String?  // cash | bank | cheque | upi | card
+  attachmentUrl String?
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  centre   Centre          @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  category ExpenseCategory @relation(fields: [categoryId], references: [id])
+  vendor   Vendor?         @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
+  @@index([centreId, spentAt])
+  @@index([categoryId])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// ACCREDITATIONS (external federation credentials per rider)
+// ──────────────────────────────────────────────────────────────────────────
+//
+// Distinct from in-house Certificate (which we issue). Accreditations are
+// records of credentials held by a rider from external bodies — BHS, EFI,
+// state federations, coaching diplomas. Useful for HQ to track team
+// eligibility (only nationally-licensed riders can enter a National Show).
+
+model Accreditation {
+  id          String   @id @default(cuid())
+  riderId     String
+  // Body issuing the credential (e.g. "EFI", "BHS", "FEI", state federation).
+  body        String
+  // What kind of credential. Free-text by design — federations vary widely.
+  title       String   // "EFI Junior Membership" | "BHS Stage 2" | "FEI Pony Rider Eligibility"
+  discipline  String?  // optional — dressage / jumping / eventing / general
+  level       String?  // optional — "Stage 2", "Cat-B", etc.
+  serialNo    String?
+  // When the credential was issued and when it expires (some federation
+  // memberships renew annually).
+  issuedAt    DateTime
+  expiresAt   DateTime?
+  fileUrl     String?  // scan of the original card/cert
+  // Operational status — verified by a centre manager after seeing the
+  // physical card; revoked if the body cancels it.
+  status      String   @default("active") // active | expired | revoked
+  verifiedBy  String?  // userId who confirmed it
+  verifiedAt  DateTime?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  rider Rider @relation(fields: [riderId], references: [id], onDelete: Cascade)
+
+  @@index([riderId, status])
+  @@index([body, level])
+}

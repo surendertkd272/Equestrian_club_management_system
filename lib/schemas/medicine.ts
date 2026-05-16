@@ -1,0 +1,67 @@
+import { z } from "zod";
+
+// Categories cover the must-haves listed in the PDF + a catch-all. Order is
+// the UI dropdown order — clinical groups together.
+export const MEDICINE_CATEGORIES = [
+  "nsaid",         // Flunixin, Bute, Firocoxib
+  "antibiotic",    // broad-spectrum, eye antibiotic
+  "antihistamine", // allergic / insect reactions
+  "sedative",      // emergency restraint (vet only)
+  "wound",         // silver spray, antiseptic cream
+  "eye",           // eye ointment
+  "gastric",       // Omeprazole
+  "electrolyte",   // dehydration / heat stress
+  "supplement",    // joint / general
+  "vaccine",       // tetanus toxoid, EHV, etc.
+  "antitoxin",     // tetanus antitoxin (emergency wound mgmt)
+  "dewormer",      // Ivermectin etc.
+  "other",
+] as const;
+
+export const MEDICINE_SCHEDULES = ["schedule_h", "schedule_x", "none"] as const;
+export const MEDICINE_ROUTES = ["oral", "im", "iv", "topical", "subcutaneous"] as const;
+
+export const createMedicineSchema = z.object({
+  name: z.string().min(1).max(100),
+  generic: z.string().max(100).optional(),
+  category: z.enum(MEDICINE_CATEGORIES),
+  schedule: z.enum(MEDICINE_SCHEDULES).optional().default("none"),
+  batchNo: z.string().min(1).max(40),
+  mfgDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  expDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD required"),
+  qty: z.coerce.number().int().min(0),
+  reorderThreshold: z.coerce.number().int().min(0).default(5),
+  supplier: z.string().max(80).optional(),
+  storageLocation: z.string().max(80).optional(),
+  coldChain: z.coerce.boolean().optional().default(false),
+});
+
+export const createUsageSchema = z.object({
+  horseId: z.string().min(1),
+  dose: z.string().min(1).max(60),
+  route: z.enum(MEDICINE_ROUTES),
+  reason: z.string().max(500).optional(),
+  withdrawalDays: z.coerce.number().int().min(0).max(120).optional().default(0),
+  // qty consumed from stock; defaults to 1 (one dose/vial/tablet).
+  qtyConsumed: z.coerce.number().int().min(1).default(1),
+});
+
+export type CreateMedicineInput = z.infer<typeof createMedicineSchema>;
+export type CreateUsageInput = z.infer<typeof createUsageSchema>;
+
+// Days until expiry, negative if already expired.
+export function daysUntil(d: Date): number {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const target = new Date(d);
+  target.setHours(0, 0, 0, 0);
+  return Math.round((target.getTime() - now.getTime()) / 86400000);
+}
+
+export function expiryStatus(d: Date): "expired" | "critical" | "expiring" | "ok" {
+  const days = daysUntil(d);
+  if (days < 0) return "expired";
+  if (days < 30) return "critical";
+  if (days < 90) return "expiring";
+  return "ok";
+}

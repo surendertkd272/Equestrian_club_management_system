@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/cron/sweep?secret=YOUR_CRON_SECRET_HERE",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}

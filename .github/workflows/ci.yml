@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Test suite drives a local SQLite file; the schema push step below
+      # creates it. JWT_SECRET is any non-empty string for the auth code
+      # to mint tokens during tests.
+      DATABASE_URL: file:./test.db
+      JWT_SECRET: ci-test-secret-not-used-for-real-tokens
+      OWNER_JWT_SECRET: ci-test-owner-secret
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prisma generate
+        run: npx prisma generate
+
+      - name: Push schema to local SQLite
+        run: npx prisma db push --skip-generate --accept-data-loss
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npm test
+
+      - name: Production build (smoke)
+        # Catches "works in dev, breaks on `next build`" issues — common
+        # with client/server boundary mistakes and missing env vars.
+        run: npm run build
+        env:
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
