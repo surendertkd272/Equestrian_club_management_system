@@ -6,8 +6,7 @@ import { FEATURE_KEYS } from "../lib/features";
 
 const prisma = new PrismaClient();
 
-// Canonical Equiwings rubric for general Levels 1–4 (sourced from the
-// `equiwings_equistrien_exam_moduel` reference module). Pre-fills
+// Canonical Equiwings rubric for general Levels 1–4. Pre-fills
 // ExamLevel.defaultRubricJson so every centre starts with a real rubric;
 // centres can override per-centre via ScoringTemplate.
 const EQUIWINGS_RUBRICS: Record<string, { levelName: string; passThreshold: number; categories: any[] }> = (() => {

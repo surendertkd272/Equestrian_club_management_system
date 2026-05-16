@@ -7,8 +7,17 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // DATABASE_URL — pooled connection for the running app. Supabase's
+  // PgBouncer endpoint (port 6543) prevents the serverless runtime from
+  // exhausting Postgres connections under load. Append
+  // `?pgbouncer=true&connection_limit=1` for safe behaviour.
+  url       = env("DATABASE_URL")
+  // DIRECT_URL — direct port-5432 connection. Prisma uses this for
+  // migrations + introspection only; the app never opens these sockets
+  // at runtime. Required because pgbouncer in transaction mode can't
+  // run the queries Prisma migrations need.
+  directUrl = env("DIRECT_URL")
 }
 
 // ──────────────────────────────────────────────────────────────────────────

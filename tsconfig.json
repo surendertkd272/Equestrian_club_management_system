@@ -20,5 +20,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "claude-skills", "equiwings_equistrien_exam_moduel", "scripts"]
+  "exclude": ["node_modules", "claude-skills", "scripts"]
 }
