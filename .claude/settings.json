@@ -79,7 +79,9 @@
       "Bash(nc -zv -w 6 aws-0-ap-south-1.pooler.supabase.com 5432)",
       "Bash(nc -zv -w 6 aws-0-ap-south-1.pooler.supabase.com 6543)",
       "Bash(nslookup aws-1-ap-south-1.pooler.supabase.com)",
-      "Bash(nc -zv -w 6 aws-1-ap-south-1.pooler.supabase.com 6543)"
+      "Bash(nc -zv -w 6 aws-1-ap-south-1.pooler.supabase.com 6543)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ],
     "additionalDirectories": [
       "/Users/surenderyadav/Equiwings CMS/app/api/exams/[id]",
