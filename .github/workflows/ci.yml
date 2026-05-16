@@ -10,13 +10,35 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    # Spin up a throwaway Postgres for the CI run. The Prisma schema is
+    # postgresql-only (since the Supabase switch); CI needs a Postgres
+    # to push the schema against + run the test suite. The container
+    # is automatically wired into the job network as host "postgres".
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: equiwings_test
+        ports:
+          - 5432:5432
+        # Wait for Postgres to accept connections before the first step runs.
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     env:
-      # Test suite drives a local SQLite file; the schema push step below
-      # creates it. JWT_SECRET is any non-empty string for the auth code
-      # to mint tokens during tests.
-      DATABASE_URL: file:./test.db
+      # Both URLs point at the same local Postgres. In production these
+      # split (pooled vs direct); in CI we don't have a pooler and don't
+      # need one.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/equiwings_test
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/equiwings_test
       JWT_SECRET: ci-test-secret-not-used-for-real-tokens
-      OWNER_JWT_SECRET: ci-test-owner-secret
+      OWNER_JWT_SECRET: ci-test-owner-secret-distinct-from-above
       NODE_ENV: test
 
     steps:
@@ -33,7 +55,7 @@ jobs:
       - name: Prisma generate
         run: npx prisma generate
 
-      - name: Push schema to local SQLite
+      - name: Push schema to CI Postgres
         run: npx prisma db push --skip-generate --accept-data-loss
 
       - name: Type-check

@@ -1,26 +1,41 @@
 // One-time test-DB bootstrap. Runs in the main vitest process before any worker spawns.
 //
-// We use a dedicated SQLite file (prisma/test.db) so the dev DB isn't touched. The schema
-// gets pushed via the prisma CLI — same as `npm run db:push` — and the file is deleted on
-// teardown so each `vitest run` starts clean.
+// Tests run against whatever DATABASE_URL the caller provides:
+//   • CI: a Postgres service container (see .github/workflows/ci.yml).
+//   • Local: a docker Postgres at localhost:5432, exported in your shell
+//     before invoking `npm test`. Example:
+//       docker run --rm -e POSTGRES_PASSWORD=x -p 5432:5432 postgres:15-alpine
+//       export DATABASE_URL=postgresql://postgres:x@localhost:5432/postgres
+//       export DIRECT_URL=postgresql://postgres:x@localhost:5432/postgres
+//       npm test
+//
+// On setup we `prisma db push --force-reset` so the suite starts from a
+// known-clean schema regardless of what state the DB was in. teardown
+// is a no-op — the next run will reset again.
 
 import { execFileSync } from "node:child_process";
-import { existsSync, unlinkSync } from "node:fs";
-import path from "node:path";
-
-const TEST_DB_RELATIVE = "./test.db"; // resolved relative to prisma/schema.prisma → prisma/test.db
-const TEST_DB_ABSOLUTE = path.join(process.cwd(), "prisma", "test.db");
 
 export async function setup() {
-  // Always start with a fresh DB so prior leftovers can't mask a test bug.
-  if (existsSync(TEST_DB_ABSOLUTE)) unlinkSync(TEST_DB_ABSOLUTE);
+  if (!process.env.DATABASE_URL) {
+    throw new Error(
+      "DATABASE_URL is not set. Tests need a Postgres URL — see tests/global-setup.ts header for the docker recipe.",
+    );
+  }
+  // Mirror DATABASE_URL → DIRECT_URL when only one is set; Prisma needs
+  // both because of the schema's directUrl declaration.
+  if (!process.env.DIRECT_URL) {
+    process.env.DIRECT_URL = process.env.DATABASE_URL;
+  }
 
-  execFileSync("npx", ["prisma", "db", "push", "--skip-generate", "--accept-data-loss"], {
-    env: { ...process.env, DATABASE_URL: `file:${TEST_DB_RELATIVE}` },
-    stdio: "inherit",
-  });
+  // --force-reset drops the public schema before re-pushing — equivalent
+  // to "delete the SQLite file" in the old setup, but for Postgres.
+  execFileSync(
+    "npx",
+    ["prisma", "db", "push", "--skip-generate", "--accept-data-loss", "--force-reset"],
+    { env: process.env, stdio: "inherit" },
+  );
 }
 
 export async function teardown() {
-  if (existsSync(TEST_DB_ABSOLUTE)) unlinkSync(TEST_DB_ABSOLUTE);
+  // No-op. The next setup() forces a clean schema; no need to clean up here.
 }

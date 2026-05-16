@@ -12,17 +12,23 @@ export default defineConfig({
     include: ["lib/**/*.test.ts", "tests/**/*.test.ts"],
     globalSetup: ["./tests/global-setup.ts"],
     // Each test file gets a fresh fork (and thus a fresh PrismaClient). Running files
-    // sequentially keeps the shared SQLite file from hitting SQLITE_BUSY. Without per-file
-    // isolation, Prisma + SQLite produces phantom FK errors across files (a row created in
-    // one test becomes invisible to FK checks in the next, even though direct reads return
-    // it). Sequential separate forks side-step the issue cleanly.
+    // sequentially keeps the shared Postgres session from contending. Per-file isolation
+    // also matters for test ordering — phantom FK errors used to crop up under SQLite
+    // when files shared state.
     pool: "forks",
     fileParallelism: false,
     env: {
-      // Resolved relative to prisma/schema.prisma → prisma/test.db.
-      DATABASE_URL: "file:./test.db",
-      // Stable JWT secret so auth tests don't depend on env outside the suite.
+      // Tests use whichever DATABASE_URL the runner provides:
+      //   • CI: a Postgres service container (see .github/workflows/ci.yml).
+      //   • Local: set DATABASE_URL + DIRECT_URL in your shell before
+      //     running `npm test`. Easiest: `docker run -e POSTGRES_PASSWORD=x
+      //     -p 5432:5432 -d postgres:15-alpine` then export
+      //     DATABASE_URL=postgresql://postgres:x@localhost:5432/postgres
+      //     DIRECT_URL=postgresql://postgres:x@localhost:5432/postgres
+      // We deliberately do NOT hard-code a URL here — the previous SQLite
+      // default no longer matches the postgresql schema provider.
       JWT_SECRET: "test-jwt-secret",
+      OWNER_JWT_SECRET: "test-owner-jwt-secret",
     },
   },
 });
