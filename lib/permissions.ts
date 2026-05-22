@@ -24,6 +24,10 @@ export type Permission =
   | "competition.manage"
   | "event.manage"
   | "expense.manage"
+  | "expense.submit"
+  | "requisition.submit"
+  | "requisition.approve_manager"
+  | "requisition.approve_accountant"
   | "accreditation.manage"
   | "finance.read"
   | "finance.write"
@@ -38,16 +42,18 @@ const matrix: Record<Role, Permission[]> = {
     "staff.manage", "staff.attendance", "leave.request", "leave.approve",
     "task.assign", "task.complete", "asset.manage",
     "medicine.manage", "medicine.prescribe", "horse.manage", "competition.manage",
-    "event.manage", "expense.manage", "accreditation.manage",
+    "event.manage", "expense.manage", "expense.submit", "accreditation.manage",
     "finance.read", "finance.write", "certificate.issue", "certificate.bulk", "audit.read",
+    "requisition.submit", "requisition.approve_manager", "requisition.approve_accountant",
   ],
   CENTRE_MANAGER: [
     "rider.read", "rider.write", "rider.onboard", "attendance.mark", "progress.write",
     "exam.schedule", "exam.score",
     "staff.manage", "staff.attendance", "leave.request", "leave.approve",
     "task.assign", "task.complete", "asset.manage", "medicine.manage", "horse.manage", "competition.manage",
-    "event.manage", "expense.manage", "accreditation.manage",
+    "event.manage", "expense.manage", "expense.submit", "accreditation.manage",
     "finance.read", "finance.write", "certificate.issue", "certificate.bulk",
+    "requisition.submit", "requisition.approve_manager", "requisition.approve_accountant",
   ],
   HEAD_COACH: [
     // Senior trainer — broader than a regular coach. Can schedule exams and supervise other coaches'
@@ -55,30 +61,36 @@ const matrix: Record<Role, Permission[]> = {
     "rider.read", "rider.write", "attendance.mark", "progress.write",
     "exam.schedule", "exam.score", "assessment.score",
     "staff.attendance", "leave.request", "leave.approve",
-    "task.assign", "task.complete", "horse.manage",
+    "task.assign", "task.complete", "horse.manage", "expense.submit",
+    "requisition.submit", "requisition.approve_manager",
   ],
-  COACH: ["rider.read", "attendance.mark", "progress.write", "task.complete", "leave.request"],
+  COACH: ["rider.read", "attendance.mark", "progress.write", "task.complete", "leave.request", "expense.submit", "requisition.submit"],
   STABLE_MANAGER: [
     // Owns the stable + horse roster + the tack/grooming kit needed for daily ops.
     "horse.manage", "asset.manage", "task.assign", "task.complete",
-    "staff.attendance", "leave.request", "leave.approve",
+    "staff.attendance", "leave.request", "leave.approve", "expense.submit",
+    "requisition.submit", "requisition.approve_manager",
   ],
   INVENTORY_MANAGER: [
     // Tack, school equipment, medicine inventory (stock side — vet still prescribes).
-    "asset.manage", "medicine.manage", "task.complete", "leave.request",
+    "asset.manage", "medicine.manage", "task.complete", "leave.request", "expense.submit",
+    "requisition.submit",
   ],
   COMPETITION_MANAGER: [
     // Tournament planning. Needs rider read for entries; can issue participation certs.
     "competition.manage", "event.manage", "rider.read", "task.assign", "task.complete",
-    "certificate.issue", "certificate.bulk", "leave.request",
+    "certificate.issue", "certificate.bulk", "leave.request", "expense.submit", "requisition.submit",
   ],
-  GROOM: ["task.assign", "task.complete", "asset.manage", "leave.request"],
+  GROOM: ["task.assign", "task.complete", "asset.manage", "leave.request", "expense.submit", "requisition.submit"],
   FARRIER: [
     // Specialist labour — logs shoeing tasks against horses; otherwise read-only.
-    "horse.manage", "task.complete", "leave.request",
+    "horse.manage", "task.complete", "leave.request", "expense.submit", "requisition.submit",
   ],
-  VET: ["medicine.manage", "medicine.prescribe", "horse.manage", "task.complete", "leave.request"],
-  ACCOUNTANT: ["medicine.manage", "finance.read", "finance.write", "expense.manage", "leave.request"],
+  VET: ["medicine.manage", "medicine.prescribe", "horse.manage", "task.complete", "leave.request", "expense.submit", "requisition.submit"],
+  ACCOUNTANT: [
+    "medicine.manage", "finance.read", "finance.write", "expense.manage", "expense.submit", "leave.request",
+    "requisition.submit", "requisition.approve_accountant",
+  ],
   EXAMINER: ["rider.read", "assessment.score", "exam.score", "certificate.issue", "leave.request"],
   // Jury members score from a panel but don't schedule exams. They can
   // submit on their own ExamJudge row + score competition entries they're

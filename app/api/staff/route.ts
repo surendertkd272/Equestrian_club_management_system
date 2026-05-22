@@ -51,6 +51,9 @@ export async function POST(req: NextRequest) {
       role: d.role,
       salaryBand: d.salaryBand || null,
       status: "active",
+      aadhaarUrl: d.aadhaarUrl || null,
+      policeVerificationUrl: d.policeVerificationUrl || null,
+      policeVerifiedAt: d.policeVerificationUrl ? new Date() : null,
     },
   });
 

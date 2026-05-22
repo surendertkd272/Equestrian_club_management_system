@@ -1,4 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
   <rect width="192" height="192" rx="32" fill="#0f172a"/>
-  <text x="50%" y="58%" text-anchor="middle" font-family="ui-sans-serif, system-ui, Arial" font-size="120" font-weight="900" fill="#ffffff">E</text>
+  <!-- Rearing horse silhouette in brand red. Centred. -->
+  <g transform="translate(96 102) scale(5)" fill="#e11d48" stroke="none">
+    <path d="M-2.5 -14 L0 -16 L2 -14 L3 -11 L5 -10 L6 -8 L7 -5 L7 -1 L5 1 L3 2 L3 6 L5 8 L5 11 L2 11 L1 8 L-2 8 L-3 11 L-6 11 L-6 8 L-4 6 L-4 2 L-7 1 L-9 -1 L-9 -4 L-7 -3 L-5 -5 L-3 -7 L-3 -11 z"/>
+  </g>
 </svg>

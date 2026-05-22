@@ -11,7 +11,11 @@ const PUBLIC_PREFIXES = [
   "/terms",
   "/pricing",
   "/help",
-  "/tack/by-code",
+  // WhatsApp deep-link redirects — public so coaches can open from the
+  // chat without first signing in. The /r/[code] route enforces validity
+  // (not-expired, code exists) on its own.
+  "/r/",
+  "/api/short-links/resolve",
   // Public scoreboard (competition results, no auth required).
   "/scoreboard",
   "/compete",                      // public competition portal: entries, tickets

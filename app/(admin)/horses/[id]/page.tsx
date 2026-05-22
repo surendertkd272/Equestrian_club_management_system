@@ -15,6 +15,7 @@ import { DeleteAllocation } from "./delete-allocation";
 import { StatusSelect } from "./status-select";
 import { HealthLogPanel } from "./health-log-panel";
 import { FeedPlanPanel } from "./feed-plan-panel";
+import { VetVisitsPanel } from "./vet-visits-panel";
 import { ActivityFeed } from "@/components/shell/activity-feed";
 import { horseActivity } from "@/lib/activity";
 
@@ -47,7 +48,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
   const dayEnd = new Date(dayStart);
   dayEnd.setHours(23, 59, 59, 999);
 
-  const [todaysAllocs, upcoming, riders, healthLogs, vaccinationSchedules, feedPlan] = await Promise.all([
+  const [todaysAllocs, upcoming, riders, healthLogs, vaccinationSchedules, feedPlan, vetVisits, medicines] = await Promise.all([
     prisma.horseAllocation.findMany({
       where: { horseId: horse.id, startAt: { gte: dayStart, lte: dayEnd } },
       include: { rider: { select: { firstName: true, lastName: true, id: true } } },
@@ -76,6 +77,23 @@ export default async function HorseProfile({ params }: { params: { id: string } 
       orderBy: { nextDueAt: "asc" },
     }),
     prisma.feedPlan.findUnique({ where: { horseId: horse.id } }),
+    prisma.vetVisit.findMany({
+      where: { horseId: horse.id },
+      orderBy: { visitDate: "desc" },
+      include: {
+        vet: { select: { id: true, name: true } },
+        prescriptions: true,
+      },
+      take: 50,
+    }),
+    // Medicine options for the prescription picker — centre-scoped, only
+    // unexpired stock. Vet may still type a free-text drug if it's not in
+    // the dropdown (will be flagged "not in stock" in the visit timeline).
+    prisma.medicine.findMany({
+      where: { centreId: horse.centreId, expDate: { gte: new Date() } },
+      select: { id: true, name: true, qty: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   const usedMin = todaysAllocs.reduce((s, a) => s + (a.endAt.getTime() - a.startAt.getTime()) / 60000, 0);
@@ -194,6 +212,37 @@ export default async function HorseProfile({ params }: { params: { id: string } 
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Vet visits</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <VetVisitsPanel
+            horseId={horse.id}
+            canWrite={session.role === "VET" || session.role === "SUPER_ADMIN" || session.role === "CENTRE_MANAGER"}
+            medicines={medicines}
+            initial={vetVisits.map((v) => ({
+              id: v.id,
+              visitDate: v.visitDate.toISOString(),
+              reason: v.reason,
+              notes: v.notes,
+              followUpAt: v.followUpAt?.toISOString() ?? null,
+              vet: v.vet,
+              prescriptions: v.prescriptions.map((p) => ({
+                id: p.id,
+                medicineId: p.medicineId,
+                medicineName: p.medicineName,
+                dose: p.dose,
+                route: p.route,
+                durationDays: p.durationDays,
+                frequency: p.frequency,
+                notes: p.notes,
+              })),
+            }))}
+          />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

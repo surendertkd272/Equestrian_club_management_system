@@ -117,18 +117,12 @@ const LEVEL_2_RUBRIC = [
   { name: "Remarks by Jury", type: "text" as const, items: [{ name: "Overall observations", max_score: 0 }] },
 ];
 
-// PDF §3 must-have equipment + §2 wound & bandaging consumables. Seeded on
-// centre creation so new tenants don't stare at empty cabinets. Quantities
-// are typical for a small-to-medium club; clubs adjust via the inventory UI.
-const STANDARD_EQUIPMENT: Array<{ name: string; brand?: string; subcategory: string }> = [
-  { name: "Digital Thermometer (equine)", subcategory: "medical" },
-  { name: "Stethoscope", subcategory: "medical" },
-  { name: "Hoof Pick (standard)", subcategory: "stable" },
-  { name: "Hoof Pick (with brush)", subcategory: "stable" },
-  { name: "Head Torch (LED, rechargeable)", subcategory: "stable" },
-  { name: "Ice Boots — pair", subcategory: "medical" },
-  { name: "Ice Pack (reusable, large)", subcategory: "medical" },
-];
+// PDF §2 wound & bandaging consumables. Seeded on centre creation so new
+// tenants don't stare at empty cabinets. Quantities are typical for a
+// small-to-medium club; clubs adjust via the inventory UI.
+// (Note: the former STANDARD_EQUIPMENT list was dropped along with the
+// per-item Asset model — bulk equipment seeding now happens via the
+// EquipmentCatalog the HQ team curates.)
 
 const STANDARD_CONSUMABLES: Array<{
   name: string;
@@ -232,29 +226,10 @@ export async function bootstrapCentreCatalog(centreId: string): Promise<void> {
     update: {},
   });
 
-  // PDF §3 — Must-Have Equipment. Seeded as Asset rows so they show up in
-  // /tack with QR codes ready for tagging. We don't pre-issue them; club
-  // staff scan + issue via the existing flow when they put a thermometer in
-  // a kit, etc.
-  const existingEquip = await prisma.asset.count({
-    where: { centreId, subcategory: { in: ["medical", "stable"] } },
-  });
-  if (existingEquip === 0) {
-    for (const item of STANDARD_EQUIPMENT) {
-      // QR codes follow the same pattern the asset-create route uses.
-      const qrCode = `EW-EQ-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-      await prisma.asset.create({
-        data: {
-          centreId,
-          category: "school_equipment",
-          subcategory: item.subcategory,
-          name: item.name,
-          qrCode,
-          status: "new",
-        },
-      });
-    }
-  }
+  // Individual-Asset seeding removed — the Asset model was dropped when the
+  // /tack route was consolidated into /equipment (bulk-stock-only). Starter
+  // equipment now lives in the per-centre EquipmentStock that the inventory
+  // manager populates from the catalog.
 
   // PDF §2 — Wound & Bandaging consumables. One starter set per centre so
   // the first-aid kit is never literally empty.

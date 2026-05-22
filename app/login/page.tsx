@@ -16,7 +16,17 @@ export default async function LoginPage({ searchParams }: { searchParams: { next
   return (
     <main className="flex min-h-screen items-center justify-center bg-secondary p-4">
       <Card className="w-full max-w-sm">
-        <CardHeader>
+        <CardHeader className="text-center">
+          {!tenantBranding && (
+            <picture>
+              <source srcSet="/equiwings-logo.png" type="image/png" />
+              <img
+                src="/equiwings-logo.svg"
+                alt="Equiwings"
+                className="mx-auto mb-2 h-16 w-auto"
+              />
+            </picture>
+          )}
           <CardTitle>Sign in</CardTitle>
           <CardDescription>
             {tenantBranding ? `${tenantBranding.name}` : "Equiwings Central Admin Panel"}

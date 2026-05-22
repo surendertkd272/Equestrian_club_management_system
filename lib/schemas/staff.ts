@@ -10,6 +10,10 @@ export const createStaffSchema = z.object({
   role: z.string().refine((r) => STAFF_ROLES.includes(r), "Invalid staff role"),
   salaryBand: z.string().optional(),
   password: z.string().min(8, "8+ chars").default("password123"),
+  // Optional KYC artefacts — URLs returned from /api/upload after the form
+  // uploads the actual files. Empty string means "not provided yet".
+  aadhaarUrl: z.string().url().optional().or(z.literal("")),
+  policeVerificationUrl: z.string().url().optional().or(z.literal("")),
 });
 
 export type CreateStaffInput = z.infer<typeof createStaffSchema>;

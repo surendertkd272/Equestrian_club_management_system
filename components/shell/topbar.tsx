@@ -56,22 +56,24 @@ export function TopBar({
 
   return (
     <div className="border-b bg-card">
-      <header className="flex h-16 items-center justify-between px-6">
-        <div className="flex items-center gap-3">
-          <div className="text-sm">
-            <div className="font-semibold">
+      <header className="flex h-16 items-center justify-between gap-2 px-3 md:px-6">
+        <div className="flex min-w-0 items-center gap-2 md:gap-3">
+          <div className="min-w-0 text-sm">
+            <div className="truncate font-semibold">
               {session.role === "SUPER_ADMIN" ? "All centres" : centre?.name ?? "—"}
             </div>
-            <div className="text-xs text-muted-foreground">{session.role.replaceAll("_", " ")}</div>
+            <div className="truncate text-xs text-muted-foreground">{session.role.replaceAll("_", " ")}</div>
           </div>
           {allCentres.length > 1 && (
-            <Badge variant="outline" className="ml-2">
+            <Badge variant="outline" className="hidden sm:inline-flex">
               {allCentres.length} centres
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-3">
-          <CommandPalette />
+        <div className="flex items-center gap-1 md:gap-3">
+          <div className="hidden md:block">
+            <CommandPalette />
+          </div>
           <NotificationsDropdown initialUnread={unreadCount} />
           <Link href="/account" className="flex items-center gap-2 text-right text-sm hover:underline" title="Account settings">
             {photoUrl ? (
@@ -82,10 +84,11 @@ export function TopBar({
                 {session.name.split(" ").slice(0, 2).map((p) => p[0]).join("")}
               </span>
             )}
-            <div className="font-medium">{session.name}</div>
+            <div className="hidden font-medium md:block">{session.name}</div>
           </Link>
-          <Button variant="outline" size="sm" onClick={logout}>
-            <LogOut className="h-4 w-4" /> Sign out
+          <Button variant="outline" size="sm" onClick={logout} aria-label="Sign out">
+            <LogOut className="h-4 w-4" />
+            <span className="hidden md:inline">Sign out</span>
           </Button>
         </div>
       </header>
@@ -93,7 +96,7 @@ export function TopBar({
       {contacts.length > 0 && (
         // PDF §3 "Emergency Contact Board" — keep these tappable for staff
         // who are on the field with a phone, not in front of a desk.
-        <div className="flex flex-wrap items-center gap-2 border-t bg-muted/30 px-6 py-1.5 text-xs">
+        <div className="flex flex-wrap items-center gap-2 border-t bg-muted/30 px-3 py-1.5 text-xs md:px-6">
           <span className="font-semibold uppercase tracking-wide text-muted-foreground">
             <Phone className="mr-1 inline h-3 w-3" />
             Emergency:

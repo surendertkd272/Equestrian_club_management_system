@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { centreWhere, scopeCentre } from "@/lib/tenancy";
@@ -29,6 +30,10 @@ function inr(n: number): string {
 
 export default async function FinancePage() {
   const session = (await getSession())!;
+  // Finance pages expose receivables, P&L, payment ledgers — admin/accountant
+  // only. The sidebar already hides this link from other roles, but a direct
+  // URL hit would otherwise render it.
+  if (!can(session.role, "finance.read")) redirect("/dashboard");
   const centreId = scopeCentre(session);
   const where = centreWhere(centreId);
 

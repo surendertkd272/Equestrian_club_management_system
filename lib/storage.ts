@@ -13,17 +13,30 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
-export type UploadKind = "rider_photo" | "rider_aadhaar" | "rider_indemnity" | "horse_photo" | "asset_photo" | "user_photo" | "generic";
+export type UploadKind =
+  | "rider_photo"
+  | "rider_aadhaar"
+  | "rider_indemnity"
+  | "horse_photo"
+  | "asset_photo"
+  | "user_photo"
+  | "staff_aadhaar"
+  | "staff_police_verification"
+  | "expense_invoice"
+  | "generic";
 
 // Per-kind MIME whitelist + size cap. Keep tight — the upload route is public.
 const POLICY: Record<UploadKind, { mimes: string[]; maxBytes: number }> = {
-  rider_photo:     { mimes: ["image/jpeg", "image/png", "image/webp"], maxBytes: 5 * 1024 * 1024 },
-  rider_aadhaar:   { mimes: ["image/jpeg", "image/png", "application/pdf"], maxBytes: 5 * 1024 * 1024 },
-  rider_indemnity: { mimes: ["application/pdf", "image/jpeg", "image/png"], maxBytes: 5 * 1024 * 1024 },
-  horse_photo:     { mimes: ["image/jpeg", "image/png", "image/webp"], maxBytes: 5 * 1024 * 1024 },
-  asset_photo:     { mimes: ["image/jpeg", "image/png", "image/webp"], maxBytes: 5 * 1024 * 1024 },
-  user_photo:      { mimes: ["image/jpeg", "image/png", "image/webp"], maxBytes: 2 * 1024 * 1024 },
-  generic:         { mimes: ["image/jpeg", "image/png", "image/webp", "application/pdf"], maxBytes: 5 * 1024 * 1024 },
+  rider_photo:               { mimes: ["image/jpeg", "image/png", "image/webp"], maxBytes: 5 * 1024 * 1024 },
+  rider_aadhaar:             { mimes: ["image/jpeg", "image/png", "application/pdf"], maxBytes: 5 * 1024 * 1024 },
+  rider_indemnity:           { mimes: ["application/pdf", "image/jpeg", "image/png"], maxBytes: 5 * 1024 * 1024 },
+  horse_photo:               { mimes: ["image/jpeg", "image/png", "image/webp"], maxBytes: 5 * 1024 * 1024 },
+  asset_photo:               { mimes: ["image/jpeg", "image/png", "image/webp"], maxBytes: 5 * 1024 * 1024 },
+  user_photo:                { mimes: ["image/jpeg", "image/png", "image/webp"], maxBytes: 2 * 1024 * 1024 },
+  staff_aadhaar:             { mimes: ["image/jpeg", "image/png", "application/pdf"], maxBytes: 5 * 1024 * 1024 },
+  staff_police_verification: { mimes: ["image/jpeg", "image/png", "application/pdf"], maxBytes: 5 * 1024 * 1024 },
+  expense_invoice:           { mimes: ["image/jpeg", "image/png", "application/pdf"], maxBytes: 10 * 1024 * 1024 },
+  generic:                   { mimes: ["image/jpeg", "image/png", "image/webp", "application/pdf"], maxBytes: 5 * 1024 * 1024 },
 };
 
 export type UploadResult =

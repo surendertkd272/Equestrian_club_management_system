@@ -9,9 +9,17 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { ASSIGNABLE_STAFF_ROLES } from "@/lib/schemas/staff";
 
+type UploadField = "aadhaarUrl" | "policeVerificationUrl";
+
+const UPLOAD_KIND: Record<UploadField, string> = {
+  aadhaarUrl: "staff_aadhaar",
+  policeVerificationUrl: "staff_police_verification",
+};
+
 export function NewStaffForm() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState<UploadField | null>(null);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -19,10 +27,32 @@ export function NewStaffForm() {
     role: "COACH",
     salaryBand: "",
     password: "password123",
+    aadhaarUrl: "",
+    policeVerificationUrl: "",
   });
 
   function set<K extends keyof typeof form>(k: K, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  async function onUpload(field: UploadField, file: File) {
+    setUploading(field);
+    try {
+      const fd = new FormData();
+      fd.append("kind", UPLOAD_KIND[field]);
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.message ?? err.error ?? "Upload failed");
+        return;
+      }
+      const data = await res.json();
+      set(field, data.url as string);
+      toast.success("File uploaded");
+    } finally {
+      setUploading(null);
+    }
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -78,9 +108,77 @@ export function NewStaffForm() {
           <Input value={form.password} onChange={(e) => set("password", e.target.value)} />
         </div>
       </div>
-      <Button type="submit" disabled={saving} className="w-full">
+
+      <div className="rounded-md border border-dashed p-4 space-y-3">
+        <div className="text-sm font-semibold">KYC documents <span className="text-xs font-normal text-muted-foreground">(optional — can be added later)</span></div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <UploadRow
+            label="Aadhaar card"
+            field="aadhaarUrl"
+            url={form.aadhaarUrl}
+            busy={uploading === "aadhaarUrl"}
+            onPick={(f) => onUpload("aadhaarUrl", f)}
+            onClear={() => set("aadhaarUrl", "")}
+          />
+          <UploadRow
+            label="Police verification certificate"
+            field="policeVerificationUrl"
+            url={form.policeVerificationUrl}
+            busy={uploading === "policeVerificationUrl"}
+            onPick={(f) => onUpload("policeVerificationUrl", f)}
+            onClear={() => set("policeVerificationUrl", "")}
+          />
+        </div>
+      </div>
+
+      <Button type="submit" disabled={saving || uploading !== null} className="w-full">
         {saving ? "Creating…" : "Create staff"}
       </Button>
     </form>
+  );
+}
+
+function UploadRow({
+  label,
+  field,
+  url,
+  busy,
+  onPick,
+  onClear,
+}: {
+  label: string;
+  field: string;
+  url: string;
+  busy: boolean;
+  onPick: (file: File) => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      {url ? (
+        <div className="flex items-center gap-2 text-sm">
+          <a href={url} target="_blank" rel="noopener noreferrer" className="text-primary underline truncate">
+            View uploaded file
+          </a>
+          <button type="button" onClick={onClear} className="text-xs text-muted-foreground hover:text-foreground">
+            Remove
+          </button>
+        </div>
+      ) : (
+        <Input
+          type="file"
+          accept="image/jpeg,image/png,application/pdf"
+          disabled={busy}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onPick(file);
+            // Reset input so re-picking the same file still fires onChange.
+            e.target.value = "";
+          }}
+        />
+      )}
+      {busy && <div className="text-xs text-muted-foreground">Uploading…</div>}
+    </div>
   );
 }

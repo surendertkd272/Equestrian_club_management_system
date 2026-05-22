@@ -57,7 +57,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         />
         <ImpersonationBanner impersonatedBy={session.impersonatedBy} userName={session.name} />
         <ReadOnlyBanner status={orgStatus} />
-        <main className="flex-1 bg-muted/40 p-6">{children}</main>
+        <main className="flex-1 bg-muted/40 p-3 sm:p-4 md:p-6 pb-20 md:pb-6">{children}</main>
         <ConfirmHost />
         <PwaInstallPrompt />
       </div>

@@ -76,6 +76,7 @@ model Organisation {
   centres  Centre[]
   features OrgFeature[]
   saasInvoices SaasInvoice[]
+  hqExpenses   HqExpense[]
   // HQ users (typically SUPER_ADMIN) whose centreId is null — the org link
   // is recorded here directly. Centre-scoped users find their org via the
   // centre table instead.
@@ -329,7 +330,6 @@ model Centre {
   staff            Staff[]
   batches          Batch[]
   horses           Horse[]
-  assets           Asset[]
   medicines        Medicine[]
   tasks            Task[]
   facilities       Facility[]
@@ -350,6 +350,10 @@ model Centre {
   expenses         Expense[]
   lessons          Lesson[]
   feedPlans        FeedPlan[]
+  vetVisits        VetVisit[]
+  requisitions     Requisition[]
+  shortLinks       ShortLink[]
+  gateEvents       StaffGateEvent[]
 }
 
 // Role is a string union enforced at the app layer (see lib/roles.ts).
@@ -424,6 +428,9 @@ model User {
   emailVerifyTokens EmailVerifyToken[]
   announcementDismissals AnnouncementDismissal[]
   npsResponses           NpsResponse[]
+  vetVisits        VetVisit[]
+  requisitions     Requisition[]
+  gateEvents       StaffGateEvent[] @relation("StaffGateStaff")
 }
 
 // Public forgot-password flow. We mint a SHA-256-hashed token on request;
@@ -707,6 +714,14 @@ model Staff {
   salaryBand   String?
   status       String   @default("active")
 
+  // KYC + clearance documents. Stored as upload URLs (lib/storage.ts).
+  // Aadhaar is the Indian national ID — captured for every staff hire.
+  // Police verification is a govt-issued clearance certificate; mandatory
+  // before letting any staff member work with minors at the club.
+  aadhaarUrl              String?
+  policeVerificationUrl   String?
+  policeVerifiedAt        DateTime?
+
   centre Centre @relation(fields: [centreId], references: [id])
   user   User   @relation(fields: [userId], references: [id])
 
@@ -750,6 +765,7 @@ model Horse {
   vaccinationSchedules VaccinationSchedule[]
   feedPlan             FeedPlan?
   vetChecks            VetCheck[]
+  vetVisits            VetVisit[]
 
   @@index([centreId])
 }
@@ -1139,66 +1155,13 @@ model Facility {
 // TACK / SCHOOL ASSETS (CMS §4.10, §4.11)
 // ──────────────────────────────────────────────────────────────────────────
 
-model Asset {
-  id            String   @id @default(cuid())
-  centreId      String
-  category      String   // tack | school_equipment
-  subcategory   String?
-  name          String   // e.g. "Wintec All-Purpose Saddle"
-  brand         String?
-  qrCode        String   @unique // human-readable scan code, e.g. EW-TACK-A7K3F2
-  status        String   @default("new") // new | in_use | repair | retired
-  purchaseDate  DateTime?
-  cost          Float?
-  depreciation  String?
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  centre       Centre             @relation(fields: [centreId], references: [id])
-  issuances    AssetIssuance[]
-  maintenance  AssetMaintenance[]
-
-  @@index([centreId, status])
-  @@index([centreId, category])
-}
-
-model AssetIssuance {
-  id                String    @id @default(cuid())
-  assetId           String
-  // Who currently holds it. One of these three should be set.
-  issuedToUserId    String?
-  issuedToRiderId   String?
-  issuedToHorseId   String?
-  issuedBy          String    // userId of staff who issued
-  issuedAt          DateTime  @default(now())
-  returnedAt        DateTime?
-  returnedBy        String?
-  conditionAtReturn String?   // good | damaged | lost
-  note              String?
-
-  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
-
-  @@index([assetId, returnedAt])
-  @@index([issuedToRiderId])
-  @@index([issuedToHorseId])
-}
-
-model AssetMaintenance {
-  id          String    @id @default(cuid())
-  assetId     String
-  issue       String    // free-text description
-  vendor      String?
-  cost        Float?
-  scheduledAt DateTime?
-  repairedAt  DateTime?
-  createdBy   String
-  createdAt   DateTime  @default(now())
-
-  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
-
-  @@index([assetId, repairedAt])
-}
+// Individual-Asset tracking (Asset / AssetIssuance / AssetMaintenance) was
+// removed when the /tack route was folded into the bulk EquipmentStock
+// flow. Quantity-only inventory turned out to match how clubs actually
+// reason about gear ("we own 4 polo saddles") and the parallel system
+// added confusion without enough value. Approval rows of entityType
+// "asset_issuance" remain in the table as soft history; no new ones
+// will be minted.
 
 // ──────────────────────────────────────────────────────────────────────────
 // VET (CMS §4.12)
@@ -1220,8 +1183,9 @@ model Medicine {
   storageLocation String?
   coldChain       Boolean  @default(false)
 
-  centre Centre @relation(fields: [centreId], references: [id])
-  usages MedicineUsage[]
+  centre        Centre            @relation(fields: [centreId], references: [id])
+  usages        MedicineUsage[]
+  prescriptions VetPrescription[]
 
   @@index([centreId, expDate])
 }
@@ -1239,6 +1203,54 @@ model MedicineUsage {
 
   medicine Medicine @relation(fields: [medicineId], references: [id])
   horse    Horse    @relation(fields: [horseId], references: [id])
+}
+
+// Vet visit — a journal entry the on-site or visiting vet records against a
+// horse. Carries the diagnostic notes and a set of VetPrescription rows that
+// link back to the centre's Medicine inventory (so dispensing a prescribed
+// med decrements stock, and the horse's history shows what was actually given).
+// Distinct from MedicineUsage (which is the "give one dose now" event) — a
+// visit can prescribe multiple meds over a duration, and may exist without
+// any meds (purely diagnostic).
+model VetVisit {
+  id          String   @id @default(cuid())
+  centreId    String
+  horseId     String
+  vetUserId   String
+  visitDate   DateTime @default(now())
+  reason      String?  // chief complaint / why the vet was called
+  notes       String   // findings + diagnosis (free text)
+  followUpAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  centre        Centre            @relation(fields: [centreId], references: [id])
+  horse         Horse             @relation(fields: [horseId], references: [id], onDelete: Cascade)
+  vet           User              @relation(fields: [vetUserId], references: [id])
+  prescriptions VetPrescription[]
+
+  @@index([horseId, visitDate])
+  @@index([centreId, visitDate])
+}
+
+model VetPrescription {
+  id            String   @id @default(cuid())
+  visitId       String
+  // Nullable: vet may prescribe a med not in stock (will need ordering) or
+  // free-text instructions. We always store the typed-in name for audit
+  // even when medicineId is set.
+  medicineId    String?
+  medicineName  String
+  dose          String   // e.g. "10 ml" / "2 sachets"
+  route         String?  // oral | im | iv | topical
+  durationDays  Int?
+  frequency     String?  // "once daily" / "BID" / "as needed"
+  notes         String?
+
+  visit    VetVisit  @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  medicine Medicine? @relation(fields: [medicineId], references: [id], onDelete: SetNull)
+
+  @@index([visitId])
+  @@index([medicineId])
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -2361,7 +2373,8 @@ model ExpenseCategory {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  expenses Expense[]
+  expenses   Expense[]
+  hqExpenses HqExpense[] @relation("HqExpenseCategory")
 }
 
 model Vendor {
@@ -2382,6 +2395,147 @@ model Vendor {
   expenses Expense[]
 
   @@index([centreId, active])
+}
+
+// Headquarters-level expenses — the SUPER_ADMIN's view. These are payments
+// the centre-level coaches/accountant don't typically handle:
+//   - umbrella insurance, corporate software subscriptions, legal/audit fees
+//   - bulk purchases that benefit multiple clubs (vaccines bought centrally
+//     then distributed)
+//   - HQ rent, marketing spend, federation memberships
+// Tag rows to one or more centres so HQ rollup reports can allocate cost
+// per club; leave taggedCentreIds empty for purely-HQ overheads.
+model HqExpense {
+  id          String   @id @default(cuid())
+  orgId       String
+  categoryId  String?  // optional — uses platform ExpenseCategory codes
+  amount      Float
+  gstAmount   Float    @default(0)
+  spentAt     DateTime
+  description String
+  vendorName  String?  // free-text; no Vendor row (HQ-side vendors aren't
+                       // centre-scoped, so the existing Vendor model doesn't fit)
+  invoiceRef  String?
+  // Comma-separated centre IDs this expense allocates to. Empty/null = pure
+  // HQ overhead (not allocated). One value = single-club expense the HQ
+  // paid for. Many values = shared across listed clubs.
+  taggedCentreIdsCsv String?
+  paid        Boolean  @default(false)
+  paidAt      DateTime?
+  method      String?  // cash | bank | cheque | upi | card
+  attachmentUrl String  // required — HQ invoices must have a doc
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  org      Organisation     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  category ExpenseCategory? @relation("HqExpenseCategory", fields: [categoryId], references: [id])
+
+  @@index([orgId, spentAt])
+}
+
+// Staff entry/exit log — physical premise tracking (think MyGate). One
+// row per gate event; multiple rows per staff per day (morning entry,
+// lunch out, lunch in, evening exit, etc). The reception/security desk
+// records these on the /gate kiosk page; the centre manager reviews
+// totals on a dashboard.
+//
+// Distinct from StaffAttendance which is class-roster attendance (was
+// the coach in the arena for the 6am batch?). Gate events answer
+// "what time did Ravi come in this morning?"
+model StaffGateEvent {
+  id              String   @id @default(cuid())
+  centreId        String
+  staffUserId     String
+  direction       String   // "in" | "out"
+  occurredAt      DateTime @default(now())
+  notes           String?
+  // The user who recorded the event — guard / receptionist / manager.
+  recordedByUserId String
+  createdAt       DateTime @default(now())
+
+  centre Centre @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  staff  User   @relation("StaffGateStaff", fields: [staffUserId], references: [id])
+
+  @@index([centreId, occurredAt])
+  @@index([staffUserId, occurredAt])
+}
+
+// Short-link / deep-link for WhatsApp distribution. Admin generates a
+// shareable URL pointing at a pre-scoped form (e.g. "report injury for
+// Bijli"). The coach taps it from WhatsApp on their phone and lands on
+// the right form with horse/coach context pre-filled — no scrolling, no
+// login dance if the link's `requiresAuth` is false (we still rate-limit
+// by code).
+//
+// Code is an 8-char base32 (Crockford) so it's typeable, copy-safe, and
+// short enough to fit comfortably in a WhatsApp message.
+model ShortLink {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  // Centre-scoped — admins can only generate links for their own centre.
+  centreId        String
+  // Categorises the link. Used for analytics + to map to a form template.
+  // Values: injury | rider_onboard | expense_submit | requisition | vet_visit | generic
+  kind            String
+  // Where to send the user after redemption. Path-only (no host) so we can
+  // safely build the redirect URL from the request origin.
+  targetPath      String
+  // JSON map of query-string params to merge into the redirect (e.g.
+  // {"horseId":"abc","coachId":"def"}). Pre-fills the destination form.
+  paramsJson      String?
+  // Display label shown on the redemption interstitial — "Report injury for Bijli".
+  label           String?
+  // null = never expires; we still enforce a soft cap of 90 days at create-time.
+  expiresAt       DateTime?
+  // singleUse links self-expire on first redeem so a shared WhatsApp link
+  // can't be forwarded onward.
+  singleUse       Boolean  @default(false)
+  redeemCount     Int      @default(0)
+  lastRedeemedAt  DateTime?
+  createdByUserId String
+  createdAt       DateTime @default(now())
+
+  centre Centre @relation(fields: [centreId], references: [id], onDelete: Cascade)
+
+  @@index([centreId, createdAt])
+}
+
+// Procurement requisition. Staff submits a request to purchase feed,
+// medicine, equipment, or services; a centre-side approver (manager) signs
+// off first; an accountant signs off second. Once `approved` reaches stage
+// "approved", the buyer (typically the requester, or stable manager) goes
+// ahead and procures; the resulting invoice gets uploaded via the
+// /expenses/submit flow.
+//
+// Items are stored as JSON rather than a child table to keep the model
+// simple — a requisition is usually 1-5 line items, never bulk catalog data.
+model Requisition {
+  id                  String   @id @default(cuid())
+  centreId            String
+  requestedByUserId   String
+  // JSON: [{ name, qty, unit, estimatedUnitCost, notes? }]
+  itemsJson           String
+  totalEstimatedCost  Float
+  reason              String?  // why this is needed
+  // Two-stage workflow. pending_manager → pending_accountant → approved.
+  // rejected can happen at either stage; rejectedReason captures the why.
+  stage               String   @default("pending_manager")
+  managerDecidedByUserId    String?
+  managerDecidedAt          DateTime?
+  managerNotes              String?
+  accountantDecidedByUserId String?
+  accountantDecidedAt       DateTime?
+  accountantNotes           String?
+  rejectedReason     String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  centre        Centre @relation(fields: [centreId], references: [id])
+  requestedBy   User   @relation(fields: [requestedByUserId], references: [id])
+
+  @@index([centreId, stage])
+  @@index([requestedByUserId])
 }
 
 model Expense {

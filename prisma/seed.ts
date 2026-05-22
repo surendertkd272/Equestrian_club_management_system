@@ -709,91 +709,77 @@ async function main() {
   console.log(`Exam levels: ${examLevels.length} catalog rows`);
 
   // ──────────────────────────────────────────────────────────────────────
-  // Equipment catalog (HQ-curated, ~70 standard items)
+  // Equipment catalog (HQ-curated, ~50 items)
   // ──────────────────────────────────────────────────────────────────────
-  // Reorder defaults are conservative for a mid-size club. Each centre can
-  // raise/lower per-row from the inventory page.
+  // Compiled from the Equiwings inventory team's WhatsApp catalog
+  // (17-Oct-2025). Items are skewed toward Indian equestrian, polo, and
+  // tent-pegging traditions rather than the generic UK/Western set the
+  // original seed shipped with.
   const equipment: { category: string; code: string; name: string; unit: string; defaultThreshold: number }[] = [
     // Saddlery
-    { category: "saddlery", code: "saddle_dressage", name: "Dressage saddle", unit: "piece", defaultThreshold: 3 },
-    { category: "saddlery", code: "saddle_jumping", name: "Jumping saddle", unit: "piece", defaultThreshold: 3 },
-    { category: "saddlery", code: "saddle_general", name: "General-purpose saddle", unit: "piece", defaultThreshold: 5 },
-    { category: "saddlery", code: "saddle_pad", name: "Saddle pad", unit: "piece", defaultThreshold: 10 },
-    { category: "saddlery", code: "girth", name: "Girth", unit: "piece", defaultThreshold: 8 },
-    { category: "saddlery", code: "stirrup_leathers", name: "Stirrup leathers", unit: "pair", defaultThreshold: 8 },
-    { category: "saddlery", code: "stirrup_irons", name: "Stirrup irons", unit: "pair", defaultThreshold: 8 },
-    { category: "saddlery", code: "breastplate", name: "Breastplate", unit: "piece", defaultThreshold: 3 },
-    { category: "saddlery", code: "crupper", name: "Crupper", unit: "piece", defaultThreshold: 2 },
+    { category: "saddlery", code: "saddle_indian_trooper", name: "Indian trooper saddle", unit: "piece", defaultThreshold: 4 },
+    { category: "saddlery", code: "saddle_polo", name: "Polo saddle", unit: "piece", defaultThreshold: 4 },
+    { category: "saddlery", code: "saddle_leather", name: "Leather saddle", unit: "piece", defaultThreshold: 4 },
+    { category: "saddlery", code: "pad_foam", name: "Foam saddle pad", unit: "piece", defaultThreshold: 8 },
+    { category: "saddlery", code: "pad_gel", name: "Gel saddle pad", unit: "piece", defaultThreshold: 6 },
+    { category: "saddlery", code: "pad_fur", name: "Fur saddle pad", unit: "piece", defaultThreshold: 6 },
+    { category: "saddlery", code: "pad_indian", name: "Indian saddle pad", unit: "piece", defaultThreshold: 8 },
+    { category: "saddlery", code: "pad_black", name: "Black saddle pad", unit: "piece", defaultThreshold: 6 },
+    { category: "saddlery", code: "girth_belt", name: "Girth belt", unit: "piece", defaultThreshold: 8 },
+    { category: "saddlery", code: "girth_long", name: "Long girth", unit: "piece", defaultThreshold: 6 },
+    { category: "saddlery", code: "chest_belt", name: "Chest belt", unit: "piece", defaultThreshold: 4 },
+    { category: "saddlery", code: "stirrup_iron", name: "Iron stirrup", unit: "pair", defaultThreshold: 8 },
+    { category: "saddlery", code: "stirrup_belt", name: "Stirrup belt", unit: "pair", defaultThreshold: 8 },
+    { category: "saddlery", code: "pisova", name: "Pisova", unit: "piece", defaultThreshold: 4 },
+
     // Bridlery
-    { category: "bridlery", code: "bridle_snaffle", name: "Snaffle bridle", unit: "piece", defaultThreshold: 8 },
-    { category: "bridlery", code: "bridle_double", name: "Double bridle", unit: "piece", defaultThreshold: 2 },
-    { category: "bridlery", code: "bit_snaffle", name: "Snaffle bit", unit: "piece", defaultThreshold: 8 },
+    { category: "bridlery", code: "bridle_set", name: "Bridle set", unit: "set", defaultThreshold: 6 },
+    { category: "bridlery", code: "bit_d", name: "D bit", unit: "piece", defaultThreshold: 4 },
+    { category: "bridlery", code: "bit_ring", name: "Ring bit", unit: "piece", defaultThreshold: 4 },
     { category: "bridlery", code: "bit_pelham", name: "Pelham bit", unit: "piece", defaultThreshold: 3 },
-    { category: "bridlery", code: "reins_plain", name: "Plain reins", unit: "pair", defaultThreshold: 6 },
-    { category: "bridlery", code: "halter", name: "Headcollar / halter", unit: "piece", defaultThreshold: 12 },
-    { category: "bridlery", code: "lead_rope", name: "Lead rope", unit: "piece", defaultThreshold: 12 },
-    { category: "bridlery", code: "lunge_cavesson", name: "Lunge cavesson", unit: "piece", defaultThreshold: 3 },
-    // Protection
-    { category: "protection", code: "boots_brushing", name: "Brushing boots", unit: "pair", defaultThreshold: 8 },
-    { category: "protection", code: "boots_tendon", name: "Tendon boots", unit: "pair", defaultThreshold: 6 },
-    { category: "protection", code: "boots_over_reach", name: "Over-reach boots", unit: "pair", defaultThreshold: 6 },
-    { category: "protection", code: "boots_bell", name: "Bell boots", unit: "pair", defaultThreshold: 4 },
-    { category: "protection", code: "bandages_stable", name: "Stable bandages", unit: "set", defaultThreshold: 8 },
-    { category: "protection", code: "bandages_polo", name: "Polo wraps", unit: "set", defaultThreshold: 6 },
-    // Rider gear
-    { category: "rider", code: "helmet", name: "Riding helmet", unit: "piece", defaultThreshold: 10 },
-    { category: "rider", code: "body_protector", name: "Body protector", unit: "piece", defaultThreshold: 6 },
-    { category: "rider", code: "gloves", name: "Riding gloves", unit: "pair", defaultThreshold: 12 },
-    { category: "rider", code: "whip", name: "Whip / crop", unit: "piece", defaultThreshold: 6 },
-    { category: "rider", code: "spurs", name: "Spurs", unit: "pair", defaultThreshold: 4 },
-    { category: "rider", code: "riding_boots", name: "Riding boots (loaner)", unit: "pair", defaultThreshold: 6 },
-    // Stable
-    { category: "stable", code: "mucking_fork", name: "Mucking fork", unit: "piece", defaultThreshold: 4 },
-    { category: "stable", code: "wheelbarrow", name: "Wheelbarrow", unit: "piece", defaultThreshold: 3 },
-    { category: "stable", code: "broom", name: "Yard broom", unit: "piece", defaultThreshold: 4 },
-    { category: "stable", code: "bucket", name: "Water bucket", unit: "piece", defaultThreshold: 12 },
-    { category: "stable", code: "feed_scoop", name: "Feed scoop", unit: "piece", defaultThreshold: 4 },
-    { category: "stable", code: "haynet", name: "Hay net", unit: "piece", defaultThreshold: 12 },
-    { category: "stable", code: "rubber_mat", name: "Stable rubber mat", unit: "piece", defaultThreshold: 6 },
-    { category: "stable", code: "rug_summer", name: "Summer sheet / rug", unit: "piece", defaultThreshold: 6 },
-    { category: "stable", code: "rug_winter", name: "Winter rug", unit: "piece", defaultThreshold: 6 },
+    { category: "bridlery", code: "head_collar", name: "Head collar", unit: "piece", defaultThreshold: 10 },
+    { category: "bridlery", code: "rein", name: "Rein", unit: "pair", defaultThreshold: 6 },
+    { category: "bridlery", code: "martingale", name: "Martingale", unit: "piece", defaultThreshold: 4 },
+    { category: "bridlery", code: "reins_side", name: "Side reins", unit: "pair", defaultThreshold: 3 },
+
+    // Protection (boots + bandages)
+    { category: "protection", code: "bandage_polo", name: "Polo bandage", unit: "set", defaultThreshold: 8 },
+    { category: "protection", code: "boot_tendon", name: "Tendon boot", unit: "pair", defaultThreshold: 6 },
+    { category: "protection", code: "boot_hand", name: "Hand boot", unit: "pair", defaultThreshold: 6 },
+    { category: "protection", code: "boot_corner", name: "Corner boot", unit: "pair", defaultThreshold: 4 },
+
     // Grooming
-    { category: "grooming", code: "curry_comb", name: "Curry comb", unit: "piece", defaultThreshold: 8 },
-    { category: "grooming", code: "dandy_brush", name: "Dandy brush", unit: "piece", defaultThreshold: 8 },
-    { category: "grooming", code: "body_brush", name: "Body brush", unit: "piece", defaultThreshold: 8 },
-    { category: "grooming", code: "face_brush", name: "Face brush", unit: "piece", defaultThreshold: 6 },
-    { category: "grooming", code: "hoof_pick", name: "Hoof pick", unit: "piece", defaultThreshold: 10 },
-    { category: "grooming", code: "sweat_scraper", name: "Sweat scraper", unit: "piece", defaultThreshold: 4 },
-    { category: "grooming", code: "mane_comb", name: "Mane / tail comb", unit: "piece", defaultThreshold: 4 },
-    { category: "grooming", code: "shampoo", name: "Horse shampoo", unit: "litre", defaultThreshold: 5 },
-    // Feed
-    { category: "feed", code: "feed_bin", name: "Feed bin (50kg)", unit: "piece", defaultThreshold: 4 },
-    { category: "feed", code: "salt_lick", name: "Salt lick block", unit: "piece", defaultThreshold: 6 },
-    { category: "feed", code: "hay_kg", name: "Hay (kg in stock)", unit: "kg", defaultThreshold: 200 },
-    { category: "feed", code: "grain_kg", name: "Grain feed (kg in stock)", unit: "kg", defaultThreshold: 100 },
-    // Tack room
-    { category: "tackroom", code: "saddle_rack", name: "Saddle rack", unit: "piece", defaultThreshold: 8 },
-    { category: "tackroom", code: "bridle_hook", name: "Bridle hook", unit: "piece", defaultThreshold: 12 },
-    { category: "tackroom", code: "saddle_soap", name: "Saddle soap", unit: "piece", defaultThreshold: 4 },
-    { category: "tackroom", code: "leather_oil", name: "Leather oil", unit: "litre", defaultThreshold: 3 },
-    { category: "tackroom", code: "cleaning_sponge", name: "Cleaning sponge", unit: "piece", defaultThreshold: 12 },
-    // Arena / training
-    { category: "arena", code: "jump_pole", name: "Jump pole (3m)", unit: "piece", defaultThreshold: 20 },
-    { category: "arena", code: "jump_wing", name: "Jump wing", unit: "pair", defaultThreshold: 6 },
-    { category: "arena", code: "jump_cup", name: "Jump cup", unit: "piece", defaultThreshold: 24 },
-    { category: "arena", code: "trot_pole", name: "Trot pole", unit: "piece", defaultThreshold: 12 },
-    { category: "arena", code: "cone", name: "Training cone", unit: "piece", defaultThreshold: 20 },
-    { category: "arena", code: "lunge_line", name: "Lunge line", unit: "piece", defaultThreshold: 4 },
-    { category: "arena", code: "lunge_whip", name: "Lunge whip", unit: "piece", defaultThreshold: 3 },
-    { category: "arena", code: "side_reins", name: "Side reins", unit: "pair", defaultThreshold: 3 },
-    { category: "arena", code: "dressage_letters", name: "Dressage arena letters (set)", unit: "set", defaultThreshold: 1 },
-    // Vet / first aid
-    { category: "vet", code: "first_aid_kit", name: "First-aid kit", unit: "piece", defaultThreshold: 2 },
-    { category: "vet", code: "thermometer", name: "Thermometer (rectal, equine)", unit: "piece", defaultThreshold: 2 },
-    { category: "vet", code: "stethoscope", name: "Stethoscope", unit: "piece", defaultThreshold: 1 },
-    { category: "vet", code: "bandage_scissors", name: "Bandage scissors", unit: "piece", defaultThreshold: 2 },
-    { category: "vet", code: "wound_dressing", name: "Wound dressing pads", unit: "piece", defaultThreshold: 20 },
-    { category: "vet", code: "antiseptic", name: "Antiseptic solution", unit: "litre", defaultThreshold: 3 },
+    { category: "grooming", code: "hoof_picker", name: "Hoof picker", unit: "piece", defaultThreshold: 8 },
+    { category: "grooming", code: "brush", name: "Brush", unit: "piece", defaultThreshold: 8 },
+    { category: "grooming", code: "comb_rubber", name: "Rubber comb", unit: "piece", defaultThreshold: 6 },
+    { category: "grooming", code: "comb_metal", name: "Metal comb", unit: "piece", defaultThreshold: 6 },
+    { category: "grooming", code: "glove_rubber", name: "Rubber glove (grooming)", unit: "pair", defaultThreshold: 6 },
+    { category: "grooming", code: "kharara_metal", name: "Metal kharara", unit: "piece", defaultThreshold: 6 },
+
+    // Arena & jumping
+    { category: "arena", code: "jump_wing", name: "Jumping wing", unit: "pair", defaultThreshold: 6 },
+    { category: "arena", code: "pole_hook", name: "Pole hook", unit: "piece", defaultThreshold: 24 },
+    { category: "arena", code: "jump_pole_balli", name: "Balli / jumping pole", unit: "piece", defaultThreshold: 20 },
+    { category: "arena", code: "lunge_rope", name: "Lunging rope", unit: "piece", defaultThreshold: 4 },
+    { category: "arena", code: "fence_number", name: "Fence number", unit: "piece", defaultThreshold: 30 },
+    { category: "arena", code: "flag_red", name: "Red flag", unit: "piece", defaultThreshold: 6 },
+    { category: "arena", code: "flag_white", name: "White flag", unit: "piece", defaultThreshold: 6 },
+
+    // Tent pegging
+    { category: "tent_pegging", code: "lance", name: "Lance", unit: "piece", defaultThreshold: 4 },
+    { category: "tent_pegging", code: "peg", name: "Peg", unit: "piece", defaultThreshold: 20 },
+    { category: "tent_pegging", code: "ring", name: "Ring", unit: "piece", defaultThreshold: 12 },
+    { category: "tent_pegging", code: "ring_stand", name: "Ring stand", unit: "piece", defaultThreshold: 6 },
+    { category: "tent_pegging", code: "punji", name: "Punji", unit: "piece", defaultThreshold: 8 },
+    { category: "tent_pegging", code: "punji_grass", name: "Grass punji", unit: "piece", defaultThreshold: 8 },
+    { category: "tent_pegging", code: "hole_punch", name: "Hole maker / hole punch", unit: "piece", defaultThreshold: 2 },
+
+    // Polo
+    { category: "polo", code: "polo_mallet_big", name: "Polo mallet (big)", unit: "piece", defaultThreshold: 6 },
+    { category: "polo", code: "polo_mallet_small", name: "Polo mallet (small)", unit: "piece", defaultThreshold: 6 },
+
+    // Facility
+    { category: "facility", code: "fridge", name: "Fridge", unit: "piece", defaultThreshold: 1 },
   ];
   for (const item of equipment) {
     await prisma.equipmentCatalog.upsert({

@@ -8,6 +8,7 @@ import type { Role } from "@/lib/roles";
 import type { FeatureKey } from "@/lib/features";
 import { filterSidebarNav } from "./sidebar-nav";
 import { Menu, X } from "lucide-react";
+import { Horse } from "@/components/icons/horse";
 import {
   LayoutDashboard,
   Users,
@@ -22,7 +23,6 @@ import {
   ListChecks,
   Package,
   Pill,
-  Rabbit,
   CalendarRange,
   Receipt,
   FileText,
@@ -40,6 +40,11 @@ import {
   FileCheck,
   Building,
   Flag,
+  ShoppingCart,
+  MessageCircle,
+  DoorOpen,
+  Boxes,
+  QrCode,
 } from "lucide-react";
 
 // Icon registry — referenced by name from sidebar-nav.ts so that file stays
@@ -58,7 +63,6 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   ListChecks,
   Package,
   Pill,
-  Rabbit,
   CalendarRange,
   Receipt,
   FileText,
@@ -75,6 +79,13 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   FileCheck,
   Building,
   Flag,
+  ShoppingCart,
+  MessageCircle,
+  DoorOpen,
+  Boxes,
+  QrCode,
+  // Custom horse silhouette (no equivalent in lucide-react).
+  Horse,
   // lucide-react exports the icon as `Bandage`; sidebar-nav.ts references it
   // as `BandageIcon` for clarity in nav definitions.
   BandageIcon: Bandage,
@@ -139,9 +150,18 @@ export function Sidebar({
       >
         <div className="flex h-16 items-center justify-between gap-2 border-b px-4">
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold">
-              E
-            </div>
+            {/* Prefers the PNG asset at /equiwings-logo.png (client-provided),
+                falls back to the bundled SVG fallback when the PNG isn't present. */}
+            <picture>
+              <source srcSet="/equiwings-logo.png" type="image/png" />
+              <img
+                src="/equiwings-logo.svg"
+                alt="Equiwings"
+                className="h-9 w-auto"
+                width={72}
+                height={36}
+              />
+            </picture>
             <div>
               <div className="text-sm font-bold leading-none">Equiwings</div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Central Admin</div>
