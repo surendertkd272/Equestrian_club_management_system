@@ -9,9 +9,14 @@ export default async function LoginPage({ searchParams }: { searchParams: { next
   // signing in to.
   const domain = await currentDomain();
   const tenantBranding = domain?.isCustomDomain ? domain.org : null;
-  // Quick-pick test-account selector only renders in dev. Production logins
-  // never see the dropdown or the "password is 1234" hint below.
-  const devMode = process.env.NODE_ENV !== "production";
+  // Quick-pick test-account selector renders in dev by default. For the
+  // current client UAT/test phase, deployed instances can opt in by setting
+  // NEXT_PUBLIC_SHOW_TEST_DROPDOWN=1 in their Vercel env vars — that
+  // exposes the dropdown + the "password is 1234" hint without changing
+  // NODE_ENV. Drop the env var (or set it to 0) before going live.
+  const devMode =
+    process.env.NODE_ENV !== "production" ||
+    process.env.NEXT_PUBLIC_SHOW_TEST_DROPDOWN === "1";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-secondary p-4">
@@ -41,10 +46,8 @@ export default async function LoginPage({ searchParams }: { searchParams: { next
           </div>
           {devMode && !tenantBranding && (
             <div className="mt-6 rounded-md border bg-muted p-3 text-xs text-muted-foreground">
-              <div className="font-semibold text-foreground">Dev — all passwords are <code>1234</code></div>
-              <p className="mt-1">
-                Reset any time with <code>npx tsx scripts/reset-all-passwords.ts 1234</code>.
-              </p>
+              <div className="font-semibold text-foreground">Test build — all passwords are <code>password</code></div>
+              <p className="mt-1">Pick any role from the dropdown above and tap Sign in.</p>
             </div>
           )}
         </CardContent>

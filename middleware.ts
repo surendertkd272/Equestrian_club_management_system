@@ -32,6 +32,10 @@ const PUBLIC_PREFIXES = [
   "/manifest.json",
   "/sw.js",
   "/icons/",
+  // Brand asset served from the login page (pre-auth) — without this, the
+  // middleware redirects /equiwings-logo.png → /login, breaking the logo.
+  "/equiwings-logo.png",
+  "/equiwings-logo.svg",
   "/api/payments/razorpay/mock",
   "/api/payments/razorpay/order",  // public — onboarding wizard calls this pre-auth
   "/api/payments/razorpay/verify", // public — Razorpay handler returns through the browser

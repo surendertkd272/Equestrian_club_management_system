@@ -36,10 +36,11 @@ export function LoginForm({
   quickPickEnabled?: boolean;
 }) {
   const router = useRouter();
-  // Defaults prefilled for dev convenience. The reset-all-passwords script
-  // standardises every account to "1234" locally — see scripts/reset-all-passwords.ts.
+  // Defaults prefilled for dev / UAT convenience. Seed.ts hashes every
+  // seeded account with the password "password"; the reset-all-passwords
+  // script can re-stamp them all back to the same value if they drift.
   const [email, setEmail] = useState(quickPickEnabled ? "super@equiwings.in" : "");
-  const [password, setPassword] = useState(quickPickEnabled ? "1234" : "");
+  const [password, setPassword] = useState(quickPickEnabled ? "password" : "");
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
@@ -79,7 +80,7 @@ export function LoginForm({
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);
-              setPassword("1234");
+              setPassword("password");
             }}
             className="h-8 w-full rounded border bg-card px-2 text-xs"
           >
