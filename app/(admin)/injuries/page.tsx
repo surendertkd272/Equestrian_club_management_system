@@ -69,7 +69,7 @@ export default async function InjuriesPage() {
               No injuries logged. Hopefully it stays that way.
             </p>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="px-2 py-2">Subject</th>
@@ -117,7 +117,7 @@ export default async function InjuriesPage() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           )}
         </CardContent>
       </Card>

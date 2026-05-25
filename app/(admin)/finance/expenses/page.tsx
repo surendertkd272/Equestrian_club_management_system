@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, Plus } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { BulkReimburse } from "./bulk-reimburse";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export default async function ExpensesPage({
     where.categoryId = { in: cats.map((c) => c.id) };
   }
 
-  const [expenses, totals] = await Promise.all([
+  const [expenses, totals, dueExpenses] = await Promise.all([
     prisma.expense.findMany({
       where,
       include: { category: { select: { name: true, group: true } }, vendor: { select: { name: true } } },
@@ -47,9 +48,34 @@ export default async function ExpensesPage({
       take: 200,
     }),
     prisma.expense.aggregate({ where, _sum: { amount: true }, _count: true }),
+    // Bulk-reimburse always pulls the FULL due set (ignores the page's
+    // group/paid filters) so the accountant can clear the backlog in one
+    // pass without having to re-filter the page.
+    prisma.expense.findMany({
+      where: { ...centreWhere(centreId), paid: false },
+      select: {
+        id: true,
+        amount: true,
+        description: true,
+        createdBy: true,
+      },
+      orderBy: { spentAt: "desc" },
+      take: 200,
+    }),
   ]);
 
   const canManage = can(session.role, "expense.manage");
+
+  // Build a name index for the submitter labels in the bulk panel. Saves
+  // an N+1 lookup vs including User on every Expense row above.
+  const submitterIds = Array.from(new Set(dueExpenses.map((e) => e.createdBy).filter((x): x is string => !!x)));
+  const submitters = submitterIds.length
+    ? await prisma.user.findMany({
+        where: { id: { in: submitterIds } },
+        select: { id: true, name: true },
+      })
+    : [];
+  const nameById = new Map(submitters.map((u) => [u.id, u.name]));
 
   return (
     <div className="space-y-6">
@@ -73,6 +99,17 @@ export default async function ExpensesPage({
           </Button>
         )}
       </div>
+
+      {canManage && (
+        <BulkReimburse
+          due={dueExpenses.map((e) => ({
+            id: e.id,
+            amount: e.amount,
+            label: e.description,
+            submitter: e.createdBy ? (nameById.get(e.createdBy) ?? "—") : "—",
+          }))}
+        />
+      )}
 
       <Card>
         <CardHeader>

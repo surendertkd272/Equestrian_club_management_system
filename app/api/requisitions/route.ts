@@ -6,6 +6,7 @@ import { scopeCentre, centreWhere } from "@/lib/tenancy";
 import { createRequisitionSchema } from "@/lib/schemas/requisition";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { notifyMany } from "@/lib/notify";
 
 // GET — list visible requisitions. Filter:
 //   - ?mine=1 → only my submissions
@@ -85,6 +86,25 @@ export async function POST(req: NextRequest) {
     tableName: "requisition",
     rowId: row.id,
     after: { totalEstimatedCost, itemCount: parsed.data.items.length },
+  });
+
+  // Notify everyone who can approve at the manager stage so the requisition
+  // doesn't just sit in a list waiting to be discovered. Fire-and-forget;
+  // notify() swallows its own errors so the create still succeeds.
+  const approvers = await prisma.user.findMany({
+    where: {
+      centreId,
+      status: "active",
+      role: { in: ["CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER", "SUPER_ADMIN"] },
+    },
+    select: { id: true },
+  });
+  await notifyMany(approvers.map((u) => u.id), {
+    centreId,
+    type: "requisition.submitted",
+    title: "New requisition needs your approval",
+    body: `${session.name} submitted a requisition for ₹${Math.round(totalEstimatedCost).toLocaleString("en-IN")} (${parsed.data.items.length} item${parsed.data.items.length === 1 ? "" : "s"}).`,
+    link: `/requisitions`,
   });
 
   return NextResponse.json({ ok: true, id: row.id });

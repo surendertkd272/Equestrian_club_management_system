@@ -20,7 +20,10 @@ export const TASK_KINDS = [
 ] as const;
 
 export const createTaskSchema = z.object({
-  title: z.string().min(2).max(120),
+  // Title min loosened to 1 — single-word task templates like "X" (X-ray
+  // reminder) or "Q" (quarantine check) are valid. The form's `required`
+  // attribute on the input already blocks empty strings.
+  title: z.string().min(1).max(120),
   description: z.string().max(500).optional(),
   kind: z.enum(TASK_KINDS).optional(),
   assigneeId: z.string().min(1).nullable().optional(),
@@ -30,6 +33,9 @@ export const createTaskSchema = z.object({
     .or(z.string().datetime())
     .optional(),
   recurrence: z.enum(TASK_RECURRENCES).optional().default("once"),
+  // SUPER_ADMIN posts this when they don't have a centreId pinned in the
+  // session. Centre-scoped users ignore it (server uses session centre).
+  centreId: z.string().min(1).optional(),
 });
 
 export const updateTaskSchema = z.object({

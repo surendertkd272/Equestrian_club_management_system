@@ -17,7 +17,14 @@ const TEMPLATES = [
   { label: "Farrier visit", desc: "Schedule trims/shoes for due horses.", time: "09:00", rec: "monthly" },
 ];
 
-export function NewTaskForm({ users }: { users: { id: string; name: string; role: string }[] }) {
+export function NewTaskForm({
+  users,
+  centres = [],
+}: {
+  users: { id: string; name: string; role: string; centreId?: string | null }[];
+  // Non-empty only for SUPER_ADMIN — picker resolves which centre owns the task.
+  centres?: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
@@ -28,6 +35,7 @@ export function NewTaskForm({ users }: { users: { id: string; name: string; role
     date: today,
     time: "09:00",
     recurrence: "once",
+    centreId: centres[0]?.id ?? "",
   });
 
   function set<K extends keyof typeof form>(k: K, v: string) {
@@ -48,6 +56,11 @@ export function NewTaskForm({ users }: { users: { id: string; name: string; role
       recurrence: form.recurrence,
     };
     if (form.date && form.time) payload.dueAt = `${form.date}T${form.time}`;
+    // Only set centreId when the picker is shown (SUPER_ADMIN case); on
+    // centre-scoped sessions the API ignores body.centreId and uses the
+    // session's pin instead.
+    if (centres.length > 0) payload.centreId = form.centreId;
+
     const res = await fetch("/api/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -56,7 +69,13 @@ export function NewTaskForm({ users }: { users: { id: string; name: string; role
     setSaving(false);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Failed");
+      // Same trick as the requisition form — surface Zod's per-field errors
+      // so a 400 doesn't become an opaque "Failed".
+      const flat = err?.details?.fieldErrors as Record<string, string[]> | undefined;
+      const firstFieldMsg = flat
+        ? Object.entries(flat).flatMap(([k, v]) => v.map((m) => `${k}: ${m}`))[0]
+        : undefined;
+      toast.error(firstFieldMsg ?? err.error ?? "Failed");
       return;
     }
     toast.success("Task created");
@@ -82,6 +101,22 @@ export function NewTaskForm({ users }: { users: { id: string; name: string; role
         </div>
       </div>
 
+      {centres.length > 0 && (
+        <div className="space-y-1.5">
+          <Label>Centre *</Label>
+          <Select value={form.centreId} onChange={(e) => set("centreId", e.target.value)}>
+            {centres.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </Select>
+          <p className="text-[11px] text-muted-foreground">
+            HQ admins must pick which club the task belongs to.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-1.5">
         <Label>Title *</Label>
         <Input required value={form.title} onChange={(e) => set("title", e.target.value)} />
@@ -95,11 +130,17 @@ export function NewTaskForm({ users }: { users: { id: string; name: string; role
           <Label>Assignee</Label>
           <Select value={form.assigneeId} onChange={(e) => set("assigneeId", e.target.value)}>
             <option value="">(unassigned)</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name} · {u.role.replaceAll("_", " ").toLowerCase()}
-              </option>
-            ))}
+            {users
+              // Filter to the picked centre's roster when a centre picker is
+              // shown — otherwise the API rejects with INVALID_ASSIGNEE.
+              .filter((u) =>
+                centres.length === 0 || !form.centreId ? true : u.centreId === form.centreId,
+              )
+              .map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name} · {u.role.replaceAll("_", " ").toLowerCase()}
+                </option>
+              ))}
           </Select>
         </div>
         <div className="space-y-1.5">

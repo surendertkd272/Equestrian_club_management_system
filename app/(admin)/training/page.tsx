@@ -95,6 +95,7 @@ export default async function TrainingPage() {
               No certifications recorded yet.
             </p>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted-foreground">
                 <tr>
@@ -131,6 +132,7 @@ export default async function TrainingPage() {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </CardContent>
       </Card>

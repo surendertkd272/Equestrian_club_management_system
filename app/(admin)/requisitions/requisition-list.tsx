@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
 
 export type RequisitionDTO = {
@@ -38,15 +40,55 @@ export function RequisitionList({
   // "manager" / "accountant" — show decide controls; "readonly" — no controls.
   mode: "manager" | "accountant" | "readonly";
 }) {
+  const [q, setQ] = useState("");
+  const [stage, setStage] = useState<string>("all");
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (stage !== "all" && r.stage !== stage) return false;
+      if (!needle) return true;
+      const hay = [
+        r.requestedBy.name,
+        r.reason ?? "",
+        ...r.items.map((i) => i.name),
+      ].join(" ").toLowerCase();
+      return hay.includes(needle);
+    });
+  }, [rows, q, stage]);
+
   if (rows.length === 0) {
     return <p className="py-4 text-center text-sm text-muted-foreground">Nothing to show.</p>;
   }
   return (
-    <ol className="space-y-3">
-      {rows.map((r) => (
-        <RequisitionRow key={r.id} row={r} mode={mode} />
-      ))}
-    </ol>
+    <div className="space-y-3">
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Input
+          placeholder="Search submitter, item, or reason…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className="flex-1"
+        />
+        <Select value={stage} onChange={(e) => setStage(e.target.value)} className="sm:w-48">
+          <option value="all">All stages</option>
+          <option value="pending_manager">Pending manager</option>
+          <option value="pending_accountant">Pending accountant</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </Select>
+      </div>
+      {filtered.length === 0 ? (
+        <p className="py-4 text-center text-sm text-muted-foreground">
+          No matches for "{q}"{stage !== "all" ? ` in stage ${stage.replaceAll("_", " ")}` : ""}.
+        </p>
+      ) : (
+        <ol className="space-y-3">
+          {filtered.map((r) => (
+            <RequisitionRow key={r.id} row={r} mode={mode} />
+          ))}
+        </ol>
+      )}
+    </div>
   );
 }
 
@@ -95,13 +137,20 @@ function RequisitionRow({ row, mode }: { row: RequisitionDTO; mode: "manager" | 
         <p className="mt-2 text-sm text-muted-foreground">{row.reason}</p>
       )}
 
-      <button
-        type="button"
-        className="mt-2 text-xs text-primary underline"
-        onClick={() => setOpen((v) => !v)}
-      >
-        {open ? "Hide items" : "Show items"}
-      </button>
+      <div className="mt-2 flex items-center gap-3 text-xs">
+        <button
+          type="button"
+          className="text-primary underline"
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? "Hide items" : "Show items"}
+        </button>
+        {row.stage === "approved" && (
+          <Link href={`/requisitions/${row.id}/po`} className="text-primary underline">
+            Open PO →
+          </Link>
+        )}
+      </div>
 
       {open && (
         <div className="mt-2 overflow-x-auto rounded-md border bg-muted/40">

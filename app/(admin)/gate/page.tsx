@@ -116,11 +116,19 @@ export default async function GatePage({
                 Tap In/Out as staff arrive and leave. Last 24 hours of events shown below.
               </CardDescription>
             </div>
-            {session.role === "SUPER_ADMIN" && (
-              <Link href="/gate" className="text-xs text-primary underline">
-                Switch centre
+            <div className="flex items-center gap-3 text-xs">
+              <Link
+                href={`/gate/summary${session.role === "SUPER_ADMIN" ? `?centre=${centreId}` : ""}`}
+                className="text-primary underline"
+              >
+                Shift summary →
               </Link>
-            )}
+              {session.role === "SUPER_ADMIN" && (
+                <Link href="/gate" className="text-primary underline">
+                  Switch centre
+                </Link>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>

@@ -11,11 +11,23 @@ export default async function NewTaskPage() {
   if (!can(session.role, "task.assign")) redirect("/tasks");
 
   const centreId = scopeCentre(session);
-  const users = await prisma.user.findMany({
-    where: { ...centreWhere(centreId), status: "active" },
-    select: { id: true, name: true, role: true },
-    orderBy: { name: "asc" },
-  });
+  // SUPER_ADMIN needs to pick which centre this task belongs to — without
+  // session.centreId pinned, the API rejects with "centreId required".
+  // Centre-scoped roles always see a single centre, so we hide the picker.
+  const isHQ = session.role === "SUPER_ADMIN" && !session.centreId;
+  const [users, allCentres] = await Promise.all([
+    prisma.user.findMany({
+      where: { ...centreWhere(centreId), status: "active" },
+      select: { id: true, name: true, role: true, centreId: true },
+      orderBy: { name: "asc" },
+    }),
+    isHQ
+      ? prisma.centre.findMany({
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        })
+      : Promise.resolve([]),
+  ]);
 
   return (
     <div className="mx-auto max-w-xl">
@@ -28,7 +40,7 @@ export default async function NewTaskPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <NewTaskForm users={users} />
+          <NewTaskForm users={users} centres={allCentres} />
         </CardContent>
       </Card>
     </div>

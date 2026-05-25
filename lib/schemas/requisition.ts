@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 export const requisitionItemSchema = z.object({
-  name: z.string().min(2).max(160),
+  // min(1) — single-letter names are real (e.g. "A", "B" for arena fences,
+  // "X" for X-ray plates). The previous min(2) was rejecting valid input
+  // and surfacing as a generic 400 because the client form filter only
+  // checks for truthy strings.
+  name: z.string().min(1).max(160),
   qty: z.coerce.number().positive().max(100_000),
   unit: z.string().max(40).optional(),
   estimatedUnitCost: z.coerce.number().min(0).max(10_000_000),

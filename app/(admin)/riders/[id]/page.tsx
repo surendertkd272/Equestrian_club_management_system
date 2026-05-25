@@ -304,7 +304,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
           <CardTitle>Invoices</CardTitle>
         </CardHeader>
         <CardContent>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="text-left text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="pb-2">Kind</th>
@@ -336,7 +336,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
                 </tr>
               )}
             </tbody>
-          </table>
+          </table></div>
         </CardContent>
       </Card>
 

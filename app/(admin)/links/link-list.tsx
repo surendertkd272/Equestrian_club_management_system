@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Copy, MessageCircle } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
@@ -29,14 +31,62 @@ const KIND_LABEL: Record<string, string> = {
 };
 
 export function LinkList({ links }: { links: LinkDTO[] }) {
+  const [q, setQ] = useState("");
+  const [kind, setKind] = useState("all");
+  const [status, setStatus] = useState("all"); // all | active | expired | used
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return links.filter((l) => {
+      if (kind !== "all" && l.kind !== kind) return false;
+      const isExpired = l.expiresAt && new Date(l.expiresAt) < new Date();
+      const isUsed = l.singleUse && l.redeemCount > 0;
+      if (status === "active" && (isExpired || isUsed)) return false;
+      if (status === "expired" && !isExpired) return false;
+      if (status === "used" && !isUsed) return false;
+      if (!needle) return true;
+      return (
+        (l.label ?? "").toLowerCase().includes(needle) ||
+        l.code.toLowerCase().includes(needle) ||
+        l.targetPath.toLowerCase().includes(needle)
+      );
+    });
+  }, [links, q, kind, status]);
+
   if (links.length === 0) {
     return <p className="py-6 text-center text-sm text-muted-foreground">No links yet.</p>;
   }
   return (
-    <div className="space-y-2">
-      {links.map((l) => (
-        <LinkRow key={l.id} link={l} />
-      ))}
+    <div className="space-y-3">
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Input
+          placeholder="Search label, code, or target…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          className="flex-1"
+        />
+        <Select value={kind} onChange={(e) => setKind(e.target.value)} className="sm:w-44">
+          <option value="all">All kinds</option>
+          {Object.entries(KIND_LABEL).map(([k, label]) => (
+            <option key={k} value={k}>{label}</option>
+          ))}
+        </Select>
+        <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:w-36">
+          <option value="all">All status</option>
+          <option value="active">Active only</option>
+          <option value="expired">Expired</option>
+          <option value="used">Used (single-use)</option>
+        </Select>
+      </div>
+      {filtered.length === 0 ? (
+        <p className="py-4 text-center text-sm text-muted-foreground">No matches.</p>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((l) => (
+            <LinkRow key={l.id} link={l} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

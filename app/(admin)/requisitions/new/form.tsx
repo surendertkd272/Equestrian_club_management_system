@@ -55,7 +55,14 @@ export function NewRequisitionForm() {
     setSaving(false);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Failed");
+      // Surface Zod's per-field complaints when the API returns them — the
+      // generic "VALIDATION" string alone made it impossible to tell which
+      // field was off (saw this with single-char item names).
+      const flat = err?.details?.fieldErrors as Record<string, string[]> | undefined;
+      const firstFieldMsg = flat
+        ? Object.entries(flat).flatMap(([k, v]) => v.map((m) => `${k}: ${m}`))[0]
+        : undefined;
+      toast.error(firstFieldMsg ?? err.error ?? "Failed");
       return;
     }
     toast.success("Requisition submitted");

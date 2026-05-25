@@ -82,6 +82,9 @@ export const NAV: NavGroup[] = [
       // "do we have enough" question that drives day-to-day decisions.
       { href: "/equipment", label: "Tack & Equipment", iconName: "Package", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "STABLE_MANAGER", "INVENTORY_MANAGER", "HEAD_COACH", "GROOM"], feature: "inventory" },
       { href: "/medicines", label: "Vet Medicines", iconName: "Pill", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "VET", "INVENTORY_MANAGER", "ACCOUNTANT"], feature: "vet-records" },
+      // Cross-horse vet follow-up calendar — companion view to the per-horse
+      // Vet Visits panel. Same permission set so VET / horse.manage roles see it.
+      { href: "/vet-followups", label: "Vet Follow-ups", iconName: "CalendarClock", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "VET", "HEAD_COACH", "STABLE_MANAGER"], feature: "vet-records" },
       { href: "/consumables", label: "First-Aid Consumables", iconName: "BandageIcon", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "VET", "STABLE_MANAGER", "INVENTORY_MANAGER", "GROOM"], feature: "consumables" },
       { href: "/horses", label: "Horses", iconName: "Horse", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "VET", "STABLE_MANAGER", "FARRIER", "GROOM"], feature: "horse-management" },
       { href: "/vaccinations", label: "Vaccinations", iconName: "Syringe", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "VET", "STABLE_MANAGER"], feature: "vet-records" },

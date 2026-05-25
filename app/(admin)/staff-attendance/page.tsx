@@ -56,7 +56,7 @@ export default async function StaffAttendancePage() {
           <CardTitle>Recent rows</CardTitle>
         </CardHeader>
         <CardContent>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="text-left text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="pb-2">Date</th>
@@ -102,7 +102,7 @@ export default async function StaffAttendancePage() {
                 </tr>
               )}
             </tbody>
-          </table>
+          </table></div>
         </CardContent>
       </Card>
     </div>

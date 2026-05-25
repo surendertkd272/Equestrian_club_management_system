@@ -10,6 +10,7 @@ import { can } from "@/lib/permissions";
 import { decideRequisitionSchema } from "@/lib/schemas/requisition";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { notify, notifyMany } from "@/lib/notify";
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -79,6 +80,40 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     before: { stage: row.stage },
     after: { stage: updated.stage },
   });
+
+  // Stage-transition notifications. Each branch picks recipients matching
+  // the new owners of the workflow + always echoes back to the submitter
+  // on terminal outcomes (approved / rejected) so they don't have to poll.
+  if (updated.stage === "pending_accountant") {
+    // Manager approved → ping accountants who can sign off.
+    const accountants = await prisma.user.findMany({
+      where: {
+        centreId: row.centreId,
+        status: "active",
+        role: { in: ["ACCOUNTANT", "SUPER_ADMIN"] },
+      },
+      select: { id: true },
+    });
+    await notifyMany(accountants.map((u) => u.id), {
+      centreId: row.centreId,
+      type: "requisition.pending_accountant",
+      title: "Requisition awaiting accountant signoff",
+      body: `${session.name} (${session.role.replaceAll("_", " ").toLowerCase()}) approved a requisition for ₹${Math.round(row.totalEstimatedCost).toLocaleString("en-IN")}. Your turn.`,
+      link: "/requisitions",
+    });
+  } else if (updated.stage === "approved" || updated.stage === "rejected") {
+    // Terminal — tell the submitter.
+    await notify({
+      userId: row.requestedByUserId,
+      centreId: row.centreId,
+      type: `requisition.${updated.stage}`,
+      title: `Requisition ${updated.stage}`,
+      body: updated.stage === "approved"
+        ? `Your requisition for ₹${Math.round(row.totalEstimatedCost).toLocaleString("en-IN")} was fully approved — proceed with procurement.`
+        : `Your requisition was rejected${parsed.data.notes ? `: ${parsed.data.notes}` : "."}`,
+      link: "/requisitions",
+    });
+  }
 
   return NextResponse.json({ ok: true, stage: updated.stage });
 }

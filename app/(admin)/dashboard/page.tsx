@@ -41,6 +41,17 @@ export default async function DashboardPage() {
   todayStart.setUTCHours(0, 0, 0, 0);
   const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
+  // New-feature widget queries — kept side-by-side with the existing tiles
+  // so the dashboard renders in one trip. Each is centre-scoped via `where`.
+  // For the gate "currently on premises" tile we pull all of today's events
+  // and aggregate in JS (rather than per-staff subquery) — easier to read,
+  // negligible cost for a single centre's daily traffic.
+  const sevenDays = new Date(Date.now() + 7 * 86400000);
+  const myApproverStage: "pending_manager" | "pending_accountant" | null =
+    (session.role as string) === "ACCOUNTANT" ? "pending_accountant" :
+    (["CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER", "SUPER_ADMIN"] as string[]).includes(session.role) ? "pending_manager" :
+    null;
+
   const [
     activeRiders,
     pendingRiders,
@@ -53,6 +64,10 @@ export default async function DashboardPage() {
     todaysAttendance,
     openTasks,
     overdueTasks,
+    reqPendingMine,
+    invoicesAwaitingReimbursement,
+    upcomingVetFollowups,
+    gateEventsToday,
   ] = await Promise.all([
       prisma.rider.count({ where: { ...where, status: "active" } }),
       prisma.rider.count({ where: { ...where, status: "pending_payment" } }),
@@ -79,7 +94,26 @@ export default async function DashboardPage() {
       prisma.task.count({
         where: { ...where, status: { in: ["open", "in_progress"] }, dueAt: { lt: new Date() } },
       }),
+      myApproverStage
+        ? prisma.requisition.count({ where: { ...where, stage: myApproverStage } })
+        : Promise.resolve(0),
+      prisma.expense.count({ where: { ...where, paid: false } }),
+      prisma.vetVisit.count({
+        where: { ...where, followUpAt: { gte: new Date(), lte: sevenDays } },
+      }),
+      prisma.staffGateEvent.findMany({
+        where: { ...where, occurredAt: { gte: todayStart, lt: todayEnd } },
+        select: { staffUserId: true, direction: true, occurredAt: true },
+        orderBy: { occurredAt: "asc" },
+      }),
     ]);
+
+  // Aggregate gate events: a staff member is "on premises" if their LATEST
+  // event today is an IN. Walk events oldest-to-newest, keep direction per
+  // staff; count the IN-state ones at the end.
+  const latestDir = new Map<string, "in" | "out">();
+  for (const e of gateEventsToday) latestDir.set(e.staffUserId, e.direction as "in" | "out");
+  const onPremises = [...latestDir.values()].filter((d) => d === "in").length;
 
   const todayPresent = todaysAttendance.find((g) => g.status === "present")?._count ?? 0;
   const todayTotal = todaysAttendance.reduce((s, g) => s + g._count, 0);
@@ -155,6 +189,33 @@ export default async function DashboardPage() {
       value: expiringSoon,
       hint: "review & rotate",
       warn: expiringSoon > 0,
+    },
+    // New-feature widgets — only show "pending your approval" for roles
+    // that can actually approve. Reimbursement + vet follow-ups + gate
+    // headcount are universally relevant.
+    ...(myApproverStage
+      ? [{
+          label: "Requisitions to approve",
+          value: reqPendingMine,
+          hint: myApproverStage === "pending_accountant" ? "accountant signoff" : "manager approval",
+          warn: reqPendingMine > 0,
+        }]
+      : []),
+    {
+      label: "Invoices to reimburse",
+      value: invoicesAwaitingReimbursement,
+      hint: "paid = false",
+      warn: invoicesAwaitingReimbursement > 0,
+    },
+    {
+      label: "Vet follow-ups (next 7d)",
+      value: upcomingVetFollowups,
+      hint: "scheduled re-checks",
+    },
+    {
+      label: "Staff on premises now",
+      value: onPremises,
+      hint: "via gate log today",
     },
   ];
 

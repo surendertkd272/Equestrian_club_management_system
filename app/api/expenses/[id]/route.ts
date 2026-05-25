@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { updateExpenseSchema } from "@/lib/schemas/finance";
 import { audit } from "@/lib/audit";
+import { notify } from "@/lib/notify";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -50,6 +51,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     before: { amount: before.amount, paid: before.paid },
     after: { amount: updated.amount, paid: updated.paid },
   });
+
+  // Reimbursement transition (paid: false → true) — let the submitter know
+  // their money is on the way. Skip if `createdBy` is null (legacy rows
+  // pre-submit-flow) or if the submitter just paid themselves.
+  if (!before.paid && updated.paid && before.createdBy && before.createdBy !== session.userId) {
+    await notify({
+      userId: before.createdBy,
+      centreId: updated.centreId,
+      type: "expense.paid",
+      title: "Your invoice was reimbursed",
+      body: `₹${Math.round(updated.amount).toLocaleString("en-IN")} has been marked paid${updated.method ? ` (${updated.method})` : ""}.`,
+      link: "/expenses/submit",
+    });
+  }
+
   return NextResponse.json({ ok: true });
 }
 

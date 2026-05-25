@@ -20,6 +20,7 @@ import { submitExpenseSchema } from "@/lib/schemas/expense-submit";
 import { audit } from "@/lib/audit";
 import { blockIfFeatureOff } from "@/lib/features-gate";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { notifyMany } from "@/lib/notify";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -90,6 +91,24 @@ export async function POST(req: NextRequest) {
     tableName: "expense",
     rowId: row.id,
     after: { amount: row.amount, hasAttachment: true },
+  });
+
+  // Notify accountants + centre manager so the expense actually moves
+  // toward reimbursement instead of sitting in a list nobody scans.
+  const reimbursers = await prisma.user.findMany({
+    where: {
+      centreId,
+      status: "active",
+      role: { in: ["ACCOUNTANT", "CENTRE_MANAGER", "SUPER_ADMIN"] },
+    },
+    select: { id: true },
+  });
+  await notifyMany(reimbursers.map((u) => u.id), {
+    centreId,
+    type: "expense.submitted",
+    title: "New invoice submitted for reimbursement",
+    body: `${session.name} uploaded an invoice — ₹${Math.round(parsed.data.amount).toLocaleString("en-IN")}${parsed.data.vendorName ? ` from ${parsed.data.vendorName}` : ""}.`,
+    link: "/finance/expenses",
   });
 
   return NextResponse.json({ ok: true, id: row.id });

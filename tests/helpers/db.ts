@@ -14,7 +14,15 @@ export async function resetDb(): Promise<void> {
   await prisma.notification.deleteMany();
   await prisma.leaveRequest.deleteMany();
   await prisma.staffAttendance.deleteMany();
+  await prisma.staffGateEvent.deleteMany();
   await prisma.parentLink.deleteMany();
+  // New-feature tables (vet visits, requisitions, hq expenses, short links).
+  // Prescriptions cascade with VetVisit; explicit delete kept as belt-and-braces.
+  await prisma.vetPrescription.deleteMany();
+  await prisma.vetVisit.deleteMany();
+  await prisma.requisition.deleteMany();
+  await prisma.hqExpense.deleteMany();
+  await prisma.shortLink.deleteMany();
   // Batch B: horse-health models. Drop before Horse + Centre.
   await prisma.farrierVisit.deleteMany();
   await prisma.horseHealthLog.deleteMany();

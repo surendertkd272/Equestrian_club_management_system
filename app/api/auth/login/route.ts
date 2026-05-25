@@ -24,20 +24,29 @@ export async function POST(req: NextRequest) {
   // Two-axis throttle: per-IP AND per-(IP,email). The IP cap stops broad
   // distributed brute force; the email cap protects a single account
   // from credential stuffing.
-  const ip = clientFingerprint(req);
-  const ipCheck = checkRate(`login:ip:${ip}`, 20, 15 * 60_000);
-  if (!ipCheck.ok) {
-    return NextResponse.json(
-      { error: "RATE_LIMITED", retryAfterSec: ipCheck.retryAfterSec },
-      { status: 429, headers: { "Retry-After": String(ipCheck.retryAfterSec) } },
-    );
-  }
-  const emailCheck = checkRate(`login:em:${ip}:${parsed.data.email.toLowerCase()}`, 5, 15 * 60_000);
-  if (!emailCheck.ok) {
-    return NextResponse.json(
-      { error: "RATE_LIMITED", retryAfterSec: emailCheck.retryAfterSec },
-      { status: 429, headers: { "Retry-After": String(emailCheck.retryAfterSec) } },
-    );
+  //
+  // Bypass when NEXT_PUBLIC_SHOW_TEST_DROPDOWN=1 (UAT/demo deployments) —
+  // testers click "Sign in" against the same seeded account dozens of
+  // times in a row and the per-(IP,email) cap of 5/15min hits very fast.
+  // The same env var that exposes the dropdown signals "this isn't a
+  // production install" — flipping both together avoids drift.
+  const skipRateLimit = process.env.NEXT_PUBLIC_SHOW_TEST_DROPDOWN === "1";
+  if (!skipRateLimit) {
+    const ip = clientFingerprint(req);
+    const ipCheck = checkRate(`login:ip:${ip}`, 20, 15 * 60_000);
+    if (!ipCheck.ok) {
+      return NextResponse.json(
+        { error: "RATE_LIMITED", retryAfterSec: ipCheck.retryAfterSec },
+        { status: 429, headers: { "Retry-After": String(ipCheck.retryAfterSec) } },
+      );
+    }
+    const emailCheck = checkRate(`login:em:${ip}:${parsed.data.email.toLowerCase()}`, 5, 15 * 60_000);
+    if (!emailCheck.ok) {
+      return NextResponse.json(
+        { error: "RATE_LIMITED", retryAfterSec: emailCheck.retryAfterSec },
+        { status: 429, headers: { "Retry-After": String(emailCheck.retryAfterSec) } },
+      );
+    }
   }
 
   const user = await prisma.user.findUnique({

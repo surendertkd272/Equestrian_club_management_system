@@ -285,7 +285,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
             <CardTitle>Vaccinations</CardTitle>
           </CardHeader>
           <CardContent>
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="px-2 py-1">Vaccine</th>
@@ -309,7 +309,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
             <div className="mt-2 text-xs text-muted-foreground">
               Edit schedules + record doses from{" "}
               <Link href="/vaccinations" className="underline">/vaccinations</Link>.
@@ -326,7 +326,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
           {todaysAllocs.length === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">Nothing scheduled today.</p>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted-foreground">
                 <tr>
                   <th className="pb-2">Time</th>
@@ -363,7 +363,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           )}
         </CardContent>
       </Card>

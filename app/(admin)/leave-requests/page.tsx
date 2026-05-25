@@ -91,7 +91,7 @@ function Table({
     return <p className="py-6 text-center text-sm text-muted-foreground">Nothing here.</p>;
   }
   return (
-    <table className="w-full text-sm">
+    <div className="overflow-x-auto"><table className="w-full text-sm">
       <thead className="text-left text-xs uppercase text-muted-foreground">
         <tr>
           <th className="pb-2">Staff</th>
@@ -140,6 +140,6 @@ function Table({
           </tr>
         ))}
       </tbody>
-    </table>
+    </table></div>
   );
 }
