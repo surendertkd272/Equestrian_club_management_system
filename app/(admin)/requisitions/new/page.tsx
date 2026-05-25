@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,17 @@ export const dynamic = "force-dynamic";
 export default async function NewRequisitionPage() {
   const session = (await getSession())!;
   if (!can(session.role, "requisition.submit")) redirect("/dashboard");
+
+  // SUPER_ADMIN needs a centre picker — their session has no centreId pin,
+  // and the API rejects requisitions without one. Centre-scoped roles always
+  // see their own centre so the picker is hidden.
+  const isHQ = session.role === "SUPER_ADMIN" && !session.centreId;
+  const centres = isHQ
+    ? await prisma.centre.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      })
+    : [];
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -21,7 +33,7 @@ export default async function NewRequisitionPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <NewRequisitionForm />
+          <NewRequisitionForm centres={centres} />
         </CardContent>
       </Card>
     </div>

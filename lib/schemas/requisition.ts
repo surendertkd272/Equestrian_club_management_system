@@ -15,6 +15,9 @@ export const requisitionItemSchema = z.object({
 export const createRequisitionSchema = z.object({
   items: z.array(requisitionItemSchema).min(1).max(50),
   reason: z.string().max(500).optional(),
+  // SUPER_ADMIN posts this when their session has no centreId pinned.
+  // Centre-scoped users have it ignored (the route prefers session.centreId).
+  centreId: z.string().min(1).optional(),
 });
 
 export const decideRequisitionSchema = z.object({

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2 } from "lucide-react";
 
@@ -13,10 +14,17 @@ type Item = { name: string; qty: string; unit: string; estimatedUnitCost: string
 
 const EMPTY_ITEM: Item = { name: "", qty: "1", unit: "", estimatedUnitCost: "", notes: "" };
 
-export function NewRequisitionForm() {
+export function NewRequisitionForm({
+  centres = [],
+}: {
+  // Non-empty only for SUPER_ADMIN — picker resolves which centre owns
+  // the requisition. Hidden for centre-scoped roles.
+  centres?: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const [reason, setReason] = useState("");
   const [items, setItems] = useState<Item[]>([{ ...EMPTY_ITEM }]);
+  const [centreId, setCentreId] = useState(centres[0]?.id ?? "");
   const [saving, setSaving] = useState(false);
 
   function updateItem(idx: number, patch: Partial<Item>) {
@@ -43,14 +51,22 @@ export function NewRequisitionForm() {
       toast.error("Add at least one item with a name and qty.");
       return;
     }
+    if (centres.length > 0 && !centreId) {
+      toast.error("Pick a centre for this requisition.");
+      return;
+    }
     setSaving(true);
+    const payload: Record<string, unknown> = {
+      items: cleaned,
+      reason: reason.trim() || undefined,
+    };
+    // SUPER_ADMIN must include centreId; centre-scoped users omit it and
+    // the API uses session.centreId instead.
+    if (centres.length > 0) payload.centreId = centreId;
     const res = await fetch("/api/requisitions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        items: cleaned,
-        reason: reason.trim() || undefined,
-      }),
+      body: JSON.stringify(payload),
     });
     setSaving(false);
     if (!res.ok) {
@@ -72,6 +88,20 @@ export function NewRequisitionForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
+      {centres.length > 0 && (
+        <div className="space-y-1.5">
+          <Label>Centre *</Label>
+          <Select value={centreId} onChange={(e) => setCentreId(e.target.value)}>
+            {centres.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </Select>
+          <p className="text-[11px] text-muted-foreground">
+            HQ admins must pick which club this requisition belongs to.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-1.5">
         <Label>Reason / context</Label>
         <Textarea

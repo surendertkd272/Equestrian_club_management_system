@@ -55,13 +55,31 @@ export async function POST(req: NextRequest) {
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
 
-  const centreId = scopeCentre(session);
-  if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
-
   const body = await req.json().catch(() => null);
   const parsed = createRequisitionSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
+  }
+
+  // Centre resolution: session pin for centre-scoped users; body for SUPER_ADMIN.
+  // Validate ownership for HQ so they can't post a requisition into someone
+  // else's organisation.
+  let centreId: string | null = scopeCentre(session);
+  if (!centreId && session.role === "SUPER_ADMIN" && parsed.data.centreId) {
+    const c = await prisma.centre.findUnique({
+      where: { id: parsed.data.centreId },
+      select: { id: true },
+    });
+    if (!c) {
+      return NextResponse.json({ error: "INVALID_CENTRE" }, { status: 400 });
+    }
+    centreId = c.id;
+  }
+  if (!centreId) {
+    return NextResponse.json(
+      { error: "NO_CENTRE_CONTEXT", message: "HQ admins must pick a centre when creating a requisition." },
+      { status: 400 },
+    );
   }
 
   const totalEstimatedCost = parsed.data.items.reduce(
