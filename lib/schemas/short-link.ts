@@ -4,7 +4,10 @@ import { z } from "zod";
 // validates kind ∈ this list and uses the path as the redirect target so
 // admins can't forge links into restricted areas via custom targetPath.
 export const SHORT_LINK_KINDS = {
-  injury: { label: "Injury report", targetPath: "/injuries/new" },
+  // /injuries hosts both the list and the "Log a new injury" card inline —
+  // there's no separate /new route. Old links that targeted /injuries/new
+  // 404'd; we redirect to /injuries and the page handles the rest.
+  injury: { label: "Injury report", targetPath: "/injuries" },
   rider_onboard: { label: "Rider onboarding", targetPath: "/onboarding" },
   expense_submit: { label: "Invoice submission", targetPath: "/expenses/submit" },
   requisition: { label: "New requisition", targetPath: "/requisitions/new" },
