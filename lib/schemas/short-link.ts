@@ -9,6 +9,9 @@ export const SHORT_LINK_KINDS = {
   // 404'd; we redirect to /injuries and the page handles the rest.
   injury: { label: "Injury report", targetPath: "/injuries" },
   rider_onboard: { label: "Rider onboarding", targetPath: "/onboarding" },
+  // Staff hiring invite — recipient registers via /staff-register?code=...,
+  // SUPER_ADMIN / ADMIN approves before the account is enabled.
+  staff_hire: { label: "Staff hiring invite", targetPath: "/staff-register" },
   expense_submit: { label: "Invoice submission", targetPath: "/expenses/submit" },
   requisition: { label: "New requisition", targetPath: "/requisitions/new" },
   vet_visit_horse: { label: "Vet visit (per horse)", targetPath: "" }, // path resolved per-horse at create-time
@@ -18,7 +21,7 @@ export const SHORT_LINK_KINDS = {
 export type ShortLinkKind = keyof typeof SHORT_LINK_KINDS;
 
 export const createShortLinkSchema = z.object({
-  kind: z.enum(["injury", "rider_onboard", "expense_submit", "requisition", "vet_visit_horse", "generic"]),
+  kind: z.enum(["injury", "rider_onboard", "staff_hire", "expense_submit", "requisition", "vet_visit_horse", "generic"]),
   // For "generic" + "vet_visit_horse" the admin supplies the target path.
   // For known kinds we ignore this and use the catalog mapping.
   targetPath: z.string().regex(/^\/[a-zA-Z0-9_\-\/\[\]]+$/, "Target path must start with /").max(200).optional(),

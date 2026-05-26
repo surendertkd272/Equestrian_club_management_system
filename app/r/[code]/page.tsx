@@ -57,8 +57,13 @@ export default async function ShortLinkRedeem({ params }: { params: { code: stri
     .catch(() => null);
 
   // Build the destination URL — base path from the catalog + query string
-  // from the stored params.
+  // from the stored params. For staff_hire links we append the code as a
+  // path segment so /staff-register/[code]/page.tsx can validate it
+  // server-side (the form POST also re-validates).
   let target = link.targetPath;
+  if (link.kind === "staff_hire" && target === "/staff-register") {
+    target = `/staff-register/${link.code}`;
+  }
   if (link.paramsJson) {
     try {
       const params = JSON.parse(link.paramsJson) as Record<string, string>;

@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { ROLES } from "../roles";
 
-export const USER_STATUSES = ["active", "suspended"] as const;
+// pending_approval = staff hiring invite was redeemed; user can't sign in
+// until an admin reviews + activates them. resigned / terminated capture
+// the employee lifecycle exits (kept distinct so HR can filter on cause).
+export const USER_STATUSES = ["active", "suspended", "pending_approval", "resigned", "terminated"] as const;
 export type UserStatus = (typeof USER_STATUSES)[number];
 
 // HQ-side user edit. Email + role + centre + status are deliberately co-located

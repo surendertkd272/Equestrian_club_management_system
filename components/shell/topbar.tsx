@@ -8,6 +8,7 @@ import { LogOut, Phone } from "lucide-react";
 import type { SessionPayload } from "@/lib/auth";
 import { CommandPalette } from "./cmdk";
 import { NotificationsDropdown } from "./notifications-dropdown";
+import { HqCentreSwitcher } from "./hq-centre-switcher";
 
 export type EmergencyContact = { label: string; number: string; type: string };
 
@@ -27,6 +28,7 @@ export function TopBar({
   unreadCount,
   emergencyContacts,
   photoUrl,
+  hqCentreFilter,
 }: {
   session: SessionPayload;
   centre: { id: string; name: string; slug: string } | null;
@@ -34,6 +36,9 @@ export function TopBar({
   unreadCount: number;
   emergencyContacts?: EmergencyContact[];
   photoUrl?: string | null;
+  // Active centre filter for HQ-tier admins. null = "all centres".
+  // Only used when session.role is SUPER_ADMIN or ADMIN.
+  hqCentreFilter?: string | null;
 }) {
   const router = useRouter();
   async function logout() {
@@ -60,14 +65,16 @@ export function TopBar({
         <div className="flex min-w-0 items-center gap-2 md:gap-3">
           <div className="min-w-0 text-sm">
             <div className="truncate font-semibold">
-              {session.role === "SUPER_ADMIN" ? "All centres" : centre?.name ?? "—"}
+              {session.role === "SUPER_ADMIN" || session.role === "ADMIN"
+                ? hqCentreFilter
+                  ? (allCentres.find((c) => c.id === hqCentreFilter)?.name ?? "Centre")
+                  : "All centres"
+                : centre?.name ?? "—"}
             </div>
             <div className="truncate text-xs text-muted-foreground">{session.role.replaceAll("_", " ")}</div>
           </div>
-          {allCentres.length > 1 && (
-            <Badge variant="outline" className="hidden sm:inline-flex">
-              {allCentres.length} centres
-            </Badge>
+          {(session.role === "SUPER_ADMIN" || session.role === "ADMIN") && allCentres.length > 0 && (
+            <HqCentreSwitcher centres={allCentres} selected={hqCentreFilter ?? null} />
           )}
         </div>
         <div className="flex items-center gap-1 md:gap-3">

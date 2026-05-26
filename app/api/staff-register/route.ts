@@ -1,0 +1,106 @@
+// Public staff registration endpoint — receives a /staff-register/[code]
+// submission, validates the code, and creates a User row in
+// `pending_approval` status. Admin reviews via /users (filter status =
+// pending_approval) and flips the status to active. No password is set
+// until approval, at which point a one-time temp pwd is emailed.
+
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { notifyMany } from "@/lib/notify";
+import { audit } from "@/lib/audit";
+
+const schema = z.object({
+  code: z.string().min(4).max(16),
+  name: z.string().min(2).max(80),
+  email: z.string().email(),
+  phone: z.string().max(20).optional(),
+  role: z.enum([
+    "COACH", "GROOM", "STABLE_MANAGER", "INVENTORY_MANAGER",
+    "VET", "FARRIER", "ACCOUNTANT", "COMPETITION_MANAGER",
+  ]),
+  notes: z.string().max(500).optional(),
+});
+
+export async function POST(req: NextRequest) {
+  const body = await req.json().catch(() => null);
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
+  }
+
+  // Validate the invite code — must be a staff_hire short link, still valid.
+  const code = parsed.data.code.toUpperCase();
+  const link = await prisma.shortLink.findUnique({ where: { code } });
+  if (!link) return NextResponse.json({ error: "INVITE_NOT_FOUND" }, { status: 404 });
+  if (link.kind !== "staff_hire") {
+    return NextResponse.json({ error: "INVITE_WRONG_KIND" }, { status: 400 });
+  }
+  if (link.expiresAt && link.expiresAt < new Date()) {
+    return NextResponse.json({ error: "INVITE_EXPIRED" }, { status: 400 });
+  }
+
+  // Email uniqueness — reject if someone with this email already exists.
+  // (Avoids creating a duplicate ghost user via the invite path.)
+  const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+  if (existing) {
+    return NextResponse.json({ error: "EMAIL_IN_USE", message: "An account with this email already exists. Ask the admin to add you to this centre instead." }, { status: 409 });
+  }
+
+  // Create the pending user. No password yet — set when admin approves.
+  // Stash the optional notes + invite code in `notifPrefsJson` as a JSON
+  // blob so we don't need a separate StaffInvite table for the audit info.
+  const user = await prisma.user.create({
+    data: {
+      email: parsed.data.email,
+      name: parsed.data.name,
+      phone: parsed.data.phone || null,
+      role: parsed.data.role,
+      centreId: link.centreId,
+      passwordHash: "PENDING", // placeholder; admin resets on approval
+      status: "pending_approval",
+      notifPrefsJson: JSON.stringify({
+        inviteCode: code,
+        inviteNotes: parsed.data.notes ?? null,
+      }),
+    },
+  });
+
+  // Bump the link redemption counter so admins can see "this invite has
+  // been used N times".
+  await prisma.shortLink
+    .update({
+      where: { id: link.id },
+      data: { redeemCount: { increment: 1 }, lastRedeemedAt: new Date() },
+    })
+    .catch(() => null);
+
+  await audit({
+    userId: user.id,
+    action: "user.register_pending",
+    tableName: "user",
+    rowId: user.id,
+    after: { email: user.email, role: user.role, centreId: link.centreId, viaInvite: code },
+  });
+
+  // Notify centre manager + HQ admins so the approval doesn't sit idle.
+  const approvers = await prisma.user.findMany({
+    where: {
+      OR: [
+        { centreId: link.centreId, role: { in: ["CENTRE_MANAGER", "HEAD_COACH"] } },
+        { role: { in: ["SUPER_ADMIN", "ADMIN"] } },
+      ],
+      status: "active",
+    },
+    select: { id: true },
+  });
+  await notifyMany(approvers.map((u) => u.id), {
+    centreId: link.centreId,
+    type: "user.pending_approval",
+    title: "New staff signup awaiting approval",
+    body: `${user.name} (${user.role.replaceAll("_", " ").toLowerCase()}) registered via your invite link. Review at /users.`,
+    link: "/users?status=pending_approval",
+  });
+
+  return NextResponse.json({ ok: true });
+}

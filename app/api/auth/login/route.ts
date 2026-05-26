@@ -134,6 +134,7 @@ export async function POST(req: NextRequest) {
   const redirect =
     user.role === "PARENT" ? "/parent"
     : user.role === "RIDER" ? "/student"
+    : user.role === "SCHOOL_ADMINISTRATOR" ? "/school"
     : "/dashboard";
   return NextResponse.json({ ok: true, redirect });
 }

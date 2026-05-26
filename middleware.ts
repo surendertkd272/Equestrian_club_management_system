@@ -16,6 +16,11 @@ const PUBLIC_PREFIXES = [
   // (not-expired, code exists) on its own.
   "/r/",
   "/api/short-links/resolve",
+  // Staff-hire invite landing — public so recipients can register before
+  // having an account. The form POSTs to /api/staff-register which
+  // re-validates the invite code.
+  "/staff-register/",
+  "/api/staff-register",
   // Public scoreboard (competition results, no auth required).
   "/scoreboard",
   "/compete",                      // public competition portal: entries, tickets

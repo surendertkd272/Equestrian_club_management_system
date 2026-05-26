@@ -96,6 +96,31 @@ const matrix: Record<Role, Permission[]> = {
   // submit on their own ExamJudge row + score competition entries they're
   // assigned to. Issuing certificates remains with the lead examiner.
   JURY: ["rider.read", "exam.score", "competition.manage", "leave.request"],
+  // ADMIN — HQ-wide delegate of SUPER_ADMIN. Same operational perms minus
+  // the HQ-only powers (managing other HQ users, suspending tenants,
+  // writing audit). The page-level guards on /audit and /centres/[id]/
+  // suspension also re-check role === "SUPER_ADMIN" for those specific
+  // actions; this matrix grants ADMIN everything else SUPER_ADMIN has.
+  ADMIN: [
+    "centre.manage", "rider.read", "rider.write", "rider.onboard", "attendance.mark",
+    "progress.write", "assessment.score", "exam.schedule", "exam.score", "exam.template_edit",
+    "staff.manage", "staff.attendance", "leave.request", "leave.approve",
+    "task.assign", "task.complete", "asset.manage",
+    "medicine.manage", "medicine.prescribe", "horse.manage", "competition.manage",
+    "event.manage", "expense.manage", "expense.submit", "accreditation.manage",
+    "finance.read", "finance.write", "certificate.issue", "certificate.bulk",
+    "requisition.submit", "requisition.approve_manager", "requisition.approve_accountant",
+    // Note: no "audit.read" — ADMIN gets read-only audit access via a
+    // role check at /audit, but doesn't carry the global perm. Keeps the
+    // permission matrix the source of truth for write-side actions.
+  ],
+  // SCHOOL_ADMINISTRATOR — read-only oversight of one club's riders.
+  // Sees attendance, exam levels, skills. No write access anywhere.
+  SCHOOL_ADMINISTRATOR: ["rider.read"],
+  // INSPECTION_OFFICER — external auditor, scoped to one centre. The
+  // audit-write permission is currently a placeholder; real audit-run
+  // write logic lives in /api/audit-runs and re-checks role directly.
+  INSPECTION_OFFICER: ["rider.read"],
   RIDER: ["rider.read"],
   // Parents see their linked children only — `rider.read` opens the door, route handlers
   // enforce the parent-link filter so a parent can't query other riders.

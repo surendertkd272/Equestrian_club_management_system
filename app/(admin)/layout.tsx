@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { getSession, shouldForceRotate } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Sidebar } from "@/components/shell/sidebar";
@@ -18,6 +19,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // Parents and riders don't belong in the admin shell — each has their own portal.
   if (session.role === "PARENT") redirect("/parent");
   if (session.role === "RIDER") redirect("/student");
+  // SCHOOL_ADMINISTRATOR sees a read-only club view, distinct from the
+  // full admin shell. Their dashboard surfaces only attendance, exams,
+  // and skills for the riders attached to their club.
+  if (session.role === "SCHOOL_ADMINISTRATOR") redirect("/school");
 
   // Pull centre + emergency contacts in one query. SUPER_ADMIN with no
   // centreId doesn't get a contacts strip (no single centre context).
@@ -28,7 +33,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           select: { id: true, name: true, slug: true, emergencyContactsJson: true },
         })
       : Promise.resolve(null),
-    session.role === "SUPER_ADMIN"
+    session.role === "SUPER_ADMIN" || session.role === "ADMIN"
       ? prisma.centre.findMany({ select: { id: true, name: true, slug: true } })
       : Promise.resolve(null),
     prisma.notification.count({ where: { userId: session.userId, readAt: null } }),
@@ -43,6 +48,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const centres = orgCentres ?? (centre ? [centre] : []);
   const emergencyContacts = parseEmergencyContacts(centreFull?.emergencyContactsJson ?? null);
 
+  // HQ-tier admins' selected centre filter. Persisted in a cookie set by
+  // /api/hq-centre when they pick from the topbar switcher. Pages can also
+  // read this via scopeCentre() — the cookie is the single source of truth.
+  const hqCentreCookie = cookies().get("ew_hq_centre")?.value;
+  const hqCentreFilter = hqCentreCookie && hqCentreCookie !== "all" ? hqCentreCookie : null;
+
   return (
     <div className="flex min-h-screen">
       <Sidebar role={session.role} features={[...features]} />
@@ -54,6 +65,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           unreadCount={unreadCount}
           emergencyContacts={emergencyContacts}
           photoUrl={userPhoto?.photoUrl ?? null}
+          hqCentreFilter={hqCentreFilter}
         />
         <ImpersonationBanner impersonatedBy={session.impersonatedBy} userName={session.name} />
         <ReadOnlyBanner status={orgStatus} />
