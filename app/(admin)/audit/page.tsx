@@ -60,7 +60,7 @@ export default async function AuditPage({
       <div className="flex items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Audit Log</h1>
-          <p className="text-sm text-muted-foreground">§4.23 · {total} total entries.</p>
+          <p className="text-sm text-muted-foreground">{total} total entries.</p>
         </div>
         <ExportCsvButton entity="audit" />
       </div>

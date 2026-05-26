@@ -4,6 +4,7 @@ import { scopeCentre } from "@/lib/tenancy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { Phone } from "lucide-react";
 import { InjuriesClient } from "./injuries-client";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ export default async function InjuriesPage() {
   const where: any = {};
   if (centreId) where.centreId = centreId;
 
-  const [rows, horses, riders] = await Promise.all([
+  const [rows, horses, riders, centre] = await Promise.all([
     prisma.injuryLog.findMany({
       where,
       orderBy: [{ status: "asc" }, { occurredAt: "desc" }],
@@ -31,7 +32,31 @@ export default async function InjuriesPage() {
       select: { id: true, firstName: true, lastName: true },
       orderBy: { firstName: "asc" },
     }),
+    // Pull the centre's emergency contacts so the "Call Doctor" button
+    // dials the on-call vet directly. Falls back to a generic helper if
+    // no vet contact is configured.
+    centreId
+      ? prisma.centre.findUnique({
+          where: { id: centreId },
+          select: { emergencyContactsJson: true },
+        })
+      : Promise.resolve(null),
   ]);
+
+  // Pick the first vet-typed emergency contact for the call button. Falls
+  // back to ambulance if there's no vet, then null (button hidden).
+  let emergencyDial: { label: string; number: string } | null = null;
+  if (centre?.emergencyContactsJson) {
+    try {
+      const list = JSON.parse(centre.emergencyContactsJson) as Array<{ label: string; number: string; type: string }>;
+      const vet = list.find((c) => c.type === "vet");
+      const ambulance = list.find((c) => c.type === "ambulance");
+      const pick = vet ?? ambulance ?? list[0];
+      if (pick?.number) emergencyDial = { label: pick.label, number: pick.number };
+    } catch {
+      // Bad JSON — skip the button rather than crash the page.
+    }
+  }
 
   // Name resolution per row — single batched lookup against the loaded lists
   // to avoid N+1.
@@ -42,12 +67,23 @@ export default async function InjuriesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Injury Treatment Log</h1>
-        <p className="text-sm text-muted-foreground">
-          Track injuries for horses and riders. Append treatment entries as care happens,
-          and mark recovered when the rider/horse is back to normal duty.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">Injury Treatment Log</h1>
+          <p className="text-sm text-muted-foreground">
+            Track injuries for horses and riders. Append treatment entries as care happens,
+            and mark recovered when the rider/horse is back to normal duty.
+          </p>
+        </div>
+        {emergencyDial && (
+          <a
+            href={`tel:${emergencyDial.number.replace(/[^\d+]/g, "")}`}
+            className="inline-flex items-center gap-2 rounded-md border-2 border-destructive bg-destructive/10 px-4 py-2 text-sm font-semibold text-destructive hover:bg-destructive/20"
+          >
+            <Phone className="h-4 w-4" />
+            Call Doctor · {emergencyDial.label} <span className="font-mono">{emergencyDial.number}</span>
+          </a>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

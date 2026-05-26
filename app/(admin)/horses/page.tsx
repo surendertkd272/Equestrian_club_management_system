@@ -63,7 +63,7 @@ export default async function HorsesPage({
         <div>
           <h1 className="text-2xl font-bold">Horses</h1>
           <p className="text-sm text-muted-foreground">
-            §4.13 · {total} on roster · daily work cap {DEFAULT_WORKLOAD_CAP_MIN / 60} h
+            {total} on roster · daily work cap {DEFAULT_WORKLOAD_CAP_MIN / 60} h
           </p>
         </div>
         <div className="flex items-center gap-2">

@@ -87,6 +87,8 @@ export function FarrierClient({ horses }: { horses: Horse[] }) {
             <Label>Work</Label>
             <Select value={form.workType} onChange={(e) => set("workType", e.target.value)}>
               <option value="trim">Trim only</option>
+              <option value="hoofing">Hoofing</option>
+              <option value="new_horse_shoe">New horse shoe</option>
               <option value="shoe_full">Shoe (full set)</option>
               <option value="shoe_partial">Shoe (partial)</option>
               <option value="reset">Reset existing shoes</option>

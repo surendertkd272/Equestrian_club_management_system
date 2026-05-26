@@ -38,7 +38,7 @@ export default async function CompetitionsPage() {
         <div>
           <h1 className="text-2xl font-bold">Competitions</h1>
           <p className="text-sm text-muted-foreground">
-            §4.6 / §4.14 · {competitions.length} on the calendar
+            {competitions.length} on the calendar
           </p>
         </div>
         {canManage && (

@@ -16,6 +16,7 @@ import { StatusSelect } from "./status-select";
 import { HealthLogPanel } from "./health-log-panel";
 import { FeedPlanPanel } from "./feed-plan-panel";
 import { VetVisitsPanel } from "./vet-visits-panel";
+import { HorseTestsPanel } from "./tests-panel";
 import { ActivityFeed } from "@/components/shell/activity-feed";
 import { horseActivity } from "@/lib/activity";
 
@@ -96,6 +97,12 @@ export default async function HorseProfile({ params }: { params: { id: string } 
     }),
   ]);
 
+  const horseTests = await prisma.horseTest.findMany({
+    where: { horseId: horse.id },
+    orderBy: { testedAt: "desc" },
+    take: 50,
+  });
+
   const usedMin = todaysAllocs.reduce((s, a) => s + (a.endAt.getTime() - a.startAt.getTime()) / 60000, 0);
   const pct = Math.min(100, Math.round((usedMin / DEFAULT_WORKLOAD_CAP_MIN) * 100));
   const remaining = Math.max(0, DEFAULT_WORKLOAD_CAP_MIN - usedMin);
@@ -135,6 +142,10 @@ export default async function HorseProfile({ params }: { params: { id: string } 
               <dd className="col-span-2">{horse.stableNo ?? "—"}</dd>
               <dt className="text-muted-foreground">Microchip</dt>
               <dd className="col-span-2 font-mono text-xs">{horse.microchip ?? "—"}</dd>
+              <dt className="text-muted-foreground">EFI ID</dt>
+              <dd className="col-span-2 font-mono text-xs">{horse.efiHorseId ?? "—"}</dd>
+              <dt className="text-muted-foreground">Home club</dt>
+              <dd className="col-span-2">{horse.homeClub ?? "—"}</dd>
               <dt className="text-muted-foreground">Diet</dt>
               <dd className="col-span-2">{horse.diet ?? "—"}</dd>
               <dt className="text-muted-foreground">Added</dt>
@@ -239,6 +250,28 @@ export default async function HorseProfile({ params }: { params: { id: string } 
                 frequency: p.frequency,
                 notes: p.notes,
               })),
+            }))}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Lab tests</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <HorseTestsPanel
+            horseId={horse.id}
+            canWrite={session.role === "VET" || session.role === "SUPER_ADMIN" || session.role === "CENTRE_MANAGER"}
+            initial={horseTests.map((t) => ({
+              id: t.id,
+              testType: t.testType as "coggins" | "glanders" | "urination",
+              result: t.result as "negative" | "positive" | "pending" | "inconclusive",
+              testedAt: t.testedAt.toISOString(),
+              nextDueAt: t.nextDueAt?.toISOString() ?? null,
+              labName: t.labName,
+              reportUrl: t.reportUrl,
+              notes: t.notes,
             }))}
           />
         </CardContent>

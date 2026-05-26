@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { ROLES } from "@/lib/roles";
 
-const STAFF_ROLES = ROLES.filter((r) => r !== "SUPER_ADMIN" && r !== "RIDER") as readonly string[];
+// PARENT users are minted from the rider profile flow (one parent per rider
+// link), not from Add Staff. EXAMINER + JURY users come in via the Exam
+// module, not staff hiring. SUPER_ADMIN + ADMIN sit above the centre tier
+// entirely. RIDER obviously can't be a staff role.
+const STAFF_ROLES = ROLES.filter(
+  (r) => !["SUPER_ADMIN", "ADMIN", "RIDER", "PARENT", "EXAMINER", "JURY"].includes(r),
+) as readonly string[];
 
 export const createStaffSchema = z.object({
   name: z.string().min(2).max(80),

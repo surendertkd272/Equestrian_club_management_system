@@ -101,6 +101,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
                   <tr>
                     <th className="pb-2">Name</th>
                     <th className="pb-2">Email</th>
+                    <th className="pb-2">Phone</th>
                     <th className="pb-2">Role</th>
                     <th className="pb-2">Centre</th>
                     <th className="pb-2">Status</th>
@@ -113,9 +114,15 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
                     <tr key={u.id} className="border-t align-top">
                       <td className="py-2">
                         <div className="font-medium">{u.name}</div>
-                        {u.phone && <div className="text-xs text-muted-foreground">{u.phone}</div>}
                       </td>
                       <td className="py-2 font-mono text-xs">{u.email}</td>
+                      <td className="py-2 font-mono text-xs">
+                        {u.phone ? (
+                          <a href={`tel:${u.phone}`} className="hover:underline">{u.phone}</a>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
                       <td className="py-2">
                         <Badge variant="outline">{u.role.replaceAll("_", " ")}</Badge>
                       </td>

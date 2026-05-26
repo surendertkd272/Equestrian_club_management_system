@@ -33,7 +33,7 @@ export default async function LeaveRequestsPage() {
       <div>
         <h1 className="text-2xl font-bold">Leave Requests</h1>
         <p className="text-sm text-muted-foreground">
-          PRD §4 Module 2 · {isApprover ? "you can approve" : "your requests only"}
+          {isApprover ? "Approve or reject pending leave requests." : "Your leave requests."}
         </p>
       </div>
 

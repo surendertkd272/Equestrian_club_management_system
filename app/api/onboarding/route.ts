@@ -91,6 +91,9 @@ export async function POST(req: NextRequest) {
       heightCm: d.heightCm,
       weightKg: d.weightKg,
       bmi: calcBmi(d.heightCm, d.weightKg),
+      // Record when the BMI was measured so the rider profile shows
+      // freshness (a 6-month-old BMI for a growing child is stale).
+      bmiMeasuredAt: d.heightCm && d.weightKg ? new Date() : null,
       medicalNotes: d.medicalNotes || null,
       allergies: d.allergies || null,
       indemnitySignedAt: new Date(),

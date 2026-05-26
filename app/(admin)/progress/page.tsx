@@ -100,7 +100,7 @@ export default async function ProgressPage({
       <div>
         <h1 className="text-2xl font-bold">Progress Monitoring</h1>
         <p className="text-sm text-muted-foreground">
-          §4.3 · {riders.length} active riders · per-discipline mastery heatmap. Click a rider to drill in.
+          {riders.length} active riders · per-discipline mastery heatmap. Click a rider to drill in.
         </p>
       </div>
 

@@ -19,6 +19,8 @@ export function NewHorseForm() {
     ageYears: "",
     heightHh: "",
     microchip: "",
+    efiHorseId: "",
+    homeClub: "",
     ownership: "club",
     stableNo: "",
     diet: "",
@@ -41,7 +43,7 @@ export function NewHorseForm() {
     if (form.ageYears === "") delete payload.ageYears;
     if (form.heightHh === "") delete payload.heightHh;
     if (form.insurancePremium === "") delete payload.insurancePremium;
-    for (const k of ["insurerName", "insurancePolicyNo", "insuranceValidFrom", "insuranceValidTo"]) {
+    for (const k of ["insurerName", "insurancePolicyNo", "insuranceValidFrom", "insuranceValidTo", "efiHorseId", "homeClub", "microchip", "breed", "diet", "stableNo"]) {
       if (payload[k] === "") delete payload[k];
     }
     const res = await fetch("/api/horses", {
@@ -116,6 +118,22 @@ export function NewHorseForm() {
         <div className="space-y-1.5">
           <Label>Microchip</Label>
           <Input value={form.microchip} onChange={(e) => set("microchip", e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label>EFI Horse ID</Label>
+          <Input
+            value={form.efiHorseId}
+            onChange={(e) => set("efiHorseId", e.target.value)}
+            placeholder="National registration #"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Home club</Label>
+          <Input
+            value={form.homeClub}
+            onChange={(e) => set("homeClub", e.target.value)}
+            placeholder="If different from this centre"
+          />
         </div>
       </div>
       <div className="space-y-1.5">

@@ -55,7 +55,7 @@ export default async function MedicinesPage({
         <div>
           <h1 className="text-2xl font-bold">Vet Medicines</h1>
           <p className="text-sm text-muted-foreground">
-            §4.12 · {stats.total} batches · {stats.expired} expired · {stats.critical} expiring &lt;30d · {stats.lowStock} low-stock
+            {stats.total} batches · {stats.expired} expired · {stats.critical} expiring &lt;30d · {stats.lowStock} low-stock
           </p>
         </div>
         {canManage && (

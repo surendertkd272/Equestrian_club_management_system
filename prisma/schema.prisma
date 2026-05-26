@@ -77,10 +77,39 @@ model Organisation {
   features OrgFeature[]
   saasInvoices SaasInvoice[]
   hqExpenses   HqExpense[]
+  legalTexts   LegalText[]
   // HQ users (typically SUPER_ADMIN) whose centreId is null — the org link
   // is recorded here directly. Centre-scoped users find their org via the
   // centre table instead.
   hqUsers  User[]       @relation("HqUsers")
+}
+
+// Editable legal text — T&C, Indemnity Bond, Rules & Regulations. Each
+// "kind" has multiple versions over time; the active version is the one
+// with the latest publishedAt for that kind. Rider rows snapshot the
+// version they accepted, so HQ can publish a new T&C without retroactively
+// breaking the audit trail.
+//
+// Org-scoped so a future multi-tenant deployment can let each tenant
+// override the platform default. Today we only have one tenant so all
+// rows share the same orgId.
+model LegalText {
+  id          String   @id @default(cuid())
+  orgId       String
+  // terms | indemnity | rules
+  kind        String
+  // Free-form version label set by the admin who publishes ("v1", "2026-05", "draft").
+  version     String
+  // Markdown / plain text content shown to the user. Stored as text so a
+  // future admin editor can serialise rich content here.
+  content     String
+  publishedAt DateTime @default(now())
+  publishedByUserId String
+
+  org Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, kind, version])
+  @@index([orgId, kind, publishedAt])
 }
 
 // Per-organisation feature toggle. Source of truth: if a row says enabled=true,
@@ -529,10 +558,12 @@ model Rider {
   // Emergency
   emergencyName  String?
   emergencyPhone String?
-  // Anthropometrics
+  // Anthropometrics — latest measurement only. Historical entries live in
+  // BmiMeasurement so a rider's growth trend is preserved.
   heightCm       Float?
   weightKg       Float?
   bmi            Float?
+  bmiMeasuredAt  DateTime?
   // Medical
   medicalNotes   String?
   allergies      String?
@@ -541,11 +572,24 @@ model Rider {
   joiningDate    DateTime  @default(now())
   batchId        String?
   coachId        String?
+  // State / national rider IDs. Optional — only riders competing at state
+  // or above need one. Tracked at the rider level (one per rider) rather
+  // than via Accreditation (which is per-card / per-membership).
+  stateRiderId   String?
+  efiRiderId     String?
   // Indemnity (audit trail)
   indemnitySignedAt   DateTime?
   indemnitySignerIp   String?
   indemnitySignerUa   String?
   indemnityDocUrl     String?
+  indemnityVersion    String?
+  // Click-to-accept tracking for T&C + Rules. Version is the LegalText
+  // row's `version` that was live when the rider accepted; lets HQ swap
+  // the published text later without re-prompting old riders.
+  tcsAcceptedAt       DateTime?
+  tcsVersion          String?
+  rulesAcceptedAt     DateTime?
+  rulesVersion        String?
   // DPDPA Section 9 — verifiable parental consent for minors. Captured at
   // registration when dob makes the rider < 18. Stored together as one
   // JSON blob so the audit trail keeps the exact wording the parent
@@ -741,6 +785,14 @@ model Horse {
   ageYears    Int?
   heightHh    Float?
   microchip   String?
+  // Equestrian Federation of India horse ID. Optional — only horses
+  // competing at national or above need one. Different from microchip
+  // (which is the implanted RFID).
+  efiHorseId  String?
+  // Free-text "home club" — useful for visiting / privately-owned horses
+  // that belong to another club but are stabled here temporarily. Distinct
+  // from `centreId` which is the operational owner inside Equiwings.
+  homeClub    String?
   ownership   String?  // club | private
   // PDF §4 "Insurance Records" — structured fields rather than just a URL.
   // Expiry is surfaced via lib/sweeps.ts so the manager gets a heads-up
@@ -766,8 +818,37 @@ model Horse {
   feedPlan             FeedPlan?
   vetChecks            VetCheck[]
   vetVisits            VetVisit[]
+  tests              HorseTest[]
 
   @@index([centreId])
+}
+
+// Lab tests done on a horse: Coggins (EIA), Glanders, Urination. Some are
+// compliance-driven (Coggins + Glanders are mandatory for inter-state /
+// competition movement in India), others are routine vet diagnostics
+// (Urination = urinalysis, run when systemic illness is suspected).
+//
+// Distinct from VetVisit prescriptions: a test is a one-time procedure
+// with a pass/fail outcome, often run by an external lab.
+model HorseTest {
+  id          String   @id @default(cuid())
+  horseId     String
+  // coggins | glanders | urination
+  testType    String
+  // negative | positive | pending | inconclusive
+  result      String   @default("pending")
+  testedAt    DateTime @default(now())
+  // Compliance tests (Coggins / Glanders) repeat on a cadence; this is
+  // when the next test is due. Null for one-off diagnostics like urination.
+  nextDueAt   DateTime?
+  labName     String?
+  reportUrl   String?
+  notes       String?
+  recordedByUserId String
+
+  horse Horse @relation(fields: [horseId], references: [id], onDelete: Cascade)
+
+  @@index([horseId, testType, testedAt])
 }
 
 // ──────────────────────────────────────────────────────────────────────────

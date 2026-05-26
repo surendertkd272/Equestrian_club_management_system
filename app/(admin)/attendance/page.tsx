@@ -55,7 +55,7 @@ export default async function AttendancePage({
         <div>
           <h1 className="text-2xl font-bold">Attendance</h1>
           <p className="text-sm text-muted-foreground">
-            §4.2 · Mark Present / Absent / Late / Excused. Auto-SMS triggers after 3 consecutive absences.
+            Mark Present / Absent / Late / Excused. Auto-SMS triggers after 3 consecutive absences.
           </p>
         </div>
         <form className="flex flex-wrap items-end gap-2 text-sm" method="get">

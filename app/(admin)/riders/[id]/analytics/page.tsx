@@ -127,7 +127,7 @@ export default async function RiderAnalytics({ params }: { params: { id: string 
           Analytics · {rider.firstName} {rider.lastName}
         </h1>
         <p className="text-sm text-muted-foreground">
-          §4.7 · Joined {formatDate(rider.joiningDate)} · {exams.length} exams · {entries.length} competition entries ·{" "}
+          Joined {formatDate(rider.joiningDate)} · {exams.length} exams · {entries.length} competition entries ·{" "}
           {certificates.length} certificates
         </p>
       </div>

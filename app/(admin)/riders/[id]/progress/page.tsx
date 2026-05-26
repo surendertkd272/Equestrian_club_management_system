@@ -57,7 +57,7 @@ export default async function RiderProgressPage({ params }: { params: { id: stri
           Progress · {rider.firstName} {rider.lastName}
         </h1>
         <p className="text-sm text-muted-foreground">
-          §4.3 · Current level <b>{rider.currentLevel ?? "—"}</b>
+          Current level <b>{rider.currentLevel ?? "—"}</b>
         </p>
       </div>
 

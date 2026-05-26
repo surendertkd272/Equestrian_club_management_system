@@ -68,7 +68,7 @@ export default async function CertificatesPage({
       <div>
         <h1 className="text-2xl font-bold">Certificates</h1>
         <p className="text-sm text-muted-foreground">
-          §4.21 · Auto-issued on exam pass + competition placement. Bulk-issue for events / sittings /
+          Auto-issued on exam pass + competition placement. Bulk-issue for events / sittings /
           competitions; revoke a cert without losing the audit trail.
         </p>
       </div>

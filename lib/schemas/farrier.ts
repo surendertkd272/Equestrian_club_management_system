@@ -1,10 +1,12 @@
 import { z } from "zod";
 
 export const FARRIER_WORK_TYPES = [
-  "trim",          // hoof trim only
-  "shoe_full",     // four shoes
-  "shoe_partial",  // front-only or hind-only
-  "reset",         // existing shoes refitted
+  "trim",            // hoof trim only
+  "hoofing",         // routine hoof care (client term — trim + shape + balance)
+  "new_horse_shoe",  // brand-new shoes fitted
+  "shoe_full",       // four shoes
+  "shoe_partial",    // front-only or hind-only
+  "reset",           // existing shoes refitted
   "other",
 ] as const;
 

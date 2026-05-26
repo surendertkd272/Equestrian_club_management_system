@@ -207,7 +207,18 @@ export default async function RiderProfile({ params }: { params: { id: string } 
                 {rider.heightCm ?? "—"} cm / {rider.weightKg ?? "—"} kg
               </dd>
               <dt className="text-muted-foreground">BMI</dt>
-              <dd>{rider.bmi ?? "—"}</dd>
+              <dd>
+                {rider.bmi ?? "—"}
+                {rider.bmiMeasuredAt && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    (measured {formatDate(rider.bmiMeasuredAt)})
+                  </span>
+                )}
+              </dd>
+              <dt className="text-muted-foreground">State Rider ID</dt>
+              <dd className="font-mono text-xs">{rider.stateRiderId ?? "—"}</dd>
+              <dt className="text-muted-foreground">EFI Rider ID</dt>
+              <dd className="font-mono text-xs">{rider.efiRiderId ?? "—"}</dd>
               <dt className="text-muted-foreground">Medical</dt>
               <dd>{rider.medicalNotes ?? "—"}</dd>
               <dt className="text-muted-foreground">Allergies</dt>

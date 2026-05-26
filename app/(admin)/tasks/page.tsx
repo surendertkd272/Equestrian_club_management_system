@@ -64,7 +64,7 @@ export default async function TasksPage({
         <div>
           <h1 className="text-2xl font-bold">Tasks</h1>
           <p className="text-sm text-muted-foreground">
-            §4.9 · {tasks.length} total · {overdueCount} overdue
+            {tasks.length} total · {overdueCount} overdue
             {escalatedCount > 0 && <span className="ml-1 text-destructive">· {escalatedCount} escalated</span>}
           </p>
         </div>

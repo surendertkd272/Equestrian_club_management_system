@@ -16,6 +16,11 @@ export const createHorseSchema = z.object({
   ageYears: z.coerce.number().int().min(0).max(50).optional(),
   heightHh: z.coerce.number().min(8).max(20).optional(),
   microchip: z.string().max(40).optional(),
+  // EFI horse registration id (optional — only competing horses have one)
+  efiHorseId: z.string().max(40).optional(),
+  // Free-text label for the horse's home club when stabling temporarily
+  // at an Equiwings centre (visiting / private horses).
+  homeClub: z.string().max(80).optional(),
   ownership: z.enum(HORSE_OWNERSHIPS).default("club"),
   stableNo: z.string().max(20).optional(),
   diet: z.string().max(200).optional(),

@@ -256,7 +256,7 @@ export default async function DashboardPage() {
         <CardContent>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Rider onboarding (§4.1)</span>
+              <span className="font-medium">Rider onboarding </span>
               <Badge variant="success">Implemented</Badge>
             </div>
             <div className="flex justify-between border-b pb-2">
@@ -276,55 +276,55 @@ export default async function DashboardPage() {
               <Badge variant="success">Implemented</Badge>
             </div>
             <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Attendance marking + roster + batches (§4.2)</span>
+              <span className="font-medium">Attendance marking + roster + batches </span>
               <Badge variant="success">Implemented</Badge>
             </div>
             <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Staff onboarding (§4.8)</span>
+              <span className="font-medium">Staff onboarding </span>
               <Badge variant="success">Implemented</Badge>
             </div>
             <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Exams: scheduling + scoring engine + templates (§4.4/4.16-19)</span>
+              <span className="font-medium">Exams: scheduling + scoring engine + templates</span>
               <Badge variant="success">Implemented (merged from exam module)</Badge>
             </div>
             <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Certificates auto-issue + public QR verify (§4.21 / §8)</span>
+              <span className="font-medium">Certificates auto-issue + public QR verify </span>
               <Badge variant="success">Implemented</Badge>
             </div>
             <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Horse roster + workload + allocations (§4.13)</span>
+              <span className="font-medium">Horse roster + workload + allocations </span>
               <Badge variant="success">Implemented</Badge>
             </div>
             <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Vet medicines: inventory + prescribe + withdrawal→rest (§4.12)</span>
+              <span className="font-medium">Vet medicines: inventory + prescribe + withdrawal→rest </span>
               <Badge variant="success">Implemented</Badge>
             </div>
             <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Tasks: kanban + overdue/escalation + templates (§4.9)</span>
+              <span className="font-medium">Tasks: kanban + overdue/escalation + templates </span>
               <Badge variant="success">Implemented</Badge>
             </div>
             <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Tack & Equipment: QR scan → issue/return + maintenance (§4.10/4.11)</span>
+              <span className="font-medium">Tack & Equipment: QR scan → issue/return + maintenance</span>
               <Badge variant="success">Implemented</Badge>
             </div>
             <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Notifications: in-app feed + 4 wired triggers (§4.22)</span>
+              <span className="font-medium">Notifications: in-app feed + 4 wired triggers </span>
               <Badge variant="success">Implemented</Badge>
             </div>
             <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Progress: per-skill checklist + cohort heatmap (§4.3)</span>
+              <span className="font-medium">Progress: per-skill checklist + cohort heatmap </span>
               <Badge variant="success">Implemented</Badge>
             </div>
             <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Monthly parent report cards (§4.5)</span>
+              <span className="font-medium">Monthly parent report cards </span>
               <Badge variant="success">Implemented</Badge>
             </div>
             <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Competitions: classes + entries + placements + public scoreboard (§4.6 / §4.14)</span>
+              <span className="font-medium">Competitions: classes + entries + placements + public scoreboard </span>
               <Badge variant="success">Implemented</Badge>
             </div>
             <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Performance Analytics: trends + medal leaderboard (§4.7)</span>
+              <span className="font-medium">Performance Analytics: trends + medal leaderboard </span>
               <Badge variant="success">Implemented</Badge>
             </div>
             <div className="flex justify-between border-b pb-2">
