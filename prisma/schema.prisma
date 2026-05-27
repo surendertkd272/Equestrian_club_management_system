@@ -2570,8 +2570,14 @@ model Vendor {
   // Category drives the contact-database UX — admins filter by type when
   // looking for "an ambulance" vs "a feed supplier". Free-text-ish but
   // standardised in the UI dropdown (see /vendors page).
-  // vet | farrier | horse_ambulance | truck | feed | tack | medical_supply | other
+  // vet | farrier | horse_ambulance | truck | feed | equipment_gear | other
   category    String   @default("other")
+  // Per-category extra info — Vet Doctor: VCI #, qualification, specialty,
+  // years practice, on-call flag, clinic affiliation. Farrier: years
+  // experience, specialisations, available days, carries-forge, hourly
+  // rate. Free-form JSON so adding a new vendor type doesn't require
+  // another schema migration. Shape per kind is in lib/schemas/vendor.ts.
+  categorySpecificJson String?
   contactName String?
   phone     String?
   email     String?

@@ -1,13 +1,16 @@
 import { z } from "zod";
 
+// Sprint 3.6 — categories aligned with the client's 5 registration types.
+// Tack + medical_supply rolled into equipment_gear (the client doesn't
+// separate riding tack from arena equipment in their procurement flow).
+// Fodder + hay both live under `feed` per scope confirmation.
 export const VENDOR_CATEGORIES = [
   "vet",
   "farrier",
   "horse_ambulance",
   "truck",
   "feed",
-  "tack",
-  "medical_supply",
+  "equipment_gear",
   "other",
 ] as const;
 
@@ -18,11 +21,53 @@ export const VENDOR_CATEGORY_LABEL: Record<VendorCategory, string> = {
   farrier: "Farrier",
   horse_ambulance: "Horse ambulance",
   truck: "Truck / transport",
-  feed: "Feed supplier",
-  tack: "Tack supplier",
-  medical_supply: "Medical supply",
+  feed: "Feed (fodder & hay)",
+  equipment_gear: "Equipment & gear",
   other: "Other",
 };
+
+// ─────────────────────────────────────────────────────────────────────────
+// Category-specific extra fields stored in Vendor.categorySpecificJson.
+// Each shape below is the canonical JSON contract; the form variant in
+// vendors/form.tsx renders the matching input fields, the row display
+// reads them out. Unknown keys are preserved on update so a future field
+// addition doesn't lose past data.
+
+export const VET_FIELDS_SCHEMA = z.object({
+  vciNumber: z.string().max(60).optional(),
+  qualification: z.string().max(40).optional(),
+  specialty: z.string().max(40).optional(),
+  yearsPractice: z.coerce.number().int().min(0).max(80).optional(),
+  emergencyAvailable: z.boolean().optional(),
+  clinicAffiliation: z.string().max(200).optional(),
+});
+
+export const FARRIER_FIELDS_SCHEMA = z.object({
+  yearsExperience: z.coerce.number().int().min(0).max(80).optional(),
+  specialisations: z.array(z.string().max(40)).optional(),
+  availableDays: z.array(z.string().max(10)).optional(),
+  carriesForge: z.boolean().optional(),
+  hourlyRate: z.coerce.number().nonnegative().max(100_000).optional(),
+});
+
+// Picklists used by the form UI. Centralised here so future additions
+// only need a single edit.
+export const VET_QUALIFICATIONS = ["BVSc", "BVSc & AH", "MVSc", "PhD", "Other"] as const;
+export const VET_SPECIALTIES = [
+  "general",
+  "equine",
+  "surgery",
+  "sports_medicine",
+  "reproduction",
+] as const;
+export const FARRIER_SPECIALISATIONS = [
+  "cold_shoeing",
+  "hot_shoeing",
+  "corrective",
+  "racing",
+  "barefoot_trim",
+] as const;
+export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
 export const createVendorSchema = z.object({
   name: z.string().min(2).max(120),
@@ -35,6 +80,9 @@ export const createVendorSchema = z.object({
   notes: z.string().max(500).optional(),
   // Super admin / admin picks which centre owns the vendor entry.
   centreId: z.string().min(1),
+  // Per-category extra info — shape depends on category (see schemas
+  // above). The API stringifies and stores in categorySpecificJson.
+  categorySpecific: z.record(z.any()).optional(),
 });
 
 export const updateVendorSchema = createVendorSchema.partial().extend({

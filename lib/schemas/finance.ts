@@ -32,6 +32,10 @@ export const createVendorSchema = z.object({
   address: z.string().max(300).optional(),
   gstin: z.string().max(30).optional(),
   notes: z.string().max(500).optional(),
+  // Free-form JSON for category-specific fields (Vet Doctor / Farrier
+  // registration extras). Persisted as a string blob in
+  // Vendor.categorySpecificJson — see lib/schemas/vendor.ts for shape.
+  categorySpecific: z.record(z.any()).optional(),
 });
 
 export const updateVendorSchema = createVendorSchema.partial().extend({

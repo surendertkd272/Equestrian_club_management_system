@@ -50,6 +50,12 @@ export async function POST(req: NextRequest) {
       address: parsed.data.address,
       gstin: parsed.data.gstin,
       notes: parsed.data.notes,
+      // Stringify the category-specific blob (Vet Doctor / Farrier extras).
+      // Drop the field if empty so we don't waste a "{}" on every row.
+      categorySpecificJson:
+        parsed.data.categorySpecific && Object.keys(parsed.data.categorySpecific).length > 0
+          ? JSON.stringify(parsed.data.categorySpecific)
+          : null,
     },
   });
   await audit({ userId: session.userId, action: "vendor.create", tableName: "vendor", rowId: row.id });

@@ -1,6 +1,8 @@
 // Vendor contact-database. SUPER_ADMIN + ADMIN see this; others don't.
-// Categories: vet, farrier, horse ambulance, truck, feed, tack, medical
-// supply, other. Tap-to-call + tap-to-email shortcuts.
+// Sprint 3.6 categories: vet, farrier, horse ambulance, truck, feed,
+// equipment_gear, other. Vet + Farrier rows carry extra registration
+// info in categorySpecificJson — rendered by CategorySpecificDisplay
+// at the bottom of this file.
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -100,6 +102,7 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
                       )}
                       {v.gstin && <span className="text-muted-foreground">GSTIN: <span className="font-mono">{v.gstin}</span></span>}
                     </div>
+                    <CategorySpecificDisplay vendor={v} />
                     {v.address && <div className="mt-1 text-xs text-muted-foreground">{v.address}</div>}
                     {v.notes && <div className="mt-1 text-xs italic text-muted-foreground">{v.notes}</div>}
                   </li>
@@ -109,6 +112,50 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
           </Card>
         ))
       )}
+    </div>
+  );
+}
+
+// Render the per-category extras (Vet Doctor / Farrier registration
+// fields) on each vendor row. Reads the JSON blob and surfaces only the
+// keys that have values, in a human-readable form.
+function CategorySpecificDisplay({
+  vendor,
+}: {
+  vendor: { category: string; categorySpecificJson: string | null };
+}) {
+  if (!vendor.categorySpecificJson) return null;
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(vendor.categorySpecificJson) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+  const cells: string[] = [];
+  if (vendor.category === "vet") {
+    if (data.vciNumber) cells.push(`VCI ${data.vciNumber}`);
+    if (data.qualification) cells.push(String(data.qualification));
+    if (data.specialty) cells.push(`Spec: ${String(data.specialty).replaceAll("_", " ")}`);
+    if (data.yearsPractice) cells.push(`${data.yearsPractice} yrs`);
+    if (data.emergencyAvailable) cells.push("24×7 emergency");
+    if (data.clinicAffiliation) cells.push(String(data.clinicAffiliation));
+  } else if (vendor.category === "farrier") {
+    if (data.yearsExperience) cells.push(`${data.yearsExperience} yrs exp`);
+    if (Array.isArray(data.specialisations) && data.specialisations.length > 0) {
+      cells.push(`Does: ${data.specialisations.map((s: string) => s.replaceAll("_", " ")).join(", ")}`);
+    }
+    if (Array.isArray(data.availableDays) && data.availableDays.length > 0) {
+      cells.push(`Available: ${data.availableDays.join("/")}`);
+    }
+    if (data.carriesForge) cells.push("Carries forge");
+    if (data.hourlyRate) cells.push(`₹${Number(data.hourlyRate).toLocaleString("en-IN")}/hr`);
+  }
+  if (cells.length === 0) return null;
+  return (
+    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+      {cells.map((c, i) => (
+        <span key={i}>{c}</span>
+      ))}
     </div>
   );
 }

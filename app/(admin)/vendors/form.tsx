@@ -7,7 +7,36 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { VENDOR_CATEGORIES, VENDOR_CATEGORY_LABEL } from "@/lib/schemas/vendor";
+import {
+  VENDOR_CATEGORIES,
+  VENDOR_CATEGORY_LABEL,
+  VET_QUALIFICATIONS,
+  VET_SPECIALTIES,
+  FARRIER_SPECIALISATIONS,
+  WEEKDAYS,
+} from "@/lib/schemas/vendor";
+
+// Sprint 3.6: vendor form now renders category-specific extra fields
+// for Vet Doctor + Farrier. The base fields (name / contact / phone /
+// email / address / GSTIN / notes) are common across all categories.
+// Extras get serialised to Vendor.categorySpecificJson by the API.
+
+type VetExtras = {
+  vciNumber: string;
+  qualification: string;
+  specialty: string;
+  yearsPractice: string;
+  emergencyAvailable: boolean;
+  clinicAffiliation: string;
+};
+
+type FarrierExtras = {
+  yearsExperience: string;
+  specialisations: string[];
+  availableDays: string[];
+  carriesForge: boolean;
+  hourlyRate: string;
+};
 
 export function NewVendorForm({
   centres,
@@ -28,10 +57,54 @@ export function NewVendorForm({
     notes: "",
     centreId: pinnedCentreId ?? centres[0]?.id ?? "",
   });
+  const [vet, setVet] = useState<VetExtras>({
+    vciNumber: "",
+    qualification: "",
+    specialty: "",
+    yearsPractice: "",
+    emergencyAvailable: false,
+    clinicAffiliation: "",
+  });
+  const [farrier, setFarrier] = useState<FarrierExtras>({
+    yearsExperience: "",
+    specialisations: [],
+    availableDays: [],
+    carriesForge: false,
+    hourlyRate: "",
+  });
   const [busy, setBusy] = useState(false);
 
   function set<K extends keyof typeof form>(k: K, v: typeof form[K]) {
     setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  function toggleArray<T extends string>(arr: T[], value: T): T[] {
+    return arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
+  }
+
+  function buildCategorySpecific(): Record<string, unknown> | undefined {
+    if (form.category === "vet") {
+      // Drop empty values so the JSON blob stays small. Use the
+      // explicit-undefined trick: presence in the object = was filled.
+      const obj: Record<string, unknown> = {};
+      if (vet.vciNumber.trim()) obj.vciNumber = vet.vciNumber.trim();
+      if (vet.qualification) obj.qualification = vet.qualification;
+      if (vet.specialty) obj.specialty = vet.specialty;
+      if (vet.yearsPractice) obj.yearsPractice = Number(vet.yearsPractice);
+      if (vet.emergencyAvailable) obj.emergencyAvailable = true;
+      if (vet.clinicAffiliation.trim()) obj.clinicAffiliation = vet.clinicAffiliation.trim();
+      return Object.keys(obj).length ? obj : undefined;
+    }
+    if (form.category === "farrier") {
+      const obj: Record<string, unknown> = {};
+      if (farrier.yearsExperience) obj.yearsExperience = Number(farrier.yearsExperience);
+      if (farrier.specialisations.length) obj.specialisations = farrier.specialisations;
+      if (farrier.availableDays.length) obj.availableDays = farrier.availableDays;
+      if (farrier.carriesForge) obj.carriesForge = true;
+      if (farrier.hourlyRate) obj.hourlyRate = Number(farrier.hourlyRate);
+      return Object.keys(obj).length ? obj : undefined;
+    }
+    return undefined;
   }
 
   async function submit(e: React.FormEvent) {
@@ -40,17 +113,26 @@ export function NewVendorForm({
       toast.error("Pick a centre.");
       return;
     }
+    if (form.category === "vet" && !vet.vciNumber.trim()) {
+      toast.error("VCI / state council registration number is required for vets.");
+      return;
+    }
+    if (form.category === "vet" && !vet.qualification) {
+      toast.error("Pick a qualification for the vet.");
+      return;
+    }
+    if (form.category === "farrier" && !farrier.yearsExperience) {
+      toast.error("Years of experience is required for farriers.");
+      return;
+    }
     setBusy(true);
-    // POST goes to the existing /api/vendors which now persists category +
-    // address. When pinnedCentreId is set (HQ filter active), the API will
-    // ignore body.centreId and use the session scope; we still send it
-    // for the SUPER_ADMIN "all centres" case where there's no scope.
     const res = await fetch("/api/vendors", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
         email: form.email || undefined,
+        categorySpecific: buildCategorySpecific(),
       }),
     });
     setBusy(false);
@@ -60,7 +142,12 @@ export function NewVendorForm({
       return;
     }
     toast.success("Vendor added");
-    setForm((f) => ({ ...f, name: "", contactName: "", phone: "", email: "", address: "", gstin: "", notes: "" }));
+    setForm((f) => ({
+      ...f,
+      name: "", contactName: "", phone: "", email: "", address: "", gstin: "", notes: "",
+    }));
+    setVet({ vciNumber: "", qualification: "", specialty: "", yearsPractice: "", emergencyAvailable: false, clinicAffiliation: "" });
+    setFarrier({ yearsExperience: "", specialisations: [], availableDays: [], carriesForge: false, hourlyRate: "" });
     router.refresh();
   }
 
@@ -108,6 +195,141 @@ export function NewVendorForm({
         <Label>Address</Label>
         <Input value={form.address} onChange={(e) => set("address", e.target.value)} />
       </div>
+
+      {/* Per-category extra fields */}
+      {form.category === "vet" && (
+        <fieldset className="md:col-span-2 rounded-md border bg-muted/30 p-3 space-y-3">
+          <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Vet doctor registration
+          </legend>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>VCI / Council reg # *</Label>
+              <Input
+                value={vet.vciNumber}
+                onChange={(e) => setVet({ ...vet, vciNumber: e.target.value })}
+                placeholder="State veterinary council registration"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Qualification *</Label>
+              <Select value={vet.qualification} onChange={(e) => setVet({ ...vet, qualification: e.target.value })}>
+                <option value="">— pick —</option>
+                {VET_QUALIFICATIONS.map((q) => (
+                  <option key={q} value={q}>{q}</option>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Specialty</Label>
+              <Select value={vet.specialty} onChange={(e) => setVet({ ...vet, specialty: e.target.value })}>
+                <option value="">— (none) —</option>
+                {VET_SPECIALTIES.map((s) => (
+                  <option key={s} value={s}>{s.replaceAll("_", " ")}</option>
+                ))}
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Years of practice</Label>
+              <Input
+                type="number"
+                min={0}
+                max={80}
+                value={vet.yearsPractice}
+                onChange={(e) => setVet({ ...vet, yearsPractice: e.target.value })}
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={vet.emergencyAvailable}
+                  onChange={(e) => setVet({ ...vet, emergencyAvailable: e.target.checked })}
+                />
+                Available 24×7 for emergencies
+              </label>
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label>Clinic / hospital affiliation</Label>
+              <Input
+                value={vet.clinicAffiliation}
+                onChange={(e) => setVet({ ...vet, clinicAffiliation: e.target.value })}
+                placeholder="e.g. Equine Veterinary Hospital, Hauz Khas"
+              />
+            </div>
+          </div>
+        </fieldset>
+      )}
+
+      {form.category === "farrier" && (
+        <fieldset className="md:col-span-2 rounded-md border bg-muted/30 p-3 space-y-3">
+          <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Farrier registration
+          </legend>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Years of experience *</Label>
+              <Input
+                type="number"
+                min={0}
+                max={80}
+                value={farrier.yearsExperience}
+                onChange={(e) => setFarrier({ ...farrier, yearsExperience: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Hourly / per-horse rate (₹)</Label>
+              <Input
+                type="number"
+                min={0}
+                value={farrier.hourlyRate}
+                onChange={(e) => setFarrier({ ...farrier, hourlyRate: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label>Specialisations</Label>
+              <div className="flex flex-wrap gap-2">
+                {FARRIER_SPECIALISATIONS.map((s) => (
+                  <label key={s} className="inline-flex items-center gap-1 rounded-md border bg-card px-2 py-1 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={farrier.specialisations.includes(s)}
+                      onChange={() => setFarrier({ ...farrier, specialisations: toggleArray(farrier.specialisations, s) })}
+                    />
+                    {s.replaceAll("_", " ")}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <Label>Available days</Label>
+              <div className="flex flex-wrap gap-2">
+                {WEEKDAYS.map((d) => (
+                  <label key={d} className="inline-flex items-center gap-1 rounded-md border bg-card px-2 py-1 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={farrier.availableDays.includes(d)}
+                      onChange={() => setFarrier({ ...farrier, availableDays: toggleArray(farrier.availableDays, d) })}
+                    />
+                    {d}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="md:col-span-2">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={farrier.carriesForge}
+                  onChange={(e) => setFarrier({ ...farrier, carriesForge: e.target.checked })}
+                />
+                Carries own forge / anvil (needed for hot shoeing)
+              </label>
+            </div>
+          </div>
+        </fieldset>
+      )}
+
       <div className="space-y-1.5 md:col-span-2">
         <Label>Notes</Label>
         <Input value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="On-call hours, preferred contact, etc." />
