@@ -34,7 +34,7 @@ export default async function BatchesPage() {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-bold">Batches</h1>
-          <p className="text-sm text-muted-foreground">§4.2 / §4.8 · Recurring class slots assigned to a coach.</p>
+          <p className="text-sm text-muted-foreground">Recurring class slots assigned to a coach.</p>
         </div>
       </div>
 

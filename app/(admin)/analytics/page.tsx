@@ -161,7 +161,7 @@ export default async function AnalyticsPage() {
       <div>
         <h1 className="text-2xl font-bold">Performance Analytics</h1>
         <p className="text-sm text-muted-foreground">
-          §4.7 · {session.role === "SUPER_ADMIN" ? "HQ cross-centre view." : "Centre view."} Last 6 months of trends.
+          {session.role === "SUPER_ADMIN" ? "HQ cross-centre view." : "Centre view."} Last 6 months of trends.
         </p>
       </div>
 

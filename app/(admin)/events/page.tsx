@@ -60,7 +60,7 @@ export default async function EventsPage({
         <div>
           <h1 className="text-2xl font-bold">Events</h1>
           <p className="text-sm text-muted-foreground">
-            §4.14 / §4.16 · Clinics, schooling days, demos, fundraisers, external shows.
+            Clinics, schooling days, demos, fundraisers, external shows.
           </p>
         </div>
         {canManage && (

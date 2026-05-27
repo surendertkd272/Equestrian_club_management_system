@@ -47,7 +47,7 @@ export default async function TemplatesPage() {
         <div>
           <h1 className="text-2xl font-bold">Scoring templates</h1>
           <p className="text-sm text-muted-foreground">
-            §4.4 / §4.19 · Per-level rubrics used by the exam scoring engine. Levels live in
+            Per-level rubrics used by the exam scoring engine. Levels live in
             the HQ catalog; centres can override the rubric per level.
           </p>
         </div>

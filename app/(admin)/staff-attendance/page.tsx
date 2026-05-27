@@ -39,7 +39,7 @@ export default async function StaffAttendancePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Staff Attendance</h1>
-        <p className="text-sm text-muted-foreground">PRD §4 Module 2 · last 30 days · {recent.length} rows</p>
+        <p className="text-sm text-muted-foreground">Last 30 days · {recent.length} rows</p>
       </div>
 
       <Card>

@@ -53,7 +53,7 @@ export default async function ReportsPage() {
       <div>
         <h1 className="text-2xl font-bold">Report cards</h1>
         <p className="text-sm text-muted-foreground">
-          §4.5 · Monthly parent report cards. Pulls attendance, progress milestones, exam results, fees, and
+          Monthly parent report cards. Pulls attendance, progress milestones, exam results, fees, and
           certificates for the selected period — print or save as PDF.
         </p>
       </div>

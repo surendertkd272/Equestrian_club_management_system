@@ -132,7 +132,7 @@ export function NewCompetitionForm() {
             <option value="state">State</option>
             <option value="national">National</option>
           </select>
-          <p className="text-[11px] text-muted-foreground">PRD §4 Module 6 — drives downstream analytics + reporting.</p>
+          <p className="text-[11px] text-muted-foreground">Drives downstream analytics + reporting.</p>
         </div>
         <div className="space-y-1.5">
           <Label>Discipline *</Label>

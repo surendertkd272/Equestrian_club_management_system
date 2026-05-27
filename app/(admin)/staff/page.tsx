@@ -61,7 +61,7 @@ export default async function StaffPage() {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-bold">Staff</h1>
-          <p className="text-sm text-muted-foreground">§4.8 · {staff.length} member{staff.length === 1 ? "" : "s"}</p>
+          <p className="text-sm text-muted-foreground">{staff.length} member{staff.length === 1 ? "" : "s"}</p>
         </div>
         <Button asChild>
           <Link href="/staff/new">

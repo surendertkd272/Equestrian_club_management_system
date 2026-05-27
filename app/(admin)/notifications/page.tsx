@@ -40,7 +40,7 @@ export default async function NotificationsPage({
         <div>
           <h1 className="text-2xl font-bold">Notifications</h1>
           <p className="text-sm text-muted-foreground">
-            §4.22 · {items.length} {unreadOnly ? "unread shown" : "recent"}
+            {items.length} {unreadOnly ? "unread shown" : "recent"}
             {!unreadOnly && unread > 0 && (
               <> · <span className="font-semibold text-primary">{unread} unread</span></>
             )}

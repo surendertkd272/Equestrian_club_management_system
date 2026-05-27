@@ -67,7 +67,7 @@ export default async function ExamsPage({
         <div>
           <h1 className="text-2xl font-bold">Exams</h1>
           <p className="text-sm text-muted-foreground">
-            §4.4 / §4.16-19 · Level-promotion exams. {session.role === "EXAMINER" ? "Showing exams assigned to you." : ""}
+            Level-promotion exams. {session.role === "EXAMINER" ? "Showing exams assigned to you." : ""}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

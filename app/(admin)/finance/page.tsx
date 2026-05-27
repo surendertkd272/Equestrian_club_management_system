@@ -149,7 +149,7 @@ export default async function FinancePage() {
         <div>
           <h1 className="text-2xl font-bold">Finance</h1>
           <p className="text-sm text-muted-foreground">
-            §4.20 · Income via paid Invoices &amp; Payments; expenses booked against the chart of accounts.
+            Income via paid Invoices &amp; Payments; expenses booked against the chart of accounts.
             Net P&amp;L = Income − Expenses for the period.
           </p>
         </div>
