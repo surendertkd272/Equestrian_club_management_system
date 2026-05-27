@@ -37,8 +37,15 @@ export function StaffInviteManager({ invites }: { invites: Invite[] }) {
   }
 
   async function generate() {
-    if (!form.email.trim()) {
+    const email = form.email.trim();
+    if (!email) {
       toast.error("Enter the new hire's email.");
+      return;
+    }
+    // Catch the common mistake (e.g. "test@hiring" — no domain) before the
+    // round-trip, with a message that actually explains the problem.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      toast.error("That's not a valid email — include a domain, e.g. name@example.com");
       return;
     }
     setBusy(true);
@@ -47,7 +54,7 @@ export function StaffInviteManager({ invites }: { invites: Invite[] }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: form.email.trim(),
+          email,
           name: form.name.trim() || undefined,
           role: form.role,
           expiresInDays: Number(form.expiresInDays) || 14,
@@ -56,7 +63,11 @@ export function StaffInviteManager({ invites }: { invites: Invite[] }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error(
-          data.error === "EMAIL_IN_USE" ? "An account with this email already exists." : data.error ?? "Failed",
+          data.error === "EMAIL_IN_USE"
+            ? "An account with this email already exists."
+            : data.error === "VALIDATION"
+              ? "Check the email and role — the email needs a full domain like name@example.com."
+              : data.error ?? "Failed",
         );
         return;
       }
