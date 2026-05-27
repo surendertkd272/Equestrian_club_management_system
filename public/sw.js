@@ -9,7 +9,10 @@
 //   - HTML navigations get the same treatment so a coach can re-open
 //     /attendance on a flat-zero bar.
 
-const CACHE_NAME = "ew-cache-v2";
+// Bump this string to force every client to drop its old cached pages on the
+// next visit (the activate handler deletes any cache name != CACHE_NAME).
+// v3: flush stale page HTML that still showed internal "§" spec labels.
+const CACHE_NAME = "ew-cache-v3";
 
 // Sensitive / fast-moving endpoints we never want stale copies of. The
 // service worker should pass-through to the network for any path that
