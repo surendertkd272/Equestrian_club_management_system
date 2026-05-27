@@ -4,6 +4,21 @@
 // add staff/batches/horses/meds via the existing admin pages.
 
 import { prisma } from "./prisma";
+import fs from "node:fs";
+import path from "node:path";
+
+// Canonical Equiwings rubric for general Levels 1–4 — single source of truth,
+// shared with prisma/seed.ts. Each club's ScoringTemplate rows are seeded from
+// THIS so the scorer (which reads ScoringTemplate) matches ExamLevel.defaultRubricJson.
+type CanonRubric = { levelName: string; passThreshold: number; categories: unknown[] };
+const EQUIWINGS_RUBRICS: Record<string, CanonRubric> = (() => {
+  try {
+    const p = path.join(process.cwd(), "prisma", "equiwings-level-rubrics.json");
+    return JSON.parse(fs.readFileSync(p, "utf-8"));
+  } catch {
+    return {};
+  }
+})();
 
 const SKILL_TREE: Record<string, Record<string, string[]>> = {
   normal: {
@@ -36,86 +51,6 @@ const SKILL_TREE: Record<string, Record<string, string[]>> = {
   },
 };
 
-const LEVEL_1_RUBRIC = [
-  {
-    name: "Dress & Equipment",
-    items: [
-      { name: "Helmet (ASTM/ISI certified)", max_score: 5 },
-      { name: "Boots / jodhpurs", max_score: 5 },
-      { name: "Gloves", max_score: 2 },
-    ],
-  },
-  {
-    name: "Stable Management",
-    items: [
-      { name: "Approach & handling", max_score: 5 },
-      { name: "Grooming basics", max_score: 5 },
-      { name: "Tacking up assistance", max_score: 5 },
-    ],
-  },
-  {
-    name: "Riding Position",
-    items: [
-      { name: "Seat", max_score: 10 },
-      { name: "Hands & contact", max_score: 10 },
-      { name: "Heels down / leg position", max_score: 5 },
-    ],
-  },
-  {
-    name: "Basic Paces",
-    items: [
-      { name: "Halt / mount / dismount", max_score: 5 },
-      { name: "Walk on a circle", max_score: 10 },
-      { name: "Rising trot (straight line)", max_score: 10 },
-    ],
-  },
-  { name: "Remarks by Jury", type: "text" as const, items: [{ name: "Overall observations", max_score: 0 }] },
-];
-
-const LEVEL_2_RUBRIC = [
-  {
-    name: "Dress & Equipment",
-    items: [
-      { name: "Helmet", max_score: 5 },
-      { name: "Boots / jodhpurs", max_score: 5 },
-    ],
-  },
-  {
-    name: "Stable Management",
-    items: [
-      { name: "Independent tacking up", max_score: 8 },
-      { name: "Feeding & watering knowledge", max_score: 6 },
-      { name: "Identifying basic ailments", max_score: 6 },
-    ],
-  },
-  {
-    name: "Riding Position",
-    items: [
-      { name: "Seat", max_score: 10 },
-      { name: "Hands & contact", max_score: 10 },
-      { name: "Two-point at trot", max_score: 8 },
-    ],
-  },
-  {
-    name: "Paces & Transitions",
-    items: [
-      { name: "Sitting trot (5 strides)", max_score: 8 },
-      { name: "Canter on correct lead", max_score: 12 },
-      { name: "Transitions walk-trot-walk", max_score: 8 },
-      { name: "Pole work (3 trot poles)", max_score: 8 },
-    ],
-  },
-  {
-    name: "Theory Questions",
-    type: "select" as const,
-    options: ["Correct", "Partial", "Incorrect"],
-    items: [
-      { name: "Parts of a saddle", max_score: 0 },
-      { name: "Three points of a horse's hoof", max_score: 0 },
-    ],
-  },
-  { name: "Remarks by Jury", type: "text" as const, items: [{ name: "Overall observations", max_score: 0 }] },
-];
 
 // PDF §2 wound & bandaging consumables. Seeded on centre creation so new
 // tenants don't stare at empty cabinets. Quantities are typical for a
@@ -202,29 +137,24 @@ export async function bootstrapCentreCatalog(centreId: string): Promise<void> {
     }
   }
 
-  // Scoring templates
-  await prisma.scoringTemplate.upsert({
-    where: { centreId_levelKey: { centreId, levelKey: "1" } },
-    create: {
-      centreId,
-      levelKey: "1",
-      levelName: "Level 1 — Beginner",
-      passThreshold: 60,
-      categoriesJson: JSON.stringify(LEVEL_1_RUBRIC),
-    },
-    update: {},
-  });
-  await prisma.scoringTemplate.upsert({
-    where: { centreId_levelKey: { centreId, levelKey: "2" } },
-    create: {
-      centreId,
-      levelKey: "2",
-      levelName: "Level 2 — Intermediate",
-      passThreshold: 65,
-      categoriesJson: JSON.stringify(LEVEL_2_RUBRIC),
-    },
-    update: {},
-  });
+  // Scoring templates — all 4 canonical Equiwings levels, seeded from
+  // equiwings-level-rubrics.json (the same file ExamLevel.defaultRubricJson
+  // uses). `update` is populated so re-running the bootstrap REPAIRS any club
+  // seeded with the old generic 2-level rubric (self-healing backfill).
+  for (const levelKey of ["1", "2", "3", "4"] as const) {
+    const r = EQUIWINGS_RUBRICS[levelKey];
+    if (!r) continue; // canonical file missing — skip rather than seed garbage
+    const data = {
+      levelName: r.levelName,
+      passThreshold: r.passThreshold,
+      categoriesJson: JSON.stringify(r.categories),
+    };
+    await prisma.scoringTemplate.upsert({
+      where: { centreId_levelKey: { centreId, levelKey } },
+      create: { centreId, levelKey, ...data },
+      update: data,
+    });
+  }
 
   // Individual-Asset seeding removed — the Asset model was dropped when the
   // /tack route was consolidated into /equipment (bulk-stock-only). Starter

@@ -531,29 +531,24 @@ async function seedClub(spec: ClubSpec, orgId: string, pwd: string) {
     }
   }
 
-  // 10. Scoring templates (Level 1, Level 2).
-  await prisma.scoringTemplate.upsert({
-    where: { centreId_levelKey: { centreId: centre.id, levelKey: "1" } },
-    create: {
-      centreId: centre.id,
-      levelKey: "1",
-      levelName: "Level 1 — Beginner",
-      passThreshold: 60,
-      categoriesJson: JSON.stringify(LEVEL_1_RUBRIC),
-    },
-    update: {},
-  });
-  await prisma.scoringTemplate.upsert({
-    where: { centreId_levelKey: { centreId: centre.id, levelKey: "2" } },
-    create: {
-      centreId: centre.id,
-      levelKey: "2",
-      levelName: "Level 2 — Intermediate",
-      passThreshold: 65,
-      categoriesJson: JSON.stringify(LEVEL_2_RUBRIC),
-    },
-    update: {},
-  });
+  // 10. Scoring templates — all 4 canonical Equiwings levels from
+  // equiwings-level-rubrics.json (single source of truth, shared with
+  // ExamLevel.defaultRubricJson + centre-bootstrap). `update` populated so a
+  // re-seed repairs clubs seeded with the old 2-level placeholder rubric.
+  for (const levelKey of ["1", "2", "3", "4"] as const) {
+    const r = EQUIWINGS_RUBRICS[levelKey];
+    if (!r) continue;
+    const data = {
+      levelName: r.levelName,
+      passThreshold: r.passThreshold,
+      categoriesJson: JSON.stringify(r.categories),
+    };
+    await prisma.scoringTemplate.upsert({
+      where: { centreId_levelKey: { centreId: centre.id, levelKey } },
+      create: { centreId: centre.id, levelKey, ...data },
+      update: data,
+    });
+  }
 
   // 11. Sample riders — skip if any already exist (idempotent).
   const riderCount = await prisma.rider.count({ where: { centreId: centre.id } });
