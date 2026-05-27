@@ -15,6 +15,7 @@ import { getSession } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { EnrolmentActions } from "@/app/(admin)/enrolments/enrolment-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export default async function SchoolDashboardPage() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [centre, riders, attendanceSummary, recentExams, recentSkills] = await Promise.all([
+  const [centre, riders, attendanceSummary, recentExams, recentSkills, pendingEnrolments] = await Promise.all([
     prisma.centre.findUnique({ where: { id: centreId }, select: { name: true } }),
     prisma.rider.findMany({
       where: { centreId, status: { in: ["active", "pending_payment"] } },
@@ -79,6 +80,11 @@ export default async function SchoolDashboardPage() {
       orderBy: { updatedAt: "desc" },
       take: 20,
     }),
+    prisma.rider.findMany({
+      where: { centreId, status: "pending_approval", selfEnrolled: true },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, firstName: true, lastName: true, mobile: true, school: true, createdAt: true },
+    }),
   ]);
 
   // Index attendance counts by rider id for fast lookup in the table below.
@@ -92,6 +98,45 @@ export default async function SchoolDashboardPage() {
           Read-only view of riders' attendance this month, exam history, and skill progress.
         </p>
       </div>
+
+      {pendingEnrolments.length > 0 && (
+        <Card className="border-l-4 border-l-amber-500">
+          <CardHeader>
+            <CardTitle>Self-enrolments awaiting your approval ({pendingEnrolments.length})</CardTitle>
+            <CardDescription>
+              Riders who signed up via the public link. Approve to start their registration, or reject.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="pb-2">Name</th>
+                    <th className="pb-2">Mobile</th>
+                    <th className="pb-2">School</th>
+                    <th className="pb-2">Signed up</th>
+                    <th className="pb-2 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingEnrolments.map((r) => (
+                    <tr key={r.id} className="border-t">
+                      <td className="py-2 font-medium">{r.firstName} {r.lastName}</td>
+                      <td className="py-2">{r.mobile}</td>
+                      <td className="py-2 text-xs text-muted-foreground">{r.school ?? "—"}</td>
+                      <td className="py-2 text-xs text-muted-foreground">{formatDate(r.createdAt)}</td>
+                      <td className="py-2 text-right">
+                        <EnrolmentActions riderId={r.id} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

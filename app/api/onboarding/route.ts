@@ -100,22 +100,11 @@ export async function POST(req: NextRequest) {
       indemnitySignerIp: ip,
       indemnitySignerUa: ua,
       parentalConsentJson,
-      status: "pending_payment",
-    },
-  });
-
-  // Create a registration invoice (defaults to ₹3,000 per GHRC).
-  const regPlan = await prisma.feePlan.findFirst({ where: { centreId: centre.id } });
-  const regAmount = regPlan?.registrationAmount ?? 3000;
-  const invoice = await prisma.invoice.create({
-    data: {
-      centreId: centre.id,
-      riderId: rider.id,
-      amount: regAmount,
-      gstAmount: 0,
-      dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-      kind: "registration",
-      status: "due",
+      // Public self-enrol → held for School Admin / Centre Manager approval.
+      // The registration invoice is created on approval (see
+      // /api/enrolments/[id]), not here, so we don't bill un-vetted signups.
+      selfEnrolled: true,
+      status: "pending_approval",
     },
   });
 
@@ -123,18 +112,18 @@ export async function POST(req: NextRequest) {
     action: "create",
     tableName: "rider",
     rowId: rider.id,
-    after: { id: rider.id, name: `${rider.firstName} ${rider.lastName}`, centreId: centre.id },
+    after: { id: rider.id, name: `${rider.firstName} ${rider.lastName}`, centreId: centre.id, status: "pending_approval" },
     ip,
     userAgent: ua,
   });
 
   await notifyCentreManager(centre.id, {
-    type: "rider.onboarded",
-    title: "New rider signed up",
-    body: `${rider.firstName} ${rider.lastName} (${rider.mobile}) just completed the onboarding wizard. Pending ₹${regAmount} registration payment.`,
-    link: `/riders/${rider.id}`,
-    payload: { riderId: rider.id, invoiceId: invoice.id },
+    type: "rider.self_enrolled",
+    title: "New self-enrolment — approval needed",
+    body: `${rider.firstName} ${rider.lastName} (${rider.mobile}) signed up via the public link. Review and approve to start registration.`,
+    link: `/enrolments`,
+    payload: { riderId: rider.id },
   });
 
-  return NextResponse.json({ riderId: rider.id, invoiceId: invoice.id, amount: regAmount });
+  return NextResponse.json({ riderId: rider.id, status: "pending_approval" });
 }

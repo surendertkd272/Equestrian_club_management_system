@@ -527,3 +527,107 @@ export async function HeadCoachDashboard({ centreId }: { centreId: string | null
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COACH — own batches + today's teaching workflow. Coaches previously fell
+// through to the org-wide admin grid (which exposed finance KPIs they
+// shouldn't see); this focuses them on their own roster, attendance, tasks,
+// daily checklist, and monthly-skill marking.
+
+export async function CoachDashboard({ centreId, userId }: { centreId: string | null; userId: string }) {
+  const where: any = centreId ? { centreId } : {};
+  const todayStart = new Date();
+  todayStart.setUTCHours(0, 0, 0, 0);
+  const todayEnd = new Date(todayStart.getTime() + 86400000);
+
+  const [myBatches, markedToday, myOpenTasks, checklistsToday, totalRiders] = await Promise.all([
+    prisma.batch.findMany({
+      where: { ...where, coachId: userId },
+      select: { id: true, name: true, _count: { select: { riders: true } } },
+    }),
+    prisma.attendance.findMany({
+      where: { date: { gte: todayStart, lt: todayEnd }, batch: { coachId: userId } },
+      select: { batchId: true },
+    }),
+    prisma.task.count({
+      where: { ...where, assigneeId: userId, status: { in: ["open", "in_progress"] } },
+    }),
+    prisma.checklistSubmission.count({
+      where: { ...where, submittedByUserId: userId, submittedAt: { gte: todayStart, lt: todayEnd } },
+    }),
+    prisma.rider.count({ where: { ...where, status: "active" } }),
+  ]);
+
+  const markedSet = new Set(markedToday.map((m) => m.batchId));
+  const unmarked = myBatches.filter((b) => !markedSet.has(b.id));
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Kpi label="My batches" value={myBatches.length} link="/batches" />
+        <Kpi
+          label="My batches unmarked (today)"
+          value={unmarked.length}
+          tone={unmarked.length > 0 ? "amber" : "green"}
+          link="/attendance"
+        />
+        <Kpi label="My open tasks" value={myOpenTasks} tone={myOpenTasks > 0 ? "amber" : undefined} link="/tasks?mine=1" />
+        <Kpi
+          label="Daily checklist filed today"
+          value={checklistsToday > 0 ? "Yes" : "No"}
+          tone={checklistsToday > 0 ? "green" : "amber"}
+          link="/checklists"
+        />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {unmarked.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">My batches still unmarked today</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-1 text-sm">
+                {unmarked.slice(0, 10).map((b) => (
+                  <li key={b.id} className="flex justify-between border-b py-1">
+                    <span>
+                      {b.name} <span className="text-xs text-muted-foreground">· {b._count.riders} riders</span>
+                    </span>
+                    <Link href={`/attendance?batch=${b.id}`} className="text-xs text-primary hover:underline">
+                      Mark now →
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Today's coach actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-1.5 text-sm">
+              <li className="flex justify-between border-b py-1">
+                <span>Submit daily checklist</span>
+                <Link href="/checklists" className="text-xs text-primary hover:underline">Open →</Link>
+              </li>
+              <li className="flex justify-between border-b py-1">
+                <span>Mark monthly skills</span>
+                <Link href="/monthly-skills" className="text-xs text-primary hover:underline">Open →</Link>
+              </li>
+              <li className="flex justify-between border-b py-1">
+                <span>Log a horse injury</span>
+                <Link href="/injuries" className="text-xs text-primary hover:underline">Open →</Link>
+              </li>
+              <li className="flex justify-between py-1">
+                <span>Active riders at centre</span>
+                <span className="text-xs text-muted-foreground">{totalRiders}</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

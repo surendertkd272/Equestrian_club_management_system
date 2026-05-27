@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { centreWhere, scopeCentre } from "@/lib/tenancy";
@@ -15,6 +16,7 @@ import {
   CompetitionManagerDashboard,
   AccountantDashboard,
   HeadCoachDashboard,
+  CoachDashboard,
 } from "./role-dashboards";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +38,9 @@ export default async function DashboardPage() {
   if (session.role === "ACCOUNTANT") return <AccountantDashboard centreId={centreId} />;
   if (session.role === "INVENTORY_MANAGER") return <StableManagerDashboard centreId={centreId} />;
   if (session.role === "HEAD_COACH") return <HeadCoachDashboard centreId={centreId} />;
+  if (session.role === "COACH") return <CoachDashboard centreId={centreId} userId={session.userId} />;
+  // External auditor — their only job is the inspection sheet; send them there.
+  if (session.role === "INSPECTION_OFFICER") redirect("/inspections");
 
   const todayStart = new Date();
   todayStart.setUTCHours(0, 0, 0, 0);

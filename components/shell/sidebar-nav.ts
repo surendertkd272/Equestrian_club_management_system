@@ -49,6 +49,9 @@ export const NAV: NavGroup[] = [
     group: "AMS · Athletes",
     items: [
       { href: "/riders", label: "Riders", iconName: "Users", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER", "COMPETITION_MANAGER"] },
+      // Self-enrolment approval queue — School Admin / Centre Manager vet
+      // public sign-ups before they become billable registrations.
+      { href: "/enrolments", label: "Enrolment Approvals", iconName: "UserCheck", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "SCHOOL_ADMINISTRATOR"] },
       { href: "/batches", label: "Batches", iconName: "CalendarClock", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"] },
       { href: "/lessons", label: "Lessons", iconName: "CalendarDays", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"] },
       { href: "/attendance", label: "Attendance", iconName: "CalendarCheck2", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"], feature: "attendance" },
@@ -74,6 +77,8 @@ export const NAV: NavGroup[] = [
       // Daily Checklist — coaches/stable submit; HQ admins edit templates.
       { href: "/checklists", label: "Daily Checklist", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "STABLE_MANAGER", "GROOM"] },
       { href: "/checklists/templates", label: "Checklist Templates", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN"] },
+      // Coach's daily 5-minute end-of-day update.
+      { href: "/daily-update", label: "Daily Coach Update", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"] },
       { href: "/approvals", label: "Approvals", iconName: "FileCheck", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "INVENTORY_MANAGER", "ACCOUNTANT", "STABLE_MANAGER"], feature: "approvals" },
       // Procurement requisitions — staff submits, manager + accountant approve.
       // Anyone with requisition.submit (i.e. all staff roles) sees the page.
@@ -85,6 +90,8 @@ export const NAV: NavGroup[] = [
       { href: "/vendors", label: "Vendors", iconName: "Building", perm: ["SUPER_ADMIN", "ADMIN"] },
       // Salary advances ledger — HQ admins + Accountant.
       { href: "/advances", label: "Salary Advances", iconName: "Receipt", perm: ["SUPER_ADMIN", "ADMIN", "ACCOUNTANT"] },
+      // Monthly payroll — records salary + auto-deducts outstanding advances.
+      { href: "/salary", label: "Salary & Payroll", iconName: "Receipt", perm: ["SUPER_ADMIN", "ADMIN", "ACCOUNTANT"] },
       { href: "/facility-bookings", label: "Facility Bookings", iconName: "Building", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH"], feature: "facility-bookings" },
       // Inventory: quantity-based catalog (EquipmentStock against EquipmentCatalog).
       // Per-item Asset tracking was removed in the consolidation — clubs found
@@ -104,6 +111,8 @@ export const NAV: NavGroup[] = [
       { href: "/injuries", label: "Injury Log", iconName: "BandageIcon", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "VET", "STABLE_MANAGER", "GROOM", "FARRIER"], feature: "injuries" },
       { href: "/events", label: "Events", iconName: "CalendarRange", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COMPETITION_MANAGER"], feature: "events" },
       { href: "/teams", label: "Teams / Squads", iconName: "Flag", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COMPETITION_MANAGER"], feature: "teams" },
+      // Event transport — horses + equipment manifest with check-out / check-in.
+      { href: "/transport", label: "Event Transport", iconName: "CalendarRange", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER", "COMPETITION_MANAGER"] },
     ],
   },
   {
@@ -119,6 +128,9 @@ export const NAV: NavGroup[] = [
       { href: "/accreditations", label: "Accreditations", iconName: "Shield", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COMPETITION_MANAGER"], feature: "accreditations" },
       { href: "/notifications", label: "Notifications", iconName: "Bell", perm: ALL_STAFF },
       { href: "/audit", label: "Audit Log", iconName: "Shield", perm: ["SUPER_ADMIN"] },
+      // Manual inspections / SOP audits — run by the external Inspection Officer
+      // or admins/centre manager.
+      { href: "/inspections", label: "Inspections", iconName: "Shield", perm: ["INSPECTION_OFFICER", "SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
     ],
   },
 ];

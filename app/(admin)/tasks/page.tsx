@@ -85,6 +85,11 @@ export default async function TasksPage({
               the two filters from fighting. */}
           {canAssign && searchParams.mine !== "1" && <AssigneeFilter assignees={assignees} />}
           {canAssign && (
+            <Button asChild variant="outline" size="sm">
+              <Link href="/tasks/given">Given by me</Link>
+            </Button>
+          )}
+          {canAssign && (
             <Button asChild>
               <Link href="/tasks/new">
                 <Plus className="h-4 w-4" /> New task

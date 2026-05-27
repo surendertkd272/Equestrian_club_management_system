@@ -44,6 +44,9 @@ export async function POST(req: NextRequest) {
       description: d.description || null,
       kind: d.kind ?? null,
       assigneeId: d.assigneeId ?? null,
+      // Record the delegator so the "Tasks Given" view + delegation audit
+      // can show who handed this down.
+      assignedById: session.userId,
       dueAt: d.dueAt ? parseLocalDate(d.dueAt) : null,
       recurrence: d.recurrence,
       status: "open",

@@ -61,6 +61,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(d.dueAt !== undefined ? { dueAt: d.dueAt ? new Date(d.dueAt) : null } : {}),
       ...(d.status !== undefined ? { status: d.status } : {}),
       ...(d.proofUrl !== undefined ? { proofUrl: d.proofUrl } : {}),
+      // Stamp/clear completedAt as the task moves in and out of "done" so the
+      // "Tasks Completed" view can show when it was finished.
+      ...(d.status === "done" && task.status !== "done" ? { completedAt: new Date() } : {}),
+      ...(d.status !== undefined && d.status !== "done" ? { completedAt: null } : {}),
     },
   });
 

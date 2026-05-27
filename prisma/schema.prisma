@@ -607,6 +607,10 @@ model Centre {
   checklistTemplates ChecklistTemplate[]
   checklistSubmissions ChecklistSubmission[]
   monthlySkillCatalogs MonthlySkillCatalog[]
+  salaryPayments    SalaryPayment[]
+  coachDailyUpdates CoachDailyUpdate[]
+  venueTrips        VenueTrip[]
+  auditRuns         AuditRun[]
 }
 
 // Role is a string union enforced at the app layer (see lib/roles.ts).
@@ -686,6 +690,9 @@ model User {
   gateEvents       StaffGateEvent[] @relation("StaffGateStaff")
   separationNotices SeparationNotice[] @relation("SeparationUser")
   advances          EmployeeAdvance[]  @relation("EmployeeAdvanceUser")
+  salaryPayments    SalaryPayment[]    @relation("SalaryPaymentUser")
+  coachDailyUpdates CoachDailyUpdate[] @relation("CoachDailyUpdateCoach")
+  auditRuns         AuditRun[]         @relation("AuditRunInspector")
 }
 
 // Public forgot-password flow. We mint a SHA-256-hashed token on request;
@@ -825,8 +832,15 @@ model Rider {
   // Null for adult riders or pre-DPDPA records.
   parentalConsentJson String?
   // Status
-  status         String    @default("pending_payment") // pending_payment | active | suspended | cancelled
+  status         String    @default("pending_payment") // pending_approval | pending_payment | active | suspended | cancelled | rejected
   registrationPaid Boolean @default(false)
+  // True when the rider came in via the public self-enrol link (vs. created
+  // by staff). Self-enrolled riders land in status="pending_approval" and a
+  // School Admin / Centre Manager must approve before they progress to
+  // pending_payment. See app/api/onboarding + app/(admin)/enrolments.
+  selfEnrolled   Boolean   @default(false)
+  approvedByUserId String?
+  approvedAt     DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -1577,13 +1591,23 @@ model Task {
   // rehearsals; we don't model them as a separate table.
   kind        String?  // generic | dress_rehearsal | stable | feeding | rehearsal | …
   assigneeId  String?
+  // Who delegated the task. Powers the "Tasks Given" view + the delegation
+  // hierarchy (Super Admin → Admin/HR, Admin → Coach). Null for self-created
+  // or system-generated tasks.
+  assignedById String?
   dueAt       DateTime?
   recurrence  String?
   status      String   @default("open") // open | in_progress | done | overdue | escalated
   proofUrl    String?
+  // Stamped when status flips to done — lets the "Tasks Completed" view show
+  // when, and feeds completion-rate reporting.
+  completedAt DateTime?
   createdAt   DateTime @default(now())
 
   centre Centre @relation(fields: [centreId], references: [id])
+
+  @@index([centreId, assignedById])
+  @@index([centreId, assigneeId])
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -2941,4 +2965,134 @@ model Accreditation {
 
   @@index([riderId, status])
   @@index([body, level])
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// SPRINT 5 — payroll deduction, daily coach updates, venue transport
+// inventory, manual inspection/audit runs.
+// ──────────────────────────────────────────────────────────────────────────
+
+// A single month's salary settlement for a staff member. When recorded, any
+// outstanding EmployeeAdvance balances are netted off (advanceDeducted) and
+// AdvanceRepayment rows are written, so "advance debited from salary" is one
+// action. net = gross - advanceDeducted - otherDeductions.
+model SalaryPayment {
+  id               String   @id @default(cuid())
+  centreId         String
+  userId           String
+  periodMonth      String   // "2026-05"
+  grossAmount      Float
+  advanceDeducted  Float    @default(0)
+  otherDeductions  Float    @default(0)
+  netAmount        Float
+  method           String?  // cash | bank | upi | cheque
+  paidAt           DateTime?
+  notes            String?
+  recordedByUserId String
+  createdAt        DateTime @default(now())
+
+  centre Centre @relation(fields: [centreId], references: [id])
+  user   User   @relation("SalaryPaymentUser", fields: [userId], references: [id])
+
+  @@unique([userId, periodMonth])
+  @@index([centreId, periodMonth])
+}
+
+// Coach's "daily 5-minute update" — a fast end-of-day log distinct from the
+// per-horse checklist. Captures what was covered, how many horses worked,
+// and any injuries/concerns to escalate. One per coach per day per centre.
+model CoachDailyUpdate {
+  id            String   @id @default(cuid())
+  centreId      String
+  coachUserId   String
+  date          DateTime // date-only (UTC noon)
+  summary       String
+  horsesWorked  Int?
+  ridersTaught  Int?
+  injuriesNoted String?
+  minutesSpent  Int?
+  createdAt     DateTime @default(now())
+
+  centre Centre @relation(fields: [centreId], references: [id])
+  coach  User   @relation("CoachDailyUpdateCoach", fields: [coachUserId], references: [id])
+
+  @@unique([centreId, coachUserId, date])
+  @@index([centreId, date])
+}
+
+// A trip taking horses + equipment to an event venue. The inventory is
+// checked OUT before departure and IN on return, so anything lost/damaged at
+// the venue is caught immediately. status: planned → departed → returned.
+model VenueTrip {
+  id             String   @id @default(cuid())
+  centreId       String
+  eventName      String
+  venue          String
+  departureAt    DateTime
+  returnAt       DateTime?
+  status         String   @default("planned") // planned | departed | returned | cancelled
+  notes          String?
+  createdByUserId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  centre Centre @relation(fields: [centreId], references: [id])
+  items  TripChecklistItem[]
+
+  @@index([centreId, departureAt])
+  @@index([status])
+}
+
+model TripChecklistItem {
+  id           String   @id @default(cuid())
+  tripId       String
+  category     String   // horse | tack | feed | equipment | medical | document | other
+  label        String
+  qtyExpected  Int      @default(1)
+  // Out = loaded before departure; In = verified back at the club.
+  checkedOut   Boolean  @default(false)
+  checkedOutAt DateTime?
+  conditionOut String?  // ok | damaged | note text
+  checkedIn    Boolean  @default(false)
+  checkedInAt  DateTime?
+  conditionIn  String?  // ok | damaged | missing | note text
+  remarks      String?
+
+  trip VenueTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
+}
+
+// Manual inspection / audit run performed by an INSPECTION_OFFICER (external
+// auditor) or admin. Scoped to one centre; each line item is marked
+// pass/fail/na with remarks. Mirrors the paper SOP audit sheet.
+model AuditRun {
+  id              String   @id @default(cuid())
+  centreId        String
+  inspectorUserId String
+  scope           String   // inventory | vet_inventory | stable | full
+  status          String   @default("in_progress") // in_progress | completed
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  summary         String?
+
+  centre    Centre     @relation(fields: [centreId], references: [id])
+  inspector User       @relation("AuditRunInspector", fields: [inspectorUserId], references: [id])
+  items     AuditItem[]
+
+  @@index([centreId, startedAt])
+  @@index([status])
+}
+
+model AuditItem {
+  id       String  @id @default(cuid())
+  runId    String
+  area     String  // e.g. "Tack room", "Vet cabinet", "Feed store"
+  label    String
+  result   String  @default("pending") // pass | fail | na | pending
+  remarks  String?
+
+  run AuditRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
 }

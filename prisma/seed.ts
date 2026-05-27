@@ -169,6 +169,28 @@ const STANDARD_MEDS: Array<{ name: string; generic: string; cat: string; days: n
   { name: "Tetanus Antitoxin", generic: "Tetanus antitoxin", cat: "antitoxin", days: 360, qty: 4 },
   // Dewormer
   { name: "Ivermectin Paste", generic: "Ivermectin", cat: "dewormer", days: 365, qty: 30 },
+  // Client procurement list (WhatsApp 24 May) — named products the clubs
+  // actually stock, plus IV fluids / probiotics Ahmed asked to keep on hand.
+  { name: "Fortified Procaine Penicillin", generic: "Procaine + Benzylpenicillin", cat: "antibiotic", days: 365, qty: 14 },
+  { name: "Artizon-S Inj 300ml", generic: "Immunomodulator tonic", cat: "supplement", days: 540, qty: 4 },
+  { name: "Tribivet Inj 1000ml", generic: "Vitamin B-complex", cat: "supplement", days: 540, qty: 2 },
+  { name: "Pyroflex Oil 500ml", generic: "Topical anti-inflammatory liniment", cat: "wound", days: 720, qty: 6 },
+  { name: "Powder Ecare SC 400g", generic: "Skin & coat supplement", cat: "supplement", days: 540, qty: 6 },
+  { name: "Hoof Powder", generic: "Hoof-hardening powder", cat: "hoof", days: 720, qty: 14 },
+  { name: "Hoof Oil", generic: "Hoof conditioning oil", cat: "hoof", days: 720, qty: 14 },
+  { name: "Calcium Liquid", generic: "Calcium gluconate oral", cat: "supplement", days: 540, qty: 14 },
+  { name: "Vetade Inj 4ml", generic: "Vitamin A/D3/E", cat: "supplement", days: 540, qty: 12 },
+  { name: "Repronal Inj 5ml", generic: "Reproductive vitamin tonic", cat: "supplement", days: 540, qty: 8 },
+  { name: "Rantek Inj 100ml", generic: "Ranitidine", cat: "gastric", days: 365, qty: 4 },
+  { name: "Livor Tonic 5L", generic: "Liver tonic", cat: "supplement", days: 540, qty: 2 },
+  { name: "Apthocare Powder", generic: "Mouth/foot antiseptic powder", cat: "wound", days: 540, qty: 7 },
+  { name: "Speed Liquid 1L", generic: "Energy/recovery oral tonic", cat: "supplement", days: 540, qty: 6 },
+  { name: "Bandage Roll", generic: "Cotton crepe bandage", cat: "wound", days: 1080, qty: 30 },
+  { name: "Hydrogen Peroxide", generic: "Hydrogen peroxide 3%", cat: "wound", days: 365, qty: 12 },
+  { name: "Ringer Lactate (RL) 500ml", generic: "Compound sodium lactate IV", cat: "fluid", days: 540, qty: 48 },
+  { name: "Normal Saline 0.9% 500ml", generic: "Sodium chloride IV", cat: "fluid", days: 540, qty: 48 },
+  { name: "IV Administration Set", generic: "IV drip set (disposable)", cat: "fluid", days: 1080, qty: 50 },
+  { name: "Equine Probiotic", generic: "Gut probiotic + prebiotic", cat: "supplement", days: 365, qty: 12 },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────

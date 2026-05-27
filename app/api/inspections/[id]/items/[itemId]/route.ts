@@ -1,0 +1,54 @@
+// Mark an audit line pass / fail / na with remarks.
+
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
+import { audit } from "@/lib/audit";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { markAuditItemSchema, CAN_INSPECT } from "@/lib/schemas/audit-run";
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string; itemId: string } },
+) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  if (!CAN_INSPECT.has(session.role)) {
+    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  }
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
+
+  const item = await prisma.auditItem.findUnique({
+    where: { id: params.itemId },
+    include: { run: { select: { centreId: true } } },
+  });
+  if (!item || item.runId !== params.id) {
+    return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  }
+  const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  if (!isHQ && session.centreId !== item.run.centreId) {
+    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  }
+
+  const body = await req.json().catch(() => null);
+  const parsed = markAuditItemSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
+  }
+
+  await prisma.auditItem.update({
+    where: { id: item.id },
+    data: { result: parsed.data.result, remarks: parsed.data.remarks ?? null },
+  });
+
+  await audit({
+    userId: session.userId,
+    action: "inspection.mark",
+    tableName: "auditItem",
+    rowId: item.id,
+    after: { result: parsed.data.result },
+  });
+
+  return NextResponse.json({ ok: true });
+}
