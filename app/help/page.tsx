@@ -39,7 +39,7 @@ const SECTIONS = [
   {
     title: "Horse care",
     articles: [
-      { slug: "horse-health-schedules", title: "Vaccinations, deworming, dental", summary: "One schedule, one nextDueAt sweep, alerts before each lapse." },
+      { slug: "horse-health-schedules", title: "Vaccinations, deworming, dental", summary: "One schedule, one due-date sweep, alerts before each lapse." },
       { slug: "feed-plans", title: "Per-horse feeding plans", summary: "Time-slot rations, dietary notes for vet review." },
       { slug: "insurance", title: "Horse insurance + expiry tracking", summary: "Policy fields and the expiry alert sweep." },
     ],

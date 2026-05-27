@@ -59,7 +59,7 @@ export default function BookingConfirmationPage({
         <CardHeader>
           <CardTitle>Booking confirmed</CardTitle>
           <CardDescription>
-            Your facility booking with {centre ?? "the club"} is locked in. Show this page on
+            Your facility booking with {centre ?? "the club"} is confirmed. Show this page on
             arrival.
           </CardDescription>
         </CardHeader>

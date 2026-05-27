@@ -190,7 +190,7 @@ export default async function DashboardPage() {
     },
     { label: "Low-stock meds", value: lowStock, hint: "qty ≤ 5", warn: lowStock > 0 },
     {
-      label: "Meds expiring < 30 days",
+      label: "Meds expiring within 30 days",
       value: expiringSoon,
       hint: "review & rotate",
       warn: expiringSoon > 0,

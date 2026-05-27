@@ -85,7 +85,7 @@ export function PwaInstallPrompt() {
           </p>
         ) : (
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Add to home screen for a faster, full-screen experience offline-tolerant during outdoor lessons.
+            Add to home screen for a faster, full-screen, offline-tolerant experience during outdoor lessons.
           </p>
         )}
         <div className="mt-2 flex gap-2">

@@ -20,7 +20,7 @@ export function RotateForm({ homeOnSuccess }: { homeOnSuccess: string }) {
       return;
     }
     if (next !== conf) {
-      toast.error("Confirmation doesn't match.");
+      toast.error("Passwords don't match.");
       return;
     }
     setBusy(true);

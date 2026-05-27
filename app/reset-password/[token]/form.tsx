@@ -21,7 +21,7 @@ export function ResetForm({ token }: { token: string }) {
       return;
     }
     if (pw1 !== pw2) {
-      toast.error("Confirmation doesn't match.");
+      toast.error("Passwords don't match.");
       return;
     }
     setBusy(true);
