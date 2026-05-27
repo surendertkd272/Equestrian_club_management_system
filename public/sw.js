@@ -12,7 +12,10 @@
 // Bump this string to force every client to drop its old cached pages on the
 // next visit (the activate handler deletes any cache name != CACHE_NAME).
 // v3: flush stale page HTML that still showed internal "§" spec labels.
-const CACHE_NAME = "ew-cache-v3";
+// v4: navigations are now network-first (see fetch handler) — stops stale
+//     cached HTML from referencing JS chunks a later deploy deleted, which
+//     surfaced as "client-side exception" / ChunkLoadError on some pages.
+const CACHE_NAME = "ew-cache-v4";
 
 // Sensitive / fast-moving endpoints we never want stale copies of. The
 // service worker should pass-through to the network for any path that
@@ -74,6 +77,29 @@ self.addEventListener("fetch", (event) => {
   // Auth, owner-portal, notifications and other sensitive/fast-moving
   // endpoints should always hit the network — stale data here is a bug.
   if (NO_CACHE_PREFIXES.some((p) => url.pathname.startsWith(p))) return;
+
+  // HTML page navigations: NETWORK-FIRST. Serving a stale cached HTML doc
+  // after a redeploy points the browser at JS chunk URLs that no longer
+  // exist (the new build re-hashed them) → ChunkLoadError / "client-side
+  // exception". So always fetch fresh HTML; fall back to cache only offline.
+  if (req.mode === "navigate") {
+    event.respondWith(
+      (async () => {
+        try {
+          const res = await fetch(req);
+          if (res && res.status === 200 && res.type === "basic") {
+            const cache = await caches.open(CACHE_NAME);
+            cache.put(req, res.clone()).catch(() => {});
+          }
+          return res;
+        } catch {
+          const cached = await caches.match(req);
+          return cached || Response.error();
+        }
+      })(),
+    );
+    return;
+  }
 
   event.respondWith(
     (async () => {
