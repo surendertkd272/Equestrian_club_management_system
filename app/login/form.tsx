@@ -15,6 +15,7 @@ import { safeNextPath } from "@/lib/safe-redirect";
 // passes that flag based on NODE_ENV so production never exposes it.
 const QUICK_PICK: { label: string; email: string }[] = [
   { label: "HQ Super Admin", email: "super@equiwings.in" },
+  { label: "HQ Admin", email: "admin@equiwings.in" },
   { label: "Centre Manager (Bangalore)", email: "manager.bangalore@equiwings.in" },
   { label: "Head Coach (Bangalore)", email: "headcoach.bangalore@equiwings.in" },
   { label: "Coach (Bangalore)", email: "coach.bangalore@equiwings.in" },
@@ -23,7 +24,11 @@ const QUICK_PICK: { label: string; email: string }[] = [
   { label: "Inventory Mgr (Bangalore)", email: "inventorymanager.bangalore@equiwings.in" },
   { label: "Stable Mgr (Bangalore)", email: "stablemanager.bangalore@equiwings.in" },
   { label: "Accountant (Bangalore)", email: "accountant.bangalore@equiwings.in" },
+  { label: "School Administrator (Bangalore)", email: "schooladmin.bangalore@equiwings.in" },
+  { label: "Inspection Officer (Bangalore)", email: "inspector.bangalore@equiwings.in" },
+  { label: "Jury (Bangalore)", email: "jury.bangalore@equiwings.in" },
   { label: "Parent (Bangalore)", email: "parent.bangalore@equiwings.in" },
+  { label: "Student / Rider (Bangalore)", email: "student.bangalore@equiwings.in" },
 ];
 
 export function LoginForm({

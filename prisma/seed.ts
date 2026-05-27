@@ -382,6 +382,12 @@ async function seedClub(spec: ClubSpec, orgId: string, pwd: string) {
     { roleKey: "groom",               role: "GROOM",               name: spec.groomName },
     { roleKey: "farrier",             role: "FARRIER",             name: spec.farrierName },
     { roleKey: "accountant",          role: "ACCOUNTANT",          name: spec.accountantName },
+    // External / oversight logins the client (Ahmed) asked to see:
+    // School Administrator (read-only club view), Inspection Officer
+    // (external auditor), and a Jury member (panel scoring). All centre-scoped.
+    { roleKey: "schooladmin",         role: "SCHOOL_ADMINISTRATOR", name: `${spec.name} School Admin` },
+    { roleKey: "inspector",           role: "INSPECTION_OFFICER",   name: `${spec.name} Inspection Officer` },
+    { roleKey: "jury",                role: "JURY",                 name: `${spec.name} Jury Member` },
   ];
 
   const userByKey: Record<string, { id: string }> = {};
@@ -584,6 +590,23 @@ async function seedClub(spec: ClubSpec, orgId: string, pwd: string) {
       create: { parentUserId: parent.id, riderId: firstRiderId, relationship: "father" },
       update: {},
     });
+
+    // 13. Student/rider login — a RIDER-role user wired to the first rider so
+    // the student portal (/student) has a working demo account. Ahmed asked
+    // for a "Student Login" alongside the parent one.
+    const studentEmail = emailFor("student", spec.slug);
+    const studentUser = await prisma.user.upsert({
+      where: { email: studentEmail },
+      create: {
+        email: studentEmail,
+        name: `${spec.name} Student`,
+        role: "RIDER",
+        centreId: centre.id,
+        passwordHash: pwd,
+      },
+      update: {},
+    });
+    await prisma.rider.update({ where: { id: firstRiderId }, data: { userId: studentUser.id } });
   }
 }
 
@@ -643,6 +666,21 @@ async function main() {
       orgId: org.id,
       passwordHash: pwd,
       phone: "+919999999999",
+    },
+    update: { orgId: org.id },
+  });
+
+  // HQ Admin — delegated peer of the super admin (cross-club write access,
+  // no HQ-user management). Ahmed's hierarchy: Super Admin → Admin → clubs.
+  await prisma.user.upsert({
+    where: { email: "admin@equiwings.in" },
+    create: {
+      email: "admin@equiwings.in",
+      name: "HQ Admin",
+      role: "ADMIN",
+      centreId: null,
+      orgId: org.id,
+      passwordHash: pwd,
     },
     update: { orgId: org.id },
   });
