@@ -18,12 +18,25 @@ const ROLE_OPTIONS = [
   { value: "COMPETITION_MANAGER", label: "Competition Manager" },
 ];
 
-export function StaffRegisterForm({ code, centreName }: { code: string; centreName: string }) {
+export function StaffRegisterForm({
+  code,
+  centreName,
+  invitedEmail = null,
+  invitedName = null,
+  invitedRole = null,
+}: {
+  code: string;
+  centreName: string;
+  invitedEmail?: string | null;
+  invitedName?: string | null;
+  invitedRole?: string | null;
+}) {
   const [form, setForm] = useState({
-    name: "",
-    email: "",
+    name: invitedName ?? "",
+    email: invitedEmail ?? "",
     phone: "",
-    role: "COACH",
+    // If the invite carries a role we recognise, default to it; else Coach.
+    role: invitedRole && ROLE_OPTIONS.some((r) => r.value === invitedRole) ? invitedRole : "COACH",
     notes: "",
   });
   const [busy, setBusy] = useState(false);
@@ -72,7 +85,17 @@ export function StaffRegisterForm({ code, centreName }: { code: string; centreNa
       </div>
       <div className="space-y-1.5">
         <Label>Email *</Label>
-        <Input required type="email" value={form.email} onChange={(e) => set("email", e.target.value)} />
+        <Input
+          required
+          type="email"
+          value={form.email}
+          onChange={(e) => set("email", e.target.value)}
+          readOnly={!!invitedEmail}
+          className={invitedEmail ? "bg-muted cursor-not-allowed" : undefined}
+        />
+        {invitedEmail && (
+          <p className="text-xs text-muted-foreground">This invite is locked to {invitedEmail}.</p>
+        )}
       </div>
       <div className="space-y-1.5">
         <Label>Phone</Label>
@@ -80,11 +103,18 @@ export function StaffRegisterForm({ code, centreName }: { code: string; centreNa
       </div>
       <div className="space-y-1.5">
         <Label>Role you're joining as *</Label>
-        <Select value={form.role} onChange={(e) => set("role", e.target.value)}>
+        <Select
+          value={form.role}
+          onChange={(e) => set("role", e.target.value)}
+          disabled={!!invitedRole}
+        >
           {ROLE_OPTIONS.map((r) => (
             <option key={r.value} value={r.value}>{r.label}</option>
           ))}
         </Select>
+        {invitedRole && (
+          <p className="text-xs text-muted-foreground">Set by the admin who invited you.</p>
+        )}
       </div>
       <div className="space-y-1.5">
         <Label>Notes (optional)</Label>

@@ -39,6 +39,31 @@ export async function POST(req: NextRequest) {
   if (link.expiresAt && link.expiresAt < new Date()) {
     return NextResponse.json({ error: "INVITE_EXPIRED" }, { status: 400 });
   }
+  // Single-use invites die after the first successful signup.
+  if (link.singleUse && link.redeemCount > 0) {
+    return NextResponse.json({ error: "INVITE_ALREADY_USED" }, { status: 410 });
+  }
+
+  // Email lock — if the invite was issued for a specific person, the
+  // submitted email must match. Stops a forwarded link being used by
+  // someone else.
+  let invitedEmail: string | null = null;
+  let invitedRole: string | null = null;
+  try {
+    const p = link.paramsJson ? JSON.parse(link.paramsJson) : {};
+    invitedEmail = typeof p.email === "string" ? p.email.toLowerCase() : null;
+    invitedRole = typeof p.role === "string" ? p.role : null;
+  } catch {
+    /* ignore malformed params */
+  }
+  if (invitedEmail && parsed.data.email.toLowerCase() !== invitedEmail) {
+    return NextResponse.json(
+      { error: "EMAIL_MISMATCH", message: "This invite is locked to a different email address." },
+      { status: 403 },
+    );
+  }
+  // Lock the role to the invited one when set (the form sends it, but never trust the client).
+  const effectiveRole = invitedRole ?? parsed.data.role;
 
   // Email uniqueness — reject if someone with this email already exists.
   // (Avoids creating a duplicate ghost user via the invite path.)
@@ -55,7 +80,7 @@ export async function POST(req: NextRequest) {
       email: parsed.data.email,
       name: parsed.data.name,
       phone: parsed.data.phone || null,
-      role: parsed.data.role,
+      role: effectiveRole,
       centreId: link.centreId,
       passwordHash: "PENDING", // placeholder; admin resets on approval
       status: "pending_approval",

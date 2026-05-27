@@ -7,18 +7,53 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { StaffInviteManager } from "./invite-manager";
 
 export const dynamic = "force-dynamic";
+
+function canInvite(role: string): boolean {
+  return role === "SUPER_ADMIN" || role === "ADMIN" || role === "CENTRE_MANAGER";
+}
 
 export default async function StaffPage() {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
   const where = centreWhere(centreId);
 
-  const staff = await prisma.staff.findMany({
-    where,
-    include: { user: { select: { name: true, email: true, phone: true, status: true } } },
-    orderBy: { joiningDate: "desc" },
+  const [staff, inviteLinks] = await Promise.all([
+    prisma.staff.findMany({
+      where,
+      include: { user: { select: { name: true, email: true, phone: true, status: true } } },
+      orderBy: { joiningDate: "desc" },
+    }),
+    canInvite(session.role)
+      ? prisma.shortLink.findMany({
+          where: { ...where, kind: "staff_hire" },
+          orderBy: { createdAt: "desc" },
+          take: 50,
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const now = new Date();
+  const invites = inviteLinks.map((l) => {
+    let email: string | null = null;
+    let role: string | null = null;
+    try {
+      const p = l.paramsJson ? JSON.parse(l.paramsJson) : {};
+      email = p.email ?? null;
+      role = p.role ?? null;
+    } catch {
+      /* ignore */
+    }
+    return {
+      code: l.code,
+      email,
+      role,
+      used: l.singleUse && l.redeemCount > 0,
+      expired: !!l.expiresAt && l.expiresAt < now,
+      createdAt: l.createdAt.toISOString(),
+    };
   });
 
   return (
@@ -34,6 +69,8 @@ export default async function StaffPage() {
           </Link>
         </Button>
       </div>
+
+      {canInvite(session.role) && <StaffInviteManager invites={invites} />}
 
       <Card>
         <CardHeader>

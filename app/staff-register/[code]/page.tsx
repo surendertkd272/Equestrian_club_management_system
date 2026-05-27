@@ -19,19 +19,38 @@ export default async function StaffRegisterPage({ params }: { params: { code: st
     include: { centre: { select: { name: true } } },
   });
   if (!link || link.kind !== "staff_hire") notFound();
-  if (link.expiresAt && link.expiresAt < new Date()) {
+
+  const expired = !!link.expiresAt && link.expiresAt < new Date();
+  const used = link.singleUse && link.redeemCount > 0;
+
+  if (expired || used) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-secondary p-4">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Invite expired</CardTitle>
+            <CardTitle>{used ? "Invite already used" : "Invite expired"}</CardTitle>
             <CardDescription>
-              Ask the admin to send you a fresh invite.
+              {used
+                ? "This single-use invite has already been completed. Ask the admin for a new one if you still need to register."
+                : "Ask the admin to send you a fresh invite."}
             </CardDescription>
           </CardHeader>
         </Card>
       </main>
     );
+  }
+
+  // Pull the locked email + prefilled name/role from the invite params.
+  let invitedEmail: string | null = null;
+  let invitedName: string | null = null;
+  let invitedRole: string | null = null;
+  try {
+    const p = link.paramsJson ? JSON.parse(link.paramsJson) : {};
+    invitedEmail = p.email ?? null;
+    invitedName = p.name ?? null;
+    invitedRole = p.role ?? null;
+  } catch {
+    /* ignore */
   }
 
   return (
@@ -40,12 +59,19 @@ export default async function StaffRegisterPage({ params }: { params: { code: st
         <CardHeader>
           <CardTitle>Join {link.centre.name}</CardTitle>
           <CardDescription>
-            Fill in your details below. Once submitted, the centre admin will review and activate
-            your account — you'll get an email when it's ready.
+            {invitedEmail
+              ? "This invite is just for you. Confirm your details below — once submitted, the centre admin will review and activate your account."
+              : "Fill in your details below. Once submitted, the centre admin will review and activate your account — you'll get an email when it's ready."}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <StaffRegisterForm code={code} centreName={link.centre.name} />
+          <StaffRegisterForm
+            code={code}
+            centreName={link.centre.name}
+            invitedEmail={invitedEmail}
+            invitedName={invitedName}
+            invitedRole={invitedRole}
+          />
         </CardContent>
       </Card>
     </main>

@@ -70,7 +70,7 @@ export const NAV: NavGroup[] = [
   {
     group: "CMS · Centre",
     items: [
-      { href: "/staff", label: "Staff", iconName: "Users2", perm: ["SUPER_ADMIN", "CENTRE_MANAGER"] },
+      { href: "/staff", label: "Staff", iconName: "Users2", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
       { href: "/staff-attendance", label: "Staff Attendance", iconName: "UserCheck", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER"], feature: "staff-attendance" },
       // Gate-log kiosk (MyGate-style In/Out). Same permission as attendance —
       // anyone who can mark roster attendance can also log gate entries.
