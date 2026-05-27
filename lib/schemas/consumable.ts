@@ -29,3 +29,8 @@ export const moveConsumableSchema = z.object({
 
 export type CreateConsumableInput = z.infer<typeof createConsumableSchema>;
 export type MoveConsumableInput = z.infer<typeof moveConsumableSchema>;
+
+// Edit an existing consumable (all fields optional) + soft-delete toggle.
+export const updateConsumableSchema = createConsumableSchema.partial().extend({
+  active: z.boolean().optional(),
+});

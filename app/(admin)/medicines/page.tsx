@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, Snowflake } from "lucide-react";
+import { DeactivateButton } from "@/components/ui/deactivate-button";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +28,7 @@ export default async function MedicinesPage({
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
 
-  const where: any = { ...centreWhere(centreId) };
+  const where: any = { ...centreWhere(centreId), active: true };
   if (searchParams.category) where.category = searchParams.category;
   if (searchParams.status === "low") where.qty = { lte: 5 };
   if (searchParams.status === "expiring") where.expDate = { lte: new Date(Date.now() + 30 * 86400000) };
@@ -166,10 +167,13 @@ export default async function MedicinesPage({
                           {m.schedule && <Badge variant="outline">{m.schedule.replace("_", " ")}</Badge>}
                         </div>
                       </td>
-                      <td className="py-2 text-right">
+                      <td className="py-2 text-right whitespace-nowrap">
                         <Link href={`/medicines/${m.id}`} className="text-xs text-primary underline">
                           Open →
                         </Link>
+                        {canManage && (
+                          <DeactivateButton apiPath={`/api/medicines/${m.id}`} itemName={m.name} label="Remove" />
+                        )}
                       </td>
                     </tr>
                   );

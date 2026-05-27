@@ -65,3 +65,8 @@ export function expiryStatus(d: Date): "expired" | "critical" | "expiring" | "ok
   if (days < 90) return "expiring";
   return "ok";
 }
+
+// Edit an existing medicine (all fields optional) + soft-delete toggle.
+export const updateMedicineSchema = createMedicineSchema.partial().extend({
+  active: z.boolean().optional(),
+});

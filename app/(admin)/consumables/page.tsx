@@ -11,7 +11,7 @@ export default async function ConsumablesPage() {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
 
-  const where: any = {};
+  const where: any = { active: true };
   if (centreId) where.centreId = centreId;
 
   const rows = await prisma.consumable.findMany({

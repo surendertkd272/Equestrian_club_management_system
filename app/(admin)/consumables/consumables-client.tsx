@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DeactivateButton } from "@/components/ui/deactivate-button";
 import { toast } from "sonner";
 
 export function ConsumablesClient() {
@@ -149,6 +150,7 @@ export function MoveButtons({ id, unit }: { id: string; unit: string }) {
     <div className="flex gap-1">
       <Button size="sm" variant="outline" disabled={busy} onClick={() => move("in", "Restocked —")}>+ In</Button>
       <Button size="sm" variant="outline" disabled={busy} onClick={() => move("out", "Used —")}>− Out</Button>
+      <DeactivateButton apiPath={`/api/consumables/${id}`} />
     </div>
   );
 }

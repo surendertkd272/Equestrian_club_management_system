@@ -14,3 +14,8 @@ export const addMemberSchema = z.object({
 });
 
 export type CreateTeamInput = z.infer<typeof createTeamSchema>;
+
+// Edit an existing team (all fields optional) + soft-delete toggle.
+export const updateTeamSchema = createTeamSchema.partial().extend({
+  active: z.boolean().optional(),
+});

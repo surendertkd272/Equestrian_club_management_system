@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Phone, Mail } from "lucide-react";
 import { VENDOR_CATEGORY_LABEL } from "@/lib/schemas/vendor";
 import { NewVendorForm } from "./form";
+import { DeactivateButton } from "@/components/ui/deactivate-button";
 
 export const dynamic = "force-dynamic";
 
@@ -93,9 +94,12 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
                         )}
                         {v.contactName && <span className="ml-2 text-xs text-muted-foreground">via {v.contactName}</span>}
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {v.deliveryScope === "national" ? `All clubs · added by ${v.centre?.name}` : v.centre?.name}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {v.deliveryScope === "national" ? `All clubs · added by ${v.centre?.name}` : v.centre?.name}
+                        </span>
+                        <DeactivateButton apiPath={`/api/vendors/${v.id}`} itemName={v.name} />
+                      </div>
                     </div>
                     <div className="mt-1 flex flex-wrap gap-3 text-xs">
                       {v.phone && (

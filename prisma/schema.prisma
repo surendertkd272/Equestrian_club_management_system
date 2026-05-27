@@ -1224,6 +1224,7 @@ model Consumable {
   supplier         String?
   storageLocation  String?
   notes            String?
+  active           Boolean  @default(true) // soft-delete: hidden from lists when false
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -1509,6 +1510,7 @@ model Medicine {
   supplier        String?
   storageLocation String?
   coldChain       Boolean  @default(false)
+  active          Boolean  @default(true) // soft-delete: hidden from lists when false
 
   centre        Centre            @relation(fields: [centreId], references: [id])
   usages        MedicineUsage[]
