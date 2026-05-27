@@ -1,6 +1,34 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { jwtVerify } from "jose";
+import { jwtVerify, SignJWT } from "jose";
+
+// Idle session window. The token lives this long; we re-issue it on activity
+// (sliding renewal below), so an active user is never logged out — only after
+// this many minutes of NO requests does the session lapse. Env can override.
+const SESSION_TTL_MIN = Number(process.env.JWT_ACCESS_TTL_MIN ?? 480); // 8h default
+
+// Re-mint the cookie when the token is past the halfway mark, carrying the
+// same claims forward with a fresh expiry. Keeps active sessions alive without
+// setting a cookie on every single request.
+async function slideRenewal(res: NextResponse, payload: Record<string, unknown>, secret: Uint8Array) {
+  const exp = typeof payload.exp === "number" ? payload.exp : 0;
+  const now = Math.floor(Date.now() / 1000);
+  const remaining = exp - now;
+  if (remaining > (SESSION_TTL_MIN * 60) / 2) return; // still fresh — skip
+  const { exp: _e, iat: _i, ...claims } = payload as Record<string, unknown>;
+  const fresh = await new SignJWT(claims)
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime(`${SESSION_TTL_MIN}m`)
+    .sign(secret);
+  res.cookies.set("ew_session", fresh, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: SESSION_TTL_MIN * 60,
+  });
+}
 
 const PUBLIC_PREFIXES = [
   "/login",
@@ -112,13 +140,13 @@ export async function middleware(req: NextRequest) {
 
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    await jwtVerify(token, secret);
-    if (slug) {
-      const url = req.nextUrl.clone();
-      url.pathname = logical;
-      return NextResponse.rewrite(url);
-    }
-    return NextResponse.next();
+    const { payload } = await jwtVerify(token, secret);
+    const res = slug
+      ? NextResponse.rewrite((() => { const u = req.nextUrl.clone(); u.pathname = logical; return u; })())
+      : NextResponse.next();
+    // Sliding renewal — extend the session while the user is active.
+    await slideRenewal(res, payload as Record<string, unknown>, secret);
+    return res;
   } catch {
     if (isApi) {
       const res = NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });

@@ -46,7 +46,7 @@ export async function verifyPassword(plain: string, hash: string) {
 // global signout, password reset). Add when usage feedback shows the 60min
 // expiry friction is a problem.
 export async function signSession(payload: SessionPayload) {
-  const ttlMin = Number(process.env.JWT_ACCESS_TTL_MIN ?? 60);
+  const ttlMin = Number(process.env.JWT_ACCESS_TTL_MIN ?? 480);
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -64,13 +64,13 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
 }
 
 export async function setSessionCookie(token: string) {
-  const ttlMin = Number(process.env.JWT_ACCESS_TTL_MIN ?? 60);
+  const ttlMin = Number(process.env.JWT_ACCESS_TTL_MIN ?? 480);
   cookies().set(COOKIE_NAME, token, {
     httpOnly: true,
-    // sameSite "strict" — cookie is NOT sent on cross-site navigation or
-    // any cross-origin request, blocking the standard CSRF class. We have
-    // no third-party site that legitimately needs to post here.
-    sameSite: "strict",
+    // sameSite "lax" — sent on top-level navigations (so opening the app
+    // from a WhatsApp/email link keeps you logged in) but not on cross-site
+    // sub-requests, which still blocks the standard CSRF class.
+    sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: ttlMin * 60,
