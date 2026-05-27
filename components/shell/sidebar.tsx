@@ -143,8 +143,12 @@ export function Sidebar({
       <aside
         className={cn(
           "border-r bg-card",
-          // Mobile: fixed slide-in drawer. Desktop: in-flow static column.
-          "fixed inset-y-0 left-0 z-40 w-64 overflow-y-auto transition-transform duration-200 md:static md:translate-x-0",
+          // Mobile: fixed slide-in drawer.
+          // Desktop: sticky full-height column with its OWN scroll, pinned to
+          // the top of the viewport — so the page content scrolls but the nav
+          // stays put (clicking a link no longer resets the sidebar position).
+          "fixed inset-y-0 left-0 z-40 w-64 overflow-y-auto transition-transform duration-200",
+          "md:sticky md:top-0 md:h-screen md:self-start md:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
       >
