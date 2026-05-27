@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { canAccessRoute } from "@/components/shell/sidebar-nav";
 import { centreWhere, scopeCentre } from "@/lib/tenancy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +26,7 @@ function lastNMonths(n: number): { key: string; label: string; start: Date; end:
 
 export default async function AnalyticsPage() {
   const session = (await getSession())!;
+  if (!canAccessRoute(session.role, "/analytics")) redirect("/dashboard");
   const centreId = scopeCentre(session);
   const where = centreWhere(centreId);
 

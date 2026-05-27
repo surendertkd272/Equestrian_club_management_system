@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { canAccessRoute } from "@/components/shell/sidebar-nav";
 import { centreWhere, scopeCentre } from "@/lib/tenancy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +31,7 @@ function inr(n: number): string {
 
 export default async function FinancePage() {
   const session = (await getSession())!;
+  if (!canAccessRoute(session.role, "/finance")) redirect("/dashboard");
   // Finance pages expose receivables, P&L, payment ledgers — admin/accountant
   // only. The sidebar already hides this link from other roles, but a direct
   // URL hit would otherwise render it.

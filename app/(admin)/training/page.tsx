@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { canAccessRoute } from "@/components/shell/sidebar-nav";
 import { scopeCentre } from "@/lib/tenancy";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +13,7 @@ export const dynamic = "force-dynamic";
 
 export default async function TrainingPage() {
   const session = (await getSession())!;
+  if (!canAccessRoute(session.role, "/training")) redirect("/dashboard");
   const centreId = scopeCentre(session);
   const canManage = can(session.role, "staff.manage");
 

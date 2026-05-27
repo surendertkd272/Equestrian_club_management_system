@@ -38,7 +38,7 @@ export const NAV: NavGroup[] = [
     group: "Overview",
     items: [
       { href: "/dashboard", label: "Dashboard", iconName: "LayoutDashboard", perm: ALL_STAFF },
-      { href: "/analytics", label: "Analytics", iconName: "LineChart", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "ACCOUNTANT"], feature: "analytics" },
+      { href: "/analytics", label: "Analytics", iconName: "LineChart", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "ACCOUNTANT"], feature: "analytics" },
       // ADMIN is a cross-club HQ peer of SUPER_ADMIN — sees every club's
       // rollups, invoices, and club list. Club CREATE/DELETE + HQ-user
       // management stay SUPER_ADMIN-only (see page/API guards), so /users
@@ -65,7 +65,7 @@ export const NAV: NavGroup[] = [
       // Sprint 4: month-by-month skill ratings curated per centre. Distinct from
       // /progress (which is the catalog of canonical skills per discipline).
       { href: "/monthly-skills", label: "Monthly Skills", iconName: "TrendingUp", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"] },
-      { href: "/exams", label: "Exams", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "EXAMINER", "JURY"], feature: "external-exams" },
+      { href: "/exams", label: "Exams", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "EXAMINER", "JURY"], feature: "external-exams" },
       { href: "/competitions", label: "Competitions", iconName: "Trophy", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "COMPETITION_MANAGER", "JURY"], feature: "competitions" },
     ],
   },
@@ -77,7 +77,7 @@ export const NAV: NavGroup[] = [
       // Gate-log kiosk (MyGate-style In/Out). Same permission as attendance —
       // anyone who can mark roster attendance can also log gate entries.
       { href: "/gate", label: "Gate Log", iconName: "DoorOpen", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER"] },
-      { href: "/training", label: "Training & Certs", iconName: "GraduationCap", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH"], feature: "training-certs" },
+      { href: "/training", label: "Training & Certs", iconName: "GraduationCap", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH"], feature: "training-certs" },
       { href: "/leave-requests", label: "Leave Requests", iconName: "CalendarX", perm: ALL_STAFF, feature: "leave-requests" },
       { href: "/tasks", label: "Tasks", iconName: "ListChecks", perm: ALL_STAFF, feature: "tasks" },
       // Daily Checklist — coaches/stable submit; HQ admins edit templates.
@@ -124,14 +124,14 @@ export const NAV: NavGroup[] = [
   {
     group: "Money & Records",
     items: [
-      { href: "/finance", label: "Finance", iconName: "Receipt", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "ACCOUNTANT"], feature: "fee-collection" },
+      { href: "/finance", label: "Finance", iconName: "Receipt", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "ACCOUNTANT"], feature: "fee-collection" },
       // Staff-side invoice submission. Distinct from the admin finance page —
       // visible to coaches/grooms/vet/etc so they can drop in bills for things
       // they purchased on behalf of the club.
       { href: "/expenses/submit", label: "Submit Invoice", iconName: "Receipt", perm: ["HEAD_COACH", "COACH", "STABLE_MANAGER", "INVENTORY_MANAGER", "COMPETITION_MANAGER", "GROOM", "FARRIER", "VET"] },
-      { href: "/reports", label: "Reports", iconName: "FileText", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER"], feature: "reports" },
-      { href: "/certificates", label: "Certificates", iconName: "Award", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "EXAMINER", "COMPETITION_MANAGER"], feature: "certificates" },
-      { href: "/accreditations", label: "Accreditations", iconName: "Shield", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COMPETITION_MANAGER"], feature: "accreditations" },
+      { href: "/reports", label: "Reports", iconName: "FileText", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER"], feature: "reports" },
+      { href: "/certificates", label: "Certificates", iconName: "Award", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "EXAMINER", "COMPETITION_MANAGER"], feature: "certificates" },
+      { href: "/accreditations", label: "Accreditations", iconName: "Shield", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COMPETITION_MANAGER"], feature: "accreditations" },
       { href: "/notifications", label: "Notifications", iconName: "Bell", perm: ALL_STAFF },
       { href: "/audit", label: "Audit Log", iconName: "Shield", perm: ["SUPER_ADMIN"] },
       // Manual inspections / SOP audits — run by the external Inspection Officer
@@ -142,6 +142,24 @@ export const NAV: NavGroup[] = [
     ],
   },
 ];
+
+// Role allow-list for a route, from the NAV table. Pages call canAccessRoute()
+// as a server-side guard so a hidden nav link can't be reached by typing the
+// URL (the nav only HIDES links; this enforces it). Returns null if the route
+// isn't in NAV (no role restriction declared).
+export function navPermFor(href: string): Role[] | null {
+  for (const group of NAV) {
+    for (const it of group.items) {
+      if (it.href === href) return it.perm ?? null;
+    }
+  }
+  return null;
+}
+
+export function canAccessRoute(role: Role, href: string): boolean {
+  const perm = navPermFor(href);
+  return perm ? perm.includes(role) : true;
+}
 
 export function filterSidebarNav(role: Role, features: ReadonlySet<FeatureKey>): NavGroup[] {
   return NAV.map((group) => ({

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { canAccessRoute } from "@/components/shell/sidebar-nav";
 import { centreWhere, scopeCentre } from "@/lib/tenancy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +24,7 @@ export default async function ExamsPage({
   searchParams: { status?: string; level?: string };
 }) {
   const session = (await getSession())!;
+  if (!canAccessRoute(session.role, "/exams")) redirect("/dashboard");
   const centreId = scopeCentre(session);
 
   const where: any = { ...centreWhere(centreId) };

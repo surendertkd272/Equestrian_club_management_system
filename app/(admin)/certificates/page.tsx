@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { canAccessRoute } from "@/components/shell/sidebar-nav";
 import { centreWhere, scopeCentre } from "@/lib/tenancy";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +20,7 @@ export default async function CertificatesPage({
   searchParams: { type?: string; batch?: string; revoked?: string };
 }) {
   const session = (await getSession())!;
+  if (!canAccessRoute(session.role, "/certificates")) redirect("/dashboard");
   const centreId = scopeCentre(session);
   const canBulk = can(session.role, "certificate.bulk");
 
