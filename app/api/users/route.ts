@@ -17,7 +17,7 @@ import { blockIfReadOnly } from "@/lib/readonly-gate";
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  if (session.role !== "SUPER_ADMIN") {
+  if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
 
@@ -69,7 +69,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  if (session.role !== "SUPER_ADMIN") {
+  if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
   const readOnlyBlock = await blockIfReadOnly(session);
@@ -81,6 +81,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
   const d = parsed.data;
+
+  // An ADMIN can manage everyone except the HQ super-admin tier — only a
+  // SUPER_ADMIN may mint another SUPER_ADMIN (prevents privilege escalation).
+  if (session.role === "ADMIN" && d.role === "SUPER_ADMIN") {
+    return NextResponse.json({ error: "FORBIDDEN_SUPER_ADMIN" }, { status: 403 });
+  }
 
   // Email uniqueness — friendly 409 instead of raw Prisma error.
   const dupe = await prisma.user.findUnique({ where: { email: d.email }, select: { id: true } });

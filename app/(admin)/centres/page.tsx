@@ -11,11 +11,10 @@ export const dynamic = "force-dynamic";
 
 export default async function CentresPage() {
   const session = (await getSession())!;
-  // HQ-tier only — clubs are a brand-level concept, not a centre-manager
-  // concern. ADMIN sees + manages the club list; creating/deleting whole
-  // clubs (a tenant-level action) stays SUPER_ADMIN-only via canManageClubs.
+  // HQ-tier only — clubs are a brand-level concept. Both SUPER_ADMIN and
+  // ADMIN can now create / edit / delete clubs (per the "everything" scope).
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/dashboard");
-  const canManageClubs = session.role === "SUPER_ADMIN";
+  const canManageClubs = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
 
   const centres = await prisma.centre.findMany({
     orderBy: { name: "asc" },

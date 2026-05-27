@@ -21,7 +21,7 @@ type SearchParams = {
 
 export default async function UsersPage({ searchParams }: { searchParams: SearchParams }) {
   const session = (await getSession())!;
-  if (session.role !== "SUPER_ADMIN") redirect("/dashboard");
+  if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/dashboard");
 
   const where: Record<string, unknown> = {};
   if (searchParams.role && isRole(searchParams.role)) where.role = searchParams.role;

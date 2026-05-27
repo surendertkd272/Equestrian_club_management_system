@@ -13,7 +13,7 @@ import { blockIfReadOnly } from "@/lib/readonly-gate";
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  if (session.role !== "SUPER_ADMIN") {
+  if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
   const readOnlyBlock = await blockIfReadOnly(session);
@@ -28,6 +28,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const target = await prisma.user.findUnique({ where: { id: params.id } });
   if (!target) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+
+  // ADMIN may manage everyone except the SUPER_ADMIN tier — can't edit a
+  // super-admin nor promote anyone INTO super-admin (no privilege escalation).
+  if (session.role === "ADMIN" && (target.role === "SUPER_ADMIN" || d.role === "SUPER_ADMIN")) {
+    return NextResponse.json({ error: "FORBIDDEN_SUPER_ADMIN" }, { status: 403 });
+  }
 
   // Last-super-admin / self-lockout guards. Treat any "you're about to lose your
   // own admin powers" change as a request the caller didn't mean to make.
@@ -111,7 +117,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  if (session.role !== "SUPER_ADMIN") {
+  if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
   const readOnlyBlock = await blockIfReadOnly(session);
@@ -122,6 +128,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     select: { id: true, role: true, status: true, name: true, email: true },
   });
   if (!target) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+
+  // ADMIN can't delete a SUPER_ADMIN account.
+  if (session.role === "ADMIN" && target.role === "SUPER_ADMIN") {
+    return NextResponse.json({ error: "FORBIDDEN_SUPER_ADMIN" }, { status: 403 });
+  }
 
   // Guard 1 — self
   if (target.id === session.userId) {

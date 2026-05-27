@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export default async function TemplatesPage() {
   const session = (await getSession())!;
-  if (session.role !== "SUPER_ADMIN") redirect("/exams");
+  if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/exams");
 
   const centreId = scopeCentre(session);
   const where = centreWhere(centreId);
