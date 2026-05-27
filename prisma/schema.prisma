@@ -2425,7 +2425,23 @@ model EquipmentStock {
   id          String   @id @default(cuid())
   centreId    String
   catalogId   String
+  // Legacy single-qty column kept for historical reads + bulk-stock
+  // queries. The four condition-state columns below are the new source
+  // of truth; qty stays in sync via API writes (qty = unused + inUse).
+  // Low-stock alerts compare (qtyUnused + qtyInUse) to threshold so
+  // damaged + for-repair items aren't double-counted as "in stock".
   qty         Int      @default(0)
+  qtyUnused   Int      @default(0)
+  qtyInUse    Int      @default(0)
+  qtyForRepair Int     @default(0)
+  qtyDamaged  Int      @default(0)
+  // "New Required" — qty admin still needs to buy. Drives the
+  // procurement queue alongside requisitions.
+  newRequired Int      @default(0)
+  // Free-text owner label. Used by Sports Equipment to mark whether a
+  // mallet/lance belongs to the club or a specific rider. Other
+  // categories typically leave this null.
+  owner       String?
   // Per-centre override of the catalog default. Null → use catalog.
   threshold   Int?
   notes       String?

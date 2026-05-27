@@ -1,16 +1,18 @@
 import { z } from "zod";
 
+// Sprint 3.5 categories — replaces the previous UK/Western split with
+// the client's 7 categories from their PDF (Tack / Grooming / Farrier /
+// Sports / Rider / Stable / Vet). Plus "other" for admin-added items
+// that don't fit the canonical buckets.
 export const EQUIPMENT_CATEGORIES = [
-  "saddlery",
-  "bridlery",
-  "protection",
+  "tack",
+  "grooming",
+  "farrier",
+  "sports",
   "rider",
   "stable",
-  "grooming",
-  "feed",
-  "tackroom",
-  "arena",
   "vet",
+  "other",
 ] as const;
 export type EquipmentCategory = (typeof EQUIPMENT_CATEGORIES)[number];
 
@@ -37,12 +39,31 @@ export const updateCatalogSchema = createCatalogSchema.partial();
 // is independent.
 export const updateStockSchema = z
   .object({
+    // Legacy qty (= unused + in-use) is still accepted for back-compat,
+    // but the four condition-state columns are the new source of truth.
     qty: z.coerce.number().int().min(0).max(1_000_000).optional(),
     delta: z.coerce.number().int().min(-100_000).max(100_000).optional(),
+    qtyUnused: z.coerce.number().int().min(0).max(1_000_000).optional(),
+    qtyInUse: z.coerce.number().int().min(0).max(1_000_000).optional(),
+    qtyForRepair: z.coerce.number().int().min(0).max(1_000_000).optional(),
+    qtyDamaged: z.coerce.number().int().min(0).max(1_000_000).optional(),
+    newRequired: z.coerce.number().int().min(0).max(1_000_000).optional(),
+    owner: z.string().max(120).nullable().optional(),
     threshold: z.coerce.number().int().min(0).max(10_000).nullable().optional(),
     reason: z.enum(["restock", "consumed", "lost", "damaged", "adjustment", "initial"]).default("adjustment"),
-    notes: z.string().max(300).optional(),
+    notes: z.string().max(300).nullable().optional(),
   })
-  .refine((d) => d.qty !== undefined || d.delta !== undefined || d.threshold !== undefined, {
-    message: "Provide qty, delta, or threshold.",
-  });
+  .refine(
+    (d) =>
+      d.qty !== undefined ||
+      d.delta !== undefined ||
+      d.qtyUnused !== undefined ||
+      d.qtyInUse !== undefined ||
+      d.qtyForRepair !== undefined ||
+      d.qtyDamaged !== undefined ||
+      d.newRequired !== undefined ||
+      d.owner !== undefined ||
+      d.threshold !== undefined ||
+      d.notes !== undefined,
+    { message: "Provide at least one field to update." },
+  );

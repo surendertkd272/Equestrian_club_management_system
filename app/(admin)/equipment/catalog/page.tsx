@@ -11,7 +11,9 @@ export const dynamic = "force-dynamic";
 
 export default async function EquipmentCatalogPage() {
   const session = (await getSession())!;
-  if (session.role !== "SUPER_ADMIN") redirect("/equipment");
+  // Sprint 3.5: ADMIN joins SUPER_ADMIN on the catalog-edit privilege.
+  // Centre tier still can't add/edit/delete — they only see their stock.
+  if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/equipment");
 
   const [items, adoption] = await Promise.all([
     prisma.equipmentCatalog.findMany({

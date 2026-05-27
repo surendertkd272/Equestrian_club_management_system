@@ -10,17 +10,18 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Archive, Trash2 } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
 
+// Categories — matches the Sprint 3.5 inventory overhaul. ADMIN /
+// SUPER_ADMIN can also type a new value via the freeform input below
+// since the schema's category column is a string.
 const CATEGORIES = [
-  "saddlery",
-  "bridlery",
-  "protection",
+  "tack",
+  "grooming",
+  "farrier",
+  "sports",
   "rider",
   "stable",
-  "grooming",
-  "feed",
-  "tackroom",
-  "arena",
   "vet",
+  "other",
 ];
 const UNITS = ["piece", "pair", "set", "metre", "kg", "litre"];
 
@@ -40,7 +41,7 @@ export function CatalogManager({ initial }: { initial: Item[] }) {
   const router = useRouter();
   const [showInactive, setShowInactive] = useState(false);
   const [form, setForm] = useState({
-    category: "saddlery",
+    category: "tack",
     code: "",
     name: "",
     unit: "piece",

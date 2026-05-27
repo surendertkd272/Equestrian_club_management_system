@@ -26,7 +26,7 @@ export async function PATCH(
   // (and SUPER_ADMIN for cross-centre fixes). HEAD_COACH can adjust too —
   // they often handle quick stock checks during the day.
   if (
-    !["SUPER_ADMIN", "CENTRE_MANAGER", "INVENTORY_MANAGER", "STABLE_MANAGER", "HEAD_COACH"].includes(session.role)
+    !["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "INVENTORY_MANAGER", "STABLE_MANAGER", "HEAD_COACH"].includes(session.role)
   ) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
@@ -39,7 +39,8 @@ export async function PATCH(
 
   const url = new URL(req.url);
   const requested = url.searchParams.get("centreId");
-  const centreId = requested && session.role === "SUPER_ADMIN" ? requested : scopeCentre(session);
+  const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  const centreId = requested && isHQ ? requested : scopeCentre(session);
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
 
   const catalog = await prisma.equipmentCatalog.findUnique({ where: { id: params.catalogId } });
@@ -50,13 +51,33 @@ export async function PATCH(
   });
 
   const previousQty = existing?.qty ?? 0;
-  // Compute the new qty:
-  //   - explicit qty wins
-  //   - delta otherwise (clamped to >= 0)
-  //   - else leave qty alone (threshold-only update)
-  let newQty = previousQty;
-  if (parsed.data.qty !== undefined) newQty = parsed.data.qty;
-  else if (parsed.data.delta !== undefined) newQty = Math.max(0, previousQty + parsed.data.delta);
+  // Compute the new state. Condition-state inputs (qtyUnused etc) are the
+  // new source of truth; legacy `qty` / `delta` still work for back-compat.
+  // We always keep `qty` = qtyUnused + qtyInUse for the low-stock sweep
+  // and any older API consumers.
+  const prevUnused = existing?.qtyUnused ?? 0;
+  const prevInUse = existing?.qtyInUse ?? 0;
+  const prevForRepair = existing?.qtyForRepair ?? 0;
+  const prevDamaged = existing?.qtyDamaged ?? 0;
+
+  let newUnused = parsed.data.qtyUnused ?? prevUnused;
+  let newInUse = parsed.data.qtyInUse ?? prevInUse;
+  let newForRepair = parsed.data.qtyForRepair ?? prevForRepair;
+  let newDamaged = parsed.data.qtyDamaged ?? prevDamaged;
+
+  // Legacy qty/delta path: when an old caller sets qty / delta, treat
+  // the value as "qtyUnused" so the row stays semantically correct.
+  let legacyTouchedQty = false;
+  if (parsed.data.qty !== undefined) {
+    newUnused = parsed.data.qty;
+    legacyTouchedQty = true;
+  } else if (parsed.data.delta !== undefined) {
+    newUnused = Math.max(0, prevUnused + parsed.data.delta);
+    legacyTouchedQty = true;
+  }
+
+  // Cached "available" qty — what the low-stock sweep compares to.
+  const newQty = newUnused + newInUse;
 
   const newThreshold =
     parsed.data.threshold === undefined ? existing?.threshold ?? null : parsed.data.threshold;
@@ -71,11 +92,25 @@ export async function PATCH(
       centreId,
       catalogId: catalog.id,
       qty: newQty,
+      qtyUnused: newUnused,
+      qtyInUse: newInUse,
+      qtyForRepair: newForRepair,
+      qtyDamaged: newDamaged,
+      newRequired: parsed.data.newRequired ?? 0,
+      owner: parsed.data.owner ?? null,
+      notes: parsed.data.notes ?? null,
       threshold: newThreshold,
       lastRestockedAt: isRestock ? new Date() : null,
     },
     update: {
       qty: newQty,
+      qtyUnused: newUnused,
+      qtyInUse: newInUse,
+      qtyForRepair: newForRepair,
+      qtyDamaged: newDamaged,
+      ...(parsed.data.newRequired !== undefined ? { newRequired: parsed.data.newRequired } : {}),
+      ...(parsed.data.owner !== undefined ? { owner: parsed.data.owner } : {}),
+      ...(parsed.data.notes !== undefined ? { notes: parsed.data.notes } : {}),
       threshold: newThreshold,
       ...(isRestock ? { lastRestockedAt: new Date(), lastLowNotifiedAt: null } : {}),
     },

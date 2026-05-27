@@ -19,12 +19,15 @@ export default async function EquipmentPage({
   searchParams: { centreId?: string };
 }) {
   const session = (await getSession())!;
-  // SUPER_ADMIN without a centre context lands on the HQ matrix instead.
-  if (session.role === "SUPER_ADMIN" && !searchParams.centreId && !session.centreId) {
-    redirect("/equipment/hq");
+  // HQ-tier admins (SUPER_ADMIN + ADMIN) without a centre context (via
+  // ?centreId or topbar HQ filter) land on the HQ matrix instead.
+  const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  if (isHQ && !searchParams.centreId && !session.centreId) {
+    const filtered = scopeCentre(session);
+    if (!filtered) redirect("/equipment/hq");
   }
   const centreId =
-    session.role === "SUPER_ADMIN" && searchParams.centreId ? searchParams.centreId : scopeCentre(session);
+    isHQ && searchParams.centreId ? searchParams.centreId : scopeCentre(session);
   if (!centreId) redirect("/dashboard");
 
   const [centre, catalog, stocks] = await Promise.all([
@@ -34,10 +37,10 @@ export default async function EquipmentPage({
   ]);
   const stockByCatalog = new Map(stocks.map((s) => [s.catalogId, s]));
 
-  const canEdit = ["SUPER_ADMIN", "CENTRE_MANAGER", "INVENTORY_MANAGER", "STABLE_MANAGER", "HEAD_COACH"].includes(
+  const canEdit = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "INVENTORY_MANAGER", "STABLE_MANAGER", "HEAD_COACH"].includes(
     session.role,
   );
-  const canManageCatalog = session.role === "SUPER_ADMIN";
+  const canManageCatalog = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
 
   // Group by category for the on-screen layout (same shape as the level
   // catalog above: discipline header → rows).
@@ -47,10 +50,13 @@ export default async function EquipmentPage({
     byCategory.get(c.category)!.push(c);
   }
 
+  // Available = unused + in-use (for-repair + damaged don't count). Below
+  // threshold → "low".
   const lowCount = catalog.filter((c) => {
     const s = stockByCatalog.get(c.id);
     const t = s?.threshold ?? c.defaultThreshold;
-    return (s?.qty ?? 0) < t;
+    const available = (s?.qtyUnused ?? 0) + (s?.qtyInUse ?? 0);
+    return available < t;
   }).length;
 
   return (
@@ -67,13 +73,16 @@ export default async function EquipmentPage({
           </p>
         </div>
         <div className="flex gap-2">
-          {session.role === "SUPER_ADMIN" && (
+          {isHQ && (
             <>
               <Button asChild variant="outline">
                 <Link href="/equipment/hq">HQ matrix</Link>
               </Button>
               <Button asChild variant="outline">
                 <Link href="/equipment/catalog">Catalog</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href={`/api/equipment/stock/export?centreId=${centreId}`}>Export CSV</Link>
               </Button>
             </>
           )}
@@ -104,21 +113,25 @@ export default async function EquipmentPage({
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="text-left text-xs uppercase text-muted-foreground">
+                  <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
                     <tr>
                       <th className="pb-2">Item</th>
-                      <th className="pb-2 w-24">Unit</th>
-                      <th className="pb-2 w-28">Qty</th>
-                      <th className="pb-2 w-32">Reorder at</th>
-                      <th className="pb-2 w-24">Status</th>
+                      <th className="pb-2 w-16 text-center">Unused</th>
+                      <th className="pb-2 w-16 text-center">In Use</th>
+                      <th className="pb-2 w-16 text-center">For Repair</th>
+                      <th className="pb-2 w-16 text-center">Damaged</th>
+                      <th className="pb-2 w-12 text-center">Total</th>
+                      <th className="pb-2 w-16 text-center">New Req</th>
+                      <th className="pb-2 w-24">Owner</th>
+                      <th className="pb-2 w-32">Comments</th>
+                      <th className="pb-2 w-16">Reorder at</th>
+                      <th className="pb-2 w-16">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((c) => {
                       const s = stockByCatalog.get(c.id);
-                      const qty = s?.qty ?? 0;
                       const threshold = s?.threshold ?? c.defaultThreshold;
-                      const isLow = qty < threshold;
                       return (
                         <InventoryRow
                           key={c.id}
@@ -127,12 +140,17 @@ export default async function EquipmentPage({
                           name={c.name}
                           code={c.code}
                           unit={c.unit}
-                          qty={qty}
+                          qtyUnused={s?.qtyUnused ?? 0}
+                          qtyInUse={s?.qtyInUse ?? 0}
+                          qtyForRepair={s?.qtyForRepair ?? 0}
+                          qtyDamaged={s?.qtyDamaged ?? 0}
+                          newRequired={s?.newRequired ?? 0}
+                          owner={s?.owner ?? null}
+                          notes={s?.notes ?? null}
                           threshold={threshold}
                           defaultThreshold={c.defaultThreshold}
                           canEdit={canEdit}
                           canSetThreshold={canManageCatalog || ["CENTRE_MANAGER", "INVENTORY_MANAGER"].includes(session.role)}
-                          isLow={isLow}
                         />
                       );
                     })}
