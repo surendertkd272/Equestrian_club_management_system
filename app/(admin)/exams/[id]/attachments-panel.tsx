@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { compressForKind } from "@/lib/image-compress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,11 +37,13 @@ export function AttachmentsPanel({
     if (!file) return;
     setBusy(true);
     try {
+      // Compress photos; videos / PDFs pass through untouched.
+      const compressed = await compressForKind(file, "generic");
       const fd = new FormData();
       // Reuse the generic kind so the existing upload route accepts any
       // image/pdf or video MIME. Per-exam metadata is set in our POST below.
       fd.set("kind", "generic");
-      fd.set("file", file);
+      fd.set("file", compressed);
       const up = await fetch("/api/upload", { method: "POST", body: fd });
       const d = await up.json().catch(() => ({}));
       if (!up.ok) {

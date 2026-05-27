@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { compressForKind } from "@/lib/image-compress";
 
 type Initial = {
   name: string;
@@ -42,9 +43,10 @@ export function AccountForm({
     if (!file) return;
     setUploadingPhoto(true);
     try {
+      const compressed = await compressForKind(file, "user_photo");
       const fd = new FormData();
       fd.set("kind", "user_photo");
-      fd.set("file", file);
+      fd.set("file", compressed);
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {

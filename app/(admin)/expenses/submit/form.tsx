@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { compressForKind } from "@/lib/image-compress";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,9 +38,10 @@ export function SubmitExpenseForm({
   async function onPickFile(file: File) {
     setUploading(true);
     try {
+      const compressed = await compressForKind(file, "expense_invoice");
       const fd = new FormData();
       fd.append("kind", "expense_invoice");
-      fd.append("file", file);
+      fd.append("file", compressed);
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));

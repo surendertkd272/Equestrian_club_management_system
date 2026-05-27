@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { compressForKind } from "@/lib/image-compress";
 import {
   onboardingSchema,
   personalSchema,
@@ -334,9 +335,10 @@ function UploadField({
     if (!file) return;
     setBusy(true);
     setErr(null);
+    const compressed = await compressForKind(file, kind);
     const form = new FormData();
     form.append("kind", kind);
-    form.append("file", file);
+    form.append("file", compressed);
     try {
       const res = await fetch("/api/upload", { method: "POST", body: form });
       const data = await res.json();
