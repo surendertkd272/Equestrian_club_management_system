@@ -9,19 +9,26 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { TaskCard } from "./task-card";
+import { AssigneeFilter } from "./assignee-filter";
 
 export const dynamic = "force-dynamic";
 
 export default async function TasksPage({
   searchParams,
 }: {
-  searchParams: { mine?: string };
+  searchParams: { mine?: string; assignee?: string };
 }) {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
+  const canAssign = can(session.role, "task.assign");
 
   const where: any = { ...centreWhere(centreId) };
-  if (searchParams.mine === "1") where.assigneeId = session.userId;
+  if (searchParams.mine === "1") {
+    where.assigneeId = session.userId;
+  } else if (canAssign && searchParams.assignee) {
+    // "unassigned" is a sentinel for tasks with no owner.
+    where.assigneeId = searchParams.assignee === "unassigned" ? null : searchParams.assignee;
+  }
 
   const [tasks, assignees] = await Promise.all([
     prisma.task.findMany({
@@ -54,7 +61,6 @@ export default async function TasksPage({
   const done = annotated.filter((t) => t.status === "done");
   const doneToday = done; // upgrade later: filter by completedAt once we track it
 
-  const canAssign = can(session.role, "task.assign");
   const overdueCount = todo.filter((t) => t.overdue).length;
   const escalatedCount = todo.filter((t) => t.escalated).length;
 
@@ -68,12 +74,16 @@ export default async function TasksPage({
             {escalatedCount > 0 && <span className="ml-1 text-destructive">· {escalatedCount} escalated</span>}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-end gap-2">
           <Button asChild variant={searchParams.mine === "1" ? "default" : "outline"} size="sm">
             <Link href={searchParams.mine === "1" ? "/tasks" : "/tasks?mine=1"}>
               {searchParams.mine === "1" ? "Showing: my tasks" : "Show only mine"}
             </Link>
           </Button>
+          {/* Userwise filter — managers/admins narrow the board to one
+              assignee (or unassigned). Hidden while "mine" is active to keep
+              the two filters from fighting. */}
+          {canAssign && searchParams.mine !== "1" && <AssigneeFilter assignees={assignees} />}
           {canAssign && (
             <Button asChild>
               <Link href="/tasks/new">

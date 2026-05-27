@@ -112,6 +112,141 @@ model LegalText {
   @@index([orgId, kind, publishedAt])
 }
 
+// Daily-checklist module. The coach / stable manager submits a daily
+// report; the items on that report come from a ChecklistTemplate that
+// super_admin / admin curates per centre.
+//
+// One template per centre per "scope" (general vs per-horse). Admin can
+// edit items at any time; we snapshot the item *label* into each
+// ChecklistSubmissionItem on submit so historic submissions survive
+// renames + soft-deletes. active=false on an item hides it from new
+// submissions but keeps it on older ones.
+
+model ChecklistTemplate {
+  id          String   @id @default(cuid())
+  centreId    String
+  scope       String   // general | per_horse
+  name        String   // "Daily ops" | "Per-horse daily report"
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  centre      Centre                @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  items       ChecklistItem[]
+  submissions ChecklistSubmission[]
+
+  @@unique([centreId, scope])
+  @@index([centreId])
+}
+
+model ChecklistItem {
+  id          String   @id @default(cuid())
+  templateId  String
+  label       String
+  orderIndex  Int      @default(0)
+  section     String?  // optional grouping header ("Horse Health & Welfare")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  template ChecklistTemplate         @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  results  ChecklistSubmissionItem[]
+
+  @@index([templateId, orderIndex])
+}
+
+model ChecklistSubmission {
+  id                String   @id @default(cuid())
+  templateId        String
+  centreId          String
+  submittedByUserId String
+  horseId           String?  // set for per_horse submissions
+  submittedAt       DateTime @default(now())
+  generalNotes      String?
+
+  template ChecklistTemplate          @relation(fields: [templateId], references: [id])
+  centre   Centre                     @relation(fields: [centreId], references: [id])
+  horse    Horse?                     @relation(fields: [horseId], references: [id], onDelete: SetNull)
+  items    ChecklistSubmissionItem[]
+
+  @@index([centreId, submittedAt])
+  @@index([templateId, submittedAt])
+  @@index([horseId])
+}
+
+model ChecklistSubmissionItem {
+  id              String   @id @default(cuid())
+  submissionId    String
+  itemId          String
+  itemLabel       String   // snapshotted at submit time
+  itemSection     String?
+  status          String   // done | not_done | na
+  remarks         String?
+
+  submission ChecklistSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  item       ChecklistItem       @relation(fields: [itemId], references: [id])
+
+  @@index([submissionId])
+  @@index([itemId])
+}
+
+// Per-horse deworming schedule. Separate from VaccinationSchedule because
+// the cadence (every 8-12 weeks rotating drugs) and the drug choice are
+// different. Tracked alongside vaccines in the Medical Records tab.
+model DewormingSchedule {
+  id            String   @id @default(cuid())
+  horseId       String
+  product       String   // "Ivermectin Paste" | "Praziquantel" etc.
+  scheduledAt   DateTime
+  givenAt       DateTime?
+  givenByUserId String?
+  nextDueAt     DateTime?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  horse Horse @relation(fields: [horseId], references: [id], onDelete: Cascade)
+
+  @@index([horseId, scheduledAt])
+}
+
+// Monthly skill catalog + per-rider per-month evaluations. Distinct from
+// the always-on RiderSkillStatus: this is a coach's monthly snapshot
+// against an admin-curated skill list specific to that month.
+model MonthlySkillCatalog {
+  id         String   @id @default(cuid())
+  centreId   String
+  yearMonth  String   // "2026-05"
+  skillLabel String
+  orderIndex Int      @default(0)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  centre Centre             @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  marks  MonthlySkillMark[]
+
+  @@unique([centreId, yearMonth, skillLabel])
+  @@index([centreId, yearMonth])
+}
+
+model MonthlySkillMark {
+  id             String   @id @default(cuid())
+  catalogId      String
+  riderId        String
+  rating         Int      @default(0) // 0 not yet · 1 needs work · 2 confident · 3 mastered
+  coachNotes     String?
+  markedByUserId String
+  markedAt       DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  catalog MonthlySkillCatalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+  rider   Rider               @relation(fields: [riderId], references: [id], onDelete: Cascade)
+
+  @@unique([catalogId, riderId])
+  @@index([riderId, markedAt])
+}
+
 // Employee salary advance — admin records a cash advance to a staff
 // member; the accountant then deducts it from the next payroll run.
 // State machine: outstanding → repaid (fully deducted) | written_off (HR call).
@@ -469,6 +604,9 @@ model Centre {
   gateEvents       StaffGateEvent[]
   separationNotices SeparationNotice[]
   employeeAdvances  EmployeeAdvance[]
+  checklistTemplates ChecklistTemplate[]
+  checklistSubmissions ChecklistSubmission[]
+  monthlySkillCatalogs MonthlySkillCatalog[]
 }
 
 // Role is a string union enforced at the app layer (see lib/roles.ts).
@@ -698,6 +836,7 @@ model Rider {
   attendances Attendance[]
   invoices    Invoice[]
   skillStatus RiderSkillStatus[]
+  monthlySkillMarks MonthlySkillMark[]
   certificates Certificate[]
   competitionEntries CompetitionEntry[]
   horseAllocations HorseAllocation[]
@@ -907,6 +1046,8 @@ model Horse {
   vetChecks            VetCheck[]
   vetVisits            VetVisit[]
   tests              HorseTest[]
+  dewormingSchedules DewormingSchedule[]
+  checklistSubmissions ChecklistSubmission[]
 
   @@index([centreId])
 }

@@ -116,6 +116,9 @@ export default async function HorseProfile({ params }: { params: { id: string } 
           </Link>
         </Button>
         <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/horses/${horse.id}/medical`}>Medical records →</Link>
+          </Button>
           <Badge variant={STATUS_VARIANT[horse.status] ?? "outline"}>{horse.status}</Badge>
           {canManage && <StatusSelect horseId={horse.id} currentStatus={horse.status} />}
         </div>

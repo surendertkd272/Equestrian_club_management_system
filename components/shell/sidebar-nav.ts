@@ -53,6 +53,9 @@ export const NAV: NavGroup[] = [
       { href: "/lessons", label: "Lessons", iconName: "CalendarDays", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"] },
       { href: "/attendance", label: "Attendance", iconName: "CalendarCheck2", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"], feature: "attendance" },
       { href: "/progress", label: "Progress", iconName: "TrendingUp", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"], feature: "skill-tracking" },
+      // Sprint 4: month-by-month skill ratings curated per centre. Distinct from
+      // /progress (which is the catalog of canonical skills per discipline).
+      { href: "/monthly-skills", label: "Monthly Skills", iconName: "TrendingUp", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"] },
       { href: "/exams", label: "Exams", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "EXAMINER", "JURY"], feature: "external-exams" },
       { href: "/competitions", label: "Competitions", iconName: "Trophy", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "COMPETITION_MANAGER", "JURY"], feature: "competitions" },
     ],
@@ -68,6 +71,9 @@ export const NAV: NavGroup[] = [
       { href: "/training", label: "Training & Certs", iconName: "GraduationCap", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH"], feature: "training-certs" },
       { href: "/leave-requests", label: "Leave Requests", iconName: "CalendarX", perm: ALL_STAFF, feature: "leave-requests" },
       { href: "/tasks", label: "Tasks", iconName: "ListChecks", perm: ALL_STAFF, feature: "tasks" },
+      // Daily Checklist — coaches/stable submit; HQ admins edit templates.
+      { href: "/checklists", label: "Daily Checklist", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "STABLE_MANAGER", "GROOM"] },
+      { href: "/checklists/templates", label: "Checklist Templates", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN"] },
       { href: "/approvals", label: "Approvals", iconName: "FileCheck", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "INVENTORY_MANAGER", "ACCOUNTANT", "STABLE_MANAGER"], feature: "approvals" },
       // Procurement requisitions — staff submits, manager + accountant approve.
       // Anyone with requisition.submit (i.e. all staff roles) sees the page.

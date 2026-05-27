@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import type { AttendanceStatus } from "@/lib/schemas/attendance";
 import { Check, X, Clock, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -49,7 +50,16 @@ export function AttendanceMarker({
     return map;
   }, [existing]);
 
+  const initialReasons = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const e of existing) {
+      if (e.reason) map[e.riderId] = e.reason;
+    }
+    return map;
+  }, [existing]);
+
   const [state, setState] = useState<Record<string, AttendanceStatus | undefined>>(initial);
+  const [reasons, setReasons] = useState<Record<string, string>>(initialReasons);
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
@@ -75,8 +85,15 @@ export function AttendanceMarker({
 
   async function save() {
     const entries = roster
-      .map((r) => ({ riderId: r.id, status: state[r.id] }))
-      .filter((e): e is { riderId: string; status: AttendanceStatus } => !!e.status);
+      .map((r) => ({
+        riderId: r.id,
+        status: state[r.id],
+        reason: reasons[r.id]?.trim() || undefined,
+      }))
+      .filter(
+        (e): e is { riderId: string; status: AttendanceStatus; reason: string | undefined } =>
+          !!e.status,
+      );
     if (entries.length === 0) {
       toast.error("Nothing to save — tap names or use 'Mark all present'.");
       return;
@@ -136,30 +153,57 @@ export function AttendanceMarker({
         {roster.map((r) => {
           const s = state[r.id];
           const meta = s ? STATUS_META[s] : null;
+          // Remarks field shows for absent/late/excused — reason is rarely
+          // needed for "present" so we keep the row compact in the happy path.
+          const needsReason = s === "absent" || s === "late" || s === "excused";
           return (
-            <li key={r.id} className="flex items-center justify-between px-4 py-2.5">
-              <div className="font-medium">
-                {r.firstName} {r.lastName}
+            <li key={r.id} className="px-4 py-2.5">
+              <div className="flex items-center justify-between">
+                <div className="font-medium">
+                  {r.firstName} {r.lastName}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => canEdit && cycle(r.id)}
+                  disabled={!canEdit}
+                  className={cn(
+                    "flex h-9 min-w-32 items-center justify-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors",
+                    meta ? meta.cls : "border-dashed text-muted-foreground hover:bg-muted",
+                    !canEdit && "cursor-not-allowed opacity-60",
+                  )}
+                  title="Tap to cycle: P → A → L → E"
+                >
+                  {meta ? (
+                    <>
+                      <meta.icon className="h-4 w-4" /> {meta.label}
+                    </>
+                  ) : (
+                    <>Tap to mark</>
+                  )}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => canEdit && cycle(r.id)}
-                disabled={!canEdit}
-                className={cn(
-                  "flex h-9 min-w-32 items-center justify-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors",
-                  meta ? meta.cls : "border-dashed text-muted-foreground hover:bg-muted",
-                  !canEdit && "cursor-not-allowed opacity-60",
-                )}
-                title="Tap to cycle: P → A → L → E"
-              >
-                {meta ? (
-                  <>
-                    <meta.icon className="h-4 w-4" /> {meta.label}
-                  </>
-                ) : (
-                  <>Tap to mark</>
-                )}
-              </button>
+              {needsReason && canEdit && (
+                <Input
+                  className="mt-2 max-w-md"
+                  placeholder={
+                    s === "absent"
+                      ? "Reason for absence (optional)"
+                      : s === "late"
+                        ? "How late / reason (optional)"
+                        : "Excuse reason (optional)"
+                  }
+                  value={reasons[r.id] ?? ""}
+                  onChange={(e) =>
+                    setReasons((prev) => ({ ...prev, [r.id]: e.target.value }))
+                  }
+                  maxLength={300}
+                />
+              )}
+              {needsReason && !canEdit && reasons[r.id] && (
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Reason: {reasons[r.id]}
+                </div>
+              )}
             </li>
           );
         })}
