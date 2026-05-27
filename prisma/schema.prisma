@@ -82,6 +82,7 @@ model Organisation {
   // is recorded here directly. Centre-scoped users find their org via the
   // centre table instead.
   hqUsers  User[]       @relation("HqUsers")
+  payrollConfig PayrollConfig?
 }
 
 // Editable legal text — T&C, Indemnity Bond, Rules & Regulations. Each
@@ -608,6 +609,7 @@ model Centre {
   checklistSubmissions ChecklistSubmission[]
   monthlySkillCatalogs MonthlySkillCatalog[]
   salaryPayments    SalaryPayment[]
+  salaryStructures  SalaryStructure[]
   coachDailyUpdates CoachDailyUpdate[]
   venueTrips        VenueTrip[]
   auditRuns         AuditRun[]
@@ -691,6 +693,7 @@ model User {
   separationNotices SeparationNotice[] @relation("SeparationUser")
   advances          EmployeeAdvance[]  @relation("EmployeeAdvanceUser")
   salaryPayments    SalaryPayment[]    @relation("SalaryPaymentUser")
+  salaryStructures  SalaryStructure[]  @relation("SalaryStructureUser")
   coachDailyUpdates CoachDailyUpdate[] @relation("CoachDailyUpdateCoach")
   auditRuns         AuditRun[]         @relation("AuditRunInspector")
 }
@@ -2984,6 +2987,12 @@ model SalaryPayment {
   grossAmount      Float
   advanceDeducted  Float    @default(0)
   otherDeductions  Float    @default(0)
+  // Attendance-driven deduction for the month: absentDays etc × the global
+  // per-status rate (PayrollConfig). deductionBreakdownJson keeps the
+  // per-status counts + amounts so the payslip is fully explainable.
+  attendanceDeducted     Float   @default(0)
+  absentDays             Int     @default(0)
+  deductionBreakdownJson String?
   netAmount        Float
   method           String?  // cash | bank | upi | cheque
   paidAt           DateTime?
@@ -2996,6 +3005,43 @@ model SalaryPayment {
 
   @@unique([userId, periodMonth])
   @@index([centreId, periodMonth])
+}
+
+// Effective-dated salary history per staff member. A raise is a new row with
+// a later effectiveFrom; the salary for any month = the row with the latest
+// effectiveFrom on or before that month. Editable by SUPER_ADMIN / ADMIN /
+// ACCOUNTANT.
+model SalaryStructure {
+  id              String   @id @default(cuid())
+  userId          String
+  centreId        String
+  monthlySalary   Float
+  effectiveFrom   DateTime // date-only (UTC noon)
+  note            String?  // "Annual increment", "Promotion to Head Coach", etc.
+  createdByUserId String
+  createdAt       DateTime @default(now())
+
+  user   User   @relation("SalaryStructureUser", fields: [userId], references: [id], onDelete: Cascade)
+  centre Centre @relation(fields: [centreId], references: [id])
+
+  @@index([userId, effectiveFrom])
+  @@index([centreId])
+}
+
+// Global (org-wide) payroll configuration — the single place Super Admin sets
+// how much is deducted per day for each staff-attendance status.
+// deductionRulesJson is a dynamic map { status: amountPerDay }, e.g.
+// { "absent": 500, "late": 100, "leave": 0, "half_day": 250 }. JSON map so new
+// statuses can be added without a migration.
+model PayrollConfig {
+  id                 String   @id @default(cuid())
+  orgId              String   @unique
+  deductionRulesJson String   @default("{}")
+  updatedByUserId    String?
+  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now())
+
+  org Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
 }
 
 // Coach's "daily 5-minute update" — a fast end-of-day log distinct from the

@@ -1,8 +1,9 @@
 import { z } from "zod";
 
 // Status set differs from rider attendance: staff include "leave" (approved
-// time-off that surfaces in attendance reports), no "excused".
-export const STAFF_ATTENDANCE_STATUSES = ["present", "absent", "late", "leave"] as const;
+// time-off that surfaces in attendance reports) and "half_day", no "excused".
+// half_day lets payroll apply a partial deduction (see PayrollConfig).
+export const STAFF_ATTENDANCE_STATUSES = ["present", "absent", "late", "leave", "half_day"] as const;
 export type StaffAttendanceStatus = (typeof STAFF_ATTENDANCE_STATUSES)[number];
 
 // Mark / upsert a single staff attendance row. The (userId, date) tuple is unique,

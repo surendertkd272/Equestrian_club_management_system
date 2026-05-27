@@ -88,6 +88,7 @@ export function StaffAttendanceMarker({ staff, defaultDate }: { staff: Staff[]; 
         >
           <option value="present">present</option>
           <option value="late">late</option>
+          <option value="half_day">half day</option>
           <option value="absent">absent</option>
           <option value="leave">leave</option>
         </select>

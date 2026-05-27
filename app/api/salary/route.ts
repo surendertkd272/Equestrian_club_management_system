@@ -1,8 +1,9 @@
-// Record a staff member's monthly salary settlement. The headline feature
-// (client ask): outstanding employee advances are auto-deducted from the
-// salary — the deduction is split across the oldest-first open advances and
-// written as AdvanceRepayment rows, flipping each advance's status. One
-// SalaryPayment per (user, month); re-posting the same month is rejected.
+// Record a staff member's monthly salary settlement.
+//   gross               = salary structure in force for the month (or override)
+//   attendanceDeducted  = Σ status-days × global per-status rate (PayrollConfig)
+//   advanceDeducted     = auto-recovered from outstanding advances, oldest-first
+//   net = gross − otherDeductions − attendanceDeducted − advanceDeducted
+// One SalaryPayment per (user, month); re-posting the same month is rejected.
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -10,7 +11,9 @@ import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
-import { recordSalarySchema } from "@/lib/schemas/salary";
+import { recordSalarySchema } from "@/lib/schemas/payroll";
+import { effectiveSalary, deductionRulesForCentre, attendanceCounts } from "@/lib/payroll";
+import { computeAttendanceDeduction } from "@/lib/schemas/payroll";
 
 function canManagePayroll(role: string): boolean {
   return role === "SUPER_ADMIN" || role === "ADMIN" || role === "ACCOUNTANT";
@@ -49,6 +52,20 @@ export async function POST(req: NextRequest) {
   });
   if (dup) return NextResponse.json({ error: "ALREADY_RECORDED", month: d.periodMonth }, { status: 409 });
 
+  // Gross from the salary structure (or an explicit override for bonus months).
+  const gross = d.grossOverride ?? (await effectiveSalary(d.userId, d.periodMonth));
+  if (gross <= 0) {
+    return NextResponse.json({ error: "NO_SALARY_STRUCTURE" }, { status: 400 });
+  }
+
+  // Attendance-based deduction from the global config.
+  const [rules, counts] = await Promise.all([
+    deductionRulesForCentre(staffUser.centreId),
+    attendanceCounts(d.userId, d.periodMonth),
+  ]);
+  const { total: attendanceDeducted, breakdown } = computeAttendanceDeduction(counts, rules);
+  const absentDays = counts["absent"] ?? 0;
+
   // Open advances, oldest first — we recover from these in order.
   const openAdvances = await prisma.employeeAdvance.findMany({
     where: { userId: d.userId, status: { in: ["outstanding", "partially_repaid"] } },
@@ -60,13 +77,12 @@ export async function POST(req: NextRequest) {
     return sum + Math.max(0, a.amount - repaid);
   }, 0);
 
-  // Cap the deduction: can't exceed outstanding, can't exceed take-home.
-  const maxDeductible = Math.max(0, d.grossAmount - d.otherDeductions);
-  const advanceDeducted = Math.min(d.advanceDeduction, totalOutstanding, maxDeductible);
-  const netAmount = d.grossAmount - d.otherDeductions - advanceDeducted;
+  // Cap advance recovery: can't exceed outstanding, can't drive net negative.
+  const takeHomeBeforeAdvance = Math.max(0, gross - d.otherDeductions - attendanceDeducted);
+  const advanceDeducted = Math.min(d.advanceDeduction, totalOutstanding, takeHomeBeforeAdvance);
+  const netAmount = gross - d.otherDeductions - attendanceDeducted - advanceDeducted;
 
   const result = await prisma.$transaction(async (tx) => {
-    // Spread the deduction across open advances, oldest first.
     let remaining = advanceDeducted;
     for (const adv of openAdvances) {
       if (remaining <= 0.01) break;
@@ -92,7 +108,10 @@ export async function POST(req: NextRequest) {
         centreId: staffUser.centreId!,
         userId: d.userId,
         periodMonth: d.periodMonth,
-        grossAmount: d.grossAmount,
+        grossAmount: gross,
+        attendanceDeducted,
+        absentDays,
+        deductionBreakdownJson: breakdown.length > 0 ? JSON.stringify(breakdown) : null,
         advanceDeducted,
         otherDeductions: d.otherDeductions,
         netAmount,
@@ -109,19 +128,28 @@ export async function POST(req: NextRequest) {
     action: "salary.record",
     tableName: "salaryPayment",
     rowId: result.id,
-    after: { userId: d.userId, periodMonth: d.periodMonth, gross: d.grossAmount, advanceDeducted, net: netAmount },
+    after: {
+      userId: d.userId,
+      periodMonth: d.periodMonth,
+      gross,
+      attendanceDeducted,
+      absentDays,
+      advanceDeducted,
+      net: netAmount,
+    },
   });
 
-  if (advanceDeducted > 0) {
-    await notify({
-      userId: d.userId,
-      centreId: staffUser.centreId,
-      type: "salary.advance_deducted",
-      title: `₹${Math.round(advanceDeducted).toLocaleString("en-IN")} advance deducted from ${d.periodMonth} salary`,
-      body: `Net paid: ₹${Math.round(netAmount).toLocaleString("en-IN")}.`,
-      link: "/account",
-    });
-  }
+  await notify({
+    userId: d.userId,
+    centreId: staffUser.centreId,
+    type: "salary.recorded",
+    title: `${d.periodMonth} salary recorded — net ₹${Math.round(netAmount).toLocaleString("en-IN")}`,
+    body: [
+      attendanceDeducted > 0 ? `₹${Math.round(attendanceDeducted).toLocaleString("en-IN")} attendance deduction (${absentDays} absent)` : null,
+      advanceDeducted > 0 ? `₹${Math.round(advanceDeducted).toLocaleString("en-IN")} advance recovered` : null,
+    ].filter(Boolean).join(" · ") || "No deductions.",
+    link: "/account",
+  });
 
-  return NextResponse.json({ ok: true, id: result.id, advanceDeducted, netAmount });
+  return NextResponse.json({ ok: true, id: result.id, gross, attendanceDeducted, advanceDeducted, netAmount });
 }
