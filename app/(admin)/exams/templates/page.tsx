@@ -95,7 +95,7 @@ export default async function TemplatesPage() {
                             <span className="text-muted-foreground">pass ≥ {l.passThreshold}%</span>
                             {overrides.length > 0 && (
                               <Badge variant="outline" className="text-[10px]">
-                                {overrides.length} centre override{overrides.length === 1 ? "" : "s"}
+                                in {overrides.length} club{overrides.length === 1 ? "" : "s"}
                               </Badge>
                             )}
                           </div>
@@ -112,15 +112,23 @@ export default async function TemplatesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Centre overrides</CardTitle>
+          <CardTitle>Centre rubrics{centreId ? "" : " — pick a club"}</CardTitle>
           <CardDescription>
-            A centre overrides the catalog rubric for a level by creating a row below. Without
-            an override, the catalog default is used.
+            Each club has its own per-level rubric (seeded from the catalog; editable here).
+            {centreId
+              ? " Showing the selected club below."
+              : " Select a club from the top-bar centre filter to view or edit its rubric — otherwise every club's rows would list together."}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {templates.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No centre-specific overrides yet.</p>
+          {!centreId ? (
+            <p className="text-sm text-muted-foreground">
+              No club selected. Use the centre switcher in the top bar to choose one club; its
+              four level rubrics will appear here. (The catalog above shows how many clubs have a
+              rubric for each level.)
+            </p>
+          ) : templates.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No rubric rows for this club yet.</p>
           ) : (
             <ul className="divide-y">
               {templates.map((t) => {
@@ -150,18 +158,20 @@ export default async function TemplatesPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Create / replace template</CardTitle>
-          <CardDescription>
-            Submitting overwrites the template for that level (centre-scoped). Use the example below as a starting
-            point.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <TemplateEditor existing={templates.map((t) => ({ levelKey: t.levelKey, levelName: t.levelName, passThreshold: t.passThreshold, categoriesJson: t.categoriesJson }))} />
-        </CardContent>
-      </Card>
+      {centreId && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Create / replace template</CardTitle>
+            <CardDescription>
+              Submitting overwrites the template for that level (centre-scoped). Use the example below as a starting
+              point.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <TemplateEditor existing={templates.map((t) => ({ levelKey: t.levelKey, levelName: t.levelName, passThreshold: t.passThreshold, categoriesJson: t.categoriesJson }))} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
