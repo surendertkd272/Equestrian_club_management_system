@@ -74,7 +74,11 @@ export const NAV: NavGroup[] = [
       { href: "/requisitions", label: "Requisitions", iconName: "ShoppingCart", perm: ALL_STAFF },
       // WhatsApp deep-link generator — admins + senior centre staff. The
       // page-side gate matches this list (see app/(admin)/links/page.tsx).
-      { href: "/links", label: "WhatsApp Links", iconName: "MessageCircle", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER"] },
+      { href: "/links", label: "WhatsApp Links", iconName: "MessageCircle", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER"] },
+      // Vendor contact-database — HQ-tier admins only.
+      { href: "/vendors", label: "Vendors", iconName: "Building", perm: ["SUPER_ADMIN", "ADMIN"] },
+      // Salary advances ledger — HQ admins + Accountant.
+      { href: "/advances", label: "Salary Advances", iconName: "Receipt", perm: ["SUPER_ADMIN", "ADMIN", "ACCOUNTANT"] },
       { href: "/facility-bookings", label: "Facility Bookings", iconName: "Building", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH"], feature: "facility-bookings" },
       // Inventory: quantity-based catalog (EquipmentStock against EquipmentCatalog).
       // Per-item Asset tracking was removed in the consolidation — clubs found

@@ -6,13 +6,20 @@ import { centreWhere, scopeCentre } from "@/lib/tenancy";
 import { createVendorSchema } from "@/lib/schemas/finance";
 import { audit } from "@/lib/audit";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   const centreId = scopeCentre(session);
+  const url = new URL(req.url);
+  const category = url.searchParams.get("category");
   const vendors = await prisma.vendor.findMany({
-    where: { ...centreWhere(centreId), active: true },
-    orderBy: { name: "asc" },
+    where: {
+      ...centreWhere(centreId),
+      active: true,
+      ...(category ? { category } : {}),
+    },
+    include: { centre: { select: { name: true, slug: true } } },
+    orderBy: [{ category: "asc" }, { name: "asc" }],
   });
   return NextResponse.json({ vendors });
 }
@@ -36,13 +43,15 @@ export async function POST(req: NextRequest) {
     data: {
       centreId,
       name: parsed.data.name,
+      category: parsed.data.category ?? "other",
       contactName: parsed.data.contactName,
       phone: parsed.data.phone,
       email: parsed.data.email,
+      address: parsed.data.address,
       gstin: parsed.data.gstin,
       notes: parsed.data.notes,
     },
   });
   await audit({ userId: session.userId, action: "vendor.create", tableName: "vendor", rowId: row.id });
-  return NextResponse.json({ id: row.id });
+  return NextResponse.json({ ok: true, id: row.id });
 }

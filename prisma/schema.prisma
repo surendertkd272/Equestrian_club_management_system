@@ -112,6 +112,90 @@ model LegalText {
   @@index([orgId, kind, publishedAt])
 }
 
+// Employee salary advance — admin records a cash advance to a staff
+// member; the accountant then deducts it from the next payroll run.
+// State machine: outstanding → repaid (fully deducted) | written_off (HR call).
+//
+// Today there's no Payroll model in Equiwings (salaries are paid out-of-band).
+// This table is the ledger so the accountant has a single source of truth
+// for "what does this employee still owe back". When a Payroll module
+// lands we'll wire deductions to AdvanceRepayment rows.
+model EmployeeAdvance {
+  id              String   @id @default(cuid())
+  userId          String
+  centreId        String
+  amount          Float    // INR
+  reason          String   // "School fees", "medical", etc.
+  givenAt         DateTime @default(now())
+  givenByUserId   String
+  // Status flips to repaid when sum(repayments.amount) >= amount, or
+  // written_off if HR cancels the balance.
+  status          String   @default("outstanding") // outstanding | partially_repaid | repaid | written_off
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user        User    @relation("EmployeeAdvanceUser", fields: [userId], references: [id])
+  centre      Centre  @relation(fields: [centreId], references: [id])
+  repayments  AdvanceRepayment[]
+
+  @@index([userId, status])
+  @@index([centreId, status])
+}
+
+// Each row is a deduction from one advance — typically minted by the
+// accountant when running payroll. Sum across repayments must not exceed
+// EmployeeAdvance.amount (enforced in the API, not the schema).
+model AdvanceRepayment {
+  id            String   @id @default(cuid())
+  advanceId     String
+  amount        Float
+  deductedAt    DateTime @default(now())
+  recordedByUserId String
+  notes         String?
+
+  advance EmployeeAdvance @relation(fields: [advanceId], references: [id], onDelete: Cascade)
+
+  @@index([advanceId, deductedAt])
+}
+
+// Employee separation — Admin / Super Admin sends a "you have been asked
+// to leave / resign" notice to a user. The user receives the row, writes
+// their reason for resignation, and submits — at which point User.status
+// flips to resigned or terminated.
+//
+// Two-step so the audit trail captures both sides: the admin's reason
+// for initiating (kind = "termination" or "resignation_request"), and
+// the user's own reason. Each row is ONE event; if the admin issues
+// multiple notices, each gets its own row.
+model SeparationNotice {
+  id              String   @id @default(cuid())
+  userId          String   // the staff member separating
+  centreId        String?  // null for HQ-tier users
+  // termination = company-initiated; resignation_request = the user is
+  // resigning and the admin is issuing the form for them to fill.
+  kind            String   // termination | resignation_request
+  // What the admin wrote in the notice (reason / context).
+  noticeText      String
+  issuedByUserId  String
+  issuedAt        DateTime @default(now())
+  // User's response — what they write back. Blank until they submit.
+  responseText    String?
+  respondedAt     DateTime?
+  // Outcome — once the user submits, status flips. "withdrawn" is for
+  // when the admin rescinds the notice before the user responds.
+  status          String   @default("pending") // pending | submitted | withdrawn
+  // Effective date — when the separation takes effect (after notice period).
+  // The admin sets this on issue; if blank, defaults to issuedAt + 30 days.
+  effectiveAt     DateTime?
+
+  user   User    @relation("SeparationUser", fields: [userId], references: [id])
+  centre Centre? @relation(fields: [centreId], references: [id])
+
+  @@index([userId, issuedAt])
+  @@index([status])
+}
+
 // Per-organisation feature toggle. Source of truth: if a row says enabled=true,
 // the feature shows up regardless of plan. Plan changes rewrite this table;
 // Enterprise can deviate (à-la-carte overrides), Starter/Pro can't.
@@ -383,6 +467,8 @@ model Centre {
   requisitions     Requisition[]
   shortLinks       ShortLink[]
   gateEvents       StaffGateEvent[]
+  separationNotices SeparationNotice[]
+  employeeAdvances  EmployeeAdvance[]
 }
 
 // Role is a string union enforced at the app layer (see lib/roles.ts).
@@ -460,6 +546,8 @@ model User {
   vetVisits        VetVisit[]
   requisitions     Requisition[]
   gateEvents       StaffGateEvent[] @relation("StaffGateStaff")
+  separationNotices SeparationNotice[] @relation("SeparationUser")
+  advances          EmployeeAdvance[]  @relation("EmployeeAdvanceUser")
 }
 
 // Public forgot-password flow. We mint a SHA-256-hashed token on request;
@@ -2463,9 +2551,15 @@ model Vendor {
   centreId  String   // a vendor is centre-scoped (different centres may use
                      // different suppliers)
   name      String
+  // Category drives the contact-database UX — admins filter by type when
+  // looking for "an ambulance" vs "a feed supplier". Free-text-ish but
+  // standardised in the UI dropdown (see /vendors page).
+  // vet | farrier | horse_ambulance | truck | feed | tack | medical_supply | other
+  category    String   @default("other")
   contactName String?
   phone     String?
   email     String?
+  address   String?
   gstin     String?
   notes     String?
   active    Boolean  @default(true)

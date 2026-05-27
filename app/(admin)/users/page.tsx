@@ -8,6 +8,7 @@ import { formatDate } from "@/lib/utils";
 import { USER_STATUSES } from "@/lib/schemas/user-admin";
 import { ROLES } from "@/lib/roles";
 import { UserActions, UserSearchBar, NewUserCard } from "./client";
+import { ApprovalQueue } from "./approval-queue";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
     ];
   }
 
-  const [users, centres, totalAll] = await Promise.all([
+  const [users, centres, totalAll, pendingApprovals] = await Promise.all([
     prisma.user.findMany({
       where,
       orderBy: [{ status: "asc" }, { name: "asc" }],
@@ -55,6 +56,23 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
     }),
     prisma.centre.findMany({ select: { id: true, name: true, slug: true }, orderBy: { name: "asc" } }),
     prisma.user.count(),
+    // Spotlight: pending-approval users (staff hiring invites that have
+    // been redeemed). Shown above the main list so admins don't have to
+    // remember to filter for them.
+    prisma.user.findMany({
+      where: { status: "pending_approval" },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        createdAt: true,
+        centre: { select: { name: true, slug: true } },
+      },
+    }),
   ]);
 
   return (
@@ -66,6 +84,18 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
           passwords, suspend accounts. Self-demotion and last-super-admin removal are blocked.
         </p>
       </div>
+
+      <ApprovalQueue
+        pending={pendingApprovals.map((p) => ({
+          id: p.id,
+          name: p.name,
+          email: p.email,
+          phone: p.phone,
+          role: p.role,
+          createdAt: p.createdAt.toISOString(),
+          centre: p.centre,
+        }))}
+      />
 
       <NewUserCard centres={centres} roles={ROLES as readonly string[]} />
 

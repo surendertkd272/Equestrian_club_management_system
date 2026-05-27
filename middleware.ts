@@ -21,6 +21,10 @@ const PUBLIC_PREFIXES = [
   // re-validates the invite code.
   "/staff-register/",
   "/api/staff-register",
+  // Venue booking confirmation — public, read-only. Renter sees their
+  // booking details from URL params; the underlying FacilityBooking row
+  // still requires auth to mutate.
+  "/booking-confirmation",
   // Public scoreboard (competition results, no auth required).
   "/scoreboard",
   "/compete",                      // public competition portal: entries, tickets

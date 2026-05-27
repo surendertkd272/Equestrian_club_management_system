@@ -23,9 +23,13 @@ export const createExpenseCategorySchema = z.object({
 
 export const createVendorSchema = z.object({
   name: z.string().min(2).max(120),
+  // category drives the contact-database UX in /vendors; see
+  // lib/schemas/vendor.ts VENDOR_CATEGORIES for the canonical list.
+  category: z.string().max(40).optional(),
   contactName: z.string().max(80).optional(),
   phone: z.string().max(40).optional(),
   email: z.string().email().optional().or(z.literal("")).transform((v) => v || undefined),
+  address: z.string().max(300).optional(),
   gstin: z.string().max(30).optional(),
   notes: z.string().max(500).optional(),
 });
