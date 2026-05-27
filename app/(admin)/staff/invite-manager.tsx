@@ -19,6 +19,8 @@ type Invite = {
   used: boolean;
   expired: boolean;
   createdAt: string;
+  expiresAt: string | null;
+  lastRedeemedAt: string | null;
 };
 
 function inviteUrl(code: string): string {
@@ -96,7 +98,12 @@ export function StaffInviteManager({ invites }: { invites: Invite[] }) {
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   }
 
-  const openInvites = invites.filter((i) => !i.used && !i.expired);
+  const openCount = invites.filter((i) => !i.used && !i.expired).length;
+  function statusOf(inv: Invite): { label: string; variant: "success" | "warning" | "outline" } {
+    if (inv.used) return { label: "registered", variant: "success" };
+    if (inv.expired) return { label: "expired", variant: "warning" };
+    return { label: "open", variant: "outline" };
+  }
 
   return (
     <Card>
@@ -141,24 +148,61 @@ export function StaffInviteManager({ invites }: { invites: Invite[] }) {
           </div>
         )}
 
-        {openInvites.length > 0 && (
+        {invites.length > 0 && (
           <div>
             <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Open invites ({openInvites.length})
+              Invite log — {invites.length} total · {openCount} open
             </div>
-            <ul className="divide-y rounded-md border">
-              {openInvites.map((inv) => (
-                <li key={inv.code} className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
-                  <span className="font-medium">{inv.email ?? "(any email)"}</span>
-                  {inv.role && <Badge variant="outline">{STAFF_INVITE_ROLE_LABEL[inv.role] ?? inv.role}</Badge>}
-                  <span className="text-[11px] text-muted-foreground">sent {formatDate(new Date(inv.createdAt))}</span>
-                  <div className="ml-auto flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => copy(inv.code)}>Copy link</Button>
-                    <Button size="sm" variant="outline" onClick={() => shareWhatsApp(inv)}>WhatsApp</Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <div className="overflow-x-auto rounded-md border">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/30 text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2">Invited email</th>
+                    <th className="px-3 py-2">Role</th>
+                    <th className="px-3 py-2">Sent</th>
+                    <th className="px-3 py-2">Deadline</th>
+                    <th className="px-3 py-2">Status</th>
+                    <th className="px-3 py-2 text-right">Link</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {invites.map((inv) => {
+                    const st = statusOf(inv);
+                    const isOpen = !inv.used && !inv.expired;
+                    return (
+                      <tr key={inv.code} className="border-t">
+                        <td className="px-3 py-2 font-medium">{inv.email ?? "(any email)"}</td>
+                        <td className="px-3 py-2">
+                          {inv.role ? STAFF_INVITE_ROLE_LABEL[inv.role] ?? inv.role : "—"}
+                        </td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground">{formatDate(new Date(inv.createdAt))}</td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground">
+                          {inv.expiresAt ? formatDate(new Date(inv.expiresAt)) : "—"}
+                        </td>
+                        <td className="px-3 py-2">
+                          <Badge variant={st.variant}>{st.label}</Badge>
+                          {inv.used && inv.lastRedeemedAt && (
+                            <span className="ml-1 text-[10px] text-muted-foreground">
+                              {formatDate(new Date(inv.lastRedeemedAt))}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {isOpen ? (
+                            <div className="flex justify-end gap-2">
+                              <Button size="sm" variant="outline" onClick={() => copy(inv.code)}>Copy</Button>
+                              <Button size="sm" variant="outline" onClick={() => shareWhatsApp(inv)}>WhatsApp</Button>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </CardContent>

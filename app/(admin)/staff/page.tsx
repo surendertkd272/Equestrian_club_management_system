@@ -53,6 +53,8 @@ export default async function StaffPage() {
       used: l.singleUse && l.redeemCount > 0,
       expired: !!l.expiresAt && l.expiresAt < now,
       createdAt: l.createdAt.toISOString(),
+      expiresAt: l.expiresAt?.toISOString() ?? null,
+      lastRedeemedAt: l.lastRedeemedAt?.toISOString() ?? null,
     };
   });
 
