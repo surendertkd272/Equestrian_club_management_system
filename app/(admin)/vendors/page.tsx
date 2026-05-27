@@ -7,7 +7,8 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre, centreWhere } from "@/lib/tenancy";
+import { scopeCentre } from "@/lib/tenancy";
+import { vendorScopeWhere } from "@/lib/vendor-scope";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Phone, Mail } from "lucide-react";
@@ -21,7 +22,9 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/dashboard");
 
   const centreId = scopeCentre(session);
-  const where: any = { ...centreWhere(centreId), active: true };
+  // Own-centre vendors + national (all-India) vendors in the same org.
+  const scopeWhere = await vendorScopeWhere(session);
+  const where: any = { ...scopeWhere, active: true };
   if (searchParams.category) where.category = searchParams.category;
 
   const [vendors, centres] = await Promise.all([
@@ -85,9 +88,14 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
                       <div>
                         <span className="font-semibold">{v.name}</span>
+                        {v.deliveryScope === "national" && (
+                          <Badge variant="success" className="ml-2 text-[10px]">All-India</Badge>
+                        )}
                         {v.contactName && <span className="ml-2 text-xs text-muted-foreground">via {v.contactName}</span>}
                       </div>
-                      <span className="text-xs text-muted-foreground">{v.centre?.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {v.deliveryScope === "national" ? `All clubs · added by ${v.centre?.name}` : v.centre?.name}
+                      </span>
                     </div>
                     <div className="mt-1 flex flex-wrap gap-3 text-xs">
                       {v.phone && (

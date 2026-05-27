@@ -2,19 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { scopeCentre } from "@/lib/tenancy";
 import { createVendorSchema } from "@/lib/schemas/finance";
+import { vendorScopeWhere } from "@/lib/vendor-scope";
 import { audit } from "@/lib/audit";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  const centreId = scopeCentre(session);
   const url = new URL(req.url);
   const category = url.searchParams.get("category");
+  // Own-centre vendors + national (all-India) vendors in the same org.
+  const scopeWhere = await vendorScopeWhere(session);
   const vendors = await prisma.vendor.findMany({
     where: {
-      ...centreWhere(centreId),
+      ...scopeWhere,
       active: true,
       ...(category ? { category } : {}),
     },
@@ -36,12 +38,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const centreId = scopeCentre(session);
+  // Owner centre: centre-scoped users use their own; HQ admins on the
+  // all-centres view pick it via the form (parsed.data.centreId).
+  const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  let centreId = scopeCentre(session);
+  if (!centreId && isHQ && parsed.data.centreId) centreId = parsed.data.centreId;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
+  // Guard cross-tenant: the chosen centre must exist (and, for HQ picking
+  // from the form, belong to the admin's org).
+  const ownerCentre = await prisma.centre.findUnique({ where: { id: centreId }, select: { id: true } });
+  if (!ownerCentre) return NextResponse.json({ error: "CENTRE_NOT_FOUND" }, { status: 400 });
 
   const row = await prisma.vendor.create({
     data: {
       centreId,
+      deliveryScope: parsed.data.deliveryScope ?? "centre",
       name: parsed.data.name,
       category: parsed.data.category ?? "other",
       contactName: parsed.data.contactName,

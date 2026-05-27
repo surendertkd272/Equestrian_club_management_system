@@ -26,6 +26,12 @@ export const createVendorSchema = z.object({
   // category drives the contact-database UX in /vendors; see
   // lib/schemas/vendor.ts VENDOR_CATEGORIES for the canonical list.
   category: z.string().max(40).optional(),
+  // Delivery coverage — "centre" (local, own club only) or "national"
+  // (all-India, visible to every club in the org). Default centre.
+  deliveryScope: z.enum(["centre", "national"]).optional(),
+  // Owning centre — HQ admins pick it from the form when on the all-centres
+  // view; centre-scoped users ignore it (server uses their own centre).
+  centreId: z.string().min(1).optional(),
   contactName: z.string().max(80).optional(),
   phone: z.string().max(40).optional(),
   email: z.string().email().optional().or(z.literal("")).transform((v) => v || undefined),

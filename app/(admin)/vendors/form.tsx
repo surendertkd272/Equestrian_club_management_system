@@ -49,6 +49,7 @@ export function NewVendorForm({
   const [form, setForm] = useState({
     name: "",
     category: "vet" as (typeof VENDOR_CATEGORIES)[number],
+    deliveryScope: "centre" as "centre" | "national",
     contactName: "",
     phone: "",
     email: "",
@@ -164,6 +165,16 @@ export function NewVendorForm({
             <option key={c} value={c}>{VENDOR_CATEGORY_LABEL[c]}</option>
           ))}
         </Select>
+      </div>
+      <div className="space-y-1.5 md:col-span-2">
+        <Label>Delivery coverage *</Label>
+        <Select value={form.deliveryScope} onChange={(e) => set("deliveryScope", e.target.value as "centre" | "national")}>
+          <option value="centre">Centre-specific — only this club uses it</option>
+          <option value="national">All-India — delivers to every club</option>
+        </Select>
+        <p className="text-[11px] text-muted-foreground">
+          All-India vendors appear in every club's vendor list and expense picker; centre-specific ones stay local.
+        </p>
       </div>
       {!pinnedCentreId && centres.length > 1 && (
         <div className="space-y-1.5 md:col-span-2">

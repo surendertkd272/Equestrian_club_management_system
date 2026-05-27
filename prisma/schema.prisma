@@ -2732,8 +2732,12 @@ model ExpenseCategory {
 
 model Vendor {
   id        String   @id @default(cuid())
-  centreId  String   // a vendor is centre-scoped (different centres may use
-                     // different suppliers)
+  centreId  String   // the centre that registered the vendor (owner). For
+                     // deliveryScope="national" the vendor is still owned here
+                     // but visible to every centre in the same org.
+  // Delivery coverage: "centre" = local supplier, visible only to its own
+  // club; "national" = all-India delivery, visible to every club in the org.
+  deliveryScope String @default("centre")
   name      String
   // Category drives the contact-database UX — admins filter by type when
   // looking for "an ambulance" vs "a feed supplier". Free-text-ish but
