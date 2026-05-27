@@ -64,7 +64,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const { row, error } = await loadOwned(params.id, session);
   if (error) return error;
 
-  await prisma.consumable.update({ where: { id: row!.id }, data: { active: false } });
+  await prisma.consumable.update({ where: { id: row!.id }, data: { active: false, deletedAt: new Date() } });
   await audit({ userId: session.userId, action: "consumable.deactivate", tableName: "consumable", rowId: row!.id });
   return NextResponse.json({ ok: true });
 }

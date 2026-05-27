@@ -1225,6 +1225,7 @@ model Consumable {
   storageLocation  String?
   notes            String?
   active           Boolean  @default(true) // soft-delete: hidden from lists when false
+  deletedAt        DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -1511,6 +1512,7 @@ model Medicine {
   storageLocation String?
   coldChain       Boolean  @default(false)
   active          Boolean  @default(true) // soft-delete: hidden from lists when false
+  deletedAt       DateTime?
 
   centre        Centre            @relation(fields: [centreId], references: [id])
   usages        MedicineUsage[]
@@ -2415,6 +2417,7 @@ model Team {
   discipline String?
   captainId String?  // rider.id
   active    Boolean  @default(true)
+  deletedAt DateTime?
   notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -2759,6 +2762,7 @@ model Vendor {
   gstin     String?
   notes     String?
   active    Boolean  @default(true)
+  deletedAt DateTime?  // set on soft-delete; bin purges 30 days later
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

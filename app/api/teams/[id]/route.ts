@@ -61,7 +61,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const { team, error } = await loadOwned(params.id, session);
   if (error) return error;
 
-  await prisma.team.update({ where: { id: team!.id }, data: { active: false } });
+  await prisma.team.update({ where: { id: team!.id }, data: { active: false, deletedAt: new Date() } });
   await audit({ userId: session.userId, action: "team.deactivate", tableName: "team", rowId: team!.id });
   return NextResponse.json({ ok: true });
 }

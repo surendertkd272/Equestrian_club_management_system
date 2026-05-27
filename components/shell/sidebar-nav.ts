@@ -137,6 +137,8 @@ export const NAV: NavGroup[] = [
       // Manual inspections / SOP audits — run by the external Inspection Officer
       // or admins/centre manager.
       { href: "/inspections", label: "Inspections", iconName: "Shield", perm: ["INSPECTION_OFFICER", "SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
+      // Recycle bin — soft-deleted catalog rows, recoverable for 30 days then auto-purged.
+      { href: "/bin", label: "Recycle Bin", iconName: "Package", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
     ],
   },
 ];

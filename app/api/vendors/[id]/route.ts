@@ -74,7 +74,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const { vendor, error } = await loadOwned(params.id, session);
   if (error) return error;
 
-  await prisma.vendor.update({ where: { id: vendor!.id }, data: { active: false } });
+  await prisma.vendor.update({ where: { id: vendor!.id }, data: { active: false, deletedAt: new Date() } });
   await audit({ userId: session.userId, action: "vendor.deactivate", tableName: "vendor", rowId: vendor!.id });
   return NextResponse.json({ ok: true });
 }
