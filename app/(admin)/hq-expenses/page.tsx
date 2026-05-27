@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 
 export default async function HqExpensesPage() {
   const session = (await getSession())!;
-  if (session.role !== "SUPER_ADMIN") redirect("/dashboard");
+  // HQ-tier — ADMIN handles cross-club invoices alongside SUPER_ADMIN.
+  if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/dashboard");
 
   // Resolve orgId from the user row (not on the JWT).
   const user = await prisma.user.findUnique({

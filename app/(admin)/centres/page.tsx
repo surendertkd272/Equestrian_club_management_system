@@ -11,8 +11,11 @@ export const dynamic = "force-dynamic";
 
 export default async function CentresPage() {
   const session = (await getSession())!;
-  // HQ-only — clubs are an Equiwings brand-level concept, not a centre-manager concern.
-  if (session.role !== "SUPER_ADMIN") redirect("/dashboard");
+  // HQ-tier only — clubs are a brand-level concept, not a centre-manager
+  // concern. ADMIN sees + manages the club list; creating/deleting whole
+  // clubs (a tenant-level action) stays SUPER_ADMIN-only via canManageClubs.
+  if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/dashboard");
+  const canManageClubs = session.role === "SUPER_ADMIN";
 
   const centres = await prisma.centre.findMany({
     orderBy: { name: "asc" },
@@ -52,7 +55,7 @@ export default async function CentresPage() {
         </p>
       </div>
 
-      <NewCentreCard />
+      {canManageClubs && <NewCentreCard />}
 
       <div className="space-y-4">
         {centres.map((c) => {
@@ -104,9 +107,11 @@ export default async function CentresPage() {
                     initial={parseEmergencyContacts(c.emergencyContactsJson)}
                   />
                 </div>
-                <div className="mt-4 border-t pt-3">
-                  <CentreDeleteButton id={c.id} name={c.name} isEmpty={isEmpty} />
-                </div>
+                {canManageClubs && (
+                  <div className="mt-4 border-t pt-3">
+                    <CentreDeleteButton id={c.id} name={c.name} isEmpty={isEmpty} />
+                  </div>
+                )}
               </CardContent>
             </Card>
           );

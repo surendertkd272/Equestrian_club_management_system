@@ -1,12 +1,16 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 // HQ Comparative Dashboard — side-by-side metrics for every centre under the
 // signed-in super admin's organisation. Built for multi-club operators who
 // want one screen to compare attendance, fees, pass rate, etc. across all
-// their centres at once.
+// their centres at once. HQ-tier only (SUPER_ADMIN + ADMIN).
 export default async function HQDashboardPage() {
+  const session = (await getSession())!;
+  if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/dashboard");
   // Window for "recent" metrics. Tweakable: 30 days feels right for
   // attendance, 90 for exam pass rate. The page is read-only so we don't
   // bother making these user-configurable yet.

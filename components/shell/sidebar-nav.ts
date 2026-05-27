@@ -39,10 +39,14 @@ export const NAV: NavGroup[] = [
     items: [
       { href: "/dashboard", label: "Dashboard", iconName: "LayoutDashboard", perm: ALL_STAFF },
       { href: "/analytics", label: "Analytics", iconName: "LineChart", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "ACCOUNTANT"], feature: "analytics" },
-      { href: "/centres", label: "Clubs (HQ)", iconName: "Building2", perm: ["SUPER_ADMIN"] },
+      // ADMIN is a cross-club HQ peer of SUPER_ADMIN — sees every club's
+      // rollups, invoices, and club list. Club CREATE/DELETE + HQ-user
+      // management stay SUPER_ADMIN-only (see page/API guards), so /users
+      // is not granted to ADMIN.
+      { href: "/centres", label: "Clubs (HQ)", iconName: "Building2", perm: ["SUPER_ADMIN", "ADMIN"] },
       { href: "/users", label: "Users (HQ)", iconName: "UserCog", perm: ["SUPER_ADMIN"] },
-      { href: "/hq-dashboard", label: "HQ Comparative", iconName: "LineChart", perm: ["SUPER_ADMIN"], feature: "hq-dashboard" },
-      { href: "/hq-expenses", label: "HQ Invoices", iconName: "Receipt", perm: ["SUPER_ADMIN"] },
+      { href: "/hq-dashboard", label: "HQ Comparative", iconName: "LineChart", perm: ["SUPER_ADMIN", "ADMIN"], feature: "hq-dashboard" },
+      { href: "/hq-expenses", label: "HQ Invoices", iconName: "Receipt", perm: ["SUPER_ADMIN", "ADMIN"] },
     ],
   },
   {

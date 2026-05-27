@@ -11,7 +11,9 @@ import { blockIfReadOnly } from "@/lib/readonly-gate";
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  if (session.role !== "SUPER_ADMIN") {
+  // HQ-tier — ADMIN can edit club details (data write); only club
+  // create/delete stays SUPER_ADMIN-only (see POST + DELETE below).
+  if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
   const readOnlyBlock = await blockIfReadOnly(session);

@@ -13,7 +13,8 @@ import { blockIfReadOnly } from "@/lib/readonly-gate";
 async function requireSuperAdmin() {
   const session = await getSession();
   if (!session) return { error: NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 }) };
-  if (session.role !== "SUPER_ADMIN") {
+  // HQ-tier: SUPER_ADMIN + ADMIN both handle cross-club invoices.
+  if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") {
     return { error: NextResponse.json({ error: "FORBIDDEN" }, { status: 403 }) };
   }
   // orgId isn't on the JWT — resolve from the user row. SUPER_ADMINs use
