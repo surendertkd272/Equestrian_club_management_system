@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
+import { scopeCentre } from "@/lib/tenancy";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GatePanel } from "./gate-panel";
 
@@ -17,13 +18,16 @@ export default async function GatePage({
   if (!can(session.role, "staff.attendance")) redirect("/dashboard");
 
   // Centre context resolution. Centre-scoped users have session.centreId
-  // pinned; SUPER_ADMIN picks a centre via ?centre=<id>. If no centre yet,
-  // we render a picker rather than redirecting (the previous behaviour
-  // silently sent SUPER_ADMINs to /dashboard which looked like a bug).
-  let centreId = session.centreId;
-  if (!centreId && session.role === "SUPER_ADMIN") {
-    centreId = searchParams.centre ?? null;
-  }
+  // pinned via scopeCentre(); HQ admins (SUPER_ADMIN, ADMIN) resolve via:
+  //   1. ?centre=<id>  (explicit URL pick — wins, lets you share a link)
+  //   2. ew_hq_centre cookie  (topbar switcher pick — applies across pages)
+  //   3. null → render the picker below.
+  //
+  // Before this used `session.centreId ?? searchParams.centre`, which
+  // skipped the cookie entirely — an HQ admin who picked "Centre A" in
+  // the topbar still saw the picker on /gate. scopeCentre() handles all
+  // three sources uniformly.
+  const centreId = scopeCentre(session, searchParams.centre);
 
   // No centre yet — show the picker for SUPER_ADMIN.
   if (!centreId) {

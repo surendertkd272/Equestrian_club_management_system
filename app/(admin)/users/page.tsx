@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { isRole } from "@/lib/roles";
+import { scopeCentre } from "@/lib/tenancy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -25,8 +26,22 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
 
   const where: Record<string, unknown> = {};
   if (searchParams.role && isRole(searchParams.role)) where.role = searchParams.role;
-  if (searchParams.centreId === "null") where.centreId = null;
-  else if (searchParams.centreId) where.centreId = searchParams.centreId;
+  // Centre filter resolution:
+  //   - ?centreId=null  → explicitly "users with no centre" (HQ-tier staff)
+  //   - ?centreId=<id>  → explicit pick (wins, lets you share the URL)
+  //   - else            → fall back to the topbar centre filter via
+  //                        scopeCentre (which reads the ew_hq_centre cookie)
+  // Previously the cookie was ignored on this page — an HQ admin filtered
+  // to Centre A in the topbar still saw all users until they re-picked
+  // here. Now the cookie pre-applies; explicit query params still override.
+  if (searchParams.centreId === "null") {
+    where.centreId = null;
+  } else if (searchParams.centreId) {
+    where.centreId = searchParams.centreId;
+  } else {
+    const scopedCentreId = scopeCentre(session);
+    if (scopedCentreId) where.centreId = scopedCentreId;
+  }
   if (searchParams.status && (USER_STATUSES as readonly string[]).includes(searchParams.status)) {
     where.status = searchParams.status;
   }
