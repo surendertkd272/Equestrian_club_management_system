@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
-import { canAccessRoute } from "@/components/shell/sidebar-nav";
+import { assertRoute } from "@/lib/route-guard";
 import { scopeCentre } from "@/lib/tenancy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,8 +18,7 @@ export default async function AccreditationsListPage({
 }: {
   searchParams: { body?: string; status?: string };
 }) {
-  const session = (await getSession())!;
-  if (!canAccessRoute(session.role, "/accreditations")) redirect("/dashboard");
+  const session = await assertRoute("/accreditations");
   const centreId = scopeCentre(session);
 
   const where: any = {};
