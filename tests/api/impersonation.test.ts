@@ -8,6 +8,7 @@ import {
   type OwnerSessionPayload,
 } from "@/lib/owner-auth";
 import { signSession, verifySession, type SessionPayload } from "@/lib/auth";
+import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -45,7 +46,7 @@ beforeEach(async () => {
 describe("POST /api/owner/tenants/[id]/impersonate", () => {
   it("401 without owner session", async () => {
     const r = await impersonate(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ userId: "x" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ userId: "x" }) }),
       { params: { id: "y" } },
     );
     expect(r.status).toBe(401);
@@ -58,7 +59,7 @@ describe("POST /api/owner/tenants/[id]/impersonate", () => {
     await loginOwner({ ownerId: editor.id, role: "OWNER_EDITOR", name: editor.name });
 
     const r = await impersonate(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ userId: "x" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ userId: "x" }) }),
       { params: { id: "y" } },
     );
     expect(r.status).toBe(403);
@@ -68,7 +69,7 @@ describe("POST /api/owner/tenants/[id]/impersonate", () => {
     const owner = await mkPlatformAdmin();
     await loginOwner({ ownerId: owner.id, role: "OWNER_ADMIN", name: owner.name });
     const r = await impersonate(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ userId: "x" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ userId: "x" }) }),
       { params: { id: "nope" } },
     );
     expect(r.status).toBe(404);
@@ -84,7 +85,7 @@ describe("POST /api/owner/tenants/[id]/impersonate", () => {
     const userInB = await mkUser({ role: "CENTRE_MANAGER", centreId: centreB.id });
 
     const r = await impersonate(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ userId: userInB.id }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ userId: userInB.id }) }),
       { params: { id: orgA.id } },
     );
     expect(r.status).toBe(403);
@@ -99,7 +100,7 @@ describe("POST /api/owner/tenants/[id]/impersonate", () => {
     const target = await mkUser({ role: "CENTRE_MANAGER", centreId: centre.id, name: "Tenant Boss" });
 
     const r = await impersonate(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ userId: target.id }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ userId: target.id }) }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(200);

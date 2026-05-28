@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { signSession, type SessionPayload } from "@/lib/auth";
 import { DEFAULT_FARRIER_INTERVAL_DAYS } from "@/lib/schemas/farrier";
 import { sweepFarrierDigest, sweepVaccinationDue } from "@/lib/sweeps";
+import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -49,7 +50,7 @@ describe("FarrierVisit", () => {
 
     // Schedule
     const r = await createFarrier(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           horseId: horse.id,
@@ -57,14 +58,14 @@ describe("FarrierVisit", () => {
           scheduledAt: "2026-06-01",
           workType: "shoe_full",
         }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
     const { id } = await r.json();
 
     // Complete
     const r2 = await completeFarrier(
-      new Request("http://localhost", { method: "POST", body: "{}" }) as any,
+      mockReq("http://localhost", { method: "POST", body: "{}" }),
       { params: { id } },
     );
     expect(r2.status).toBe(200);
@@ -86,7 +87,7 @@ describe("FarrierVisit", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const r = await createFarrier(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           horseId: horse.id,
@@ -94,11 +95,11 @@ describe("FarrierVisit", () => {
           scheduledAt: "2026-06-01",
           workType: "trim",
         }),
-      }) as any,
+      }),
     );
     const { id } = await r.json();
-    await completeFarrier(new Request("http://localhost", { method: "POST", body: "{}" }) as any, { params: { id } });
-    const second = await completeFarrier(new Request("http://localhost", { method: "POST", body: "{}" }) as any, { params: { id } });
+    await completeFarrier(mockReq("http://localhost", { method: "POST", body: "{}" }), { params: { id } });
+    const second = await completeFarrier(mockReq("http://localhost", { method: "POST", body: "{}" }), { params: { id } });
     expect(second.status).toBe(409);
   });
 
@@ -153,7 +154,7 @@ describe("HorseHealthLog", () => {
     await loginAs({ userId: vet.id, role: "VET", centreId: centre.id, name: vet.name });
 
     const r = await postHealth(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           tempC: 38.1,
@@ -162,7 +163,7 @@ describe("HorseHealthLog", () => {
           appetite: "good",
           manure: "normal",
         }),
-      }) as any,
+      }),
       { params: { id: horse.id } },
     );
     expect(r.status).toBe(200);
@@ -181,7 +182,7 @@ describe("HorseHealthLog", () => {
     await loginAs({ userId: mgrA.id, role: "CENTRE_MANAGER", centreId: a.id, name: mgrA.name });
 
     const r = await postHealth(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ tempC: 38.0 }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ tempC: 38.0 }) }),
       { params: { id: horseB.id } },
     );
     expect(r.status).toBe(403);
@@ -198,7 +199,7 @@ describe("InjuryLog", () => {
     await loginAs({ userId: coach.id, role: "COACH", centreId: centre.id, name: coach.name });
 
     const r = await createInjury(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           subjectType: "horse",
@@ -209,7 +210,7 @@ describe("InjuryLog", () => {
           cause: "slipped",
           initialNotes: "Swelling visible; lame at walk.",
         }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
 
@@ -232,7 +233,7 @@ describe("InjuryLog", () => {
     await loginAs({ userId: coach.id, role: "COACH", centreId: centre.id, name: coach.name });
 
     await createInjury(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           subjectType: "horse",
@@ -241,7 +242,7 @@ describe("InjuryLog", () => {
           severity: "minor",
           initialNotes: "Small scrape.",
         }),
-      }) as any,
+      }),
     );
     const inbox = await prisma.notification.findMany({ where: { userId: mgr.id } });
     expect(inbox).toHaveLength(0);
@@ -254,7 +255,7 @@ describe("InjuryLog", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const r1 = await createInjury(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           subjectType: "horse",
@@ -263,16 +264,16 @@ describe("InjuryLog", () => {
           severity: "minor",
           initialNotes: "Cut on shoulder.",
         }),
-      }) as any,
+      }),
     );
     const { id } = await r1.json();
 
     // Append treatment
     const r2 = await patchInjury(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ treatment: "Wound cleaned + bandaged.", notes: "Re-check in 24h" }),
-      }) as any,
+      }),
       { params: { id } },
     );
     expect(r2.status).toBe(200);
@@ -283,10 +284,10 @@ describe("InjuryLog", () => {
 
     // Mark recovered
     const r3 = await patchInjury(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ status: "recovered" }),
-      }) as any,
+      }),
       { params: { id } },
     );
     expect(r3.status).toBe(200);
@@ -304,7 +305,7 @@ describe("VaccinationSchedule", () => {
     await loginAs({ userId: vet.id, role: "VET", centreId: centre.id, name: vet.name });
 
     const r = await upsertVaccination(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           horseId: horse.id,
@@ -313,7 +314,7 @@ describe("VaccinationSchedule", () => {
           intervalDays: 365,
           lastGivenAt: "2026-01-01",
         }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
     const { nextDueAt } = await r.json();
@@ -327,16 +328,16 @@ describe("VaccinationSchedule", () => {
     await loginAs({ userId: vet.id, role: "VET", centreId: centre.id, name: vet.name });
 
     await upsertVaccination(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ horseId: horse.id, vaccineKey: "tetanus", vaccineLabel: "Tetanus", intervalDays: 365 }),
-      }) as any,
+      }),
     );
     await upsertVaccination(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ horseId: horse.id, vaccineKey: "tetanus", vaccineLabel: "Tetanus v2", intervalDays: 180 }),
-      }) as any,
+      }),
     );
 
     const rows = await prisma.vaccinationSchedule.findMany();
@@ -352,15 +353,15 @@ describe("VaccinationSchedule", () => {
     await loginAs({ userId: vet.id, role: "VET", centreId: centre.id, name: vet.name });
 
     const r = await upsertVaccination(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ horseId: horse.id, vaccineKey: "ehv", vaccineLabel: "EHV", intervalDays: 180 }),
-      }) as any,
+      }),
     );
     const { id } = await r.json();
     const before = await prisma.vaccinationSchedule.findUniqueOrThrow({ where: { id } });
     const r2 = await recordDose(
-      new Request("http://localhost", { method: "POST", body: "{}" }) as any,
+      mockReq("http://localhost", { method: "POST", body: "{}" }),
       { params: { id } },
     );
     expect(r2.status).toBe(200);

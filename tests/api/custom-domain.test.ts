@@ -7,6 +7,7 @@ import {
   signOwnerSession,
   type OwnerSessionPayload,
 } from "@/lib/owner-auth";
+import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -43,7 +44,7 @@ beforeEach(async () => {
 describe("PATCH /api/owner/tenants/[id]/custom-domain", () => {
   it("401 without session", async () => {
     const r = await patchDomain(
-      new Request("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: "x.com" }) }) as any,
+      mockReq("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: "x.com" }) }),
       { params: { id: "y" } },
     );
     expect(r.status).toBe(401);
@@ -57,7 +58,7 @@ describe("PATCH /api/owner/tenants/[id]/custom-domain", () => {
     const org = await mkOrg();
 
     const r = await patchDomain(
-      new Request("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: "app.x.com" }) }) as any,
+      mockReq("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: "app.x.com" }) }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(403);
@@ -69,7 +70,7 @@ describe("PATCH /api/owner/tenants/[id]/custom-domain", () => {
     const org = await mkOrg();
 
     const r = await patchDomain(
-      new Request("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: "not a domain" }) }) as any,
+      mockReq("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: "not a domain" }) }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(400);
@@ -81,7 +82,7 @@ describe("PATCH /api/owner/tenants/[id]/custom-domain", () => {
     const org = await mkOrg();
 
     const r = await patchDomain(
-      new Request("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: "App.Acme.com" }) }) as any,
+      mockReq("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: "App.Acme.com" }) }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(200);
@@ -102,7 +103,7 @@ describe("PATCH /api/owner/tenants/[id]/custom-domain", () => {
     });
 
     const r = await patchDomain(
-      new Request("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: "app.shared.com" }) }) as any,
+      mockReq("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: "app.shared.com" }) }),
       { params: { id: b.id } },
     );
     expect(r.status).toBe(409);
@@ -116,11 +117,11 @@ describe("PATCH /api/owner/tenants/[id]/custom-domain", () => {
 
     // Set + verify
     await patchDomain(
-      new Request("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: "app.acme.com" }) }) as any,
+      mockReq("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: "app.acme.com" }) }),
       { params: { id: org.id } },
     );
     await patchDomain(
-      new Request("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: "app.acme.com", verified: true }) }) as any,
+      mockReq("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: "app.acme.com", verified: true }) }),
       { params: { id: org.id } },
     );
     let row = await prisma.organisation.findUniqueOrThrow({ where: { id: org.id } });
@@ -128,7 +129,7 @@ describe("PATCH /api/owner/tenants/[id]/custom-domain", () => {
 
     // Change domain — verification resets.
     await patchDomain(
-      new Request("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: "app.acme2.com" }) }) as any,
+      mockReq("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: "app.acme2.com" }) }),
       { params: { id: org.id } },
     );
     row = await prisma.organisation.findUniqueOrThrow({ where: { id: org.id } });
@@ -146,7 +147,7 @@ describe("PATCH /api/owner/tenants/[id]/custom-domain", () => {
     });
 
     const r = await patchDomain(
-      new Request("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: null }) }) as any,
+      mockReq("http://localhost", { method: "PATCH", body: JSON.stringify({ customDomain: null }) }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(200);

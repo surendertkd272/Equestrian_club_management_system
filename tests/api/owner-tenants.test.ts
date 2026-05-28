@@ -7,6 +7,7 @@ import {
   signOwnerSession,
   type OwnerSessionPayload,
 } from "@/lib/owner-auth";
+import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -43,7 +44,7 @@ beforeEach(async () => {
 
 describe("GET /api/owner/tenants", () => {
   it("401 when no owner session", async () => {
-    const r = await listTenants(new Request("http://localhost/api/owner/tenants") as any);
+    const r = await listTenants(mockReq("http://localhost/api/owner/tenants"));
     expect(r.status).toBe(401);
   });
 
@@ -58,7 +59,7 @@ describe("GET /api/owner/tenants", () => {
     await mkRider({ centreId: c1.id });
     await mkRider({ centreId: c2.id });
 
-    const r = await listTenants(new Request("http://localhost/api/owner/tenants") as any);
+    const r = await listTenants(mockReq("http://localhost/api/owner/tenants"));
     expect(r.status).toBe(200);
     const data = await r.json();
     expect(data.tenants).toHaveLength(1);
@@ -77,7 +78,7 @@ describe("GET /api/owner/tenants", () => {
     const suspended = await mkOrg("Suspended Co");
     await prisma.organisation.update({ where: { id: suspended.id }, data: { status: "suspended" } });
 
-    const r = await listTenants(new Request("http://localhost/api/owner/tenants?status=suspended") as any);
+    const r = await listTenants(mockReq("http://localhost/api/owner/tenants?status=suspended"));
     const data = await r.json();
     expect(data.tenants).toHaveLength(1);
     expect(data.tenants[0].name).toBe("Suspended Co");
@@ -90,7 +91,7 @@ describe("GET /api/owner/tenants", () => {
     const enterprise = await mkOrg("Enterprise Co");
     await prisma.organisation.update({ where: { id: enterprise.id }, data: { plan: "enterprise" } });
 
-    const r = await listTenants(new Request("http://localhost/api/owner/tenants?plan=enterprise") as any);
+    const r = await listTenants(mockReq("http://localhost/api/owner/tenants?plan=enterprise"));
     const data = await r.json();
     expect(data.tenants).toHaveLength(1);
     expect(data.tenants[0].name).toBe("Enterprise Co");
@@ -102,7 +103,7 @@ describe("GET /api/owner/tenants", () => {
     await mkOrg("Royal Riders");
     await mkOrg("City Stables");
 
-    const r = await listTenants(new Request("http://localhost/api/owner/tenants?q=Royal") as any);
+    const r = await listTenants(mockReq("http://localhost/api/owner/tenants?q=Royal"));
     const data = await r.json();
     expect(data.tenants.map((t: any) => t.name)).toEqual(["Royal Riders"]);
   });
@@ -110,14 +111,14 @@ describe("GET /api/owner/tenants", () => {
 
 describe("GET /api/owner/tenants/[id]", () => {
   it("401 without session", async () => {
-    const r = await getTenant(new Request("http://localhost") as any, { params: { id: "x" } });
+    const r = await getTenant(mockReq("http://localhost"), { params: { id: "x" } });
     expect(r.status).toBe(401);
   });
 
   it("404 for unknown id", async () => {
     const owner = await mkPlatformAdmin();
     await loginOwner({ ownerId: owner.id, role: "OWNER_ADMIN", name: owner.name });
-    const r = await getTenant(new Request("http://localhost") as any, { params: { id: "nope" } });
+    const r = await getTenant(mockReq("http://localhost"), { params: { id: "nope" } });
     expect(r.status).toBe(404);
   });
 
@@ -136,7 +137,7 @@ describe("GET /api/owner/tenants/[id]", () => {
       },
     });
 
-    const r = await getTenant(new Request("http://localhost") as any, { params: { id: org.id } });
+    const r = await getTenant(mockReq("http://localhost"), { params: { id: org.id } });
     expect(r.status).toBe(200);
     const data = await r.json();
     expect(data.tenant.name).toBe("Acme");
@@ -149,7 +150,7 @@ describe("GET /api/owner/tenants/[id]", () => {
 
 describe("PATCH /api/owner/tenants/[id]", () => {
   it("401 without session", async () => {
-    const r = await patchTenant(new Request("http://localhost", { method: "PATCH" }) as any, {
+    const r = await patchTenant(mockReq("http://localhost", { method: "PATCH" }), {
       params: { id: "x" },
     });
     expect(r.status).toBe(401);
@@ -161,10 +162,10 @@ describe("PATCH /api/owner/tenants/[id]", () => {
     const org = await mkOrg();
 
     const r = await patchTenant(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ billingEmail: "not-an-email" }),
-      }) as any,
+      }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(400);
@@ -176,7 +177,7 @@ describe("PATCH /api/owner/tenants/[id]", () => {
     const org = await mkOrg();
 
     const r = await patchTenant(
-      new Request("http://localhost", { method: "PATCH", body: JSON.stringify({}) }) as any,
+      mockReq("http://localhost", { method: "PATCH", body: JSON.stringify({}) }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(400);
@@ -189,10 +190,10 @@ describe("PATCH /api/owner/tenants/[id]", () => {
     const org = await mkOrg();
 
     const r = await patchTenant(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ slug: "renamed", name: "ok" }),
-      }) as any,
+      }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(400);
@@ -204,14 +205,14 @@ describe("PATCH /api/owner/tenants/[id]", () => {
     const org = await mkOrg("Original Name");
 
     const r = await patchTenant(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({
           name: "Renamed",
           contactName: "Jane Doe",
           billingEmail: "billing@acme.test",
         }),
-      }) as any,
+      }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(200);
@@ -233,10 +234,10 @@ describe("PATCH /api/owner/tenants/[id]", () => {
     const org = await mkOrg();
 
     const r = await patchTenant(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ status: "suspended" }),
-      }) as any,
+      }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(200);
@@ -255,10 +256,10 @@ describe("PATCH /api/owner/tenants/[id]", () => {
     });
 
     const r = await patchTenant(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ contactName: "", phone: "" }),
-      }) as any,
+      }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(200);

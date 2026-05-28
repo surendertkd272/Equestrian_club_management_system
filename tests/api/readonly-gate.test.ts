@@ -4,6 +4,7 @@ import { mkCentre, mkUser, mkRider } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession, type SessionPayload } from "@/lib/auth";
 import { isReadOnlyStatus, getStatusForSession } from "@/lib/readonly-gate";
+import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -68,10 +69,10 @@ describe("API gate: POST /api/batches under read-only", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const r = await createBatch(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ name: "Morning", dayOfWeek: "Mon", startTime: "06:00", endTime: "07:00" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(403);
     expect(await r.json()).toMatchObject({ error: "READ_ONLY", status: "suspended" });
@@ -84,10 +85,10 @@ describe("API gate: POST /api/batches under read-only", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const r = await createBatch(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ name: "Morning", dayOfWeek: "Mon", startTime: "06:00", endTime: "07:00" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(403);
     expect((await r.json()).status).toBe("past_due");
@@ -100,10 +101,10 @@ describe("API gate: POST /api/batches under read-only", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const r = await createBatch(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ name: "Morning", dayOfWeek: "Mon", startTime: "06:00", endTime: "07:00" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
   });
@@ -117,10 +118,10 @@ describe("API gate: feature-gated + read-only stack together", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const r = await createHorse(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ name: "Bijli" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(403);
     expect((await r.json()).error).toBe("READ_ONLY");
@@ -135,10 +136,10 @@ describe("API gate: HQ-only writes", () => {
     await loginAs({ userId: sup.id, role: "SUPER_ADMIN", centreId: null, name: sup.name });
 
     const r = await patchCentre(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ name: "Renamed" }),
-      }) as any,
+      }),
       { params: { id: centre.id } },
     );
     expect(r.status).toBe(403);
@@ -151,7 +152,7 @@ describe("API gate: HQ-only writes", () => {
     const sup = await mkUser({ role: "SUPER_ADMIN", centreId: null });
     await loginAs({ userId: sup.id, role: "SUPER_ADMIN", centreId: null, name: sup.name });
 
-    const r = await deleteCentre(new Request("http://localhost", { method: "DELETE" }) as any, {
+    const r = await deleteCentre(mockReq("http://localhost", { method: "DELETE" }), {
       params: { id: centre.id },
     });
     expect(r.status).toBe(403);
@@ -167,10 +168,10 @@ describe("API gate: rider portal-access POST under read-only", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const r = await issuePortal(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ email: "rider@x.test" }),
-      }) as any,
+      }),
       { params: { id: rider.id } },
     );
     expect(r.status).toBe(403);

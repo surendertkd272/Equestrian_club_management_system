@@ -3,6 +3,8 @@ import { resetDb } from "../helpers/db";
 import { mkUser, mkCentre } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession, verifyPassword, type SessionPayload } from "@/lib/auth";
+import { mockReq } from "../helpers/request";
+import type { Role } from "@/lib/roles";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -49,13 +51,13 @@ describe("PATCH /api/account/me", () => {
   it("updates name + phone, ignores email/role attempts", async () => {
     const u = await mkUser({ name: "Original" });
     await prisma.user.update({ where: { id: u.id }, data: { phone: "111" } });
-    await login({ userId: u.id, role: u.role as any, centreId: null, name: u.name });
+    await login({ userId: u.id, role: u.role as Role, centreId: null, name: u.name });
 
     const r = await patchMe(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ name: "Renamed", phone: "222" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
 
@@ -65,13 +67,13 @@ describe("PATCH /api/account/me", () => {
   });
   it("rejects extra fields strictly", async () => {
     const u = await mkUser();
-    await login({ userId: u.id, role: u.role as any, centreId: null, name: u.name });
+    await login({ userId: u.id, role: u.role as Role, centreId: null, name: u.name });
 
     const r = await patchMe(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ role: "SUPER_ADMIN" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(400);
   });
@@ -80,13 +82,13 @@ describe("PATCH /api/account/me", () => {
 describe("POST /api/account/change-password", () => {
   it("401 BAD_CURRENT_PASSWORD when current is wrong", async () => {
     const u = await mkUser({ password: "correct" });
-    await login({ userId: u.id, role: u.role as any, centreId: null, name: u.name });
+    await login({ userId: u.id, role: u.role as Role, centreId: null, name: u.name });
 
     const r = await changePwd(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ currentPassword: "wrong", newPassword: "newpass123" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(401);
     expect((await r.json()).error).toBe("BAD_CURRENT_PASSWORD");
@@ -94,26 +96,26 @@ describe("POST /api/account/change-password", () => {
 
   it("400 when new password too short", async () => {
     const u = await mkUser({ password: "correct" });
-    await login({ userId: u.id, role: u.role as any, centreId: null, name: u.name });
+    await login({ userId: u.id, role: u.role as Role, centreId: null, name: u.name });
 
     const r = await changePwd(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ currentPassword: "correct", newPassword: "short" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(400);
   });
 
   it("happy path: rotates the hash + the new password verifies", async () => {
     const u = await mkUser({ password: "correct" });
-    await login({ userId: u.id, role: u.role as any, centreId: null, name: u.name });
+    await login({ userId: u.id, role: u.role as Role, centreId: null, name: u.name });
 
     const r = await changePwd(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ currentPassword: "correct", newPassword: "NewPass123!" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
 

@@ -5,6 +5,7 @@ import { resetDb } from "../helpers/db";
 import { mkCentre, mkUser, mkRider } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession, type SessionPayload } from "@/lib/auth";
+import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -41,7 +42,7 @@ describe("Courses + enrolments", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const r = await createCourse(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           title: "Stable Safety 101",
@@ -49,13 +50,13 @@ describe("Courses + enrolments", () => {
           targetRoles: ["GROOM", "STABLE_MANAGER"],
           passingMark: 70,
         }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
     const { id: courseId } = await r.json();
 
     const enrol = await enrolStaff(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ userId: groom.id }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ userId: groom.id }) }),
       { params: { id: courseId } },
     );
     expect(enrol.status).toBe(200);
@@ -63,7 +64,7 @@ describe("Courses + enrolments", () => {
 
     // Re-enrol should be idempotent (same row)
     const enrol2 = await enrolStaff(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ userId: groom.id }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ userId: groom.id }) }),
       { params: { id: courseId } },
     );
     expect(enrol2.status).toBe(200);
@@ -71,10 +72,10 @@ describe("Courses + enrolments", () => {
 
     // Finish it with a pass
     const finish = await finishEnrolment(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ enrolmentId, finalMark: 82, status: "completed" }),
-      }) as any,
+      }),
       { params: { id: courseId } },
     );
     expect(finish.status).toBe(200);
@@ -91,7 +92,7 @@ describe("Courses + enrolments", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const r = await issueCert(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           userId: coach.id,
@@ -100,7 +101,7 @@ describe("Courses + enrolments", () => {
           serialNo: "BHS-3-12345",
           validUntil: "2030-12-31",
         }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
     const rows = await prisma.staffCertification.findMany({ where: { userId: coach.id } });
@@ -127,7 +128,7 @@ describe("Certificate PDF endpoint", () => {
     const mgr = await mkUser({ role: "CENTRE_MANAGER", centreId: centre.id });
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
-    const r = await getCertPdf(new Request("http://localhost") as any, { params: { id: cert.id } });
+    const r = await getCertPdf(mockReq("http://localhost"), { params: { id: cert.id } });
     expect(r.status).toBe(200);
     expect(r.headers.get("Content-Type")).toContain("text/html");
     const html = await r.text();
@@ -147,7 +148,7 @@ describe("Facility booking", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const ok = await bookFacility(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           facilityId: facility.id,
@@ -156,13 +157,13 @@ describe("Facility booking", () => {
           startAt: "2026-06-01T09:00",
           endAt: "2026-06-01T11:00",
         }),
-      }) as any,
+      }),
     );
     expect(ok.status).toBe(200);
 
     // Overlap at 10:00–12:00 → should clash
     const clash = await bookFacility(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           facilityId: facility.id,
@@ -171,14 +172,14 @@ describe("Facility booking", () => {
           startAt: "2026-06-01T10:00",
           endAt: "2026-06-01T12:00",
         }),
-      }) as any,
+      }),
     );
     expect(clash.status).toBe(409);
     expect((await clash.json()).error).toBe("FACILITY_CONFLICT");
 
     // Back-to-back at 11:00→12:00 is fine
     const okBack = await bookFacility(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           facilityId: facility.id,
@@ -187,7 +188,7 @@ describe("Facility booking", () => {
           startAt: "2026-06-01T11:00",
           endAt: "2026-06-01T12:00",
         }),
-      }) as any,
+      }),
     );
     expect(okBack.status).toBe(200);
   });
@@ -201,7 +202,7 @@ describe("Facility booking", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const r = await bookFacility(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           facilityId: facility.id,
@@ -210,7 +211,7 @@ describe("Facility booking", () => {
           startAt: "2026-06-01T11:00",
           endAt: "2026-06-01T09:00",
         }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(400);
     expect((await r.json()).error).toBe("INVALID_TIME_RANGE");
@@ -226,7 +227,7 @@ describe("Approvals workflow", () => {
     await loginAs({ userId: groom.id, role: "GROOM", centreId: centre.id, name: groom.name });
 
     const r = await createApproval(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           entityType: "asset_issuance",
@@ -234,7 +235,7 @@ describe("Approvals workflow", () => {
           title: "Request to issue saddle SD-12",
           body: "Needed for L3 class on Friday.",
         }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
     const { id } = await r.json();
@@ -246,10 +247,10 @@ describe("Approvals workflow", () => {
     // Manager approves
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
     const review = await reviewApproval(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ decision: "approved", reviewNotes: "OK" }),
-      }) as any,
+      }),
       { params: { id } },
     );
     expect(review.status).toBe(200);
@@ -269,17 +270,17 @@ describe("Approvals workflow", () => {
     await loginAs({ userId: groom.id, role: "GROOM", centreId: centre.id, name: groom.name });
 
     const r = await createApproval(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ entityType: "x", entityId: "y", title: "z" }),
-      }) as any,
+      }),
     );
     const { id } = await r.json();
 
     // Other groom tries to cancel
     await loginAs({ userId: other.id, role: "GROOM", centreId: centre.id, name: other.name });
     const bad = await reviewApproval(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ decision: "cancelled" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ decision: "cancelled" }) }),
       { params: { id } },
     );
     expect(bad.status).toBe(403);
@@ -287,7 +288,7 @@ describe("Approvals workflow", () => {
     // Original requester can
     await loginAs({ userId: groom.id, role: "GROOM", centreId: centre.id, name: groom.name });
     const ok = await reviewApproval(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ decision: "cancelled" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ decision: "cancelled" }) }),
       { params: { id } },
     );
     expect(ok.status).toBe(200);
@@ -301,20 +302,20 @@ describe("Approvals workflow", () => {
     await loginAs({ userId: groom.id, role: "GROOM", centreId: centre.id, name: groom.name });
 
     const r = await createApproval(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ entityType: "x", entityId: "y", title: "z" }),
-      }) as any,
+      }),
     );
     const { id } = await r.json();
 
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
     await reviewApproval(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ decision: "approved" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ decision: "approved" }) }),
       { params: { id } },
     );
     const second = await reviewApproval(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ decision: "rejected" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ decision: "rejected" }) }),
       { params: { id } },
     );
     expect(second.status).toBe(409);

@@ -3,6 +3,7 @@ import { resetDb } from "../helpers/db";
 import { mkUser } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession, type SessionPayload } from "@/lib/auth";
+import type { Role } from "@/lib/roles";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -30,7 +31,7 @@ describe("DPDPA right-to-erasure", () => {
   it("schedules deletion + clears session + sets tokenVersion bump", async () => {
     const u = await mkUser({ email: "leaver@test.local" });
     const before = u.tokenVersion;
-    await login({ userId: u.id, role: u.role as any, centreId: null, name: u.name, tokenVersion: before });
+    await login({ userId: u.id, role: u.role as Role, centreId: null, name: u.name, tokenVersion: before });
 
     const r = await requestDelete();
     expect(r.status).toBe(200);
@@ -46,11 +47,11 @@ describe("DPDPA right-to-erasure", () => {
 
   it("refuses a second request while one is pending", async () => {
     const u = await mkUser();
-    await login({ userId: u.id, role: u.role as any, centreId: null, name: u.name });
+    await login({ userId: u.id, role: u.role as Role, centreId: null, name: u.name });
     await requestDelete();
 
     // Re-login because the first request cleared the cookie.
-    await login({ userId: u.id, role: u.role as any, centreId: null, name: u.name });
+    await login({ userId: u.id, role: u.role as Role, centreId: null, name: u.name });
     const r2 = await requestDelete();
     // It's UNAUTHENTICATED because getSession() now refuses pending-deletion users.
     expect([401, 409]).toContain(r2.status);
@@ -59,7 +60,7 @@ describe("DPDPA right-to-erasure", () => {
   it("cancels a pending deletion via cookie even when getSession is dead", async () => {
     const u = await mkUser();
     // Issue a JWT now, then mark the user pending-deletion server-side.
-    await login({ userId: u.id, role: u.role as any, centreId: null, name: u.name, tokenVersion: u.tokenVersion });
+    await login({ userId: u.id, role: u.role as Role, centreId: null, name: u.name, tokenVersion: u.tokenVersion });
     await prisma.user.update({
       where: { id: u.id },
       data: { deletionRequestedAt: new Date() },
@@ -77,7 +78,7 @@ describe("DPDPA right-to-erasure", () => {
       where: { id: u.id },
       data: { deletionRequestedAt: new Date(), tokenVersion: 1 },
     });
-    await login({ userId: u.id, role: u.role as any, centreId: null, name: u.name, tokenVersion: 1 });
+    await login({ userId: u.id, role: u.role as Role, centreId: null, name: u.name, tokenVersion: 1 });
 
     const { getSession } = await import("@/lib/auth");
     const session = await getSession();

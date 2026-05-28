@@ -5,6 +5,7 @@ import { resetDb } from "../helpers/db";
 import { mkCentre, mkUser, mkRider } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession, type SessionPayload } from "@/lib/auth";
+import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -54,7 +55,7 @@ describe("Consumables", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const create = await createConsumable(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           name: "Sterile gauze pad",
@@ -63,17 +64,17 @@ describe("Consumables", () => {
           qty: 15,
           reorderThreshold: 10,
         }),
-      }) as any,
+      }),
     );
     expect(create.status).toBe(200);
     const { id } = await create.json();
 
     // Use 8 → 7 (still > 10? no, 15-8=7 ≤ 10, crosses threshold)
     const move = await moveConsumable(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ direction: "out", qty: 8, reason: "refill kit" }),
-      }) as any,
+      }),
       { params: { id } },
     );
     expect(move.status).toBe(200);
@@ -98,10 +99,10 @@ describe("Consumables", () => {
       data: { centreId: centre.id, name: "Tape", category: "bandage", unit: "roll", qty: 3, reorderThreshold: 5 },
     });
     const r = await moveConsumable(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ direction: "out", qty: 10 }),
-      }) as any,
+      }),
       { params: { id: row.id } },
     );
     expect(r.status).toBe(409);
@@ -125,10 +126,10 @@ describe("Competition draw of lots", () => {
     });
 
     const r = await drawLots(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ className: "Open" }),
-      }) as any,
+      }),
       { params: { id: comp.id } },
     );
     expect(r.status).toBe(200);
@@ -149,7 +150,7 @@ describe("Competition draw of lots", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
     const comp = await mkCompetition(centre.id);
     const r = await drawLots(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ className: "Open" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ className: "Open" }) }),
       { params: { id: comp.id } },
     );
     expect(r.status).toBe(409);
@@ -170,14 +171,14 @@ describe("Competition draw of lots", () => {
     });
 
     await drawLots(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ className: "Open" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ className: "Open" }) }),
       { params: { id: comp.id } },
     );
     const before = await prisma.startListEntry.count({ where: { competitionId: comp.id } });
     expect(before).toBe(2);
 
     await drawLots(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ className: "Open" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ className: "Open" }) }),
       { params: { id: comp.id } },
     );
     const after = await prisma.startListEntry.count({ where: { competitionId: comp.id } });
@@ -194,10 +195,10 @@ describe("Competition draw of lots", () => {
     );
 
     await drawLots(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ className: "Open", finalise: true }),
-      }) as any,
+      }),
       { params: { id: comp.id } },
     );
 
@@ -214,17 +215,17 @@ describe("Prizes + Sponsors", () => {
     const comp = await mkCompetition(centre.id);
 
     await upsertPrize(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ className: "Open", placement: 1, title: "Winner", cashAmount: 5000 }),
-      }) as any,
+      }),
       { params: { id: comp.id } },
     );
     await upsertPrize(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ className: "Open", placement: 1, title: "Champion", cashAmount: 10000 }),
-      }) as any,
+      }),
       { params: { id: comp.id } },
     );
     const rows = await prisma.prizeAward.findMany({ where: { competitionId: comp.id } });
@@ -240,10 +241,10 @@ describe("Prizes + Sponsors", () => {
     const comp = await mkCompetition(centre.id);
 
     const r = await addSponsor(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ name: "Royal Riders", tier: "gold", contribution: 50000 }),
-      }) as any,
+      }),
       { params: { id: comp.id } },
     );
     expect(r.status).toBe(200);

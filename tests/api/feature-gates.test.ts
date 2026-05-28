@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { signSession, type SessionPayload } from "@/lib/auth";
 import { filterSidebarNav } from "@/components/shell/sidebar-nav";
 import { getFeaturesForSession, getOrgIdForSession } from "@/lib/features-gate";
+import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -120,7 +121,7 @@ describe("API gate: POST /api/competitions", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const r = await createCompetition(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           name: "C1",
@@ -130,7 +131,7 @@ describe("API gate: POST /api/competitions", () => {
           endDate: "2026-06-02",
           classes: [{ name: "Open", fee: 0 }],
         }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(403);
     expect(await r.json()).toMatchObject({ error: "FEATURE_DISABLED", featureKey: "competitions" });
@@ -143,7 +144,7 @@ describe("API gate: POST /api/competitions", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const r = await createCompetition(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           name: "C1",
@@ -153,7 +154,7 @@ describe("API gate: POST /api/competitions", () => {
           endDate: "2026-06-02",
           classes: [{ name: "Open", fee: 0 }],
         }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
   });
@@ -167,10 +168,10 @@ describe("API gate: POST /api/horses", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const r = await createHorse(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ name: "Bijli" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(403);
     expect((await r.json()).featureKey).toBe("horse-management");
@@ -188,7 +189,7 @@ describe("API gate: GET /api/parent/children", () => {
     });
     await loginAs({ userId: parent.id, role: "PARENT", centreId: null, name: parent.name });
 
-    const r = await parentChildren(new Request("http://localhost") as any);
+    const r = await parentChildren(mockReq("http://localhost"));
     expect(r.status).toBe(403);
     expect((await r.json()).featureKey).toBe("parent-portal");
   });
@@ -203,7 +204,7 @@ describe("API gate: GET /api/parent/children", () => {
     });
     await loginAs({ userId: parent.id, role: "PARENT", centreId: null, name: parent.name });
 
-    const r = await parentChildren(new Request("http://localhost") as any);
+    const r = await parentChildren(mockReq("http://localhost"));
     expect(r.status).toBe(200);
   });
 });

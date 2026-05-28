@@ -3,6 +3,7 @@ import { resetDb } from "../helpers/db";
 import { mkUser, mkCentreWithManager, mkRider, linkParent } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession } from "@/lib/auth";
+import { mockReq } from "../helpers/request";
 import type { SessionPayload } from "@/lib/auth";
 
 const cookieJar = new Map<string, { value: string }>();
@@ -37,7 +38,7 @@ describe("GET /api/parent/children", () => {
     await linkParent({ parentUserId: parent.id, riderId: myKid.id });
 
     await loginAs({ userId: parent.id, role: "PARENT", centreId: null, name: parent.name });
-    const r = await listChildren(new Request("http://localhost/api/parent/children") as any);
+    const r = await listChildren(mockReq("http://localhost/api/parent/children"));
     const data = await r.json();
     expect(r.status).toBe(200);
     expect(data.children).toHaveLength(1);
@@ -52,7 +53,7 @@ describe("GET /api/parent/children", () => {
     const { centre } = await mkCentreWithManager();
     const coach = await mkUser({ role: "COACH", centreId: centre.id });
     await loginAs({ userId: coach.id, role: "COACH", centreId: centre.id, name: coach.name });
-    const r = await listChildren(new Request("http://localhost/api/parent/children") as any);
+    const r = await listChildren(mockReq("http://localhost/api/parent/children"));
     expect(r.status).toBe(403);
   });
 
@@ -118,7 +119,7 @@ describe("GET /api/parent/children", () => {
     });
 
     await loginAs({ userId: parent.id, role: "PARENT", centreId: null, name: parent.name });
-    const r = await listChildren(new Request("http://localhost/api/parent/children") as any);
+    const r = await listChildren(mockReq("http://localhost/api/parent/children"));
     const data = await r.json();
     expect(r.status).toBe(200);
     const c = data.children[0];
@@ -139,7 +140,7 @@ describe("GET /api/parent/children/[riderId]", () => {
     await linkParent({ parentUserId: parent.id, riderId: kid.id, relationship: "mother" });
 
     await loginAs({ userId: parent.id, role: "PARENT", centreId: null, name: parent.name });
-    const r = await getChild(new Request("http://localhost") as any, { params: { riderId: kid.id } });
+    const r = await getChild(mockReq("http://localhost"), { params: { riderId: kid.id } });
     const data = await r.json();
     expect(r.status).toBe(200);
     expect(data.rider.firstName).toBe("Linked");
@@ -156,7 +157,7 @@ describe("GET /api/parent/children/[riderId]", () => {
     await linkParent({ parentUserId: parentB.id, riderId: bKid.id });
 
     await loginAs({ userId: parentA.id, role: "PARENT", centreId: null, name: parentA.name });
-    const r = await getChild(new Request("http://localhost") as any, { params: { riderId: bKid.id } });
+    const r = await getChild(mockReq("http://localhost"), { params: { riderId: bKid.id } });
     expect(r.status).toBe(404);
   });
 
@@ -166,7 +167,7 @@ describe("GET /api/parent/children/[riderId]", () => {
     const kid = await mkRider({ centreId: centre.id });
     await linkParent({ parentUserId: parent.id, riderId: kid.id });
     await loginAs({ userId: parent.id, role: "PARENT", centreId: null, name: parent.name });
-    const r = await getChild(new Request("http://localhost") as any, { params: { riderId: "ghost" } });
+    const r = await getChild(mockReq("http://localhost"), { params: { riderId: "ghost" } });
     expect(r.status).toBe(404);
   });
 });
@@ -178,13 +179,13 @@ describe("POST /api/riders/[id]/parent-links", () => {
     await loginAs({ userId: manager.id, role: "CENTRE_MANAGER", centreId: centre.id, name: manager.name });
 
     const r = await createLink(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           relationship: "father",
           parent: { name: "Dad D.", email: "dad@test.local", phone: "9876543210" },
         }),
-      }) as any,
+      }),
       { params: { id: kid.id } },
     );
     const data = await r.json();
@@ -208,10 +209,10 @@ describe("POST /api/riders/[id]/parent-links", () => {
     await loginAs({ userId: manager.id, role: "CENTRE_MANAGER", centreId: centre.id, name: manager.name });
 
     const r = await createLink(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ relationship: "mother", parentUserId: existing.id }),
-      }) as any,
+      }),
       { params: { id: kid.id } },
     );
     expect(r.status).toBe(200);
@@ -228,10 +229,10 @@ describe("POST /api/riders/[id]/parent-links", () => {
 
     await loginAs({ userId: manager.id, role: "CENTRE_MANAGER", centreId: centre.id, name: manager.name });
     const r = await createLink(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ relationship: "father", parentUserId: parent.id }),
-      }) as any,
+      }),
       { params: { id: kid.id } },
     );
     expect(r.status).toBe(409);
@@ -245,13 +246,13 @@ describe("POST /api/riders/[id]/parent-links", () => {
 
     await loginAs({ userId: manager.id, role: "CENTRE_MANAGER", centreId: centre.id, name: manager.name });
     const r = await createLink(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           relationship: "father",
           parent: { name: "Dad", email: "shared@test.local" },
         }),
-      }) as any,
+      }),
       { params: { id: kid.id } },
     );
     expect(r.status).toBe(409);
@@ -265,10 +266,10 @@ describe("POST /api/riders/[id]/parent-links", () => {
     await loginAs({ userId: manager.id, role: "CENTRE_MANAGER", centreId: centre.id, name: manager.name });
 
     const r = await createLink(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ relationship: "father", parentUserId: coach.id }),
-      }) as any,
+      }),
       { params: { id: kid.id } },
     );
     expect(r.status).toBe(400);
@@ -287,13 +288,13 @@ describe("POST /api/riders/[id]/parent-links", () => {
     });
 
     const r = await createLink(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           relationship: "father",
           parent: { name: "X", email: "x@test.local" },
         }),
-      }) as any,
+      }),
       { params: { id: foreignKid.id } },
     );
     expect(r.status).toBe(403);
@@ -306,13 +307,13 @@ describe("POST /api/riders/[id]/parent-links", () => {
     await loginAs({ userId: coach.id, role: "COACH", centreId: centre.id, name: coach.name });
 
     const r = await createLink(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           relationship: "father",
           parent: { name: "X", email: "x@test.local" },
         }),
-      }) as any,
+      }),
       { params: { id: kid.id } },
     );
     expect(r.status).toBe(403);
@@ -325,14 +326,14 @@ describe("POST /api/riders/[id]/parent-links", () => {
     await loginAs({ userId: manager.id, role: "CENTRE_MANAGER", centreId: centre.id, name: manager.name });
 
     const r = await createLink(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           relationship: "father",
           parentUserId: existing.id,
           parent: { name: "X", email: "x@test.local" },
         }),
-      }) as any,
+      }),
       { params: { id: kid.id } },
     );
     expect(r.status).toBe(400);
@@ -348,7 +349,7 @@ describe("DELETE /api/riders/[id]/parent-links/[linkId]", () => {
 
     await loginAs({ userId: manager.id, role: "CENTRE_MANAGER", centreId: centre.id, name: manager.name });
     const r = await deleteLink(
-      new Request("http://localhost", { method: "DELETE" }) as any,
+      mockReq("http://localhost", { method: "DELETE" }),
       { params: { id: kid.id, linkId: link.id } },
     );
     expect(r.status).toBe(200);
@@ -367,7 +368,7 @@ describe("DELETE /api/riders/[id]/parent-links/[linkId]", () => {
 
     await loginAs({ userId: manager.id, role: "CENTRE_MANAGER", centreId: centre.id, name: manager.name });
     const r = await deleteLink(
-      new Request("http://localhost", { method: "DELETE" }) as any,
+      mockReq("http://localhost", { method: "DELETE" }),
       { params: { id: kidB.id, linkId: link.id } },
     );
     expect(r.status).toBe(404);

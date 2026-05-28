@@ -3,6 +3,7 @@ import { resetDb } from "../helpers/db";
 import { mkUser, mkCentre } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession, verifyPassword } from "@/lib/auth";
+import { mockReq } from "../helpers/request";
 import type { SessionPayload } from "@/lib/auth";
 
 const cookieJar = new Map<string, { value: string }>();
@@ -26,23 +27,23 @@ async function loginAs(payload: SessionPayload) {
 function list(qs: Record<string, string> = {}) {
   const url = new URL("http://localhost/api/users");
   for (const [k, v] of Object.entries(qs)) url.searchParams.set(k, v);
-  return listUsers(new Request(url) as any);
+  return listUsers(mockReq(url));
 }
 
 function patch(id: string, body: unknown) {
   return PATCH(
-    new Request(`http://localhost/api/users/${id}`, {
+    mockReq(`http://localhost/api/users/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
-    }) as any,
+    }),
     { params: { id } },
   );
 }
 
 function reset(id: string) {
   return resetPwd(
-    new Request(`http://localhost/api/users/${id}/reset-password`, { method: "POST" }) as any,
+    mockReq(`http://localhost/api/users/${id}/reset-password`, { method: "POST" }),
     { params: { id } },
   );
 }

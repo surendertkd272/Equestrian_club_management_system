@@ -3,6 +3,7 @@ import { resetDb } from "../helpers/db";
 import { mkUser, mkCentre, mkCentreWithManager, mkRider } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession, verifyPassword } from "@/lib/auth";
+import { mockReq } from "../helpers/request";
 import type { SessionPayload } from "@/lib/auth";
 
 const cookieJar = new Map<string, { value: string }>();
@@ -37,7 +38,7 @@ describe("GET /api/student/me", () => {
     await prisma.rider.update({ where: { id: rider.id }, data: { userId: u.id } });
     await loginAs({ userId: u.id, role: "RIDER", centreId: c.id, name: u.name });
 
-    const r = await me(new Request("http://localhost") as any);
+    const r = await me(mockReq("http://localhost"));
     expect(r.status).toBe(200);
     const data = await r.json();
     expect(data.rider.firstName).toBe("Aarav");
@@ -49,7 +50,7 @@ describe("GET /api/student/me", () => {
     const c = await mkCentre();
     const u = await mkUser({ role: "RIDER", centreId: c.id });
     await loginAs({ userId: u.id, role: "RIDER", centreId: c.id, name: u.name });
-    const r = await me(new Request("http://localhost") as any);
+    const r = await me(mockReq("http://localhost"));
     expect(r.status).toBe(404);
     expect((await r.json()).error).toBe("NOT_LINKED");
   });
@@ -58,7 +59,7 @@ describe("GET /api/student/me", () => {
     const c = await mkCentre();
     const coach = await mkUser({ role: "COACH", centreId: c.id });
     await loginAs({ userId: coach.id, role: "COACH", centreId: c.id, name: coach.name });
-    const r = await me(new Request("http://localhost") as any);
+    const r = await me(mockReq("http://localhost"));
     expect(r.status).toBe(403);
   });
 
@@ -95,7 +96,7 @@ describe("GET /api/student/me", () => {
     });
 
     await loginAs({ userId: u.id, role: "RIDER", centreId: c.id, name: u.name });
-    const r = await me(new Request("http://localhost") as any);
+    const r = await me(mockReq("http://localhost"));
     const data = await r.json();
     // 3 present-or-late / 4 sessions = 75%
     expect(data.attendancePct).toBe(75);
@@ -128,7 +129,7 @@ describe("GET /api/student/me/detail", () => {
     });
 
     await loginAs({ userId: u.id, role: "RIDER", centreId: c.id, name: u.name });
-    const r = await meDetail(new Request("http://localhost") as any);
+    const r = await meDetail(mockReq("http://localhost"));
     expect(r.status).toBe(200);
     const data = await r.json();
     expect(data.rider.firstName).toBe("Aisha");
@@ -152,7 +153,7 @@ describe("GET /api/student/me/detail", () => {
     });
 
     await loginAs({ userId: u.id, role: "RIDER", centreId: c.id, name: u.name });
-    const r = await meDetail(new Request("http://localhost") as any);
+    const r = await meDetail(mockReq("http://localhost"));
     const data = await r.json();
     expect(data.notifications.map((n: any) => n.title)).toEqual(["Unread"]);
   });
@@ -165,10 +166,10 @@ describe("POST /api/riders/[id]/portal-access (issue)", () => {
     await loginAs({ userId: manager.id, role: "CENTRE_MANAGER", centreId: centre.id, name: manager.name });
 
     const r = await issuePortal(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ email: "ria@test.local" }),
-      }) as any,
+      }),
       { params: { id: rider.id } },
     );
     expect(r.status).toBe(200);
@@ -195,10 +196,10 @@ describe("POST /api/riders/[id]/portal-access (issue)", () => {
     await loginAs({ userId: manager.id, role: "CENTRE_MANAGER", centreId: centre.id, name: manager.name });
 
     const r = await issuePortal(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ email: "duplicate@test.local" }),
-      }) as any,
+      }),
       { params: { id: rider.id } },
     );
     expect(r.status).toBe(409);
@@ -212,10 +213,10 @@ describe("POST /api/riders/[id]/portal-access (issue)", () => {
     await loginAs({ userId: manager.id, role: "CENTRE_MANAGER", centreId: centre.id, name: manager.name });
 
     const r = await issuePortal(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ email: "shared@test.local" }),
-      }) as any,
+      }),
       { params: { id: rider.id } },
     );
     expect(r.status).toBe(409);
@@ -229,10 +230,10 @@ describe("POST /api/riders/[id]/portal-access (issue)", () => {
     await loginAs({ userId: coach.id, role: "COACH", centreId: centre.id, name: coach.name });
 
     const r = await issuePortal(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ email: "x@test.local" }),
-      }) as any,
+      }),
       { params: { id: rider.id } },
     );
     expect(r.status).toBe(403);
@@ -245,10 +246,10 @@ describe("POST /api/riders/[id]/portal-access (issue)", () => {
     await loginAs({ userId: a.manager.id, role: "CENTRE_MANAGER", centreId: a.centre.id, name: a.manager.name });
 
     const r = await issuePortal(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ email: "x@test.local" }),
-      }) as any,
+      }),
       { params: { id: foreignRider.id } },
     );
     expect(r.status).toBe(403);
@@ -263,7 +264,7 @@ describe("DELETE /api/riders/[id]/portal-access (revoke)", () => {
     await prisma.rider.update({ where: { id: rider.id }, data: { userId: u.id } });
     await loginAs({ userId: manager.id, role: "CENTRE_MANAGER", centreId: centre.id, name: manager.name });
 
-    const r = await revokePortal(new Request("http://localhost", { method: "DELETE" }) as any, {
+    const r = await revokePortal(mockReq("http://localhost", { method: "DELETE" }), {
       params: { id: rider.id },
     });
     expect(r.status).toBe(200);
@@ -278,7 +279,7 @@ describe("DELETE /api/riders/[id]/portal-access (revoke)", () => {
     const rider = await mkRider({ centreId: centre.id });
     await loginAs({ userId: manager.id, role: "CENTRE_MANAGER", centreId: centre.id, name: manager.name });
 
-    const r = await revokePortal(new Request("http://localhost", { method: "DELETE" }) as any, {
+    const r = await revokePortal(mockReq("http://localhost", { method: "DELETE" }), {
       params: { id: rider.id },
     });
     expect(r.status).toBe(404);

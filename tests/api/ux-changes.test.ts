@@ -9,6 +9,8 @@ import { signSession, verifyPassword, hashPassword, type SessionPayload } from "
 import { hashToken } from "@/lib/password-reset";
 import { notify } from "@/lib/notify";
 import { isInQuietHours, mergePrefs } from "@/lib/notify-prefs";
+import { mockReq } from "../helpers/request";
+import type { Role } from "@/lib/roles";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -41,10 +43,10 @@ describe("Must-change-password gate", () => {
     await prisma.user.update({ where: { id: u.id }, data: { mustChangePassword: true } });
 
     const r = await loginPost(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ email: "rot@x.test", password: "temp1234" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
     expect((await r.json()).redirect).toBe("/account/rotate");
@@ -59,10 +61,10 @@ describe("Must-change-password gate", () => {
       centreId: c.id,
     });
     const r = await loginPost(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ email: "ok@x.test", password: "real-password" }),
-      }) as any,
+      }),
     );
     const data = await r.json();
     expect(data.redirect).toBe("/dashboard");
@@ -72,7 +74,7 @@ describe("Must-change-password gate", () => {
 describe("Forgot-password flow", () => {
   it("always returns 200 even for unknown emails (no enumeration leak)", async () => {
     const r = await forgotPost(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ email: "nobody@x.test" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ email: "nobody@x.test" }) }),
     );
     expect(r.status).toBe(200);
   });
@@ -82,7 +84,7 @@ describe("Forgot-password flow", () => {
     // Pretend the email/SMS were delivered: we directly fetch the token row
     // since dev email transport doesn't persist it for us.
     await forgotPost(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ email: "lost@x.test" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ email: "lost@x.test" }) }),
     );
 
     const tokens = await prisma.passwordResetToken.findMany({ where: { userId: u.id } });
@@ -98,10 +100,10 @@ describe("Forgot-password flow", () => {
     });
 
     const redeem = await resetPost(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ token: plain, newPassword: "NewPass8!" }),
-      }) as any,
+      }),
     );
     expect(redeem.status).toBe(200);
 
@@ -111,10 +113,10 @@ describe("Forgot-password flow", () => {
 
     // Second redeem with same token is rejected.
     const replay = await resetPost(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ token: plain, newPassword: "AnotherPw1!" }),
-      }) as any,
+      }),
     );
     expect(replay.status).toBe(400);
     expect((await replay.json()).error).toBe("TOKEN_USED");
@@ -131,10 +133,10 @@ describe("Forgot-password flow", () => {
       },
     });
     const r = await resetPost(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ token: plain, newPassword: "NewPw1234!" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(410);
   });
@@ -142,7 +144,7 @@ describe("Forgot-password flow", () => {
 
 describe("Global search /api/search", () => {
   it("401 without session", async () => {
-    const r = await searchGet(new Request("http://localhost/api/search?q=foo") as any);
+    const r = await searchGet(mockReq("http://localhost/api/search?q=foo"));
     expect(r.status).toBe(401);
   });
 
@@ -150,7 +152,7 @@ describe("Global search /api/search", () => {
     const c = await mkCentre();
     const u = await mkUser({ role: "CENTRE_MANAGER", centreId: c.id });
     await loginAs({ userId: u.id, role: "CENTRE_MANAGER", centreId: c.id, name: u.name });
-    const r = await searchGet(new Request("http://localhost/api/search?q=a") as any);
+    const r = await searchGet(mockReq("http://localhost/api/search?q=a"));
     expect(r.status).toBe(200);
     expect((await r.json()).hits).toEqual([]);
   });
@@ -162,7 +164,7 @@ describe("Global search /api/search", () => {
     await mkRider({ centreId: c.id, firstName: "Aarav", lastName: "Patel" });
     await loginAs({ userId: u.id, role: "CENTRE_MANAGER", centreId: c.id, name: u.name });
 
-    const r = await searchGet(new Request("http://localhost/api/search?q=Riya") as any);
+    const r = await searchGet(mockReq("http://localhost/api/search?q=Riya"));
     expect(r.status).toBe(200);
     const data = await r.json();
     expect(data.hits.some((h: any) => h.primary === "Riya Sharma")).toBe(true);
@@ -177,7 +179,7 @@ describe("Global search /api/search", () => {
     const mgr = await mkUser({ role: "CENTRE_MANAGER", centreId: a.id });
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: a.id, name: mgr.name });
 
-    const r = await searchGet(new Request("http://localhost/api/search?q=test") as any);
+    const r = await searchGet(mockReq("http://localhost/api/search?q=test"));
     const data = await r.json();
     const names = data.hits.map((h: any) => h.primary);
     expect(names).toContain("Atest Aname");
@@ -228,13 +230,13 @@ describe("Notification preferences", () => {
   it("PATCH /api/account/notif-prefs merges + persists", async () => {
     const c = await mkCentre();
     const u = await mkUser({ centreId: c.id });
-    await loginAs({ userId: u.id, role: u.role as any, centreId: c.id, name: u.name });
+    await loginAs({ userId: u.id, role: u.role as Role, centreId: c.id, name: u.name });
 
     const r = await prefsPatch(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ sms: true, quietHoursStart: "22:00", quietHoursEnd: "07:00" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
 

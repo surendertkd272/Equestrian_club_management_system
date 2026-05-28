@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { resetDb } from "../helpers/db";
 import { mkUser } from "../helpers/fixtures";
 import { verifySession } from "@/lib/auth";
+import { mockReq } from "../helpers/request";
 
 // In-memory cookie jar that stands in for next/headers' cookies() helper. Captures
 // .set() calls so we can verify the session cookie shape on success and inspect the
@@ -20,11 +21,11 @@ const { POST } = await import("@/app/api/auth/login/route");
 
 function postLogin(body: unknown) {
   return POST(
-    new Request("http://localhost/api/auth/login", {
+    mockReq("http://localhost/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
-    }) as any,
+    }),
   );
 }
 
@@ -48,10 +49,10 @@ describe("POST /api/auth/login", () => {
 
   it("returns 400 VALIDATION when the body isn't JSON", async () => {
     const r = await POST(
-      new Request("http://localhost/api/auth/login", {
+      mockReq("http://localhost/api/auth/login", {
         method: "POST",
         body: "not json",
-      }) as any,
+      }),
     );
     expect(r.status).toBe(400);
   });

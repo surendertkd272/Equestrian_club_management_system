@@ -3,6 +3,7 @@ import { resetDb } from "../helpers/db";
 import { mkUser, mkCentreWithManager } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession } from "@/lib/auth";
+import { mockReq } from "../helpers/request";
 import type { SessionPayload } from "@/lib/auth";
 
 const cookieJar = new Map<string, { value: string }>();
@@ -24,21 +25,21 @@ async function loginAs(payload: SessionPayload) {
 
 function postReq(body: unknown) {
   return POST(
-    new Request("http://localhost/api/leave-requests", {
+    mockReq("http://localhost/api/leave-requests", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    }) as any,
+    }),
   );
 }
 
 function patchReq(id: string, body: unknown) {
   return PATCH(
-    new Request(`http://localhost/api/leave-requests/${id}`, {
+    mockReq(`http://localhost/api/leave-requests/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    }) as any,
+    }),
     { params: { id } },
   );
 }
@@ -191,14 +192,14 @@ describe("GET /api/leave-requests", () => {
 
     // Coach A: should only see their own
     await loginAs({ userId: coachA.id, role: "COACH", centreId: centre.id, name: coachA.name });
-    const r1 = await GET(new Request("http://localhost/api/leave-requests") as any);
+    const r1 = await GET(mockReq("http://localhost/api/leave-requests"));
     const d1 = await r1.json();
     expect(d1.rows).toHaveLength(1);
     expect(d1.rows[0].userId).toBe(coachA.id);
 
     // Manager: sees both
     await loginAs({ userId: manager.id, role: "CENTRE_MANAGER", centreId: centre.id, name: manager.name });
-    const r2 = await GET(new Request("http://localhost/api/leave-requests") as any);
+    const r2 = await GET(mockReq("http://localhost/api/leave-requests"));
     const d2 = await r2.json();
     expect(d2.rows).toHaveLength(2);
   });

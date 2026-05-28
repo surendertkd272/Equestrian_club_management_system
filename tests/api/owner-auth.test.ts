@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { resetDb } from "../helpers/db";
 import { prisma } from "@/lib/prisma";
 import { verifyOwnerSession, hashOwnerPassword } from "@/lib/owner-auth";
+import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string; opts?: any }>();
 vi.mock("next/headers", () => ({
@@ -17,11 +18,11 @@ const { POST: logout } = await import("@/app/api/owner/auth/logout/route");
 
 function postLogin(body: unknown) {
   return login(
-    new Request("http://localhost/api/owner/auth/login", {
+    mockReq("http://localhost/api/owner/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
-    }) as any,
+    }),
   );
 }
 
@@ -102,11 +103,11 @@ describe("POST /api/owner/auth/login", () => {
     await mkPlatformUser({ email: "owner@platform.local", password: "pw" });
     const { POST: tenantLogin } = await import("@/app/api/auth/login/route");
     const r = await tenantLogin(
-      new Request("http://localhost/api/auth/login", {
+      mockReq("http://localhost/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: "owner@platform.local", password: "pw" }),
-      }) as any,
+      }),
     );
     // Tenant route looks up User table — PlatformUser is invisible to it.
     expect(r.status).toBe(401);

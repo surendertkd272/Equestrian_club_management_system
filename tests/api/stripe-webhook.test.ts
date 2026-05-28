@@ -7,6 +7,7 @@ import {
   verifyStripeSignature,
   orgStatusFromStripe,
 } from "@/lib/stripe";
+import { mockReq } from "../helpers/request";
 
 // We have to set the webhook secret before importing the route handler — the
 // handler reads it from env on each call but a few internal helpers cache.
@@ -35,11 +36,11 @@ function postEvent(event: object, opts: { signature?: string; timestamp?: number
   const ts = opts.timestamp ?? Math.floor(Date.now() / 1000);
   const sig = opts.signature ?? signPayload(payload, ts);
   headers.set("stripe-signature", sig);
-  return stripeWebhook(new Request("http://localhost/api/webhooks/stripe", {
+  return stripeWebhook(mockReq("http://localhost/api/webhooks/stripe", {
     method: "POST",
     headers,
     body: payload,
-  }) as any);
+  }));
 }
 
 beforeEach(async () => {

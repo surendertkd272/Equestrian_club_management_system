@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { signSession, type SessionPayload } from "@/lib/auth";
 import { createMedicineSchema } from "@/lib/schemas/medicine";
 import { sweepHorseInsuranceExpiry } from "@/lib/sweeps";
+import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -73,7 +74,7 @@ describe("Batch A.3 — Centre emergency contacts", () => {
     const centre = await mkCentre({ orgId: org.id });
 
     const r = await patchCentre(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({
           emergencyContacts: [
@@ -81,7 +82,7 @@ describe("Batch A.3 — Centre emergency contacts", () => {
             { type: "ambulance", label: "Apollo Vet", number: "1066" },
           ],
         }),
-      }) as any,
+      }),
       { params: { id: centre.id } },
     );
     expect(r.status).toBe(200);
@@ -105,10 +106,10 @@ describe("Batch A.3 — Centre emergency contacts", () => {
     });
 
     const r = await patchCentre(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ emergencyContacts: [] }),
-      }) as any,
+      }),
       { params: { id: centre.id } },
     );
     expect(r.status).toBe(200);
@@ -133,7 +134,7 @@ describe("Batch A.4 — Horse insurance fields + sweep", () => {
     });
 
     const r = await createHorse(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           name: "Bijli",
@@ -144,7 +145,7 @@ describe("Batch A.4 — Horse insurance fields + sweep", () => {
           insuranceValidFrom: "2026-01-01",
           insuranceValidTo: "2027-01-01",
         }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
 

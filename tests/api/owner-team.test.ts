@@ -8,6 +8,7 @@ import {
   type OwnerRole,
   type OwnerSessionPayload,
 } from "@/lib/owner-auth";
+import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -72,10 +73,10 @@ describe("POST /api/owner/team (invite)", () => {
     await loginOwner({ ownerId: editor.id, role: "OWNER_EDITOR", name: editor.name });
 
     const r = await inviteTeam(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ name: "Bob", email: "bob@platform.local", role: "OWNER_BILLING" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(403);
     expect((await r.json()).required).toBe("team.manage");
@@ -86,10 +87,10 @@ describe("POST /api/owner/team (invite)", () => {
     await loginOwner({ ownerId: admin.id, role: "OWNER_ADMIN", name: admin.name });
 
     const r = await inviteTeam(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ name: "Bob", email: "bob@platform.local", role: "SUPER_BOSS" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(400);
   });
@@ -100,10 +101,10 @@ describe("POST /api/owner/team (invite)", () => {
     await loginOwner({ ownerId: admin.id, role: "OWNER_ADMIN", name: admin.name });
 
     const r = await inviteTeam(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ name: "Bob", email: "bob@platform.local", role: "OWNER_EDITOR" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(409);
   });
@@ -113,10 +114,10 @@ describe("POST /api/owner/team (invite)", () => {
     await loginOwner({ ownerId: admin.id, role: "OWNER_ADMIN", name: admin.name });
 
     const r = await inviteTeam(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ name: "Bob Editor", email: "bob@platform.local", role: "OWNER_EDITOR" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
     const data = await r.json();
@@ -141,7 +142,7 @@ describe("PATCH /api/owner/team/[id]", () => {
     await loginOwner({ ownerId: editor.id, role: "OWNER_EDITOR", name: editor.name });
 
     const r = await patchTeam(
-      new Request("http://localhost", { method: "PATCH", body: JSON.stringify({ name: "New" }) }) as any,
+      mockReq("http://localhost", { method: "PATCH", body: JSON.stringify({ name: "New" }) }),
       { params: { id: target.id } },
     );
     expect(r.status).toBe(403);
@@ -153,10 +154,10 @@ describe("PATCH /api/owner/team/[id]", () => {
     await loginOwner({ ownerId: admin.id, role: "OWNER_ADMIN", name: admin.name });
 
     const r = await patchTeam(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ email: "renamed@x.test" }),
-      }) as any,
+      }),
       { params: { id: target.id } },
     );
     expect(r.status).toBe(400);
@@ -168,10 +169,10 @@ describe("PATCH /api/owner/team/[id]", () => {
     await loginOwner({ ownerId: admin.id, role: "OWNER_ADMIN", name: admin.name });
 
     const r = await patchTeam(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ role: "OWNER_EDITOR" }),
-      }) as any,
+      }),
       { params: { id: admin.id } },
     );
     expect(r.status).toBe(409);
@@ -184,10 +185,10 @@ describe("PATCH /api/owner/team/[id]", () => {
     await loginOwner({ ownerId: admin.id, role: "OWNER_ADMIN", name: admin.name });
 
     const r = await patchTeam(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ status: "suspended" }),
-      }) as any,
+      }),
       { params: { id: admin.id } },
     );
     expect(r.status).toBe(409);
@@ -227,10 +228,10 @@ describe("PATCH /api/owner/team/[id]", () => {
     await loginOwner({ ownerId: admin.id, role: "OWNER_ADMIN", name: admin.name });
 
     const r = await patchTeam(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ role: "OWNER_ADMIN" }),
-      }) as any,
+      }),
       { params: { id: editor.id } },
     );
     expect(r.status).toBe(200);

@@ -3,6 +3,7 @@ import { resetDb } from "../helpers/db";
 import { mkUser, mkCentreWithManager } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession } from "@/lib/auth";
+import { mockReq } from "../helpers/request";
 import type { SessionPayload } from "@/lib/auth";
 
 // next/headers' cookies() throws outside a request scope. Back it with a jar that
@@ -26,11 +27,11 @@ async function loginAs(payload: SessionPayload) {
 
 function postMark(body: unknown) {
   return POST(
-    new Request("http://localhost/api/staff-attendance/mark", {
+    mockReq("http://localhost/api/staff-attendance/mark", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    }) as any,
+    }),
   );
 }
 
@@ -145,7 +146,7 @@ describe("GET /api/staff-attendance", () => {
       data: { userId: foreignGroom.id, centreId: other.centre.id, date: new Date("2026-05-14"), status: "present" },
     });
 
-    const r = await GET(new Request("http://localhost/api/staff-attendance") as any);
+    const r = await GET(mockReq("http://localhost/api/staff-attendance"));
     const data = await r.json();
     expect(r.status).toBe(200);
     expect(data.rows).toHaveLength(1);

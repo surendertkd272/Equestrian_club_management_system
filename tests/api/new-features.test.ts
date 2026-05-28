@@ -12,6 +12,8 @@ import { resetDb } from "../helpers/db";
 import { mkCentre, mkUser } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession } from "@/lib/auth";
+import { mockReq } from "../helpers/request";
+import type { Role } from "@/lib/roles";
 import type { SessionPayload } from "@/lib/auth";
 
 // next/headers' cookies() throws outside a request scope. Back it with a
@@ -29,7 +31,7 @@ async function loginAs(user: { id: string; role: string; centreId: string | null
   cookieJar.clear();
   const payload: SessionPayload = {
     userId: user.id,
-    role: user.role as any,
+    role: user.role as Role,
     centreId: user.centreId,
     name: user.name,
     tokenVersion: 0,
@@ -38,11 +40,11 @@ async function loginAs(user: { id: string; role: string; centreId: string | null
 }
 
 function jsonRequest(url: string, body: unknown, method = "POST"): any {
-  return new Request(url, {
+  return mockReq(url, {
     method,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-  }) as any;
+  });
 }
 
 beforeEach(async () => {
@@ -85,7 +87,7 @@ describe("vet visits API", () => {
           frequency: "BID",
         }],
       }),
-      { params: { id: horse.id } } as any,
+      { params: { id: horse.id } },
     );
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -107,7 +109,7 @@ describe("vet visits API", () => {
       jsonRequest("http://localhost/api/horses/x/vet-visits", {
         notes: "Should not be allowed.",
       }),
-      { params: { id: horseB.id } } as any,
+      { params: { id: horseB.id } },
     );
     expect(res.status).toBe(403);
   });
@@ -134,7 +136,7 @@ describe("vet visits API", () => {
         notes: "n",
         prescriptions: [{ medicineId: medB.id, medicineName: "x", dose: "1ml" }],
       }),
-      { params: { id: horseA.id } } as any,
+      { params: { id: horseA.id } },
     );
     expect(res.status).toBe(400);
     const body = await res.json();
@@ -172,7 +174,7 @@ describe("requisition workflow", () => {
     await loginAs(manager);
     const res2 = await decidePost(
       jsonRequest(`http://localhost/api/requisitions/${id}/decide`, { decision: "approve" }),
-      { params: { id } } as any,
+      { params: { id } },
     );
     const j2 = await res2.json();
     expect(j2.stage).toBe("pending_accountant");
@@ -181,7 +183,7 @@ describe("requisition workflow", () => {
     await loginAs(accountant);
     const res3 = await decidePost(
       jsonRequest(`http://localhost/api/requisitions/${id}/decide`, { decision: "approve" }),
-      { params: { id } } as any,
+      { params: { id } },
     );
     const j3 = await res3.json();
     expect(j3.stage).toBe("approved");
@@ -204,7 +206,7 @@ describe("requisition workflow", () => {
     const { id } = await res1.json();
     const res2 = await decidePost(
       jsonRequest(`http://localhost/api/requisitions/${id}/decide`, { decision: "approve" }),
-      { params: { id } } as any,
+      { params: { id } },
     );
     expect(res2.status).toBe(403);
   });

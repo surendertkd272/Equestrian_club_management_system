@@ -3,6 +3,7 @@ import { resetDb } from "../helpers/db";
 import { mkUser, mkCentre } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession } from "@/lib/auth";
+import { mockReq } from "../helpers/request";
 import type { SessionPayload } from "@/lib/auth";
 
 const cookieJar = new Map<string, { value: string }>();
@@ -24,28 +25,28 @@ async function loginAs(payload: SessionPayload) {
 
 function patch(id: string, body: unknown) {
   return PATCH(
-    new Request(`http://localhost/api/centres/${id}`, {
+    mockReq(`http://localhost/api/centres/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
-    }) as any,
+    }),
     { params: { id } },
   );
 }
 
 function post(body: unknown) {
   return POST(
-    new Request("http://localhost/api/centres", {
+    mockReq("http://localhost/api/centres", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
-    }) as any,
+    }),
   );
 }
 
 function del(id: string) {
   return DELETE(
-    new Request(`http://localhost/api/centres/${id}`, { method: "DELETE" }) as any,
+    mockReq(`http://localhost/api/centres/${id}`, { method: "DELETE" }),
     { params: { id } },
   );
 }

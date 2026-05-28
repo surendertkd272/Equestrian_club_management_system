@@ -7,6 +7,7 @@ import { mkCentre, mkUser, mkRider } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession, type SessionPayload } from "@/lib/auth";
 import { medalsForRider, medalsForTeam } from "@/lib/medals";
+import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -40,14 +41,14 @@ describe("Task.kind — dress rehearsals", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const r = await createTask(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           title: "Dress rehearsal: Royal Cup",
           description: "Full show kit. 18:00 in main arena.",
           kind: "dress_rehearsal",
         }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
 
@@ -78,10 +79,10 @@ describe("Exam.supportStaffJson — test-day grooms", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const ok = await setSupportStaff(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ supportStaffIds: [groomA.id, groomB.id] }),
-      }) as any,
+      }),
       { params: { id: exam.id } },
     );
     expect(ok.status).toBe(200);
@@ -91,20 +92,20 @@ describe("Exam.supportStaffJson — test-day grooms", () => {
 
     // Bogus ID
     const bad = await setSupportStaff(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ supportStaffIds: ["nope"] }),
-      }) as any,
+      }),
       { params: { id: exam.id } },
     );
     expect(bad.status).toBe(400);
 
     // Clear
     const clear = await setSupportStaff(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ supportStaffIds: [] }),
-      }) as any,
+      }),
       { params: { id: exam.id } },
     );
     expect(clear.status).toBe(200);
@@ -122,25 +123,25 @@ describe("Teams + members", () => {
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
 
     const create = await createTeam(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ name: "Senior Show Jumping 2026", season: "2026" }),
-      }) as any,
+      }),
     );
     expect(create.status).toBe(200);
     const { id: teamId } = await create.json();
 
     await addMember(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ riderId: r1.id }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ riderId: r1.id }) }),
       { params: { id: teamId } },
     );
     await addMember(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ riderId: r2.id, position: "Reserve" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ riderId: r2.id, position: "Reserve" }) }),
       { params: { id: teamId } },
     );
     // Re-add (idempotent)
     await addMember(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ riderId: r1.id, position: "Captain" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ riderId: r1.id, position: "Captain" }) }),
       { params: { id: teamId } },
     );
 
@@ -149,7 +150,7 @@ describe("Teams + members", () => {
     expect(members.find((m) => m.riderId === r1.id)?.position).toBe("Captain");
 
     const remove = await removeMember(
-      new Request(`http://localhost?riderId=${r1.id}`, { method: "DELETE" }) as any,
+      mockReq(`http://localhost?riderId=${r1.id}`, { method: "DELETE" }),
       { params: { id: teamId } },
     );
     expect(remove.status).toBe(200);
@@ -165,11 +166,11 @@ describe("Teams + members", () => {
     await loginAs({ userId: mgrA.id, role: "CENTRE_MANAGER", centreId: a.id, name: mgrA.name });
 
     const c = await createTeam(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ name: "A team" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ name: "A team" }) }),
     );
     const { id: teamId } = await c.json();
     const r = await addMember(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ riderId: riderB.id }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ riderId: riderB.id }) }),
       { params: { id: teamId } },
     );
     expect(r.status).toBe(400);
@@ -257,26 +258,26 @@ describe("Horse workload guard (existing — sanity check)", () => {
     const day = "2026-06-01";
     const slot = (h: number) => `${day}T${String(h).padStart(2, "0")}:00`;
     const ok = await createAllocation(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ purpose: "lesson", startAt: slot(7), endAt: slot(9) }),
-      }) as any,
+      }),
       { params: { id: horse.id } },
     );
     expect(ok.status).toBe(200);
     const ok2 = await createAllocation(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ purpose: "lesson", startAt: slot(10), endAt: slot(12) }),
-      }) as any,
+      }),
       { params: { id: horse.id } },
     );
     expect(ok2.status).toBe(200);
     const fail = await createAllocation(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ purpose: "lesson", startAt: slot(14), endAt: slot(15) }),
-      }) as any,
+      }),
       { params: { id: horse.id } },
     );
     expect(fail.status).toBe(409);

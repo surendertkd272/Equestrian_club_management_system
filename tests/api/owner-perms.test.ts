@@ -9,6 +9,7 @@ import {
   type OwnerSessionPayload,
 } from "@/lib/owner-auth";
 import { ownerCan } from "@/lib/owner-permissions";
+import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -87,7 +88,7 @@ describe("POST /api/owner/tenants — only ADMIN can onboard", () => {
     const u = await mkPlatformUser("OWNER_EDITOR");
     await loginOwner({ ownerId: u.id, role: "OWNER_EDITOR", name: u.name });
     const r = await createTenant(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify(payload) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify(payload) }),
     );
     expect(r.status).toBe(403);
     expect((await r.json()).required).toBe("tenant.create");
@@ -97,7 +98,7 @@ describe("POST /api/owner/tenants — only ADMIN can onboard", () => {
     const u = await mkPlatformUser("OWNER_BILLING");
     await loginOwner({ ownerId: u.id, role: "OWNER_BILLING", name: u.name });
     const r = await createTenant(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify(payload) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify(payload) }),
     );
     expect(r.status).toBe(403);
   });
@@ -106,7 +107,7 @@ describe("POST /api/owner/tenants — only ADMIN can onboard", () => {
     const u = await mkPlatformUser("OWNER_ADMIN");
     await loginOwner({ ownerId: u.id, role: "OWNER_ADMIN", name: u.name });
     const r = await createTenant(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify(payload) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify(payload) }),
     );
     expect(r.status).toBe(200);
   });
@@ -119,19 +120,19 @@ describe("PATCH /api/owner/tenants/[id] — field-by-field permission", () => {
     const org = await mkOrg();
 
     const rename = await patchTenant(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ name: "Renamed" }),
-      }) as any,
+      }),
       { params: { id: org.id } },
     );
     expect(rename.status).toBe(200);
 
     const status = await patchTenant(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ status: "suspended" }),
-      }) as any,
+      }),
       { params: { id: org.id } },
     );
     expect(status.status).toBe(403);
@@ -144,29 +145,29 @@ describe("PATCH /api/owner/tenants/[id] — field-by-field permission", () => {
     const org = await mkOrg();
 
     const status = await patchTenant(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ status: "past_due" }),
-      }) as any,
+      }),
       { params: { id: org.id } },
     );
     expect(status.status).toBe(200);
 
     const rename = await patchTenant(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ name: "X" }),
-      }) as any,
+      }),
       { params: { id: org.id } },
     );
     // 400 because name "X" is too short — but a longer one should be 403:
     expect(rename.status).toBe(400);
 
     const rename2 = await patchTenant(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ name: "Renamed Co" }),
-      }) as any,
+      }),
       { params: { id: org.id } },
     );
     expect(rename2.status).toBe(403);
@@ -179,10 +180,10 @@ describe("PATCH /api/owner/tenants/[id] — field-by-field permission", () => {
     const org = await mkOrg();
 
     const r = await patchTenant(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "PATCH",
         body: JSON.stringify({ billingEmail: "new@billing.test" }),
-      }) as any,
+      }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(200);
@@ -196,7 +197,7 @@ describe("Plan + feature toggles — admin-only", () => {
     const org = await mkOrg();
 
     const r = await changePlan(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ plan: "pro" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ plan: "pro" }) }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(403);
@@ -209,10 +210,10 @@ describe("Plan + feature toggles — admin-only", () => {
     await prisma.organisation.update({ where: { id: org.id }, data: { plan: "enterprise" } });
 
     const r = await toggleFeature(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ featureKey: "competitions", enabled: true }),
-      }) as any,
+      }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(403);

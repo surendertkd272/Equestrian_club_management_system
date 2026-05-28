@@ -5,6 +5,7 @@ import { resetDb } from "../helpers/db";
 import { mkCentre, mkUser, mkRider } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession, verifyPassword, type SessionPayload } from "@/lib/auth";
+import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -37,7 +38,7 @@ beforeEach(async () => {
 describe("POST /api/users", () => {
   it("401 without session", async () => {
     const r = await createUser(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({}) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({}) }),
     );
     expect(r.status).toBe(401);
   });
@@ -47,10 +48,10 @@ describe("POST /api/users", () => {
     const mgr = await mkUser({ role: "CENTRE_MANAGER", centreId: c.id });
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: c.id, name: mgr.name });
     const r = await createUser(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ name: "X", email: "x@x.test", role: "COACH" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(403);
   });
@@ -58,10 +59,10 @@ describe("POST /api/users", () => {
   it("400 VALIDATION on bad email", async () => {
     await loginAsHQ();
     const r = await createUser(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ name: "X", email: "not-email", role: "COACH" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(400);
   });
@@ -70,10 +71,10 @@ describe("POST /api/users", () => {
     await loginAsHQ();
     await mkUser({ email: "dup@x.test" });
     const r = await createUser(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ name: "Two", email: "dup@x.test", role: "COACH" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(409);
     expect((await r.json()).error).toBe("EMAIL_TAKEN");
@@ -82,10 +83,10 @@ describe("POST /api/users", () => {
   it("404 CENTRE_NOT_FOUND when centreId doesn't exist", async () => {
     await loginAsHQ();
     const r = await createUser(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ name: "Xander", email: "x@x.test", role: "COACH", centreId: "fake" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(404);
   });
@@ -94,7 +95,7 @@ describe("POST /api/users", () => {
     await loginAsHQ();
     const c = await mkCentre();
     const r = await createUser(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           name: "New Coach",
@@ -103,7 +104,7 @@ describe("POST /api/users", () => {
           role: "COACH",
           centreId: c.id,
         }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
     const data = await r.json();
@@ -123,10 +124,10 @@ describe("POST /api/users", () => {
   it("creates HQ-scoped user when centreId is null", async () => {
     await loginAsHQ();
     const r = await createUser(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ name: "HQ Helper", email: "helper@hq.test", role: "ACCOUNTANT" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
     const data = await r.json();
@@ -137,7 +138,7 @@ describe("POST /api/users", () => {
 
 describe("DELETE /api/users/[id]", () => {
   it("401 without session", async () => {
-    const r = await deleteUser(new Request("http://localhost", { method: "DELETE" }) as any, {
+    const r = await deleteUser(mockReq("http://localhost", { method: "DELETE" }), {
       params: { id: "x" },
     });
     expect(r.status).toBe(401);
@@ -148,7 +149,7 @@ describe("DELETE /api/users/[id]", () => {
     const mgr = await mkUser({ role: "CENTRE_MANAGER", centreId: c.id });
     const target = await mkUser({ role: "COACH", centreId: c.id });
     await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: c.id, name: mgr.name });
-    const r = await deleteUser(new Request("http://localhost", { method: "DELETE" }) as any, {
+    const r = await deleteUser(mockReq("http://localhost", { method: "DELETE" }), {
       params: { id: target.id },
     });
     expect(r.status).toBe(403);
@@ -156,7 +157,7 @@ describe("DELETE /api/users/[id]", () => {
 
   it("CANNOT_DELETE_SELF", async () => {
     const me = await loginAsHQ();
-    const r = await deleteUser(new Request("http://localhost", { method: "DELETE" }) as any, {
+    const r = await deleteUser(mockReq("http://localhost", { method: "DELETE" }), {
       params: { id: me.id },
     });
     expect(r.status).toBe(409);
@@ -172,7 +173,7 @@ describe("DELETE /api/users/[id]", () => {
       status: "suspended",
     });
     void suspended;
-    const r = await deleteUser(new Request("http://localhost", { method: "DELETE" }) as any, {
+    const r = await deleteUser(mockReq("http://localhost", { method: "DELETE" }), {
       params: { id: me.id },
     });
     // CANNOT_DELETE_SELF actually fires first; that's the right behaviour.
@@ -186,7 +187,7 @@ describe("DELETE /api/users/[id]", () => {
     const rider = await mkRider({ centreId: c.id });
     await prisma.rider.update({ where: { id: rider.id }, data: { userId: target.id } });
 
-    const r = await deleteUser(new Request("http://localhost", { method: "DELETE" }) as any, {
+    const r = await deleteUser(mockReq("http://localhost", { method: "DELETE" }), {
       params: { id: target.id },
     });
     expect(r.status).toBe(409);
@@ -199,7 +200,7 @@ describe("DELETE /api/users/[id]", () => {
     const target = await mkUser({ role: "CENTRE_MANAGER", centreId: c.id });
     await prisma.centre.update({ where: { id: c.id }, data: { managerId: target.id } });
 
-    const r = await deleteUser(new Request("http://localhost", { method: "DELETE" }) as any, {
+    const r = await deleteUser(mockReq("http://localhost", { method: "DELETE" }), {
       params: { id: target.id },
     });
     expect(r.status).toBe(409);
@@ -215,7 +216,7 @@ describe("DELETE /api/users/[id]", () => {
       data: { parentUserId: target.id, riderId: rider.id, relationship: "father" },
     });
 
-    const r = await deleteUser(new Request("http://localhost", { method: "DELETE" }) as any, {
+    const r = await deleteUser(mockReq("http://localhost", { method: "DELETE" }), {
       params: { id: target.id },
     });
     expect(r.status).toBe(409);
@@ -227,7 +228,7 @@ describe("DELETE /api/users/[id]", () => {
     const c = await mkCentre();
     const target = await mkUser({ role: "COACH", centreId: c.id, name: "Drop Me", email: "drop@x.test" });
 
-    const r = await deleteUser(new Request("http://localhost", { method: "DELETE" }) as any, {
+    const r = await deleteUser(mockReq("http://localhost", { method: "DELETE" }), {
       params: { id: target.id },
     });
     expect(r.status).toBe(200);
@@ -248,7 +249,7 @@ describe("Cross-role: SUPER_ADMIN posts medicine with explicit centreId", () => 
     const c = await mkCentre();
     const { POST: createMedicine } = await import("@/app/api/medicines/route");
     const r = await createMedicine(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           centreId: c.id,
@@ -258,7 +259,7 @@ describe("Cross-role: SUPER_ADMIN posts medicine with explicit centreId", () => 
           expDate: "2030-01-01",
           qty: 5,
         }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
     const meds = await prisma.medicine.findMany({ where: { centreId: c.id } });

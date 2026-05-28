@@ -3,6 +3,7 @@ import { resetDb } from "../helpers/db";
 import { mkUser, mkCentre, mkRider } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession, type SessionPayload } from "@/lib/auth";
+import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -43,7 +44,7 @@ beforeEach(async () => {
 
 describe("POST /api/lessons", () => {
   it("401 without session", async () => {
-    const r = await createLesson(new Request("http://localhost/api/lessons", { method: "POST", body: "{}" }) as any);
+    const r = await createLesson(mockReq("http://localhost/api/lessons", { method: "POST", body: "{}" }));
     expect(r.status).toBe(401);
   });
 
@@ -53,14 +54,14 @@ describe("POST /api/lessons", () => {
     await login({ userId: u.id, role: "CENTRE_MANAGER", centreId: centre.id, name: u.name });
 
     const r = await createLesson(
-      new Request("http://localhost/api/lessons", {
+      mockReq("http://localhost/api/lessons", {
         method: "POST",
         body: JSON.stringify({
           date: "2026-06-01T06:00:00Z",
           endAt: "2026-06-01T07:00:00Z",
           notes: "make-up class",
         }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(200);
     const { id } = await r.json();
@@ -76,10 +77,10 @@ describe("POST /api/lessons", () => {
     await login({ userId: u.id, role: "CENTRE_MANAGER", centreId: centre.id, name: u.name });
 
     const r = await createLesson(
-      new Request("http://localhost/api/lessons", {
+      mockReq("http://localhost/api/lessons", {
         method: "POST",
         body: JSON.stringify({ date: "2026-06-01T07:00:00Z", endAt: "2026-06-01T06:00:00Z" }),
-      }) as any,
+      }),
     );
     expect(r.status).toBe(400);
   });
@@ -104,7 +105,7 @@ describe("POST /api/lessons/[id]/allocations", () => {
     });
 
     const r = await allocate(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({
           pairings: [
@@ -112,7 +113,7 @@ describe("POST /api/lessons/[id]/allocations", () => {
             { riderId: r2.id, horseId: h1.id }, // dupe horse
           ],
         }),
-      }) as any,
+      }),
       { params: { id: lesson.id } },
     );
     expect(r.status).toBe(409);
@@ -136,20 +137,20 @@ describe("POST /api/lessons/[id]/allocations", () => {
 
     // First allocation goes through.
     const ok = await allocate(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ pairings: [{ riderId: rider.id, horseId: horse.id }] }),
-      }) as any,
+      }),
       { params: { id: lessonA.id } },
     );
     expect(ok.status).toBe(200);
 
     // Second lesson at the same window can't book the same horse.
     const clash = await allocate(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ pairings: [{ riderId: rider.id, horseId: horse.id }] }),
-      }) as any,
+      }),
       { params: { id: lessonB.id } },
     );
     expect(clash.status).toBe(409);
@@ -173,10 +174,10 @@ describe("POST /api/lessons/[id]/allocations", () => {
     });
 
     const r = await allocate(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ pairings: [{ riderId: otherRider.id, horseId: homeHorse.id }] }),
-      }) as any,
+      }),
       { params: { id: lesson.id } },
     );
     expect(r.status).toBe(400);
@@ -197,7 +198,7 @@ describe("GET /api/lessons", () => {
       ],
     });
 
-    const r = await listLessons(new Request("http://localhost/api/lessons?date=2026-06-01") as any);
+    const r = await listLessons(mockReq("http://localhost/api/lessons?date=2026-06-01"));
     expect(r.status).toBe(200);
     const { lessons } = await r.json();
     expect(lessons.length).toBe(1);

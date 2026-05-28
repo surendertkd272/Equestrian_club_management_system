@@ -9,6 +9,7 @@ import {
 } from "@/lib/owner-auth";
 import { PLAN_REGISTRY } from "@/lib/plans";
 import { hasFeature, getOrgFeatures } from "@/lib/features-gate";
+import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -46,7 +47,7 @@ beforeEach(async () => {
 describe("POST /api/owner/tenants/[id]/plan", () => {
   it("401 without session", async () => {
     const r = await changePlan(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ plan: "pro" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ plan: "pro" }) }),
       { params: { id: "x" } },
     );
     expect(r.status).toBe(401);
@@ -58,7 +59,7 @@ describe("POST /api/owner/tenants/[id]/plan", () => {
     const org = await mkOrg();
 
     const r = await changePlan(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ plan: "moon" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ plan: "moon" }) }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(400);
@@ -69,7 +70,7 @@ describe("POST /api/owner/tenants/[id]/plan", () => {
     await loginOwner({ ownerId: owner.id, role: "OWNER_ADMIN", name: owner.name });
 
     const r = await changePlan(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ plan: "pro" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ plan: "pro" }) }),
       { params: { id: "nope" } },
     );
     expect(r.status).toBe(404);
@@ -83,7 +84,7 @@ describe("POST /api/owner/tenants/[id]/plan", () => {
     // mkOrg leaves plan = "starter" (Organisation default).
 
     const r = await changePlan(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ plan: "starter" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ plan: "starter" }) }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(409);
@@ -96,7 +97,7 @@ describe("POST /api/owner/tenants/[id]/plan", () => {
     const org = await mkOrg();
 
     const r = await changePlan(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ plan: "pro" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ plan: "pro" }) }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(200);
@@ -119,7 +120,7 @@ describe("POST /api/owner/tenants/[id]/plan", () => {
     const org = await mkOrg();
 
     await changePlan(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ plan: "enterprise" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ plan: "enterprise" }) }),
       { params: { id: org.id } },
     );
     const logs = await prisma.platformAuditLog.findMany({ where: { orgId: org.id } });
@@ -140,7 +141,7 @@ describe("POST /api/owner/tenants/[id]/plan", () => {
     await mkCentre({ orgId: org.id, name: "C" });
 
     const r = await changePlan(
-      new Request("http://localhost", { method: "POST", body: JSON.stringify({ plan: "starter" }) }) as any,
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify({ plan: "starter" }) }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(409);
@@ -157,10 +158,10 @@ describe("POST /api/owner/tenants/[id]/plan", () => {
 describe("POST /api/owner/tenants/[id]/features", () => {
   it("401 without session", async () => {
     const r = await toggleFeature(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ featureKey: "competitions", enabled: true }),
-      }) as any,
+      }),
       { params: { id: "x" } },
     );
     expect(r.status).toBe(401);
@@ -173,10 +174,10 @@ describe("POST /api/owner/tenants/[id]/features", () => {
     await prisma.organisation.update({ where: { id: org.id }, data: { plan: "enterprise" } });
 
     const r = await toggleFeature(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ featureKey: "made-up", enabled: true }),
-      }) as any,
+      }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(400);
@@ -186,10 +187,10 @@ describe("POST /api/owner/tenants/[id]/features", () => {
     const owner = await mkAdmin();
     await loginOwner({ ownerId: owner.id, role: "OWNER_ADMIN", name: owner.name });
     const r = await toggleFeature(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ featureKey: "competitions", enabled: true }),
-      }) as any,
+      }),
       { params: { id: "nope" } },
     );
     expect(r.status).toBe(404);
@@ -202,10 +203,10 @@ describe("POST /api/owner/tenants/[id]/features", () => {
     await prisma.organisation.update({ where: { id: org.id }, data: { plan: "pro" } });
 
     const r = await toggleFeature(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ featureKey: "competitions", enabled: true }),
-      }) as any,
+      }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(409);
@@ -221,10 +222,10 @@ describe("POST /api/owner/tenants/[id]/features", () => {
     // Turn competitions OFF (Enterprise has it on by default after applyPlan,
     // but our raw org just has the default = no feature rows yet).
     const r = await toggleFeature(
-      new Request("http://localhost", {
+      mockReq("http://localhost", {
         method: "POST",
         body: JSON.stringify({ featureKey: "competitions", enabled: true }),
-      }) as any,
+      }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(200);

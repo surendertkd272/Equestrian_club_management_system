@@ -9,6 +9,7 @@ import {
 } from "@/lib/owner-auth";
 import { verifyPassword } from "@/lib/auth";
 import { PLAN_REGISTRY } from "@/lib/plans";
+import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -61,11 +62,11 @@ function validPayload(overrides: Partial<any> = {}) {
 
 function postCreate(body: unknown) {
   return createTenant(
-    new Request("http://localhost/api/owner/tenants", {
+    mockReq("http://localhost/api/owner/tenants", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    }) as any,
+    }),
   );
 }
 
