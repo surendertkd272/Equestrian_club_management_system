@@ -137,12 +137,16 @@ required("CRON_SECRET", process.env.CRON_SECRET, "without this, /api/cron/sweep 
 }
 
 {
-  const url = process.env.WHATSAPP_PROVIDER_URL;
-  const key = process.env.WHATSAPP_API_KEY;
-  if (!url || !key) {
+  // Match lib/whatsapp.ts — the live module checks WHATSAPP_PHONE_NUMBER_ID
+  // + WHATSAPP_ACCESS_TOKEN, not the legacy WHATSAPP_PROVIDER_URL/_API_KEY
+  // pair this script used to look at. WHATSAPP_API_BASE is optional
+  // (defaults to https://graph.facebook.com/v18.0).
+  const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  if (!phoneId || !token) {
     warn("WhatsApp", "not set — WA messages dry-run");
   } else {
-    ok("WhatsApp", url);
+    ok("WhatsApp", `phone_id=${phoneId.slice(0, 12)}…`);
   }
 }
 
@@ -213,6 +217,32 @@ required("CRON_SECRET", process.env.CRON_SECRET, "without this, /api/cron/sweep 
 // ─── Observability ──────────────────────────────────────────────────────────
 softRequired("SENTRY_DSN", process.env.SENTRY_DSN, "no Sentry → operating blind in prod");
 softRequired("APP_VERSION", process.env.APP_VERSION ?? process.env.VERCEL_GIT_COMMIT_SHA, "no version → harder to correlate Sentry events to deploys");
+
+// ─── Security tripwires ────────────────────────────────────────────────────
+// NEXT_PUBLIC_SHOW_TEST_DROPDOWN=1 exposes the seeded test-user list on
+// /login AND bypasses login rate-limiting. Fine for UAT/demo deploys,
+// disaster for a real production tenant.
+{
+  const testDropdown = process.env.NEXT_PUBLIC_SHOW_TEST_DROPDOWN;
+  if (testDropdown === "1") {
+    if (PROD) fail("NEXT_PUBLIC_SHOW_TEST_DROPDOWN", "exposes user list + bypasses login rate-limit — UNSET before production launch");
+    else ok("NEXT_PUBLIC_SHOW_TEST_DROPDOWN", "dev/UAT");
+  } else {
+    ok("NEXT_PUBLIC_SHOW_TEST_DROPDOWN", "off");
+  }
+}
+
+// DIRECT_URL is the non-pooled Postgres connection Prisma uses for
+// migrations. Without it, `prisma migrate deploy` fails on pgbouncer'd
+// connections.
+{
+  const direct = process.env.DIRECT_URL;
+  if (PROD && !direct) {
+    warn("DIRECT_URL", "not set — Prisma migrations will fail through a pooler");
+  } else if (direct) {
+    ok("DIRECT_URL");
+  }
+}
 
 // ─── Output ────────────────────────────────────────────────────────────────
 const ANSI = process.stdout.isTTY ? { red: "\x1b[31m", yellow: "\x1b[33m", green: "\x1b[32m", reset: "\x1b[0m", dim: "\x1b[2m" } : { red: "", yellow: "", green: "", reset: "", dim: "" };
