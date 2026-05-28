@@ -137,7 +137,10 @@ export default async function AttendancePage({
               date={date}
               roster={roster}
               existing={existing}
-              canEdit={date <= today}
+              // SCHOOL_ADMINISTRATOR is read-only — they observe student
+              // attendance without marking. Other roles edit only for
+              // today-or-earlier (future-date attendance doesn't exist yet).
+              canEdit={date <= today && session.role !== "SCHOOL_ADMINISTRATOR"}
             />
           </CardContent>
         </Card>
