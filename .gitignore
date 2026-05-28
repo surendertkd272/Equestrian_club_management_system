@@ -14,3 +14,4 @@ prisma/migrations/dev/
 public/uploads/*
 !public/uploads/.gitkeep
 claude-skills
+.claude/
