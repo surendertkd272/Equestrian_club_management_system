@@ -85,33 +85,40 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "EMAIL_IN_USE", message: "An account with this email already exists. Ask the admin to add you to this centre instead." }, { status: 409 });
   }
 
-  // Create the pending user. No password yet — set when admin approves.
-  // Stash the optional notes + invite code in `notifPrefsJson` as a JSON
-  // blob so we don't need a separate StaffInvite table for the audit info.
-  const user = await prisma.user.create({
-    data: {
-      email: parsed.data.email,
-      name: parsed.data.name,
-      phone: parsed.data.phone || null,
-      role: effectiveRole,
-      centreId: link.centreId,
-      passwordHash: "PENDING", // placeholder; admin resets on approval
-      status: "pending_approval",
-      notifPrefsJson: JSON.stringify({
-        inviteCode: code,
-        inviteNotes: parsed.data.notes ?? null,
-      }),
-    },
-  });
-
-  // Bump the link redemption counter so admins can see "this invite has
-  // been used N times".
-  await prisma.shortLink
-    .update({
+  // Create the pending user + bump the link redemption counter atomically.
+  // Previously these were two awaits with a silent .catch(() => null) on
+  // the second — meaning a transient DB blip would leave the user created
+  // but the single-use invite still flagged as available. Wrapping in a
+  // transaction makes the pair all-or-nothing.
+  //
+  // Note: notifPrefsJson is a native jsonb column (post-migration). Pass
+  // the object directly — JSON.stringify here would have stored the
+  // serialised string as a string-value JSON, not the parsed object.
+  const [user] = await prisma.$transaction([
+    prisma.user.create({
+      data: {
+        email: parsed.data.email,
+        name: parsed.data.name,
+        phone: parsed.data.phone || null,
+        role: effectiveRole,
+        centreId: link.centreId,
+        passwordHash: "PENDING", // placeholder; admin resets on approval
+        status: "pending_approval",
+        // Stash the optional notes + invite code so admins reviewing the
+        // pending approval can see how this user got here. (Lives on the
+        // user row instead of a separate StaffInvite table — small enough
+        // to piggy-back on notifPrefsJson, which is rider-prefs anyway.)
+        notifPrefsJson: {
+          inviteCode: code,
+          inviteNotes: parsed.data.notes ?? null,
+        },
+      },
+    }),
+    prisma.shortLink.update({
       where: { id: link.id },
       data: { redeemCount: { increment: 1 }, lastRedeemedAt: new Date() },
-    })
-    .catch(() => null);
+    }),
+  ]);
 
   await audit({
     userId: user.id,
