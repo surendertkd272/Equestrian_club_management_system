@@ -57,7 +57,16 @@ export async function getOrgIdForCentre(centreId: string | null | undefined): Pr
 export async function getOrgIdForSession(session: SessionPayload | null): Promise<string | null> {
   if (!session) return null;
   if (session.centreId) return getOrgIdForCentre(session.centreId);
-  if (session.role === "SUPER_ADMIN") {
+  // HQ-tier users (SUPER_ADMIN, ADMIN) have no centreId. Prefer the explicit
+  // User.orgId; fall back to "first centre's org" for legacy rows that pre-
+  // date the User.orgId column. Without ADMIN here, every feature-gated
+  // module (medicines, horses, exams, …) silently 404s for Admin.
+  if (session.role === "SUPER_ADMIN" || session.role === "ADMIN") {
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { orgId: true },
+    });
+    if (user?.orgId) return user.orgId;
     const first = await prisma.centre.findFirst({ select: { orgId: true } });
     return first?.orgId ?? null;
   }
