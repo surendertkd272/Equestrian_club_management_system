@@ -16,7 +16,7 @@
 // Submission stays a single POST to /api/onboarding at the end of the
 // indemnity step (with the assembled object). Razorpay flow is unchanged.
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, type UseFormReturn, type FieldValues, type FieldPath } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -717,11 +717,75 @@ function PaymentStep({
 // Each step submits its slice via onNext; the indemnity step submits the
 // full payload to /api/onboarding and flips to the payment step.
 
+// sessionStorage key — scoped per centre so a parent doing two clubs in
+// two tabs doesn't cross-contaminate (rare but real). Survives a tab
+// reload + accidental close + tab-restore, clears on successful submit.
+function storageKey(centreSlug: string) {
+  return `equiwings:onboarding:${centreSlug}`;
+}
+
+type Persisted = { stepIdx: number; data: WizardData };
+
+function loadPersisted(centreSlug: string): Persisted | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(storageKey(centreSlug));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<Persisted>;
+    if (typeof parsed.stepIdx !== "number" || !parsed.data) return null;
+    return { stepIdx: parsed.stepIdx, data: parsed.data };
+  } catch {
+    return null;
+  }
+}
+
+function savePersisted(centreSlug: string, value: Persisted) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(storageKey(centreSlug), JSON.stringify(value));
+  } catch {
+    // Quota exceeded / private mode — fall back to in-memory only.
+  }
+}
+
+function clearPersisted(centreSlug: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(storageKey(centreSlug));
+  } catch {
+    // Best effort.
+  }
+}
+
 export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: string; centreName: string }) {
+  // Initial state hydrates from sessionStorage on first client render —
+  // useState's initializer runs once, so we read the persisted snapshot
+  // exactly when it matters. SSR runs this with window===undefined and
+  // gets the empty initial state, which then rehydrates on mount.
   const [stepIdx, setStepIdx] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [data, setData] = useState<WizardData>({ centreSlug });
   const [result, setResult] = useState<{ riderId: string; invoiceId: string; amount: number } | null>(null);
+  const [restored, setRestored] = useState(false);
+
+  // Restore in an effect (not useState init) so SSR and client agree on
+  // the first render — Next would warn about hydration mismatch otherwise.
+  useEffect(() => {
+    const persisted = loadPersisted(centreSlug);
+    if (persisted) {
+      setData({ ...persisted.data, centreSlug });
+      setStepIdx(persisted.stepIdx);
+      setRestored(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist on every state change. Skip persistence after submit-success
+  // so a back-navigation doesn't restore old state for a different rider.
+  useEffect(() => {
+    if (result) return;
+    savePersisted(centreSlug, { stepIdx, data });
+  }, [centreSlug, stepIdx, data, result]);
 
   // Step ordering depends on whether DOB makes the rider a minor.
   // buildSteps reads data.dob, which is populated by PersonalStep (step 0)
@@ -734,6 +798,16 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
   function applyStep(stepData: Partial<OnboardingInput>) {
     setData((prev) => ({ ...prev, ...stepData }));
     setStepIdx((i) => Math.min(stepCount - 1, i + 1));
+  }
+
+  // Start over — wipe persisted state + reset to step 0. Surface when a
+  // restored draft turns out to be the wrong rider (e.g. parent doing
+  // sibling B after finishing A on the same browser).
+  function discardDraft() {
+    clearPersisted(centreSlug);
+    setData({ centreSlug });
+    setStepIdx(0);
+    setRestored(false);
   }
 
   function back() {
@@ -751,13 +825,16 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
     setSubmitting(false);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Submission failed");
+      toast.error(err.message ?? err.error ?? "Submission failed");
       return;
     }
     const body = await res.json();
     // Capture the final assembled data so a Back from payment doesn't lose it.
     setData((prev) => ({ ...prev, ...indemnity }));
     setResult(body);
+    // Successful submit — wipe the draft so the user doesn't see it again
+    // if they come back to the page for a sibling registration.
+    clearPersisted(centreSlug);
     // Payment is always the last step regardless of whether the parental
     // consent panel was in the chain.
     setStepIdx(stepCount - 1);
@@ -810,6 +887,33 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* When we restored a partial draft from sessionStorage, tell the
+            user so they don't wonder why fields are pre-filled. Hide once
+            they submit (result is set) or discard. */}
+        {restored && !result && (
+          <div className="flex items-start justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <div>
+              We restored your draft from this session — your previous progress is preserved.
+              Wrong rider?{" "}
+              <button
+                type="button"
+                onClick={discardDraft}
+                className="font-semibold underline hover:text-amber-950"
+              >
+                Start fresh
+              </button>
+              .
+            </div>
+            <button
+              type="button"
+              onClick={() => setRestored(false)}
+              aria-label="Dismiss"
+              className="text-amber-700 hover:text-amber-900"
+            >
+              ✕
+            </button>
+          </div>
+        )}
         {/* Render by step key, not by index — the parental-consent panel
             shifts the index for under-18 riders. Each step gets the same
             (initial, onNext, onBack) shape so the conditional render stays
