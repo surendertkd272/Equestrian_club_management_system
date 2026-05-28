@@ -12,10 +12,24 @@ import {
 import { calcBmi } from "@/lib/utils";
 import { audit } from "@/lib/audit";
 import { notifyCentreManager } from "@/lib/notify";
+import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
+  // Public self-enrolment endpoint — no auth gate. Rate-limit per IP to
+  // keep an attacker (or a buggy script) from filling the approval queue
+  // with junk riders. 10 successful onboarding posts per hour per IP is
+  // generous for a normal household sharing one connection and tight
+  // enough to make a spam run uneconomic.
+  const rl = checkRate(`onboarding:${clientFingerprint(req)}`, 10, 60 * 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "RATE_LIMITED", retryAfterSec: rl.retryAfterSec },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
+  }
+
   const json = await req.json().catch(() => null);
   const parsed = onboardingSchema.safeParse(json);
   if (!parsed.success) {

@@ -9,6 +9,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { notifyMany } from "@/lib/notify";
 import { audit } from "@/lib/audit";
+import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 
 const schema = z.object({
   code: z.string().min(4).max(16),
@@ -23,6 +24,19 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // Public invite redemption. The short code is a secret, but rate-limit
+  // anyway: a leaked code without a per-IP cap lets an attacker race the
+  // legitimate invitee to single-use redemption, and unbounded retries
+  // against an *invalid* code probe for valid ones via timing. 20/hour/IP
+  // covers the normal "I mistyped, retry" loop with room to spare.
+  const rl = checkRate(`staff-register:${clientFingerprint(req)}`, 20, 60 * 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "RATE_LIMITED", retryAfterSec: rl.retryAfterSec },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
