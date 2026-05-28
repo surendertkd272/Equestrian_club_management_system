@@ -35,7 +35,7 @@ export function TeamsClient({ canManage, riders }: { canManage: boolean; riders:
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success("Team created");
@@ -92,7 +92,7 @@ export function TeamRosterControls({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success("Member added");
@@ -116,7 +116,7 @@ export function TeamRosterControls({
       const res = await fetch(`/api/teams/${teamId}/members?riderId=${rid}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success("Removed");

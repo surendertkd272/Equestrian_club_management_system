@@ -58,7 +58,7 @@ export function AllocationGrid({
       } else if (data.error === "DUPLICATE_HORSE" || data.error === "DUPLICATE_RIDER") {
         toast.error(data.message ?? "Duplicate entry.");
       } else {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
       }
       return;
     }

@@ -61,7 +61,7 @@ export function TripManifest({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       setDraft((d) => ({ ...d, label: "", qtyExpected: "1" }));
@@ -81,7 +81,7 @@ export function TripManifest({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       router.refresh();
@@ -114,7 +114,7 @@ export function TripManifest({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success(`Marked ${next}`);

@@ -78,7 +78,7 @@ export function MonthlySkillsClient({ yearMonth, skills, riders, initialMarks }:
       const res = await fetch(`/api/monthly-skills/${id}`, { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success("Removed");
@@ -102,7 +102,7 @@ export function MonthlySkillsClient({ yearMonth, skills, riders, initialMarks }:
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         setMarks((m) => ({ ...m, [key]: prev ?? { rating: 0, coachNotes: null } }));
         return;
       }

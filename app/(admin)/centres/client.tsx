@@ -160,7 +160,7 @@ export function CentreDeleteButton({
         if (data.error === "NOT_EMPTY") {
           toast.error("Club still has data — clear users/riders/horses first.");
         } else {
-          toast.error(data.error ?? "Failed");
+          toast.error(data.message ?? data.error ?? "Failed");
         }
         return;
       }

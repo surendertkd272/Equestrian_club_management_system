@@ -52,7 +52,7 @@ export function OffboardPanel({
     setBusy(false);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error(data.error ?? "Failed");
+      toast.error(data.message ?? data.error ?? "Failed");
       return;
     }
     toast.success("Closure scheduled. Customer notified.");
@@ -72,7 +72,7 @@ export function OffboardPanel({
     setBusy(false);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      toast.error(data.error ?? "Failed");
+      toast.error(data.message ?? data.error ?? "Failed");
       return;
     }
     toast.success("Restored.");

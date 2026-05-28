@@ -130,7 +130,7 @@ function LinkRow({ link }: { link: LinkDTO }) {
       const res = await fetch(`/api/short-links/${encodeURIComponent(link.code)}`, { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Delete failed");
+        toast.error(data.message ?? data.error ?? "Delete failed");
         return;
       }
       toast.success("Link deleted");

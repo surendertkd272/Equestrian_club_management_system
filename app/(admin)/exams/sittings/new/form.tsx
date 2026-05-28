@@ -59,7 +59,7 @@ export function NewSittingForm({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success(`Sitting scheduled — ${data.examsCreated} exams created`);

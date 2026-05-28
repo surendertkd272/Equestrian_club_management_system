@@ -65,7 +65,7 @@ export function TemplateEditor({ templateId, scope, items }: Props) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return false;
       }
       router.refresh();
@@ -92,7 +92,7 @@ export function TemplateEditor({ templateId, scope, items }: Props) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success("Item added");

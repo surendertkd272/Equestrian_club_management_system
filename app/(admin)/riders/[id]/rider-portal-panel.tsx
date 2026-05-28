@@ -65,7 +65,7 @@ export function RiderPortalPanel({
       const res = await fetch(`/api/riders/${riderId}/portal-access`, { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success("Access revoked");

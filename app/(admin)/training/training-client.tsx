@@ -63,7 +63,7 @@ function CoursesPanel({ canManage, courses }: { canManage: boolean; courses: Cou
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success("Course created");
@@ -171,7 +171,7 @@ function CertsPanel({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success("Certification issued");

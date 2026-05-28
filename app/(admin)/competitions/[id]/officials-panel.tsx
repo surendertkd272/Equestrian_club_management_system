@@ -74,7 +74,7 @@ export function OfficialsPanel({
     setBusy(false);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error(data.error ?? "Failed");
+      toast.error(data.message ?? data.error ?? "Failed");
       return;
     }
     toast.success("Appointed.");
@@ -88,7 +88,7 @@ export function OfficialsPanel({
     const res = await fetch(`/api/competitions/${competitionId}/officials/${officialId}`, { method: "DELETE" });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      toast.error(data.error ?? "Failed");
+      toast.error(data.message ?? data.error ?? "Failed");
       return;
     }
     toast.success("Removed.");

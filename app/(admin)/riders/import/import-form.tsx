@@ -60,7 +60,7 @@ export function ImportForm({
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       if (dryRun) {

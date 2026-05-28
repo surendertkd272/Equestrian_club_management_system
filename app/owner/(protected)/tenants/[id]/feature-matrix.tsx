@@ -48,7 +48,7 @@ export function FeatureMatrix({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         // Revert optimistic update on error.
         setState((prev) => new Map(prev).set(key, current));
         return;

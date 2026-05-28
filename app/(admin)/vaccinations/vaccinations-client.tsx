@@ -84,7 +84,7 @@ export function VaccinationsClient({ horses }: { horses: Horse[] }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success("Schedule saved");
@@ -176,7 +176,7 @@ export function RecordDoseButton({ id }: { id: string }) {
       const res = await fetch(`/api/vaccinations/${id}/dose`, { method: "POST", body: "{}" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success("Dose recorded");

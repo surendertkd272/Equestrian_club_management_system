@@ -47,7 +47,7 @@ export function FarrierClient({ horses }: { horses: Horse[] }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success("Visit scheduled");
@@ -127,7 +127,7 @@ export function CompleteButton({ id }: { id: string }) {
       const res = await fetch(`/api/farrier/${id}/complete`, { method: "POST", body: "{}" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success("Completed");

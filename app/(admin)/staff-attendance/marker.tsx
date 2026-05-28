@@ -39,7 +39,7 @@ export function StaffAttendanceMarker({ staff, defaultDate }: { staff: Staff[]; 
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success("Marked");

@@ -59,7 +59,7 @@ export function DewormingPanel({ horseId, canWrite, entries }: Props) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success("Scheduled");
@@ -80,7 +80,7 @@ export function DewormingPanel({ horseId, canWrite, entries }: Props) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success("Marked given · next dose in 60 days");

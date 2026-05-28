@@ -23,7 +23,7 @@ export function OwnerTotpPanel({ enabled }: { enabled: boolean }) {
       const res = await fetch("/api/owner/account/totp");
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       setSecret(data.secret);

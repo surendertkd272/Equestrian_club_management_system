@@ -211,7 +211,7 @@ export function UserActions({
       const res = await fetch(`/api/users/${user.id}/reset-password`, { method: "POST" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       setTempPassword(data.tempPassword);

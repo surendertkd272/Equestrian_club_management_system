@@ -118,7 +118,7 @@ export function JumpScoresheet({
     setBusy(false);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error(data.error ?? "Failed");
+      toast.error(data.message ?? data.error ?? "Failed");
       return;
     }
     setServerResult({ faults: data.faults, eliminated: data.eliminated, reason: data.reason });

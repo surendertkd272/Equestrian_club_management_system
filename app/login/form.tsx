@@ -63,7 +63,7 @@ export function LoginForm({
         toast.error(data.message ?? "This tenant has been suspended.", { duration: 10_000 });
         return;
       }
-      toast.error(data.error ?? "Invalid credentials");
+      toast.error(data.message ?? data.error ?? "Invalid credentials");
       return;
     }
     // If the caller passed an explicit ?next= we honour it; otherwise use the role-aware

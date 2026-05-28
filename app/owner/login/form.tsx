@@ -52,7 +52,7 @@ export function OwnerLoginForm({ next, devMode = false }: { next: string; devMod
         toast.error("Recovery code not recognised — each is single-use.");
         return;
       }
-      toast.error(data.error ?? "Invalid credentials");
+      toast.error(data.message ?? data.error ?? "Invalid credentials");
       return;
     }
     const requested = next !== "/owner" ? next : (data.redirect ?? "/owner");

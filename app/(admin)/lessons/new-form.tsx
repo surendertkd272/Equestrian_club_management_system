@@ -52,7 +52,7 @@ export function NewLessonForm({
     setBusy(false);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error(data.error ?? "Failed");
+      toast.error(data.message ?? data.error ?? "Failed");
       return;
     }
     toast.success("Lesson scheduled.");

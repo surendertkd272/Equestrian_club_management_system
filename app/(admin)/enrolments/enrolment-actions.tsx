@@ -29,7 +29,7 @@ export function EnrolmentActions({ riderId }: { riderId: string }) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success(action === "approve" ? `Approved · ₹${data.amount} invoice raised` : "Rejected");

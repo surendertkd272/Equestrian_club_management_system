@@ -30,7 +30,7 @@ export function NewLeaveRequestForm() {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success("Submitted");
@@ -94,7 +94,7 @@ export function LeaveRequestActions({
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
       toast.success(`Marked ${decision}`);
