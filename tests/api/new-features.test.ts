@@ -39,7 +39,7 @@ async function loginAs(user: { id: string; role: string; centreId: string | null
   cookieJar.set("ew_session", { value: await signSession(payload) });
 }
 
-function jsonRequest(url: string, body: unknown, method = "POST"): any {
+function jsonRequest(url: string, body: unknown, method = "POST") {
   return mockReq(url, {
     method,
     headers: { "Content-Type": "application/json" },

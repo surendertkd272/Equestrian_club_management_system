@@ -4,11 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { verifyOwnerSession, hashOwnerPassword } from "@/lib/owner-auth";
 import { mockReq } from "../helpers/request";
 
-const cookieJar = new Map<string, { value: string; opts?: any }>();
+const cookieJar = new Map<string, { value: string; opts?: unknown }>();
 vi.mock("next/headers", () => ({
   cookies: () => ({
     get: (name: string) => (cookieJar.has(name) ? { value: cookieJar.get(name)!.value } : undefined),
-    set: (name: string, value: string, opts?: any) => cookieJar.set(name, { value, opts }),
+    set: (name: string, value: string, opts?: unknown) => cookieJar.set(name, { value, opts }),
     delete: (name: string) => cookieJar.delete(name),
   }),
 }));

@@ -7,11 +7,11 @@ import { mockReq } from "../helpers/request";
 // In-memory cookie jar that stands in for next/headers' cookies() helper. Captures
 // .set() calls so we can verify the session cookie shape on success and inspect the
 // signed JWT it carries.
-const cookieJar = new Map<string, { value: string; opts?: any }>();
+const cookieJar = new Map<string, { value: string; opts?: unknown }>();
 vi.mock("next/headers", () => ({
   cookies: () => ({
     get: (name: string) => (cookieJar.has(name) ? { value: cookieJar.get(name)!.value } : undefined),
-    set: (name: string, value: string, opts?: any) => cookieJar.set(name, { value, opts }),
+    set: (name: string, value: string, opts?: unknown) => cookieJar.set(name, { value, opts }),
     delete: (name: string) => cookieJar.delete(name),
   }),
 }));
