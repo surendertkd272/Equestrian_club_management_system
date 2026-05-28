@@ -120,9 +120,10 @@ sends:
 - `ew_exam_result`
 - `ew_competition_placement`
 
-Set `WHATSAPP_PROVIDER_URL` + `WHATSAPP_API_KEY`. `lib/whatsapp.ts` is
-provider-agnostic (POST JSON to the URL); adapt the body shape there if
-your BSP differs.
+Set `WHATSAPP_PHONE_NUMBER_ID` + `WHATSAPP_ACCESS_TOKEN`. `lib/whatsapp.ts`
+talks directly to Meta Cloud API at `${WHATSAPP_API_BASE}/${WHATSAPP_PHONE_NUMBER_ID}/messages`
+(base defaults to `https://graph.facebook.com/v18.0` — override only if
+you're going through a BSP that proxies Meta).
 
 ---
 
