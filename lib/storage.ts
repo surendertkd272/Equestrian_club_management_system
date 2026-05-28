@@ -191,11 +191,28 @@ export async function uploadFile(opts: {
     return { ok: true, url: `/uploads/${filename}`, size: opts.buffer.length, mime: opts.mime };
   }
 
-  // Local dev fallback. Files written under public/uploads/ are served by Next at /uploads/<filename>.
-  const dir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, filename), opts.buffer);
-  return { ok: true, url: `/uploads/${filename}`, size: opts.buffer.length, mime: opts.mime };
+  // Local-filesystem fallback. Works in dev (writable cwd) and on most VMs.
+  // Vercel's serverless runtime has a read-only filesystem under public/, so
+  // this branch will EROFS — surface a clear "configure S3 / Vercel Blob"
+  // error rather than an unhandled 500.
+  try {
+    const dir = path.join(process.cwd(), "public", "uploads");
+    await mkdir(dir, { recursive: true });
+    await writeFile(path.join(dir, filename), opts.buffer);
+    return { ok: true, url: `/uploads/${filename}`, size: opts.buffer.length, mime: opts.mime };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // Vercel's read-only FS yields EROFS / ENOENT under /public — recognise
+    // those and explain what the deployer needs to do.
+    const isReadOnly = /EROFS|ENOENT|EACCES|EPERM/.test(msg);
+    return {
+      ok: false,
+      error: isReadOnly ? "STORAGE_NOT_CONFIGURED" : "LOCAL_WRITE_FAILED",
+      message: isReadOnly
+        ? "File storage isn't configured. Set S3_BUCKET / S3_ACCESS_KEY / S3_SECRET / S3_PUBLIC_URL env vars for S3-compatible storage (AWS / R2 / Backblaze)."
+        : `Local write failed: ${msg}`,
+    };
+  }
 }
 
 export function isAllowedMime(kind: UploadKind, mime: string): boolean {

@@ -53,7 +53,28 @@ export const medicalSchema = z.object({
 export const indemnitySchema = z.object({
   fullNameSignature: z.string().min(1, "Type full name to sign"),
   agreed: z.literal(true, { errorMap: () => ({ message: "You must agree to the indemnity terms" }) }),
+  // NOC for injuries — a separate, explicit acknowledgement that horse-riding
+  // injuries can happen and the rider/guardian will not hold the centre liable.
+  // Kept distinct from the broader `agreed` checkbox so the consent record is
+  // unambiguous: both must be ticked. The text shown is pinned by
+  // INJURY_NOC_VERSION below so future wording changes don't retroactively
+  // alter what was agreed.
+  injuryNocAgreed: z.literal(true, { errorMap: () => ({ message: "Tick the injury NOC to continue" }) }),
 });
+
+// Versioned NOC text — if this changes, bump INJURY_NOC_VERSION so consent
+// records persisted before the change stay valid (they reference v1).
+export const INJURY_NOC_VERSION = "v1";
+export const INJURY_NOC_TEXT =
+  "I (the rider, or parent/guardian for minors) give my No-Objection Consent " +
+  "for the rider to participate in horse-riding activity at this centre. I " +
+  "acknowledge that riding involves a real risk of injury — falls, kicks, " +
+  "bites, equipment failure, and unpredictable horse behaviour can occur " +
+  "even under qualified supervision. I will not hold Equiwings, the centre, " +
+  "its coaches, grooms, or contractors liable for injuries sustained in the " +
+  "normal course of training, competition, or stable work. Centre staff will " +
+  "still administer reasonable first aid and authorise emergency medical " +
+  "care if needed.";
 
 // DPDPA Section 9 — verifiable parental consent. The fields are optional
 // at the schema level; the onboarding handler checks them only when the

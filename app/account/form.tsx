@@ -50,7 +50,9 @@ export function AccountForm({
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.error ?? "Upload failed");
+        // Prefer the human-readable message (e.g. "File storage isn't
+        // configured. Set …"). Fall back to the error code when no message.
+        toast.error(data.message ?? data.error ?? "Upload failed");
         return;
       }
       setPhotoUrl(data.url);

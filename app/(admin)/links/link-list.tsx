@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Copy, MessageCircle } from "lucide-react";
+import { Copy, MessageCircle, Trash2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
 export type LinkDTO = {
@@ -92,8 +93,10 @@ export function LinkList({ links }: { links: LinkDTO[] }) {
 }
 
 function LinkRow({ link }: { link: LinkDTO }) {
+  const router = useRouter();
   // Use the current host so the URL is correct in dev (localhost:3000) and prod (vercel).
   const [origin] = useState(() => (typeof window !== "undefined" ? window.location.origin : ""));
+  const [deleting, setDeleting] = useState(false);
   const url = `${origin}/r/${link.code}`;
   const expired = link.expiresAt && new Date(link.expiresAt) < new Date();
   const exhausted = link.singleUse && link.redeemCount > 0;
@@ -112,6 +115,29 @@ function LinkRow({ link }: { link: LinkDTO }) {
       `${link.label ?? KIND_LABEL[link.kind] ?? "Equiwings link"}\n${url}`,
     );
     window.open(`https://wa.me/?text=${msg}`, "_blank", "noopener,noreferrer");
+  }
+
+  async function onDelete() {
+    // Confirm before delete — these are one-click hard deletes server-side.
+    // Phrase the prompt so the user knows what stops working: the URL itself.
+    if (!window.confirm(
+      `Delete this link?\n\n${url}\n\nAnyone who already has this URL will get an "expired" page.`,
+    )) {
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/short-links/${encodeURIComponent(link.code)}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error ?? "Delete failed");
+        return;
+      }
+      toast.success("Link deleted");
+      router.refresh();
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -142,6 +168,17 @@ function LinkRow({ link }: { link: LinkDTO }) {
           </Button>
           <Button size="sm" onClick={openWhatsApp}>
             <MessageCircle className="mr-1 h-3 w-3" /> WhatsApp
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onDelete}
+            disabled={deleting}
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+            aria-label="Delete link"
+            title="Delete link"
+          >
+            <Trash2 className="h-3 w-3" />
           </Button>
         </div>
       </div>

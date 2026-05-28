@@ -457,6 +457,7 @@ function IndemnityStep() {
   const { register, formState } = useFormContext<OnboardingInput>();
   const fullNameError = (formState.errors as any).fullNameSignature?.message;
   const agreedError = (formState.errors as any).agreed?.message;
+  const nocError = (formState.errors as any).injuryNocAgreed?.message;
   return (
     <div className="space-y-4">
       <div className="max-h-64 overflow-y-auto rounded-md border bg-muted p-4 text-sm leading-relaxed">
@@ -475,6 +476,26 @@ function IndemnityStep() {
           I understand that registration & membership fees are non-refundable, and that 15 days of un-notified
           absence may result in cancellation of membership.
         </p>
+      </div>
+
+      {/* NOC for injuries — separate from the general indemnity block above
+          so the consent record is unambiguous: both boxes must be ticked.
+          Highlighted styling so a quick scrolling reader can't miss it. */}
+      <div className="rounded-md border-2 border-amber-300 bg-amber-50 p-4 text-sm leading-relaxed">
+        <p className="font-semibold text-amber-900">NOC for injuries</p>
+        <p className="mt-2 text-amber-900">
+          I (the rider, or parent/guardian for minors) give my No-Objection Consent for the rider to participate
+          in horse-riding activity at this centre. I acknowledge that riding involves a real risk of injury —
+          falls, kicks, bites, equipment failure, and unpredictable horse behaviour can occur even under qualified
+          supervision. I will not hold Equiwings, the centre, its coaches, grooms, or contractors liable for
+          injuries sustained in the normal course of training, competition, or stable work. Centre staff will
+          still administer reasonable first aid and authorise emergency medical care if needed.
+        </p>
+        <label className="mt-3 flex items-start gap-2 text-sm font-medium text-amber-900">
+          <input type="checkbox" className="mt-1" {...register("injuryNocAgreed" as any)} />
+          <span>I agree to the NOC for injuries (digital consent).</span>
+        </label>
+        {nocError && <p className="mt-1 text-xs text-destructive">{nocError as string}</p>}
       </div>
 
       <div className="space-y-1.5">
