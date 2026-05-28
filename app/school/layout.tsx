@@ -4,10 +4,8 @@
 // nothing else. No sidebar drawer or topbar features clutter the view.
 
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getSession } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogoutButton } from "./logout-button";
 
 export default async function SchoolLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -26,11 +24,7 @@ export default async function SchoolLayout({ children }: { children: React.React
               <div className="text-xs text-muted-foreground">{session.name}</div>
             </div>
           </div>
-          <form action="/api/auth/logout" method="POST">
-            <Button type="submit" variant="outline" size="sm">
-              <LogOut className="mr-1 h-4 w-4" /> Sign out
-            </Button>
-          </form>
+          <LogoutButton />
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
