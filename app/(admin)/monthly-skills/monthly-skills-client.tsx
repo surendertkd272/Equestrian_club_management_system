@@ -15,6 +15,10 @@ type Mark = { rating: number; coachNotes: string | null };
 
 type Props = {
   yearMonth: string;
+  // false for SCHOOL_ADMINISTRATOR + any future read-only role. When false,
+  // the add-skill input, remove-skill ×, and rating buttons all hide;
+  // the page becomes a read-only matrix.
+  canEdit: boolean;
   skills: Skill[];
   riders: Rider[];
   initialMarks: Record<string, Mark>;
@@ -27,7 +31,7 @@ const RATING_COLOURS: Record<number, string> = {
   3: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300",
 };
 
-export function MonthlySkillsClient({ yearMonth, skills, riders, initialMarks }: Props) {
+export function MonthlySkillsClient({ yearMonth, canEdit, skills, riders, initialMarks }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [marks, setMarks] = useState<Record<string, Mark>>(initialMarks);
@@ -125,23 +129,27 @@ export function MonthlySkillsClient({ yearMonth, skills, riders, initialMarks }:
             className="w-40"
           />
         </div>
-        <div className="flex-1 min-w-[200px]">
-          <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-            Add a skill to track this month
-          </label>
-          <Input
-            value={newSkill}
-            onChange={(e) => setNewSkill(e.target.value)}
-            placeholder="e.g. Posting trot · diagonal balance"
-            maxLength={120}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") addSkill();
-            }}
-          />
-        </div>
-        <Button onClick={addSkill} disabled={busy === "__new__"}>
-          {busy === "__new__" ? "Adding…" : "Add skill"}
-        </Button>
+        {canEdit && (
+          <>
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Add a skill to track this month
+              </label>
+              <Input
+                value={newSkill}
+                onChange={(e) => setNewSkill(e.target.value)}
+                placeholder="e.g. Posting trot · diagonal balance"
+                maxLength={120}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") addSkill();
+                }}
+              />
+            </div>
+            <Button onClick={addSkill} disabled={busy === "__new__"}>
+              {busy === "__new__" ? "Adding…" : "Add skill"}
+            </Button>
+          </>
+        )}
       </div>
 
       {activeSkills.length === 0 ? (
@@ -162,15 +170,17 @@ export function MonthlySkillsClient({ yearMonth, skills, riders, initialMarks }:
                   <th key={s.id} className="px-3 py-2 min-w-[140px]">
                     <div className="flex items-center justify-between gap-1">
                       <span className="font-medium normal-case">{s.skillLabel}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeSkill(s.id, s.skillLabel)}
-                        disabled={busy === s.id}
-                        className="text-[10px] text-muted-foreground hover:text-destructive"
-                        aria-label="Deactivate skill"
-                      >
-                        ×
-                      </button>
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={() => removeSkill(s.id, s.skillLabel)}
+                          disabled={busy === s.id}
+                          className="text-[10px] text-muted-foreground hover:text-destructive"
+                          aria-label="Deactivate skill"
+                        >
+                          ×
+                        </button>
+                      )}
                     </div>
                   </th>
                 ))}
@@ -187,16 +197,20 @@ export function MonthlySkillsClient({ yearMonth, skills, riders, initialMarks }:
                       <td key={s.id} className="px-2 py-2">
                         <div className="flex gap-1">
                           {[0, 1, 2, 3].map((rating) => (
+                            // Read-only roles see the current rating as a
+                            // static badge — disabled+styled, no click. Edit
+                            // roles get the full clickable rating selector.
                             <button
                               key={rating}
                               type="button"
-                              onClick={() => mark(s.id, r.id, rating)}
-                              disabled={busy === key}
+                              onClick={canEdit ? () => mark(s.id, r.id, rating) : undefined}
+                              disabled={!canEdit || busy === key}
                               className={`h-7 w-7 rounded border text-xs font-medium transition ${
                                 current === rating
                                   ? RATING_COLOURS[rating]
-                                  : "border-input bg-background text-muted-foreground hover:bg-muted"
-                              }`}
+                                  : "border-input bg-background text-muted-foreground" +
+                                    (canEdit ? " hover:bg-muted" : " opacity-40")
+                              }${canEdit ? "" : " cursor-default"}`}
                               title={SKILL_RATING_LABELS[rating]}
                             >
                               {rating}

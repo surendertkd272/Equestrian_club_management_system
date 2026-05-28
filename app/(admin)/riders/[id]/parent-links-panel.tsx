@@ -17,7 +17,18 @@ type Link = {
   phone: string | null;
 };
 
-export function ParentLinksPanel({ riderId, links }: { riderId: string; links: Link[] }) {
+// canManage=false hides the Add / Remove buttons + the link form. Used by
+// SCHOOL_ADMINISTRATOR and other read-only roles, who can see who's linked
+// but can't change the linkage.
+export function ParentLinksPanel({
+  riderId,
+  links,
+  canManage = true,
+}: {
+  riderId: string;
+  links: Link[];
+  canManage?: boolean;
+}) {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
@@ -113,15 +124,17 @@ export function ParentLinksPanel({ riderId, links }: { riderId: string; links: L
                   {l.phone && ` · ${l.phone}`}
                 </div>
               </div>
-              <Button size="sm" variant="outline" disabled={busy} onClick={() => unlink(l.id)}>
-                Remove
-              </Button>
+              {canManage && (
+                <Button size="sm" variant="outline" disabled={busy} onClick={() => unlink(l.id)}>
+                  Remove
+                </Button>
+              )}
             </li>
           ))}
         </ul>
       )}
 
-      {showForm ? (
+      {!canManage ? null : showForm ? (
         <div className="space-y-2 rounded-md border bg-muted/30 p-3">
           <div className="grid gap-2 sm:grid-cols-2">
             <div>

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
+import { isReadOnly } from "@/lib/roles";
 import { scopeCentre } from "@/lib/tenancy";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MonthlySkillsClient } from "./monthly-skills-client";
@@ -23,7 +24,11 @@ export default async function MonthlySkillsPage({
   searchParams: { month?: string };
 }) {
   const session = (await getSession())!;
-  if (!can(session.role, "progress.write")) redirect("/dashboard");
+  // Read-only roles (SCHOOL_ADMINISTRATOR) see the page; everyone else
+  // needs progress.write to land here. The client is told whether to
+  // render edit UI via canEdit below.
+  const canEdit = can(session.role, "progress.write");
+  if (!canEdit && !isReadOnly(session.role)) redirect("/dashboard");
 
   const centreId = scopeCentre(session);
   if (!centreId) {
@@ -83,6 +88,7 @@ export default async function MonthlySkillsPage({
         <CardContent>
           <MonthlySkillsClient
             yearMonth={yearMonth}
+            canEdit={canEdit}
             skills={skills.map((s) => ({
               id: s.id,
               skillLabel: s.skillLabel,

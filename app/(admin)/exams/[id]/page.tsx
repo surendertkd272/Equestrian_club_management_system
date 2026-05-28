@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
+import { isReadOnly } from "@/lib/roles";
 import { scopeCentre } from "@/lib/tenancy";
 import { parseRubric } from "@/lib/schemas/exam";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +20,10 @@ export const dynamic = "force-dynamic";
 
 export default async function ExamPage({ params }: { params: { id: string } }) {
   const session = (await getSession())!;
-  if (!can(session.role, "exam.score")) redirect("/exams");
+  // Read-only roles (SCHOOL_ADMINISTRATOR) see exam detail without the
+  // ability to score. Everyone else needs exam.score to land here.
+  const readOnly = isReadOnly(session.role);
+  if (!can(session.role, "exam.score") && !readOnly) redirect("/exams");
   const centreId = scopeCentre(session);
 
   const exam = await prisma.exam.findUnique({
@@ -189,6 +193,32 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
                 Create one
               </Link>
             )}
+          </CardContent>
+        </Card>
+      ) : readOnly ? (
+        // SCHOOL_ADMINISTRATOR sees a results summary, not the scoring UI.
+        // The rubric categories + totals are surfaced for transparency;
+        // for the rider's narrative report they go to /reports.
+        <Card>
+          <CardHeader>
+            <CardTitle>Results</CardTitle>
+            <CardDescription>
+              Status: <Badge variant={exam.status === "completed" ? "success" : "outline"}>{exam.status.replace("_", " ")}</Badge>
+              {exam.totalScore !== null && (
+                <> · Total: <b>{exam.totalScore}</b> / pass {template.passThreshold}%</>
+              )}
+              {exam.passed === true && <> · <Badge variant="success">Passed</Badge></>}
+              {exam.passed === false && <> · <Badge variant="destructive">Did not pass</Badge></>}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              For the full rider narrative, see{" "}
+              <Link href={`/reports/${exam.riderId}`} className="text-primary underline">
+                the rider's report
+              </Link>
+              .
+            </p>
           </CardContent>
         </Card>
       ) : (

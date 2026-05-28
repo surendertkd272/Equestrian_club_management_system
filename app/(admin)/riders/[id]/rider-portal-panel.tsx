@@ -8,12 +8,17 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { openConfirm } from "@/components/ui/confirm-dialog";
 
+// canManage=false hides Issue + Revoke buttons. Read-only roles still see
+// whether the rider has portal access (email shown, or "not set up") but
+// don't get controls to change it.
 export function RiderPortalPanel({
   riderId,
   currentUser,
+  canManage = true,
 }: {
   riderId: string;
   currentUser: { id: string; email: string } | null;
+  canManage?: boolean;
 }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -97,11 +102,13 @@ export function RiderPortalPanel({
               Rider can sign in at <code>/login</code> and lands on <code>/student</code>.
             </div>
           </div>
-          <Button size="sm" variant="outline" disabled={busy} onClick={revoke}>
-            Revoke
-          </Button>
+          {canManage && (
+            <Button size="sm" variant="outline" disabled={busy} onClick={revoke}>
+              Revoke
+            </Button>
+          )}
         </div>
-      ) : (
+      ) : canManage ? (
         <div className="space-y-2 rounded-md border bg-muted/30 p-3">
           <div className="text-xs text-muted-foreground">
             Create a sign-in for this rider so they can view their attendance / skills / exam results.
@@ -120,6 +127,8 @@ export function RiderPortalPanel({
             {busy ? "Issuing…" : "Issue portal access"}
           </Button>
         </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">No rider portal sign-in set up yet.</p>
       )}
     </div>
   );

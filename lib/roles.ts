@@ -42,3 +42,18 @@ export type Role = (typeof ROLES)[number];
 export function isRole(value: unknown): value is Role {
   return typeof value === "string" && (ROLES as readonly string[]).includes(value);
 }
+
+// Read-only roles — see data, can't mutate anything. SCHOOL_ADMINISTRATOR
+// is a partner-school's oversight account (sees a club's students); future
+// view-only roles get added here so every "hide edit UI" check has one
+// source of truth.
+//
+// Important: this is a UI-hiding helper. The actual write block lives at
+// the API layer — SCHOOL_ADMINISTRATOR is deliberately absent from every
+// can() permission in lib/permissions.ts. isReadOnly() is "don't render
+// the button"; the can() check is "refuse if they tried anyway."
+export const READ_ONLY_ROLES: readonly Role[] = ["SCHOOL_ADMINISTRATOR"];
+
+export function isReadOnly(role: Role): boolean {
+  return READ_ONLY_ROLES.includes(role);
+}

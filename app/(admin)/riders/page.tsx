@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { isReadOnly } from "@/lib/roles";
 import { centreWhere, scopeCentre } from "@/lib/tenancy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -63,11 +64,16 @@ export default async function RidersPage({
               <Link href="/riders/import">Import CSV</Link>
             </Button>
           )}
-          <Button asChild>
-            <Link href="/onboarding">
-              <Plus className="h-4 w-4" /> Onboard new rider
-            </Link>
-          </Button>
+          {/* SCHOOL_ADMINISTRATOR is read-only — they see riders but
+              don't onboard new ones. Other roles keep the existing
+              behaviour (anyone reaching this page can onboard). */}
+          {!isReadOnly(session.role) && (
+            <Button asChild>
+              <Link href="/onboarding">
+                <Plus className="h-4 w-4" /> Onboard new rider
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -75,8 +81,17 @@ export default async function RidersPage({
         <EmptyState
           icon={<Users className="h-8 w-8" />}
           title="No riders yet"
-          body="Onboard your first rider to start tracking attendance, exams, and fees."
-          action={{ href: "/onboarding", label: "Onboard a rider" }}
+          body={
+            isReadOnly(session.role)
+              ? "No riders are registered at this club yet."
+              : "Onboard your first rider to start tracking attendance, exams, and fees."
+          }
+          // No CTA for read-only roles — they can't onboard.
+          action={
+            isReadOnly(session.role)
+              ? undefined
+              : { href: "/onboarding", label: "Onboard a rider" }
+          }
         />
       ) : (
 

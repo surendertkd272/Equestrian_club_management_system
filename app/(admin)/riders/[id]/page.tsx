@@ -12,6 +12,7 @@ import { ActivityFeed } from "@/components/shell/activity-feed";
 import { riderActivity } from "@/lib/activity";
 import { AccreditationsPanel } from "./accreditations-panel";
 import { can } from "@/lib/permissions";
+import { isReadOnly } from "@/lib/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -184,7 +185,11 @@ export default async function RiderProfile({ params }: { params: { id: string } 
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Riding & medical</CardTitle>
-              <AssignBatch riderId={rider.id} currentBatchId={rider.batchId} batches={batches} />
+              {/* AssignBatch is a write — read-only roles see the current
+                  batch in the dl below but can't reassign. */}
+              {!isReadOnly(session.role) && (
+                <AssignBatch riderId={rider.id} currentBatchId={rider.batchId} batches={batches} />
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -234,6 +239,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
           <CardContent>
             <ParentLinksPanel
               riderId={rider.id}
+              canManage={!isReadOnly(session.role)}
               links={rider.parentLinks.map((l) => ({
                 id: l.id,
                 relationship: l.relationship,
@@ -252,6 +258,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
           <CardContent>
             <RiderPortalPanel
               riderId={rider.id}
+              canManage={!isReadOnly(session.role)}
               currentUser={rider.user ? { id: rider.user.id, email: rider.user.email } : null}
             />
           </CardContent>
