@@ -9,6 +9,7 @@ import type { SessionPayload } from "@/lib/auth";
 import { CommandPalette } from "./cmdk";
 import { NotificationsDropdown } from "./notifications-dropdown";
 import { HqCentreSwitcher } from "./hq-centre-switcher";
+import { signOutAndRedirect } from "@/lib/client-logout";
 
 export type EmergencyContact = { label: string; number: string; type: string };
 
@@ -41,21 +42,7 @@ export function TopBar({
   hqCentreFilter?: string | null;
 }) {
   const router = useRouter();
-  async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    // Wipe the service-worker stale-while-revalidate cache. Without this,
-    // the next user on the same device could load this session's pages
-    // from cache (no auth header is needed for a SW hit). The cache holds
-    // GETs only, but those still expose names, photos, etc.
-    try {
-      if ("serviceWorker" in navigator) {
-        const reg = await navigator.serviceWorker.getRegistration();
-        reg?.active?.postMessage({ type: "PURGE_CACHE" });
-      }
-    } catch {}
-    router.push("/login");
-    router.refresh();
-  }
+  const logout = () => signOutAndRedirect(router);
 
   const contacts = emergencyContacts ?? [];
 
