@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Copy, MessageCircle, Trash2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { openConfirm } from "@/components/ui/confirm-dialog";
 
 export type LinkDTO = {
   id: string;
@@ -119,12 +120,16 @@ function LinkRow({ link }: { link: LinkDTO }) {
 
   async function onDelete() {
     // Confirm before delete — these are one-click hard deletes server-side.
-    // Phrase the prompt so the user knows what stops working: the URL itself.
-    if (!window.confirm(
-      `Delete this link?\n\n${url}\n\nAnyone who already has this URL will get an "expired" page.`,
-    )) {
-      return;
-    }
+    // openConfirm() renders via the ConfirmHost mounted in the admin layout
+    // (styled dialog, Esc cancels, Enter confirms) instead of the native
+    // window.confirm prompt.
+    const ok = await openConfirm({
+      title: "Delete this link?",
+      body: `${url}\n\nAnyone who already has this URL will get an "expired" page.`,
+      destructive: true,
+      confirmLabel: "Delete link",
+    });
+    if (!ok) return;
     setDeleting(true);
     try {
       const res = await fetch(`/api/short-links/${encodeURIComponent(link.code)}`, { method: "DELETE" });
