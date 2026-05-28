@@ -129,20 +129,21 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
 }
 
 // Render the per-category extras (Vet Doctor / Farrier registration
-// fields) on each vendor row. Reads the JSON blob and surfaces only the
-// keys that have values, in a human-readable form.
+// fields) on each vendor row. categorySpecificJson is now a native Json
+// column (Prisma returns the parsed object directly — no JSON.parse here).
 function CategorySpecificDisplay({
   vendor,
 }: {
-  vendor: { category: string; categorySpecificJson: string | null };
+  vendor: { category: string; categorySpecificJson: unknown };
 }) {
-  if (!vendor.categorySpecificJson) return null;
-  let data: Record<string, unknown>;
-  try {
-    data = JSON.parse(vendor.categorySpecificJson) as Record<string, unknown>;
-  } catch {
+  if (
+    !vendor.categorySpecificJson ||
+    typeof vendor.categorySpecificJson !== "object" ||
+    Array.isArray(vendor.categorySpecificJson)
+  ) {
     return null;
   }
+  const data = vendor.categorySpecificJson as Record<string, unknown>;
   const cells: string[] = [];
   if (vendor.category === "vet") {
     if (data.vciNumber) cells.push(`VCI ${data.vciNumber}`);

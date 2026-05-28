@@ -3,6 +3,7 @@
 // so historic expenses keep their vendor link.
 
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -50,12 +51,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(d.gstin !== undefined ? { gstin: d.gstin } : {}),
       ...(d.notes !== undefined ? { notes: d.notes } : {}),
       ...(d.active !== undefined ? { active: d.active } : {}),
+      // Native Json column — pass the object straight through (no stringify).
+      // Empty object → Prisma.DbNull so we don't leave "{}" rows behind.
+      // (Plain `null` isn't accepted by Prisma for nullable Json columns —
+      // it expects either Prisma.DbNull / Prisma.JsonNull or a real value.)
       ...(d.categorySpecific !== undefined
         ? {
             categorySpecificJson:
               d.categorySpecific && Object.keys(d.categorySpecific).length > 0
-                ? JSON.stringify(d.categorySpecific)
-                : null,
+                ? (d.categorySpecific as Prisma.InputJsonValue)
+                : Prisma.DbNull,
           }
         : {}),
     },

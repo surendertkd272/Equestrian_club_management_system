@@ -2754,7 +2754,7 @@ model Vendor {
   // experience, specialisations, available days, carries-forge, hourly
   // rate. Free-form JSON so adding a new vendor type doesn't require
   // another schema migration. Shape per kind is in lib/schemas/vendor.ts.
-  categorySpecificJson String?
+  categorySpecificJson Json?
   contactName String?
   phone     String?
   email     String?
