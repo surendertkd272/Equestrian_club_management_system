@@ -28,6 +28,9 @@ import {
   parentsSchema,
   medicalSchema,
   indemnitySchema,
+  parentalConsentRequiredSchema,
+  ageYears,
+  PARENTAL_CONSENT_TEXT,
   type OnboardingInput,
 } from "@/lib/schemas/rider-onboarding";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -149,6 +152,7 @@ type AddressInput = z.infer<typeof addressSchema>;
 type ParentsInput = z.infer<typeof parentsSchema>;
 type MedicalInput = z.infer<typeof medicalSchema>;
 type IndemnityInput = z.infer<typeof indemnitySchema>;
+type ParentalConsentInput = z.infer<typeof parentalConsentRequiredSchema>;
 
 // Accumulated data across steps. Carries the union of every step's keys plus
 // centreSlug (added by the parent). Used as the source for re-seeding a step's
@@ -170,8 +174,33 @@ function pickValues<S extends z.ZodObject<z.ZodRawShape>>(
   return out as Partial<z.infer<S>>;
 }
 
-const STEP_LABELS = ["Personal", "Address", "Parents & Emergency", "Medical", "Indemnity e-sign", "Payment"] as const;
-const STEP_COUNT = STEP_LABELS.length;
+// Step ordering is computed at render time from the user's DOB. Under-18
+// riders get an extra "Parental Consent" step between Medical and Indemnity
+// — DPDPA Section 9 makes verifiable consent from a parent/guardian a
+// hard requirement, and /api/onboarding rejects the submission otherwise.
+// Adults skip that step entirely so the wizard stays the same length they're
+// used to (5 + payment = 6 panels).
+type StepKey = "personal" | "address" | "parents" | "medical" | "parental-consent" | "indemnity" | "payment";
+const STEP_TITLES: Record<StepKey, string> = {
+  personal: "Personal",
+  address: "Address",
+  parents: "Parents & Emergency",
+  medical: "Medical",
+  "parental-consent": "Parental Consent",
+  indemnity: "Indemnity e-sign",
+  payment: "Payment",
+};
+
+function buildSteps(dob: string | undefined): StepKey[] {
+  // Compute minor status from the DOB the user entered in PersonalStep.
+  // If DOB isn't filled yet (first render) we don't know — default to
+  // showing the parental step so navigating Back from later steps doesn't
+  // suddenly add a panel and re-shuffle the index. If they're definitely
+  // an adult, drop the step.
+  const adult = dob ? ageYears(new Date(dob)) >= 18 : false;
+  if (adult) return ["personal", "address", "parents", "medical", "indemnity", "payment"];
+  return ["personal", "address", "parents", "medical", "parental-consent", "indemnity", "payment"];
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Reusable per-step UI bits. Each one is generic over T (the step's input
@@ -490,6 +519,71 @@ function MedicalStep({
   );
 }
 
+// Only rendered when the rider is under 18 (DPDPA Section 9). Collects the
+// parent/guardian's name + relation + phone + email and a versioned
+// consent checkbox. The pinned PARENTAL_CONSENT_TEXT is what the parent
+// agrees to; if that text ever revs, PARENTAL_CONSENT_VERSION bumps and
+// records signed against v1 stay verifiable.
+function ParentalConsentStep({
+  initial,
+  onNext,
+  onBack,
+}: {
+  initial: WizardData;
+  onNext: (d: ParentalConsentInput) => void;
+  onBack: () => void;
+}) {
+  const methods = useForm<ParentalConsentInput>({
+    resolver: zodResolver(parentalConsentRequiredSchema),
+    mode: "onTouched",
+    defaultValues: pickValues(parentalConsentRequiredSchema, initial),
+  });
+  const consentError = methods.formState.errors.parentConsentAgreed?.message;
+  const relationError = methods.formState.errors.parentRelation?.message;
+  return (
+    <form onSubmit={methods.handleSubmit(onNext)} className="space-y-6">
+      <div className="space-y-4">
+        <div className="rounded-md border-2 border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+          The rider is under 18. DPDPA Section 9 requires a parent or legal guardian to
+          provide consent before we can process the rider's personal data. Fill the
+          fields below — the parent's name + agreement is the legal signature.
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field methods={methods} name="parentName" label="Parent / guardian full name" required />
+          <div className="space-y-1.5">
+            <Label htmlFor="parentRelation">Relation *</Label>
+            <Select id="parentRelation" {...methods.register("parentRelation")}>
+              <option value="">— select —</option>
+              <option value="father">Father</option>
+              <option value="mother">Mother</option>
+              <option value="guardian">Legal guardian</option>
+            </Select>
+            {relationError && <p className="text-xs text-destructive">{relationError}</p>}
+          </div>
+          <Field methods={methods} name="parentPhone" label="Parent's phone" required placeholder="10-digit mobile" />
+          <Field methods={methods} name="parentEmail" label="Parent's email" type="email" />
+        </div>
+
+        <div className="max-h-56 overflow-y-auto rounded-md border bg-muted p-4 text-sm leading-relaxed">
+          <p className="font-semibold">Parental / Guardian Consent (DPDPA §9)</p>
+          <p className="mt-2 whitespace-pre-line">{PARENTAL_CONSENT_TEXT}</p>
+        </div>
+
+        <label className="flex items-start gap-2 text-sm font-medium">
+          <input type="checkbox" className="mt-1" {...methods.register("parentConsentAgreed")} />
+          <span>
+            I am the parent / legal guardian named above and I agree to the consent text.
+            My agreement is recorded with timestamp + IP as digital proof under DPDPA Section 9.
+          </span>
+        </label>
+        {consentError && <p className="text-xs text-destructive">{consentError}</p>}
+      </div>
+      <StepFooter canBack onBack={onBack} submitting={false} submitLabel="Next" />
+    </form>
+  );
+}
+
 function IndemnityStep({
   initial,
   onSubmit,
@@ -629,9 +723,17 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
   const [data, setData] = useState<WizardData>({ centreSlug });
   const [result, setResult] = useState<{ riderId: string; invoiceId: string; amount: number } | null>(null);
 
+  // Step ordering depends on whether DOB makes the rider a minor.
+  // buildSteps reads data.dob, which is populated by PersonalStep (step 0)
+  // — so on the very first render (idx=0) we always show Personal and
+  // the rest is decided after Personal submits.
+  const steps = buildSteps(data.dob);
+  const stepCount = steps.length;
+  const currentStep = steps[stepIdx];
+
   function applyStep(stepData: Partial<OnboardingInput>) {
     setData((prev) => ({ ...prev, ...stepData }));
-    setStepIdx((i) => Math.min(STEP_COUNT - 1, i + 1));
+    setStepIdx((i) => Math.min(stepCount - 1, i + 1));
   }
 
   function back() {
@@ -656,7 +758,9 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
     // Capture the final assembled data so a Back from payment doesn't lose it.
     setData((prev) => ({ ...prev, ...indemnity }));
     setResult(body);
-    setStepIdx(STEP_COUNT - 1);
+    // Payment is always the last step regardless of whether the parental
+    // consent panel was in the chain.
+    setStepIdx(stepCount - 1);
   }
 
   async function payNow() {
@@ -689,16 +793,16 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>{STEP_LABELS[stepIdx]}</CardTitle>
+          <CardTitle>{STEP_TITLES[currentStep]}</CardTitle>
           <Badge variant="secondary">
-            Step {stepIdx + 1} / {STEP_COUNT}
+            Step {stepIdx + 1} / {stepCount}
           </Badge>
         </div>
         <CardDescription>
           <div className="mt-3 flex gap-1">
-            {STEP_LABELS.map((label, i) => (
+            {steps.map((key, i) => (
               <div
-                key={label}
+                key={key}
                 className={`h-1.5 flex-1 rounded-full ${i <= stepIdx ? "bg-primary" : "bg-muted"}`}
               />
             ))}
@@ -706,14 +810,21 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        {stepIdx === 0 && <PersonalStep initial={data} onNext={applyStep} />}
-        {stepIdx === 1 && <AddressStep initial={data} onNext={applyStep} onBack={back} />}
-        {stepIdx === 2 && <ParentsStep initial={data} onNext={applyStep} onBack={back} />}
-        {stepIdx === 3 && <MedicalStep initial={data} onNext={applyStep} onBack={back} />}
-        {stepIdx === 4 && (
+        {/* Render by step key, not by index — the parental-consent panel
+            shifts the index for under-18 riders. Each step gets the same
+            (initial, onNext, onBack) shape so the conditional render stays
+            shallow. */}
+        {currentStep === "personal" && <PersonalStep initial={data} onNext={applyStep} />}
+        {currentStep === "address" && <AddressStep initial={data} onNext={applyStep} onBack={back} />}
+        {currentStep === "parents" && <ParentsStep initial={data} onNext={applyStep} onBack={back} />}
+        {currentStep === "medical" && <MedicalStep initial={data} onNext={applyStep} onBack={back} />}
+        {currentStep === "parental-consent" && (
+          <ParentalConsentStep initial={data} onNext={applyStep} onBack={back} />
+        )}
+        {currentStep === "indemnity" && (
           <IndemnityStep initial={data} onSubmit={submitAll} onBack={back} submitting={submitting} />
         )}
-        {stepIdx === 5 && (
+        {currentStep === "payment" && (
           <PaymentStep result={result} onPay={payNow} submitting={submitting} centreName={centreName} />
         )}
       </CardContent>

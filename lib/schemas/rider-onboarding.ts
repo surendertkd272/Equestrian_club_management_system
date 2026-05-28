@@ -103,6 +103,24 @@ export const parentalConsentSchema = z.object({
   parentConsentAgreed: z.boolean().optional(),
 });
 
+// Strict version of the above — used by the wizard's ParentalConsentStep
+// when the entered DOB makes the rider a minor. Same field names; the
+// "optional" sides become "required" so the user fills the step before
+// it lets them move on. The API in app/api/onboarding/route.ts already
+// enforces these for minors; this just surfaces the validation in the
+// browser instead of after submission.
+export const parentalConsentRequiredSchema = z.object({
+  parentName: z.string().min(1, "Parent's full name required").max(120),
+  parentRelation: z.enum(["father", "mother", "guardian"], {
+    errorMap: () => ({ message: "Select a relation" }),
+  }),
+  parentPhone: z.string().min(10, "10+ digits").max(20),
+  parentEmail: z.string().email("Valid email").optional().or(z.literal("")),
+  parentConsentAgreed: z.literal(true, {
+    errorMap: () => ({ message: "Parent must agree to the consent text" }),
+  }),
+});
+
 export const onboardingSchema = personalSchema
   .merge(addressSchema)
   .merge(parentsSchema)
