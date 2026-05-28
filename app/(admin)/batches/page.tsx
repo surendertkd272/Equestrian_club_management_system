@@ -45,6 +45,7 @@ export default async function BatchesPage() {
               <CardTitle>All batches</CardTitle>
             </CardHeader>
             <CardContent>
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-xs uppercase text-muted-foreground">
                   <tr>
@@ -82,6 +83,7 @@ export default async function BatchesPage() {
                   )}
                 </tbody>
               </table>
+              </div>
             </CardContent>
           </Card>
         </div>

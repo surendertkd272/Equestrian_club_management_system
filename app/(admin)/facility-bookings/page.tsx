@@ -67,6 +67,7 @@ export default async function FacilityBookingsPage() {
               No bookings on the books — start a new one above.
             </p>
           ) : (
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted-foreground">
                 <tr>
@@ -106,6 +107,7 @@ export default async function FacilityBookingsPage() {
                 })}
               </tbody>
             </table>
+            </div>
           )}
         </CardContent>
       </Card>
