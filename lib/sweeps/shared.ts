@@ -41,3 +41,31 @@ export async function centreManagerId(centreId: string): Promise<string | null> 
   const c = await prisma.centre.findUnique({ where: { id: centreId }, select: { managerId: true } });
   return c?.managerId ?? null;
 }
+
+// Batch variant — for sweeps that iterate rows across many centres. The
+// per-row centreManagerId() call costs one round-trip per row; this does
+// one findMany() for the whole set and returns a Map. Use when scanning
+// >5 rows touching >1 centre (e.g. fee_due, absence_escalation, birthdays).
+//
+//   const mgrs = await centreManagerMap(invoices.map((i) => i.centreId));
+//   for (const inv of invoices) {
+//     const mgrId = mgrs.get(inv.centreId);
+//     …
+//   }
+//
+// Returns `null` for centres that have no managerId set, matching
+// centreManagerId()'s single-row behaviour.
+export async function centreManagerMap(centreIds: string[]): Promise<Map<string, string | null>> {
+  const unique = Array.from(new Set(centreIds));
+  if (unique.length === 0) return new Map();
+  const rows = await prisma.centre.findMany({
+    where: { id: { in: unique } },
+    select: { id: true, managerId: true },
+  });
+  const map = new Map<string, string | null>();
+  for (const r of rows) map.set(r.id, r.managerId);
+  // Centres that didn't come back (deleted between read and map) get null,
+  // not undefined, so callers can do `map.get(id) ?? null` interchangeably.
+  for (const id of unique) if (!map.has(id)) map.set(id, null);
+  return map;
+}

@@ -3,7 +3,7 @@ import { notify } from "../notify";
 import { sendSms } from "../sms";
 import { sendEmail, renderEmail } from "../email";
 import { sendWhatsApp } from "../whatsapp";
-import { SweepResult, centreManagerId, recentlyNotified } from "./shared";
+import { SweepResult, centreManagerMap, recentlyNotified } from "./shared";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Job 3: Absence escalation.
@@ -45,8 +45,11 @@ export async function sweepAbsenceEscalation(): Promise<SweepResult> {
     select: { id: true, centreId: true, firstName: true, lastName: true, fatherPhone: true, motherPhone: true, mobile: true, email: true, centre: { select: { name: true } } },
   });
 
+  // One centre lookup for the whole batch instead of one per flagged rider.
+  const managers = await centreManagerMap(riders.map((r) => r.centreId));
+
   for (const rider of riders) {
-    const mgrId = await centreManagerId(rider.centreId);
+    const mgrId = managers.get(rider.centreId) ?? null;
     if (!mgrId) {
       skipped += 1;
       continue;

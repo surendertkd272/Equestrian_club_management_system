@@ -1,6 +1,6 @@
 import { prisma } from "../prisma";
 import { notify } from "../notify";
-import { SweepResult, centreManagerId, recentlyNotified } from "./shared";
+import { SweepResult, centreManagerMap, recentlyNotified } from "./shared";
 
 // Job 2d: Vaccination due digest. Horses with nextDueAt within 30 days roll up
 // into one notification per centre.
@@ -25,10 +25,13 @@ export async function sweepVaccinationDue(): Promise<SweepResult> {
     byCentre.get(r.centreId)!.push(r);
   }
 
+  // One centre lookup for the whole batch instead of one per centre.
+  const managers = await centreManagerMap(Array.from(byCentre.keys()));
+
   let notified = 0;
   let skipped = 0;
   for (const [centreId, list] of byCentre.entries()) {
-    const mgrId = await centreManagerId(centreId);
+    const mgrId = managers.get(centreId) ?? null;
     if (!mgrId) { skipped += 1; continue; }
     if (await recentlyNotified(mgrId, "vaccination.due_digest", centreId, 23 * 60 * 60 * 1000)) {
       skipped += 1; continue;

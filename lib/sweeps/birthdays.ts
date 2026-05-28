@@ -3,7 +3,7 @@ import { notify } from "../notify";
 import { sendSms } from "../sms";
 import { sendEmail, renderEmail } from "../email";
 import { sendWhatsApp } from "../whatsapp";
-import { SweepResult, centreManagerId, recentlyNotified } from "./shared";
+import { SweepResult, centreManagerMap, recentlyNotified } from "./shared";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Job 4: Birthday wishes.
@@ -34,8 +34,10 @@ export async function sweepBirthdays(): Promise<SweepResult> {
     where: { id: { in: birthdayKids.map((r) => r.id) } },
     select: { id: true, firstName: true, lastName: true, centreId: true, dob: true, mobile: true, fatherPhone: true, motherPhone: true, email: true, centre: { select: { name: true } } },
   });
+  // One centre lookup for the whole batch instead of one per birthday kid.
+  const managers = await centreManagerMap(fullRiders.map((r) => r.centreId));
   for (const r of fullRiders) {
-    const mgrId = await centreManagerId(r.centreId);
+    const mgrId = managers.get(r.centreId) ?? null;
     if (!mgrId) {
       skipped += 1;
       continue;

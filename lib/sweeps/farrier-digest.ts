@@ -1,6 +1,6 @@
 import { prisma } from "../prisma";
 import { notify } from "../notify";
-import { SweepResult, centreManagerId, recentlyNotified } from "./shared";
+import { SweepResult, centreManagerMap, recentlyNotified } from "./shared";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Job 2c: Farrier overdue / upcoming digest.
@@ -33,11 +33,14 @@ export async function sweepFarrierDigest(): Promise<SweepResult> {
     byCentre.set(v.centreId, slot);
   }
 
+  // One centre lookup for the whole batch instead of one per centre.
+  const managers = await centreManagerMap(Array.from(byCentre.keys()));
+
   let notified = 0;
   let skipped = 0;
   for (const [centreId, slot] of byCentre.entries()) {
     if (slot.upcoming.length === 0 && slot.overdue.length === 0) continue;
-    const mgrId = await centreManagerId(centreId);
+    const mgrId = managers.get(centreId) ?? null;
     if (!mgrId) { skipped += 1; continue; }
     if (await recentlyNotified(mgrId, "farrier.digest", centreId, 23 * 60 * 60 * 1000)) {
       skipped += 1; continue;

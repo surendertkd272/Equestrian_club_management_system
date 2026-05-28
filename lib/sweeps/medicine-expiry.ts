@@ -1,6 +1,6 @@
 import { prisma } from "../prisma";
 import { notify } from "../notify";
-import { SweepResult, centreManagerId, recentlyNotified } from "./shared";
+import { SweepResult, centreManagerMap, recentlyNotified } from "./shared";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Job 2: Medicine expiry digest.
@@ -21,10 +21,13 @@ export async function sweepMedicineExpiry(): Promise<SweepResult> {
     byCentre.get(m.centreId)!.push(m);
   }
 
+  // One centre lookup for the whole batch instead of one per centre.
+  const managers = await centreManagerMap(Array.from(byCentre.keys()));
+
   let notified = 0;
   let skipped = 0;
   for (const [centreId, list] of byCentre.entries()) {
-    const mgrId = await centreManagerId(centreId);
+    const mgrId = managers.get(centreId) ?? null;
     if (!mgrId) {
       skipped += 1;
       continue;

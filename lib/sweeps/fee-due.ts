@@ -3,7 +3,7 @@ import { notify } from "../notify";
 import { sendSms } from "../sms";
 import { sendEmail, renderEmail } from "../email";
 import { sendWhatsApp } from "../whatsapp";
-import { SweepResult, centreManagerId, recentlyNotified } from "./shared";
+import { SweepResult, centreManagerMap, recentlyNotified } from "./shared";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Job 1: Fee-due reminders.
@@ -21,10 +21,13 @@ export async function sweepFeeDue(): Promise<SweepResult> {
     },
   });
 
+  // One centre lookup for the whole batch instead of one per invoice.
+  const managers = await centreManagerMap(invoices.map((i) => i.centreId));
+
   let notified = 0;
   let skipped = 0;
   for (const inv of invoices) {
-    const mgrId = await centreManagerId(inv.centreId);
+    const mgrId = managers.get(inv.centreId) ?? null;
     if (!mgrId) {
       skipped += 1;
       continue;
