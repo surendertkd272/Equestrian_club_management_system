@@ -1,17 +1,31 @@
-// File storage abstraction. Two backends — chosen at request time based on env config:
-//   - S3 (or any S3-compatible: AWS S3, Cloudflare R2, DigitalOcean Spaces) when S3_BUCKET +
-//     S3_ACCESS_KEY + S3_SECRET + S3_PUBLIC_URL are all set.
-//   - Local filesystem (public/uploads/<filename>) as the dev fallback otherwise.
+// File storage abstraction. Three backends — chosen at request time based on
+// env config, in this precedence order:
 //
-// Both backends return the same URL shape: `/uploads/<filename>`. In S3 mode, the
-// `/uploads/:path*` rewrite in next.config.mjs forwards reads to `${S3_PUBLIC_URL}/:path*`,
-// so DB rows stay portable across backends and bucket migrations (rebind S3_PUBLIC_URL
-// without touching stored URLs).
+//   1. Vercel Blob — when BLOB_READ_WRITE_TOKEN is set. The default on
+//      Vercel deployments (zero-setup once Blob is enabled in the project
+//      dashboard). Returns an absolute Vercel-hosted URL.
+//
+//   2. S3 (or any S3-compatible: AWS S3, Cloudflare R2, DigitalOcean
+//      Spaces) when S3_BUCKET + S3_ACCESS_KEY + S3_SECRET + S3_PUBLIC_URL
+//      are all set. Returns a path-rooted URL `/uploads/<filename>` that
+//      the `/uploads/:path*` rewrite in next.config.mjs forwards to
+//      `${S3_PUBLIC_URL}/:path*` — so DB rows stay portable across
+//      buckets (rebind S3_PUBLIC_URL without touching stored URLs).
+//
+//   3. Local filesystem (public/uploads/<filename>) as the dev fallback
+//      otherwise. Returns `/uploads/<filename>`. Doesn't work on Vercel's
+//      read-only runtime — that branch errors with STORAGE_NOT_CONFIGURED
+//      so the deployer knows to enable one of the above.
+//
+// Stored URLs differ between backends — Vercel Blob URLs are absolute,
+// S3/local are `/uploads/<filename>`. Both render correctly as <img src>;
+// downstream readers don't need to know which backend served them.
 
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { put as putToBlob } from "@vercel/blob";
 
 export type UploadKind =
   | "rider_photo"
@@ -174,6 +188,24 @@ export async function uploadFile(opts: {
 
   const filename = randomFilename(ext);
 
+  // Vercel Blob — first priority on Vercel deploys. The SDK reads its
+  // token from process.env.BLOB_READ_WRITE_TOKEN by default; we check
+  // here only to decide whether to use this branch at all.
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      const blob = await putToBlob(filename, opts.buffer, {
+        access: "public",
+        contentType: opts.mime,
+        // addRandomSuffix=false because we already random-named the file —
+        // a second suffix would just clutter the URL.
+        addRandomSuffix: false,
+      });
+      return { ok: true, url: blob.url, size: opts.buffer.length, mime: opts.mime };
+    } catch (err) {
+      return { ok: false, error: "BLOB_PUT_FAILED", message: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
   const s3 = readS3Config();
   if (s3) {
     try {
@@ -209,7 +241,7 @@ export async function uploadFile(opts: {
       ok: false,
       error: isReadOnly ? "STORAGE_NOT_CONFIGURED" : "LOCAL_WRITE_FAILED",
       message: isReadOnly
-        ? "File storage isn't configured. Set S3_BUCKET / S3_ACCESS_KEY / S3_SECRET / S3_PUBLIC_URL env vars for S3-compatible storage (AWS / R2 / Backblaze)."
+        ? "File storage isn't configured. Set BLOB_READ_WRITE_TOKEN (Vercel Blob) — or S3_BUCKET / S3_ACCESS_KEY / S3_SECRET / S3_PUBLIC_URL for S3-compatible storage (AWS / R2 / Backblaze)."
         : `Local write failed: ${msg}`,
     };
   }
