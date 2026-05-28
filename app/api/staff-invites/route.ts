@@ -99,7 +99,8 @@ export async function POST(req: NextRequest) {
       centreId,
       kind: "staff_hire",
       targetPath: "/staff-register",
-      paramsJson: JSON.stringify({ email, name: parsed.data.name ?? null, role: parsed.data.role }),
+      // jsonb column — pass the object directly (post-migration in 81f142a).
+      paramsJson: { email, name: parsed.data.name ?? null, role: parsed.data.role },
       label: `Staff invite — ${email}`,
       expiresAt: new Date(Date.now() + parsed.data.expiresInDays * 86400000),
       singleUse: true,

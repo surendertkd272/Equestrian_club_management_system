@@ -31,7 +31,8 @@ export async function PUT(req: NextRequest, { params }: { params: { level: strin
     levelKey,
     levelName: parsed.data.levelName,
     passThreshold: parsed.data.passThreshold,
-    categoriesJson: JSON.stringify(parsed.data.categories),
+    // jsonb column — pass the array directly (post-migration in 81f142a).
+    categoriesJson: parsed.data.categories,
     updatedBy: session.userId,
   };
 

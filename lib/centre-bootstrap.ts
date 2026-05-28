@@ -3,6 +3,7 @@
 // route so a freshly-created club is usable immediately — manager just needs to
 // add staff/batches/horses/meds via the existing admin pages.
 
+import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import fs from "node:fs";
 import path from "node:path";
@@ -147,7 +148,10 @@ export async function bootstrapCentreCatalog(centreId: string): Promise<void> {
     const data = {
       levelName: r.levelName,
       passThreshold: r.passThreshold,
-      categoriesJson: JSON.stringify(r.categories),
+      // jsonb column — pass the array directly (post-migration in 81f142a).
+      // EQUIWINGS_RUBRICS types its categories as unknown[]; cast to the
+      // InputJsonValue Prisma expects without losing the runtime shape.
+      categoriesJson: r.categories as Prisma.InputJsonValue,
     };
     await prisma.scoringTemplate.upsert({
       where: { centreId_levelKey: { centreId, levelKey } },

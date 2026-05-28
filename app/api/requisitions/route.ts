@@ -92,7 +92,10 @@ export async function POST(req: NextRequest) {
     data: {
       centreId,
       requestedByUserId: session.userId,
-      itemsJson: JSON.stringify(parsed.data.items),
+      // itemsJson is a jsonb column (post-migration in 81f142a) — pass the
+      // array directly; JSON.stringify here would have stored the
+      // serialised string as a string-value JSON instead of the array.
+      itemsJson: parsed.data.items,
       totalEstimatedCost,
       reason: parsed.data.reason ?? null,
       stage: "pending_manager",

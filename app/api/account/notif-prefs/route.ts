@@ -51,7 +51,8 @@ export async function PATCH(req: NextRequest) {
 
   await prisma.user.update({
     where: { id: session.userId },
-    data: { notifPrefsJson: JSON.stringify(merged) },
+    // jsonb column — pass the object directly (post-migration in 81f142a).
+    data: { notifPrefsJson: merged },
   });
 
   await audit({

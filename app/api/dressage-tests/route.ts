@@ -20,8 +20,9 @@ export async function GET() {
         name: t.name,
         level: t.level,
         body: t.body,
-        movementsJson: JSON.stringify(t.movements),
-        collectiveMarksJson: JSON.stringify(t.collectives),
+        // jsonb columns — pass the arrays directly (post-migration in 81f142a).
+        movementsJson: t.movements,
+        collectiveMarksJson: t.collectives,
         maxScore: dressageMaxScore(t.movements, t.collectives),
         active: true,
       })),
@@ -67,8 +68,11 @@ export async function POST(req: NextRequest) {
         name: d.name,
         level: d.level,
         body: d.body,
-        movementsJson: JSON.stringify(d.movements as DressageMovement[]),
-        collectiveMarksJson: JSON.stringify(d.collectives as DressageCollective[]),
+        // jsonb columns — pass the arrays directly. The d.movements /
+        // d.collectives narrows from createSchema match the Zod shapes
+        // exactly, so the cast is just naming for downstream typing.
+        movementsJson: d.movements as DressageMovement[],
+        collectiveMarksJson: d.collectives as DressageCollective[],
         maxScore: dressageMaxScore(d.movements as DressageMovement[], d.collectives as DressageCollective[]),
       },
     });

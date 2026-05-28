@@ -35,7 +35,9 @@ export async function POST(req: NextRequest) {
   const recoveryHashes = recoveryPlain.map(hashRecoveryCode);
   await prisma.platformUser.update({
     where: { id: session.ownerId },
-    data: { totpRecoveryCodesJson: JSON.stringify(recoveryHashes) },
+    // jsonb column — pass the array directly. JSON.stringify here would
+    // have stored a string-value JSON instead of the parsed array.
+    data: { totpRecoveryCodesJson: recoveryHashes },
   });
   await prisma.platformAuditLog.create({
     data: { actorId: session.ownerId, action: "owner.2fa_recovery_regenerated" },

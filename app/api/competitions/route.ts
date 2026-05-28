@@ -49,7 +49,8 @@ export async function POST(req: NextRequest) {
       endDate: new Date(d.endDate),
       venue: d.venue || null,
       entryDeadline: d.entryDeadline ? new Date(d.entryDeadline) : null,
-      classesJson: JSON.stringify(d.classes),
+      // jsonb column — pass the array directly (post-migration in 81f142a).
+      classesJson: d.classes,
       status: "draft",
     },
   });
