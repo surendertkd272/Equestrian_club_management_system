@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getOwnerSession } from "@/lib/owner-auth";
 import { auditOwner } from "@/lib/owner-audit";
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get("status");
   const plan = searchParams.get("plan");
 
-  const where: any = {};
+  const where: Prisma.OrganisationWhereInput = {};
   if (q) {
     // SQLite has no `mode: insensitive`, so we OR substring matches against
     // the raw casing. Slugs + emails are already lowercase; names mixed-case.

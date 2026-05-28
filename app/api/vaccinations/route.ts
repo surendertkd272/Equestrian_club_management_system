@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const horseId = url.searchParams.get("horseId");
 
-  const where: any = {};
+  const where: Prisma.VaccinationScheduleWhereInput = {};
   if (session.role !== "SUPER_ADMIN" && session.centreId) where.centreId = session.centreId;
   if (horseId) where.horseId = horseId;
 

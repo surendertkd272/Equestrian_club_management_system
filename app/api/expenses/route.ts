@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
 
-  const where: any = { ...centreWhere(centreId) };
+  const where: Prisma.ExpenseWhereInput = { ...centreWhere(centreId) };
   if (from || to) {
     where.spentAt = {
       ...(from ? { gte: new Date(from) } : {}),

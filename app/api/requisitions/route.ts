@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
   const mine = url.searchParams.get("mine") === "1";
   const queue = url.searchParams.get("queue");
 
-  const where: any = { ...centreWhere(centreId) };
+  const where: Prisma.RequisitionWhereInput = { ...centreWhere(centreId) };
   if (mine) where.requestedByUserId = session.userId;
   if (queue === "manager") {
     if (!can(session.role, "requisition.approve_manager")) {

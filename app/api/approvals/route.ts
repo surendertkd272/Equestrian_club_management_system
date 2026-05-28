@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest) {
   const status = url.searchParams.get("status");
   const entityType = url.searchParams.get("entityType");
 
-  const where: any = {};
+  const where: Prisma.ApprovalRequestWhereInput = {};
   if (session.role !== "SUPER_ADMIN" && session.centreId) where.centreId = session.centreId;
   if (status) where.status = status;
   if (entityType) where.entityType = entityType;

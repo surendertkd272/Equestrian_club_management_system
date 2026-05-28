@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -72,7 +73,7 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   const url = new URL(req.url);
   const centreId = scopeCentre(session);
-  const where: any = { ...centreWhere(centreId) };
+  const where: Prisma.EventWhereInput = { ...centreWhere(centreId) };
   const status = url.searchParams.get("status");
   const type = url.searchParams.get("type");
   if (status) where.status = status;

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   const url = new URL(req.url);
-  const where: any = {};
+  const where: Prisma.CourseWhereInput = {};
   if (session.role !== "SUPER_ADMIN" && session.centreId) where.centreId = session.centreId;
   if (url.searchParams.get("active") === "1") where.active = true;
 

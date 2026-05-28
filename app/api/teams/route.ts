@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -10,7 +11,7 @@ import { createTeamSchema } from "@/lib/schemas/teams";
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  const where: any = {};
+  const where: Prisma.TeamWhereInput = {};
   if (session.role !== "SUPER_ADMIN" && session.centreId) where.centreId = session.centreId;
 
   const rows = await prisma.team.findMany({

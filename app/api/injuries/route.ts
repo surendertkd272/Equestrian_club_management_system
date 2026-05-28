@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
   const subjectType = url.searchParams.get("subjectType");
   const subjectId = url.searchParams.get("subjectId");
 
-  const where: any = {};
+  const where: Prisma.InjuryLogWhereInput = {};
   if (session.role !== "SUPER_ADMIN" && session.centreId) where.centreId = session.centreId;
   if (subjectType) where.subjectType = subjectType;
   if (subjectId) where.subjectId = subjectId;

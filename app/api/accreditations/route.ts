@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
   const riderId = url.searchParams.get("riderId");
   const centreId = scopeCentre(session);
 
-  const where: any = {};
+  const where: Prisma.AccreditationWhereInput = {};
   if (riderId) where.riderId = riderId;
   // Tenant scoping — rider must be in the caller's centre unless SUPER_ADMIN.
   if (centreId) where.rider = { centreId };

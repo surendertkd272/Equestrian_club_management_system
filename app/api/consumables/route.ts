@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
   const category = url.searchParams.get("category");
   const low = url.searchParams.get("low");
 
-  const where: any = {};
+  const where: Prisma.ConsumableWhereInput = {};
   if (session.role !== "SUPER_ADMIN" && session.centreId) where.centreId = session.centreId;
   if (category) where.category = category;
 
