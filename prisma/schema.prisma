@@ -696,6 +696,12 @@ model User {
   salaryStructures  SalaryStructure[]  @relation("SalaryStructureUser")
   coachDailyUpdates CoachDailyUpdate[] @relation("CoachDailyUpdateCoach")
   auditRuns         AuditRun[]         @relation("AuditRunInspector")
+
+  // Admin /users and /approvals filter by (centreId, status) — pending
+  // approvals list, centre staff roster. Without this it's a scan-and-filter.
+  @@index([centreId, status])
+  // HQ rollups + getOrgIdForSession() lookups read User.orgId directly.
+  @@index([orgId])
 }
 
 // Public forgot-password flow. We mint a SHA-256-hashed token on request;
@@ -871,6 +877,11 @@ model Rider {
   @@index([centreId])
   @@index([batchId])
   @@index([status])
+  // Composite for the common centre+status combo — admin rider lists, sweeps
+  // ("active riders in this centre"), birthday roll-ups. Covers the two
+  // singletons above when the query uses both columns, so they could be
+  // dropped if you want — left them for now as zero-cost duplication.
+  @@index([centreId, status])
 }
 
 model Batch {
@@ -2178,6 +2189,11 @@ model Invoice {
   centre   Centre   @relation(fields: [centreId], references: [id])
   rider    Rider    @relation(fields: [riderId], references: [id])
   payments Payment[]
+
+  // fee-due sweep filters by (status, dueDate); without this index the query
+  // does a full table scan on Invoice. Centre + rider lookups (admin views)
+  // use the FK indexes Prisma generates automatically.
+  @@index([status, dueDate])
 }
 
 model Payment {
