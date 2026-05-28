@@ -3,6 +3,7 @@
 // The redirect surface at /r/[code] is public and rate-limited.
 
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -89,7 +90,8 @@ export async function POST(req: NextRequest) {
       centreId,
       kind: parsed.data.kind,
       targetPath,
-      paramsJson: parsed.data.params ? JSON.stringify(parsed.data.params) : null,
+      // jsonb column — pass the object directly; absent → Prisma.DbNull.
+      paramsJson: parsed.data.params ? parsed.data.params : Prisma.DbNull,
       label: parsed.data.label ?? SHORT_LINK_KINDS[parsed.data.kind].label,
       expiresAt,
       singleUse: parsed.data.singleUse,

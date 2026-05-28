@@ -49,11 +49,12 @@ export type SalaryStructureInput = z.infer<typeof salaryStructureSchema>;
 export type RecordSalaryInput = z.infer<typeof recordSalarySchema>;
 
 // Parse the stored deduction-rules JSON into a clean {status: amount} map.
-export function parseDeductionRules(json: string | null | undefined): Record<string, number> {
-  if (!json) return {};
+// Accepts either a string (legacy / tests) or a parsed JsonValue (native jsonb).
+export function parseDeductionRules(json: unknown): Record<string, number> {
+  if (json === null || json === undefined || json === "") return {};
   try {
-    const obj = JSON.parse(json);
-    if (!obj || typeof obj !== "object") return {};
+    const obj = typeof json === "string" ? JSON.parse(json) : json;
+    if (!obj || typeof obj !== "object" || Array.isArray(obj)) return {};
     const out: Record<string, number> = {};
     for (const [k, v] of Object.entries(obj)) {
       const n = Number(v);

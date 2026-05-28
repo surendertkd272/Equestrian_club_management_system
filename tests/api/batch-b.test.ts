@@ -278,7 +278,8 @@ describe("InjuryLog", () => {
     expect(r2.status).toBe(200);
     const mid = await prisma.injuryLog.findUniqueOrThrow({ where: { id } });
     expect(mid.treatmentJson).not.toBeNull();
-    expect(JSON.parse(mid.treatmentJson!)).toHaveLength(1);
+    // treatmentJson is now a jsonb column — Prisma returns the parsed array.
+    expect(mid.treatmentJson as unknown[]).toHaveLength(1);
 
     // Mark recovered
     const r3 = await patchInjury(

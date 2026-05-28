@@ -22,7 +22,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   return NextResponse.json({
     plan: {
       id: horse.feedPlan.id,
-      rations: JSON.parse(horse.feedPlan.rationsJson),
+      // rationsJson is a jsonb column — already parsed by Prisma.
+      rations: horse.feedPlan.rationsJson,
       notes: horse.feedPlan.notes,
       updatedAt: horse.feedPlan.updatedAt,
     },
@@ -55,11 +56,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
   const d = parsed.data;
 
-  const rationsJson = JSON.stringify(d.rations);
+  // rationsJson is a jsonb column — pass the validated rations array directly.
   const saved = await prisma.feedPlan.upsert({
     where: { horseId: horse.id },
-    create: { centreId: horse.centreId, horseId: horse.id, rationsJson, notes: d.notes ?? null, updatedBy: session.userId },
-    update: { rationsJson, notes: d.notes ?? null, updatedBy: session.userId },
+    create: { centreId: horse.centreId, horseId: horse.id, rationsJson: d.rations, notes: d.notes ?? null, updatedBy: session.userId },
+    update: { rationsJson: d.rations, notes: d.notes ?? null, updatedBy: session.userId },
   });
 
   await audit({
@@ -67,7 +68,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     action: "horse.feed_plan_saved",
     tableName: "feedPlan",
     rowId: saved.id,
-    before: horse.feedPlan ? { rations: JSON.parse(horse.feedPlan.rationsJson) } : null,
+    // rationsJson is already-parsed — no JSON.parse needed for the audit shot.
+    before: horse.feedPlan ? { rations: horse.feedPlan.rationsJson } : null,
     after: { rations: d.rations },
   });
 

@@ -74,10 +74,13 @@ export const updateEntrySchema = z.object({
 export type CompetitionClass = z.infer<typeof competitionClassSchema>;
 export type CreateCompetitionInput = z.infer<typeof createCompetitionSchema>;
 
-export function parseClasses(json: string | null | undefined): CompetitionClass[] {
-  if (!json) return [];
+// Accepts either a JSON string (legacy / tests) or a parsed JsonValue (native
+// Postgres jsonb columns). Forgiving on bad shapes so a malformed row doesn't
+// crash the competitions page.
+export function parseClasses(json: unknown): CompetitionClass[] {
+  if (json === null || json === undefined || json === "") return [];
   try {
-    const v = JSON.parse(json);
+    const v = typeof json === "string" ? JSON.parse(json) : json;
     const r = z.array(competitionClassSchema).safeParse(v);
     return r.success ? r.data : [];
   } catch {

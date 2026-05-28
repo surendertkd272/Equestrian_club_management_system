@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
@@ -26,7 +27,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (!parsed.success) {
       return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
     }
-    const existing: any[] = row.treatmentJson ? JSON.parse(row.treatmentJson) : [];
+    // treatmentJson is a jsonb column — Prisma returns the parsed array
+    // directly. We append the new entry and write the array back as-is.
+    const existing: Array<Record<string, unknown>> = Array.isArray(row.treatmentJson)
+      ? (row.treatmentJson as Array<Record<string, unknown>>)
+      : [];
     existing.push({
       at: parsed.data.at ?? new Date().toISOString(),
       by: session.userId,
@@ -35,7 +40,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     });
     await prisma.injuryLog.update({
       where: { id: row.id },
-      data: { treatmentJson: JSON.stringify(existing) },
+      data: { treatmentJson: existing as Prisma.InputJsonValue },
     });
     await audit({
       userId: session.userId,

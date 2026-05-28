@@ -59,10 +59,13 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
     return NextResponse.json({ error: "DEADLINE_PASSED" }, { status: 409 });
   }
 
-  let classes: Array<{ name: string; fee?: number; maxEntries?: number }> = [];
-  try {
-    classes = JSON.parse(comp.classesJson);
-  } catch {
+  // classesJson is a jsonb column — already parsed by Prisma. Bad shape
+  // (shouldn't happen but legacy rows might) → bail with a 500 so the entrant
+  // gets a clear error instead of an unhandled crash.
+  const classes: Array<{ name: string; fee?: number; maxEntries?: number }> = Array.isArray(comp.classesJson)
+    ? (comp.classesJson as Array<{ name: string; fee?: number; maxEntries?: number }>)
+    : [];
+  if (classes.length === 0) {
     return NextResponse.json({ error: "CONFIG_ERROR" }, { status: 500 });
   }
   const cls = classes.find((c) => c.name === d.className);

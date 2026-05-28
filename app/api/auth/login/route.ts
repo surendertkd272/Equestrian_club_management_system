@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { setSessionCookie, signSession, verifyPassword } from "@/lib/auth";
@@ -94,14 +95,20 @@ export async function POST(req: NextRequest) {
     if (supplied && verifyTotp(user.totpSecret, supplied)) {
       okFactor = true;
     } else if (recovery && user.totpRecoveryCodesJson) {
-      const hashes: string[] = JSON.parse(user.totpRecoveryCodesJson);
+      // totpRecoveryCodesJson is a jsonb column — Prisma returns the parsed
+      // array directly. Narrow before treating as string[]; bad data → bail.
+      const stored = user.totpRecoveryCodesJson as unknown;
+      const hashes: string[] = Array.isArray(stored)
+        ? stored.filter((x): x is string => typeof x === "string")
+        : [];
       const matchHash = hashRecoveryCode(recovery);
       if (hashes.includes(matchHash)) {
-        // Consume — remove the hash so it can't be re-used.
+        // Consume — remove the hash so it can't be re-used. Empty array →
+        // Prisma.DbNull to clear the column entirely.
         const remaining = hashes.filter((h) => h !== matchHash);
         await prisma.user.update({
           where: { id: user.id },
-          data: { totpRecoveryCodesJson: JSON.stringify(remaining) },
+          data: { totpRecoveryCodesJson: remaining.length === 0 ? Prisma.DbNull : remaining },
         });
         okFactor = true;
       }

@@ -35,10 +35,14 @@ export async function getNotifPrefs(userId: string): Promise<NotifPrefs> {
   return mergePrefs(u?.notifPrefsJson ?? null);
 }
 
-export function mergePrefs(json: string | null): NotifPrefs {
-  if (!json) return DEFAULT_PREFS;
+// Accepts either a string (legacy / tests) or a parsed JsonValue (native
+// jsonb column). Falls back to DEFAULT_PREFS on anything malformed.
+export function mergePrefs(json: unknown): NotifPrefs {
+  if (json === null || json === undefined || json === "") return DEFAULT_PREFS;
   try {
-    const parsed = JSON.parse(json) as Partial<NotifPrefs>;
+    const raw = typeof json === "string" ? JSON.parse(json) : json;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return DEFAULT_PREFS;
+    const parsed = raw as Partial<NotifPrefs>;
     return {
       inApp: parsed.inApp ?? DEFAULT_PREFS.inApp,
       email: parsed.email ?? DEFAULT_PREFS.email,

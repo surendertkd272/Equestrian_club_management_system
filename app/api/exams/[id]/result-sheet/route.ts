@@ -37,9 +37,12 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   // Use the legacy lead scoresJson if present; otherwise pull the lead
   // judge's row. Co-judge cards aren't shown individually on the rider
   // result — only the aggregate.
-  const scores: Record<string, number | string> = exam.scoresJson
-    ? JSON.parse(exam.scoresJson)
-    : {};
+  // scoresJson is a jsonb column — Prisma returns the parsed object directly.
+  // Narrow defensively in case a legacy row holds a primitive/array.
+  const scores: Record<string, number | string> =
+    exam.scoresJson && typeof exam.scoresJson === "object" && !Array.isArray(exam.scoresJson)
+      ? (exam.scoresJson as Record<string, number | string>)
+      : {};
 
   let totalMax = 0;
   const sections = rubric

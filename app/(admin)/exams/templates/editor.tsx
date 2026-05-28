@@ -43,7 +43,10 @@ const EXAMPLE = JSON.stringify(
   2,
 );
 
-type ExistingTemplate = { levelKey: string; levelName: string; passThreshold: number; categoriesJson: string };
+// categoriesJson is a native jsonb column — comes back from Prisma as an
+// already-parsed value (object/array). Keep the type unknown so this stays
+// honest about what we got and the load handler narrows defensively.
+type ExistingTemplate = { levelKey: string; levelName: string; passThreshold: number; categoriesJson: unknown };
 
 export function TemplateEditor({ existing }: { existing: ExistingTemplate[] }) {
   const router = useRouter();
@@ -65,10 +68,13 @@ export function TemplateEditor({ existing }: { existing: ExistingTemplate[] }) {
     if (e) {
       setLevelName(e.levelName);
       setPassThreshold(e.passThreshold);
+      // categoriesJson is already-parsed (jsonb). If a legacy row still hands
+      // us a string, parse first; otherwise pretty-print directly.
       try {
-        setJson(JSON.stringify(JSON.parse(e.categoriesJson), null, 2));
+        const obj = typeof e.categoriesJson === "string" ? JSON.parse(e.categoriesJson) : e.categoriesJson;
+        setJson(JSON.stringify(obj, null, 2));
       } catch {
-        setJson(e.categoriesJson);
+        setJson(typeof e.categoriesJson === "string" ? e.categoriesJson : "");
       }
     }
   }

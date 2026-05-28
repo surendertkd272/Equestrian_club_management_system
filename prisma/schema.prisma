@@ -527,7 +527,7 @@ model PlatformUser {
   // SHA-256 hashes of one-shot recovery codes. JSON array. Used as a
   // fallback when the user has lost their authenticator. Each entry is
   // removed when consumed so no code is reusable.
-  totpRecoveryCodesJson String?
+  totpRecoveryCodesJson Json?
   // Same purpose as User.tokenVersion — bumped on password reset / 2FA
   // disable / "sign out everywhere" to invalidate any active owner session.
   tokenVersion Int @default(0)
@@ -569,7 +569,7 @@ model Centre {
   // PDF §3 — Emergency Contact Board. JSON array of
   // { label, number, type } so each centre lists its on-call vet, nearest
   // equine hospital, ambulance, electricity / water emergency, etc.
-  emergencyContactsJson String?
+  emergencyContactsJson Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -640,7 +640,7 @@ model User {
   // hashed recovery codes). Cleared when the user disables 2FA.
   totpSecret               String?
   totpLastStep             BigInt?
-  totpRecoveryCodesJson    String?
+  totpRecoveryCodesJson    Json?
   // DPDPA Section 12 right-to-erasure. When set, the user has formally
   // requested account deletion. A 30-day grace window lets the user
   // cancel — the sweep at lib/sweeps.ts:sweepDpdpaDeletions hard-deletes
@@ -667,7 +667,7 @@ model User {
   //   { inApp: true, email: true, sms: false, whatsapp: true,
   //     quietHoursStart: "22:00", quietHoursEnd: "07:00" }
   // Missing fields fall back to safe defaults in lib/notify-prefs.ts.
-  notifPrefsJson String?
+  notifPrefsJson Json?
   // Avatar URL, served from the upload route. Empty falls back to initials.
   photoUrl     String?
   createdAt    DateTime @default(now())
@@ -833,7 +833,7 @@ model Rider {
   //   { signedAt, parentName, parentRelation, parentPhone, ip, ua,
   //     consentText: "...", consentVersion: "v1" }
   // Null for adult riders or pre-DPDPA records.
-  parentalConsentJson String?
+  parentalConsentJson Json?
   // Status
   status         String    @default("pending_payment") // pending_approval | pending_payment | active | suspended | cancelled | rejected
   registrationPaid Boolean @default(false)
@@ -998,7 +998,7 @@ model Staff {
   userId       String   @unique
   role         String   // Role (lib/roles.ts)
   joiningDate  DateTime @default(now())
-  kycDocsJson  String?
+  kycDocsJson  Json?
   salaryBand   String?
   status       String   @default("active")
 
@@ -1378,7 +1378,7 @@ model InjuryLog {
   severity      String   @default("minor") // minor | moderate | severe
   cause         String?
   initialNotes  String
-  treatmentJson String?  // serialised array of { at, by, treatment, notes }
+  treatmentJson Json?  // serialised array of { at, by, treatment, notes }
   recoveredAt   DateTime?
   status        String   @default("active") // active | recovering | recovered | chronic
   reportedBy    String?
@@ -1458,7 +1458,7 @@ model FeedPlan {
   id          String   @id @default(cuid())
   centreId    String
   horseId     String   @unique // one active plan per horse; swap in-place
-  rationsJson String
+  rationsJson Json
   notes       String?
   updatedBy   String?
   createdAt   DateTime @default(now())
@@ -1636,7 +1636,7 @@ model Competition {
   endDate       DateTime
   venue         String?
   status        String   @default("draft") // draft | open_for_entries | live | completed | cancelled
-  classesJson   String   // JSON: [{ name, fee, ageGroup?, maxEntries? }]
+  classesJson   Json   // JSON: [{ name, fee, ageGroup?, maxEntries? }]
   entryDeadline DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -1685,7 +1685,7 @@ model CompetitionEntry {
   time          Float?   // seconds
   // Per-round / per-phase results (eventing dressage+xc+sj; multi-heat
   // jumping). Array of { roundNumber, name, faults?, time?, score? }.
-  roundsJson    String?
+  roundsJson    Json?
   // Refund tracking for withdrawn entries that had paid invoices.
   refundedAt    DateTime?
   refundInvoiceId String?
@@ -1813,8 +1813,8 @@ model DressageTest {
   name                String
   level               String   // preliminary | novice | elementary | medium | advanced
   body                String   @default("EFI") // EFI | BHS | FEI | custom
-  movementsJson       String
-  collectiveMarksJson String?
+  movementsJson       Json
+  collectiveMarksJson Json?
   maxScore            Float
   active              Boolean  @default(true)
   createdAt           DateTime @default(now())
@@ -1835,8 +1835,8 @@ model DressageScoresheet {
   testId       String
   judgeUserId  String
   judgePosition String? // C | E | B | M | H — judge's seat around the arena
-  marksJson    String
-  collectiveMarksJson String?
+  marksJson    Json
+  collectiveMarksJson Json?
   percentage   Float?
   submittedAt  DateTime?
   notes        String?
@@ -2259,7 +2259,7 @@ model ExamLevel {
   passThreshold   Int      @default(70)
   // Default rubric (JSON of ScoringCategory[]). Centres can override per
   // centre via a custom ScoringTemplate row.
-  defaultRubricJson String?
+  defaultRubricJson Json?
   // Minimum examiner authority — only EXAMINER rows whose
   // ExaminerAuthority covers this level can lead an exam at this level.
   // Soft hint for now; not strictly enforced.
@@ -2286,7 +2286,7 @@ model ScoringTemplate {
   levelKey      String   // "1" | "2" | "3" | "4" — matches Exam.level
   levelName     String   // "Level 1 — Beginner", etc.
   passThreshold Int      @default(70) // percentage to pass
-  categoriesJson String  // serialized ScoringCategory[]
+  categoriesJson Json  // serialized ScoringCategory[]
   updatedAt     DateTime @updatedAt
   updatedBy     String?
 
@@ -2312,7 +2312,7 @@ model Exam {
   // rider-facing UI, certificates, parent SMS, etc.).
   totalScore    Float?
   // Legacy single-judge score map. Co-judge data lives on ExamJudge.scoresJson.
-  scoresJson    String?
+  scoresJson    Json?
   passed        Boolean?
   // Deductions are subtracted from the rubric total before pass/fail. Used
   // for course faults, time penalties, refusals, etc. that aren't rubric
@@ -2321,7 +2321,7 @@ model Exam {
   timeFaults    Float    @default(0)
   // PRD "Test-day support" — grooms / helpers assigned to this exam.
   // JSON array of user.id strings; never deep enough to warrant its own table.
-  supportStaffJson String?
+  supportStaffJson Json?
   // Re-attempt link — points to the previous failed exam at this level for
   // the same rider. Lets the result card show "Attempt 2".
   previousExamId  String?
@@ -2358,7 +2358,7 @@ model ExamJudge {
   position    Int      @default(1) // 1 = lead, 2 = co-judge, …
   // Per-judge score map and computed numeric total. Null until the judge
   // submits their card.
-  scoresJson  String?
+  scoresJson  Json?
   subTotal    Float?
   submittedAt DateTime?
 
@@ -2858,7 +2858,7 @@ model ShortLink {
   targetPath      String
   // JSON map of query-string params to merge into the redirect (e.g.
   // {"horseId":"abc","coachId":"def"}). Pre-fills the destination form.
-  paramsJson      String?
+  paramsJson      Json?
   // Display label shown on the redemption interstitial — "Report injury for Bijli".
   label           String?
   // null = never expires; we still enforce a soft cap of 90 days at create-time.
@@ -2890,7 +2890,7 @@ model Requisition {
   centreId            String
   requestedByUserId   String
   // JSON: [{ name, qty, unit, estimatedUnitCost, notes? }]
-  itemsJson           String
+  itemsJson           Json
   totalEstimatedCost  Float
   reason              String?  // why this is needed
   // Two-stage workflow. pending_manager → pending_accountant → approved.
@@ -3002,7 +3002,7 @@ model SalaryPayment {
   // per-status counts + amounts so the payslip is fully explainable.
   attendanceDeducted     Float   @default(0)
   absentDays             Int     @default(0)
-  deductionBreakdownJson String?
+  deductionBreakdownJson Json?
   netAmount        Float
   method           String?  // cash | bank | upi | cheque
   paidAt           DateTime?
@@ -3046,7 +3046,7 @@ model SalaryStructure {
 model PayrollConfig {
   id                 String   @id @default(cuid())
   orgId              String   @unique
-  deductionRulesJson String   @default("{}")
+  deductionRulesJson Json   @default("{}")
   updatedByUserId    String?
   updatedAt          DateTime @updatedAt
   createdAt          DateTime @default(now())

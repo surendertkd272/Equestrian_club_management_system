@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import fs from "node:fs";
 import path from "node:path";
@@ -720,11 +720,14 @@ async function main() {
   // General-discipline levels follow the Equiwings 4-level structure from
   // the reference module. The full rubric ships as defaultRubricJson so
   // every centre inherits the canonical scoring scheme.
-  const generalRubric: Record<string, string | null> = {
-    "1": EQUIWINGS_RUBRICS["1"] ? JSON.stringify(EQUIWINGS_RUBRICS["1"].categories) : null,
-    "2": EQUIWINGS_RUBRICS["2"] ? JSON.stringify(EQUIWINGS_RUBRICS["2"].categories) : null,
-    "3": EQUIWINGS_RUBRICS["3"] ? JSON.stringify(EQUIWINGS_RUBRICS["3"].categories) : null,
-    "4": EQUIWINGS_RUBRICS["4"] ? JSON.stringify(EQUIWINGS_RUBRICS["4"].categories) : null,
+  // defaultRubricJson is a jsonb column — pass the category array directly.
+  // `undefined` skips the column (leaves DB default NULL) for levels without
+  // a canonical rubric yet.
+  const generalRubric: Record<string, Prisma.InputJsonValue | undefined> = {
+    "1": EQUIWINGS_RUBRICS["1"] ? (EQUIWINGS_RUBRICS["1"].categories as Prisma.InputJsonValue) : undefined,
+    "2": EQUIWINGS_RUBRICS["2"] ? (EQUIWINGS_RUBRICS["2"].categories as Prisma.InputJsonValue) : undefined,
+    "3": EQUIWINGS_RUBRICS["3"] ? (EQUIWINGS_RUBRICS["3"].categories as Prisma.InputJsonValue) : undefined,
+    "4": EQUIWINGS_RUBRICS["4"] ? (EQUIWINGS_RUBRICS["4"].categories as Prisma.InputJsonValue) : undefined,
   };
   const examLevels = [
     // General — 4 canonical Equiwings levels

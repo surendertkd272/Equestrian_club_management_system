@@ -144,12 +144,16 @@ export function dressageMaxScore(
 // produce a meaningful number (e.g. trimmed_mean needs ≥3 sheets).
 export type JudgingMode = "simple" | "trimmed_mean" | "per_movement";
 
+// marksJson / collectiveMarksJson are jsonb columns on DressageScoresheet, so
+// Prisma hands us the already-parsed value (typically a Mark[]). We type as
+// `unknown` here and narrow inside combineDressageSheets so this stays honest
+// about what we got from the DB.
 export type SubmittedSheet = {
   judgeUserId: string;
   judgePosition: string | null;
   percentage: number | null;
-  marksJson: string;
-  collectiveMarksJson: string | null;
+  marksJson: unknown;
+  collectiveMarksJson: unknown;
 };
 
 export function combineDressageSheets(
@@ -195,8 +199,18 @@ export function combineDressageSheets(
   // movement only, instead of dragging the whole sheet down.
   const movementSums = new Map<number, { sum: number; n: number }>();
   const collectiveSums = new Map<number, { sum: number; n: number }>();
+  // Accept both already-parsed jsonb values and legacy string blobs.
+  const coerceMarks = (v: unknown): Array<{ no: number; mark: number | null }> => {
+    if (v === null || v === undefined || v === "") return [];
+    try {
+      const arr = typeof v === "string" ? JSON.parse(v) : v;
+      return Array.isArray(arr) ? arr : [];
+    } catch {
+      return [];
+    }
+  };
   for (const s of valid) {
-    const marks = JSON.parse(s.marksJson) as Array<{ no: number; mark: number | null }>;
+    const marks = coerceMarks(s.marksJson);
     for (const m of marks) {
       if (m.mark === null || m.mark === undefined) continue;
       const slot = movementSums.get(m.no) ?? { sum: 0, n: 0 };
@@ -205,7 +219,7 @@ export function combineDressageSheets(
       movementSums.set(m.no, slot);
     }
     if (s.collectiveMarksJson) {
-      const cMarks = JSON.parse(s.collectiveMarksJson) as Array<{ no: number; mark: number | null }>;
+      const cMarks = coerceMarks(s.collectiveMarksJson);
       for (const m of cMarks) {
         if (m.mark === null || m.mark === undefined) continue;
         const slot = collectiveSums.get(m.no) ?? { sum: 0, n: 0 };

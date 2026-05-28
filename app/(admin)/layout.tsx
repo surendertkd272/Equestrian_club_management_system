@@ -46,7 +46,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     ? { id: centreFull.id, name: centreFull.name, slug: centreFull.slug }
     : null;
   const centres = orgCentres ?? (centre ? [centre] : []);
-  const emergencyContacts = parseEmergencyContacts(centreFull?.emergencyContactsJson ?? null);
+  const emergencyContacts = parseEmergencyContacts(centreFull?.emergencyContactsJson);
 
   // HQ-tier admins' selected centre filter. Persisted in a cookie set by
   // /api/hq-centre when they pick from the topbar switcher. Pages can also
@@ -78,11 +78,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 }
 
 // Tolerant parser — bad JSON or legacy shapes return an empty list rather
-// than crash the layout for every page.
-function parseEmergencyContacts(json: string | null): { label: string; number: string; type: string }[] {
-  if (!json) return [];
+// than crash the layout for every page. Accepts both string (legacy / tests)
+// and JsonValue (native jsonb column).
+function parseEmergencyContacts(json: unknown): { label: string; number: string; type: string }[] {
+  if (json === null || json === undefined || json === "") return [];
   try {
-    const parsed = JSON.parse(json);
+    const parsed = typeof json === "string" ? JSON.parse(json) : json;
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter((x) => x && typeof x === "object" && typeof x.label === "string" && typeof x.number === "string")

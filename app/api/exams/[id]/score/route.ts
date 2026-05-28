@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -67,7 +68,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     await prisma.examJudge.update({
       where: { id: judgeRow.id },
       data: {
-        scoresJson: JSON.stringify(scores),
+        // jsonb column — pass the score map object directly.
+        scoresJson: scores,
         subTotal: thisJudgeTotal,
         submittedAt: final ? new Date() : null,
       },
@@ -94,8 +96,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const updated = await prisma.exam.update({
     where: { id: exam.id },
     data: {
-      // Single-judge legacy: persist the score map on the exam too.
-      scoresJson: judgeRow ? exam.scoresJson : JSON.stringify(scores),
+      // Single-judge legacy: persist the score map on the exam too. With the
+      // co-judge case, leave Exam.scoresJson alone (the lead's existing card
+      // stays untouched). jsonb column — write the object directly.
+      ...(judgeRow ? {} : { scoresJson: scores as Prisma.InputJsonValue }),
       totalScore: total,
       deductions: effectiveDeductions,
       timeFaults: effectiveTimeFaults,
@@ -262,7 +266,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   await prisma.exam.update({
     where: { id: exam.id },
-    data: { scoresJson: null, totalScore: null, status: "scheduled", passed: null },
+    data: { scoresJson: Prisma.DbNull, totalScore: null, status: "scheduled", passed: null },
   });
 
   await audit({

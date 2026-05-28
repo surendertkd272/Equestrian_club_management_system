@@ -61,8 +61,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
 
-  const movements = JSON.parse(test.movementsJson) as DressageMovement[];
-  const collectives = test.collectiveMarksJson ? (JSON.parse(test.collectiveMarksJson) as DressageCollective[]) : [];
+  // movementsJson / collectiveMarksJson on DressageTest are jsonb columns —
+  // Prisma returns the parsed arrays directly.
+  const movements = (Array.isArray(test.movementsJson) ? test.movementsJson : []) as DressageMovement[];
+  const collectives = (Array.isArray(test.collectiveMarksJson) ? test.collectiveMarksJson : []) as DressageCollective[];
 
   const percentage = computeDressagePercentage(
     d.marks as { no: number; mark: number | null }[],
@@ -86,8 +88,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       testId: test.id,
       judgeUserId: session.userId,
       judgePosition: d.judgePosition ?? null,
-      marksJson: JSON.stringify(d.marks),
-      collectiveMarksJson: JSON.stringify(d.collectives),
+      // jsonb columns — pass the arrays directly.
+      marksJson: d.marks,
+      collectiveMarksJson: d.collectives,
       percentage,
       notes: d.notes ?? null,
       submittedAt: d.finalSubmit ? new Date() : null,
@@ -95,8 +98,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     update: {
       testId: test.id,
       judgePosition: d.judgePosition ?? null,
-      marksJson: JSON.stringify(d.marks),
-      collectiveMarksJson: JSON.stringify(d.collectives),
+      marksJson: d.marks,
+      collectiveMarksJson: d.collectives,
       percentage,
       notes: d.notes ?? null,
       submittedAt: d.finalSubmit ? new Date() : undefined,

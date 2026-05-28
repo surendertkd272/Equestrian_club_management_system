@@ -6,6 +6,7 @@
 // One SalaryPayment per (user, month); re-posting the same month is rejected.
 
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
@@ -111,7 +112,8 @@ export async function POST(req: NextRequest) {
         grossAmount: gross,
         attendanceDeducted,
         absentDays,
-        deductionBreakdownJson: breakdown.length > 0 ? JSON.stringify(breakdown) : null,
+        // jsonb column — pass the array directly; empty → Prisma.DbNull.
+        deductionBreakdownJson: breakdown.length > 0 ? breakdown : Prisma.DbNull,
         advanceDeducted,
         otherDeductions: d.otherDeductions,
         netAmount,

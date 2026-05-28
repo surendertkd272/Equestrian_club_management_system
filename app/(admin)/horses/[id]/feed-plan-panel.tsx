@@ -24,10 +24,24 @@ export function FeedPlanPanel({
 }: {
   horseId: string;
   canManage: boolean;
-  initial: { rations: Ration[]; notes: string } | null;
+  // rations comes from a native jsonb column — it's a parsed value of unknown
+  // shape until narrowed below.
+  initial: { rations: unknown; notes: string } | null;
 }) {
   const router = useRouter();
-  const [rations, setRations] = useState<Ration[]>(initial?.rations ?? DEFAULT_PLAN);
+  // Tolerant narrow: jsonb returns the parsed value directly, but if a legacy
+  // row stored it as a string we still want to recover it. Bad data → defaults.
+  const seedRations: Ration[] = (() => {
+    const v = initial?.rations;
+    if (!v) return DEFAULT_PLAN;
+    try {
+      const arr = typeof v === "string" ? JSON.parse(v) : v;
+      return Array.isArray(arr) ? (arr as Ration[]) : DEFAULT_PLAN;
+    } catch {
+      return DEFAULT_PLAN;
+    }
+  })();
+  const [rations, setRations] = useState<Ration[]>(seedRations);
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -92,9 +106,9 @@ export function FeedPlanPanel({
   if (!editing) {
     return (
       <div className="space-y-3 text-sm">
-        {initial?.rations.length ? (
+        {seedRations.length ? (
           <ul className="divide-y">
-            {initial.rations.map((r, i) => (
+            {seedRations.map((r, i) => (
               <li key={i} className="py-2">
                 <div className="text-xs uppercase tracking-wide text-muted-foreground">{r.time}</div>
                 <div className="mt-1">
@@ -113,7 +127,7 @@ export function FeedPlanPanel({
         {initial?.notes ? <p className="text-xs italic text-muted-foreground">{initial.notes}</p> : null}
         {canManage && (
           <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-            {initial?.rations.length ? "Edit plan" : "Set up feed plan"}
+            {seedRations.length ? "Edit plan" : "Set up feed plan"}
           </Button>
         )}
       </div>

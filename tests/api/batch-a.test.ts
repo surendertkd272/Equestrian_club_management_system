@@ -87,7 +87,9 @@ describe("Batch A.3 — Centre emergency contacts", () => {
     expect(r.status).toBe(200);
 
     const after = await prisma.centre.findUniqueOrThrow({ where: { id: centre.id } });
-    const parsed = JSON.parse(after.emergencyContactsJson!);
+    // emergencyContactsJson is now a jsonb column — Prisma returns the
+    // parsed array directly. No JSON.parse needed.
+    const parsed = after.emergencyContactsJson as Array<{ type?: string; number?: string }>;
     expect(parsed).toHaveLength(2);
     expect(parsed[0].type).toBe("vet");
     expect(parsed[1].number).toBe("1066");

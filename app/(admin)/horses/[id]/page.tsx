@@ -310,7 +310,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
           <FeedPlanPanel
             horseId={horse.id}
             canManage={canManage}
-            initial={feedPlan ? { rations: JSON.parse(feedPlan.rationsJson), notes: feedPlan.notes ?? "" } : null}
+            initial={feedPlan ? { rations: feedPlan.rationsJson, notes: feedPlan.notes ?? "" } : null}
           />
         </CardContent>
       </Card>

@@ -6,6 +6,7 @@
 // When parent accounts (or external SMS/WhatsApp dispatch) land, change the `userId` selection
 // in each sweep — the trigger logic doesn't move.
 
+import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { notify } from "./notify";
 import { sendSms } from "./sms";
@@ -859,7 +860,7 @@ async function sweepDpdpaDeletions(): Promise<SweepResult> {
             addressPermanent: null,
             indemnitySignerIp: null,
             indemnitySignerUa: null,
-            parentalConsentJson: null,
+            parentalConsentJson: Prisma.DbNull,
             userId: null,
             status: "cancelled",
           },

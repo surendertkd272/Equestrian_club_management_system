@@ -33,10 +33,13 @@ const categorySchema: z.ZodType<RubricCategory> = z.object({
 
 export const rubricSchema = z.array(categorySchema);
 
-export function parseRubric(json: string | null | undefined): RubricCategory[] {
-  if (!json) return [];
+// Accepts either a JSON string (legacy reads + tests) or a parsed JsonValue
+// (native Postgres jsonb columns). Returns [] for anything that doesn't shape
+// up — this stays forgiving so a malformed legacy row doesn't crash the page.
+export function parseRubric(json: unknown): RubricCategory[] {
+  if (json === null || json === undefined || json === "") return [];
   try {
-    const v = JSON.parse(json);
+    const v = typeof json === "string" ? JSON.parse(json) : json;
     const r = rubricSchema.safeParse(v);
     return r.success ? r.data : [];
   } catch {

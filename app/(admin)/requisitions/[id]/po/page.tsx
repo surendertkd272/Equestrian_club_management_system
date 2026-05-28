@@ -39,7 +39,8 @@ export default async function RequisitionPOPage({ params }: { params: { id: stri
   if (centreId && req.centreId !== centreId) notFound();
   if (req.stage !== "approved") redirect(`/requisitions`);
 
-  const items = JSON.parse(req.itemsJson) as Item[];
+  // itemsJson is a jsonb column — Prisma returns the parsed array directly.
+  const items = (Array.isArray(req.itemsJson) ? req.itemsJson : []) as Item[];
   const poNumber = `EW-PO-${req.id.slice(-6).toUpperCase()}`;
   const issueDate = req.accountantDecidedAt ?? req.updatedAt;
 

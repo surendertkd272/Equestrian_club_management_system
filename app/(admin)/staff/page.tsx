@@ -39,12 +39,11 @@ export default async function StaffPage() {
   const invites = inviteLinks.map((l) => {
     let email: string | null = null;
     let role: string | null = null;
-    try {
-      const p = l.paramsJson ? JSON.parse(l.paramsJson) : {};
-      email = p.email ?? null;
-      role = p.role ?? null;
-    } catch {
-      /* ignore */
+    // paramsJson is a jsonb column — Prisma returns the parsed object.
+    if (l.paramsJson && typeof l.paramsJson === "object" && !Array.isArray(l.paramsJson)) {
+      const p = l.paramsJson as Record<string, unknown>;
+      email = typeof p.email === "string" ? p.email : null;
+      role = typeof p.role === "string" ? p.role : null;
     }
     return {
       code: l.code,

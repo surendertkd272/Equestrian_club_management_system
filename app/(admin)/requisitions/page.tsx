@@ -63,7 +63,9 @@ export default async function RequisitionsPage() {
     return rows.map((r) => ({
       id: r.id,
       stage: r.stage,
-      items: JSON.parse(r.itemsJson),
+      // itemsJson is a jsonb column — already-parsed by Prisma. Cast to the
+      // DTO shape we know was written.
+      items: (Array.isArray(r.itemsJson) ? r.itemsJson : []) as RequisitionDTO["items"],
       totalEstimatedCost: r.totalEstimatedCost,
       reason: r.reason,
       managerNotes: r.managerNotes,

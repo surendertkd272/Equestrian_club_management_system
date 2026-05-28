@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import {
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
       // Recovery-code path: matches against the stored hashes, removes the
       // used code, and proceeds without a TOTP step. Audit + flag for the
       // user to re-enrol after the rescue.
-      const { matched, remainingJson } = consumeRecoveryCode(
+      const { matched, remainingHashes } = consumeRecoveryCode(
         user.totpRecoveryCodesJson,
         parsed.data.recoveryCode,
       );
@@ -70,7 +71,9 @@ export async function POST(req: NextRequest) {
       }
       await prisma.platformUser.update({
         where: { id: user.id },
-        data: { totpRecoveryCodesJson: remainingJson },
+        // jsonb column: pass the array directly. `null` means "all codes used —
+        // clear the column" which maps to Prisma.DbNull on a nullable Json field.
+        data: { totpRecoveryCodesJson: remainingHashes ?? Prisma.DbNull },
       });
       await prisma.platformAuditLog.create({
         data: { actorId: user.id, action: "owner.2fa_recovery_used" },

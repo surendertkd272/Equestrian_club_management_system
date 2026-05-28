@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
@@ -57,7 +58,8 @@ export async function PATCH(req: NextRequest) {
       totpSecret: secret,
       twoFactor: true,
       totpLastStep: null,
-      totpRecoveryCodesJson: JSON.stringify(recoveryHashes),
+      // jsonb column — pass the array directly (Prisma serialises it).
+      totpRecoveryCodesJson: recoveryHashes,
     },
   });
   await audit({ userId: session.userId, action: "auth.2fa_enabled", tableName: "user", rowId: session.userId });
@@ -87,7 +89,7 @@ export async function DELETE(req: NextRequest) {
   }
   await prisma.user.update({
     where: { id: session.userId },
-    data: { totpSecret: null, twoFactor: false, totpLastStep: null, totpRecoveryCodesJson: null },
+    data: { totpSecret: null, twoFactor: false, totpLastStep: null, totpRecoveryCodesJson: Prisma.DbNull },
   });
   await audit({ userId: session.userId, action: "auth.2fa_disabled", tableName: "user", rowId: session.userId });
   return NextResponse.json({ ok: true });

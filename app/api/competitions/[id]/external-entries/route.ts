@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
@@ -123,17 +124,18 @@ ${parsed.data.rejectionReason ? `<p>Reason: ${parsed.data.rejectionReason}</p>` 
       pincode: "000000",
       status: "active",
       registrationPaid: true,
-      // Parental consent JSON if applicable.
+      // Parental consent JSON if applicable. jsonb column — write the object
+      // directly; "no consent recorded" → Prisma.DbNull (leaves the column NULL).
       parentalConsentJson: ext.parentName
-        ? JSON.stringify({
+        ? {
             signedAt: ext.filedAt.toISOString(),
             parentName: ext.parentName,
             parentRelation: ext.parentRelation,
             parentPhone: ext.parentPhone,
             via: "external_entry",
             externalEntryId: ext.id,
-          })
-        : null,
+          }
+        : Prisma.DbNull,
     },
   });
 

@@ -47,14 +47,16 @@ export default async function InjuriesPage() {
   // back to ambulance if there's no vet, then null (button hidden).
   let emergencyDial: { label: string; number: string } | null = null;
   if (centre?.emergencyContactsJson) {
-    try {
-      const list = JSON.parse(centre.emergencyContactsJson) as Array<{ label: string; number: string; type: string }>;
+    // jsonb column — Prisma returns the parsed value directly. Narrow before
+    // treating as a typed array; bad/legacy data → skip the button rather
+    // than crash the page.
+    const raw = centre.emergencyContactsJson as unknown;
+    if (Array.isArray(raw)) {
+      const list = raw as Array<{ label?: string; number?: string; type?: string }>;
       const vet = list.find((c) => c.type === "vet");
       const ambulance = list.find((c) => c.type === "ambulance");
       const pick = vet ?? ambulance ?? list[0];
-      if (pick?.number) emergencyDial = { label: pick.label, number: pick.number };
-    } catch {
-      // Bad JSON — skip the button rather than crash the page.
+      if (pick?.number && pick?.label) emergencyDial = { label: pick.label, number: pick.number };
     }
   }
 
@@ -161,9 +163,11 @@ export default async function InjuriesPage() {
   );
 }
 
-function safeArrLen(json: string): number {
+// Accepts string (legacy / tests) or JsonValue (native jsonb column).
+function safeArrLen(json: unknown): number {
+  if (json === null || json === undefined || json === "") return 0;
   try {
-    const parsed = JSON.parse(json);
+    const parsed = typeof json === "string" ? JSON.parse(json) : json;
     return Array.isArray(parsed) ? parsed.length : 0;
   } catch {
     return 0;

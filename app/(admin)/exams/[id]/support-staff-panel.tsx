@@ -18,15 +18,17 @@ export function SupportStaffPanel({
 }: {
   examId: string;
   canManage: boolean;
-  initialJson: string | null;
+  // Accepts the raw JsonValue from the server component (native jsonb column)
+  // or a string blob (legacy / tests). Narrow on read.
+  initialJson: unknown;
 }) {
   const router = useRouter();
   const [staff, setStaff] = useState<Staff[]>([]);
   const [pickedIds, setPickedIds] = useState<string[]>(() => {
-    if (!initialJson) return [];
+    if (initialJson === null || initialJson === undefined || initialJson === "") return [];
     try {
-      const arr = JSON.parse(initialJson);
-      return Array.isArray(arr) ? arr.filter((x: any) => typeof x === "string") : [];
+      const arr = typeof initialJson === "string" ? JSON.parse(initialJson) : initialJson;
+      return Array.isArray(arr) ? arr.filter((x: unknown) => typeof x === "string") : [];
     } catch {
       return [];
     }

@@ -58,11 +58,17 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
     session.role === "EXAMINER" && exam.examinerId !== session.userId
       ? exam.judges.find((j) => j.judgeId === session.userId)
       : null;
+  // scoresJson is a native jsonb column — Prisma returns the parsed object,
+  // so no JSON.parse here. Narrow to a plain object before treating as a
+  // record (a malformed legacy value could in theory be a primitive/array,
+  // which we drop to {}).
+  const asScores = (v: unknown): Record<string, number | string> => {
+    if (!v || typeof v !== "object" || Array.isArray(v)) return {};
+    return v as Record<string, number | string>;
+  };
   const initialScores: Record<string, number | string> = myJudgeRow?.scoresJson
-    ? JSON.parse(myJudgeRow.scoresJson)
-    : exam.scoresJson
-      ? JSON.parse(exam.scoresJson)
-      : {};
+    ? asScores(myJudgeRow.scoresJson)
+    : asScores(exam.scoresJson);
   const canEditAdjustments =
     session.role === "SUPER_ADMIN" ||
     session.role === "CENTRE_MANAGER" ||
@@ -171,7 +177,7 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
       <SupportStaffPanel
         examId={exam.id}
         canManage={session.role === "SUPER_ADMIN" || session.role === "CENTRE_MANAGER" || (session.role === "EXAMINER" && exam.examinerId === session.userId)}
-        initialJson={exam.supportStaffJson ?? null}
+        initialJson={exam.supportStaffJson}
       />
 
       {!template ? (

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getOwnerSession } from "@/lib/owner-auth";
@@ -56,7 +57,8 @@ export async function PATCH(req: NextRequest) {
       totpSecret: secret,
       twoFactor: true,
       totpLastStep: null,
-      totpRecoveryCodesJson: JSON.stringify(recoveryHashes),
+      // jsonb column — pass the array directly.
+      totpRecoveryCodesJson: recoveryHashes,
     },
   });
   await prisma.platformAuditLog.create({
@@ -92,7 +94,7 @@ export async function DELETE(req: NextRequest) {
       totpSecret: null,
       twoFactor: false,
       totpLastStep: null,
-      totpRecoveryCodesJson: null,
+      totpRecoveryCodesJson: Prisma.DbNull,
     },
   });
   await prisma.platformAuditLog.create({

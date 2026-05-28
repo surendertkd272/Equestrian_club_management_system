@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import {
   onboardingSchema,
@@ -31,7 +32,10 @@ export async function POST(req: NextRequest) {
   // schema because adult riders don't need them; here we promote them to
   // hard requirements once age makes them necessary.
   const isMinor = ageYears(new Date(d.dob)) < 18;
-  let parentalConsentJson: string | null = null;
+  // parentalConsentJson is a native jsonb column. Build the object directly
+  // (no JSON.stringify) — Prisma serialises it for us. Skip the column
+  // entirely (undefined) when not a minor; that leaves the DB default (NULL).
+  let parentalConsentJson: Record<string, unknown> | undefined;
   if (isMinor) {
     const missing: string[] = [];
     if (!d.parentName) missing.push("parentName");
@@ -48,7 +52,7 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-    parentalConsentJson = JSON.stringify({
+    parentalConsentJson = {
       signedAt: new Date().toISOString(),
       parentName: d.parentName,
       parentRelation: d.parentRelation,
@@ -58,7 +62,7 @@ export async function POST(req: NextRequest) {
       ua,
       consentText: PARENTAL_CONSENT_TEXT,
       consentVersion: PARENTAL_CONSENT_VERSION,
-    });
+    };
   }
 
   const rider = await prisma.rider.create({
@@ -99,7 +103,9 @@ export async function POST(req: NextRequest) {
       indemnitySignedAt: new Date(),
       indemnitySignerIp: ip,
       indemnitySignerUa: ua,
-      parentalConsentJson,
+      // jsonb column — pass the object straight in. `undefined` skips the
+      // field (column stays NULL) for adult riders who don't need consent.
+      parentalConsentJson: parentalConsentJson as Prisma.InputJsonValue | undefined,
       // Public self-enrol → held for School Admin / Centre Manager approval.
       // The registration invoice is created on approval (see
       // /api/enrolments/[id]), not here, so we don't bill un-vetted signups.

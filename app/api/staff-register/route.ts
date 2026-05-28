@@ -49,12 +49,11 @@ export async function POST(req: NextRequest) {
   // someone else.
   let invitedEmail: string | null = null;
   let invitedRole: string | null = null;
-  try {
-    const p = link.paramsJson ? JSON.parse(link.paramsJson) : {};
+  // paramsJson is a jsonb column — Prisma returns the parsed object.
+  if (link.paramsJson && typeof link.paramsJson === "object" && !Array.isArray(link.paramsJson)) {
+    const p = link.paramsJson as Record<string, unknown>;
     invitedEmail = typeof p.email === "string" ? p.email.toLowerCase() : null;
     invitedRole = typeof p.role === "string" ? p.role : null;
-  } catch {
-    /* ignore malformed params */
   }
   if (invitedEmail && parsed.data.email.toLowerCase() !== invitedEmail) {
     return NextResponse.json(

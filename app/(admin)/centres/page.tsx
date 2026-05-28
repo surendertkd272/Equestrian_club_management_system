@@ -126,10 +126,11 @@ export default async function CentresPage() {
 }
 
 // Tolerant parser — invalid/legacy JSON returns an empty list rather than 500.
-function parseEmergencyContacts(json: string | null): { label: string; number: string; type: string }[] {
-  if (!json) return [];
+// Accepts both string (legacy / tests) and JsonValue (native jsonb column).
+function parseEmergencyContacts(json: unknown): { label: string; number: string; type: string }[] {
+  if (json === null || json === undefined || json === "") return [];
   try {
-    const parsed = JSON.parse(json);
+    const parsed = typeof json === "string" ? JSON.parse(json) : json;
     if (!Array.isArray(parsed)) return [];
     return parsed
       .filter((x) => x && typeof x === "object" && typeof x.label === "string" && typeof x.number === "string")

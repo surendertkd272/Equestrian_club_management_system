@@ -44,13 +44,12 @@ export default async function StaffRegisterPage({ params }: { params: { code: st
   let invitedEmail: string | null = null;
   let invitedName: string | null = null;
   let invitedRole: string | null = null;
-  try {
-    const p = link.paramsJson ? JSON.parse(link.paramsJson) : {};
-    invitedEmail = p.email ?? null;
-    invitedName = p.name ?? null;
-    invitedRole = p.role ?? null;
-  } catch {
-    /* ignore */
+  // paramsJson is a jsonb column — Prisma returns the parsed object.
+  if (link.paramsJson && typeof link.paramsJson === "object" && !Array.isArray(link.paramsJson)) {
+    const p = link.paramsJson as Record<string, unknown>;
+    invitedEmail = typeof p.email === "string" ? p.email : null;
+    invitedName = typeof p.name === "string" ? p.name : null;
+    invitedRole = typeof p.role === "string" ? p.role : null;
   }
 
   return (

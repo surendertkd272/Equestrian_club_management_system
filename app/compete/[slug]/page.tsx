@@ -22,13 +22,11 @@ export default async function PublicCompetitionPage({ params }: { params: { slug
   });
   if (!comp || comp.status === "draft" || comp.status === "cancelled") notFound();
 
-  const classes: Array<{ name: string; fee?: number; ageGroup?: string; maxEntries?: number }> = (() => {
-    try {
-      return JSON.parse(comp.classesJson);
-    } catch {
-      return [];
-    }
-  })();
+  // classesJson is a jsonb column — already parsed by Prisma.
+  const classes: Array<{ name: string; fee?: number; ageGroup?: string; maxEntries?: number }> =
+    Array.isArray(comp.classesJson)
+      ? (comp.classesJson as Array<{ name: string; fee?: number; ageGroup?: string; maxEntries?: number }>)
+      : [];
 
   const entriesOpen = comp.status === "open_for_entries" && (!comp.entryDeadline || comp.entryDeadline > new Date());
 

@@ -86,7 +86,8 @@ describe("Exam.supportStaffJson — test-day grooms", () => {
     );
     expect(ok.status).toBe(200);
     let row = await prisma.exam.findUniqueOrThrow({ where: { id: exam.id } });
-    expect(JSON.parse(row.supportStaffJson!)).toHaveLength(2);
+    // supportStaffJson is now a jsonb column — Prisma returns the parsed array.
+    expect(row.supportStaffJson as unknown[]).toHaveLength(2);
 
     // Bogus ID
     const bad = await setSupportStaff(

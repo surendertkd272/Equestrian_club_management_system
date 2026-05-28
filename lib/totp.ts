@@ -125,23 +125,30 @@ export function hashRecoveryCode(plain: string): string {
   return crypto.createHash("sha256").update(plain.trim().toLowerCase()).digest("hex");
 }
 
-// Consume a recovery code from a JSON-encoded array of hashes. Returns the
-// remaining hashes (caller persists) and whether the input matched.
+// Consume a recovery code from a stored hash list. Accepts either a string
+// (legacy / tests) or a parsed JsonValue (native jsonb column). Returns the
+// remaining hashes (caller persists as-is — Prisma accepts the array directly
+// for a Json column) and whether the input matched. `remainingHashes === null`
+// means "clear the column" (caller maps that to Prisma.DbNull).
 export function consumeRecoveryCode(
-  hashesJson: string | null,
+  stored: unknown,
   input: string,
-): { matched: boolean; remainingJson: string | null } {
-  if (!hashesJson) return { matched: false, remainingJson: hashesJson };
+): { matched: boolean; remainingHashes: string[] | null } {
+  // Coerce the stored value into a string[] of hashes regardless of how it
+  // was persisted historically (string blob vs jsonb array).
   let hashes: string[] = [];
-  try {
-    const parsed = JSON.parse(hashesJson);
-    if (Array.isArray(parsed)) hashes = parsed.filter((x) => typeof x === "string");
-  } catch {
-    return { matched: false, remainingJson: hashesJson };
+  if (stored !== null && stored !== undefined && stored !== "") {
+    try {
+      const parsed = typeof stored === "string" ? JSON.parse(stored) : stored;
+      if (Array.isArray(parsed)) hashes = parsed.filter((x): x is string => typeof x === "string");
+    } catch {
+      return { matched: false, remainingHashes: hashes };
+    }
   }
+  if (hashes.length === 0) return { matched: false, remainingHashes: null };
   const target = hashRecoveryCode(input);
   const idx = hashes.indexOf(target);
-  if (idx < 0) return { matched: false, remainingJson: hashesJson };
+  if (idx < 0) return { matched: false, remainingHashes: hashes };
   hashes.splice(idx, 1);
-  return { matched: true, remainingJson: hashes.length === 0 ? null : JSON.stringify(hashes) };
+  return { matched: true, remainingHashes: hashes.length === 0 ? null : hashes };
 }

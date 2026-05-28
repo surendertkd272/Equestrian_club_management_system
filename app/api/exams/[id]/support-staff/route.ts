@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
@@ -52,10 +53,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   await prisma.exam.update({
     where: { id: exam.id },
     data: {
+      // jsonb column — pass the array directly. Empty list → Prisma.DbNull
+      // to clear the column entirely rather than storing "[]".
       supportStaffJson:
         parsed.data.supportStaffIds.length === 0
-          ? null
-          : JSON.stringify(parsed.data.supportStaffIds),
+          ? Prisma.DbNull
+          : parsed.data.supportStaffIds,
     },
   });
   await audit({

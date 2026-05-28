@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { updateCentreSchema } from "@/lib/schemas/centre";
@@ -35,8 +36,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(d.name !== undefined ? { name: d.name } : {}),
       ...(d.address !== undefined ? { address: d.address || null } : {}),
       ...(d.gstNo !== undefined ? { gstNo: d.gstNo || null } : {}),
+      // jsonb column — pass the array directly; empty → Prisma.DbNull to clear.
       ...(d.emergencyContacts !== undefined
-        ? { emergencyContactsJson: d.emergencyContacts.length === 0 ? null : JSON.stringify(d.emergencyContacts) }
+        ? { emergencyContactsJson: d.emergencyContacts.length === 0 ? Prisma.DbNull : d.emergencyContacts }
         : {}),
     },
   });

@@ -64,14 +64,16 @@ export default async function ShortLinkRedeem({ params }: { params: { code: stri
   if (link.kind === "staff_hire" && target === "/staff-register") {
     target = `/staff-register/${link.code}`;
   }
-  if (link.paramsJson) {
-    try {
-      const params = JSON.parse(link.paramsJson) as Record<string, string>;
-      const qs = new URLSearchParams(params).toString();
-      if (qs) target += (target.includes("?") ? "&" : "?") + qs;
-    } catch {
-      // Bad JSON shouldn't block the user — fall through to the bare path.
+  // paramsJson is a jsonb column — Prisma returns the parsed object. Convert
+  // to a string→string map for URLSearchParams; non-string values get coerced.
+  if (link.paramsJson && typeof link.paramsJson === "object" && !Array.isArray(link.paramsJson)) {
+    const params: Record<string, string> = {};
+    for (const [k, v] of Object.entries(link.paramsJson as Record<string, unknown>)) {
+      if (typeof v === "string") params[k] = v;
+      else if (v !== null && v !== undefined) params[k] = String(v);
     }
+    const qs = new URLSearchParams(params).toString();
+    if (qs) target += (target.includes("?") ? "&" : "?") + qs;
   }
 
   redirect(target);
