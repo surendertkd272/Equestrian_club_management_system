@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { Phone } from "lucide-react";
 import { InjuriesClient } from "./injuries-client";
+import { arrayLength } from "@/lib/json-narrow";
 
 export const dynamic = "force-dynamic";
 
@@ -126,7 +127,7 @@ export default async function InjuriesPage() {
                       : riderById.get(r.subjectId)
                         ? `${riderById.get(r.subjectId)!.firstName} ${riderById.get(r.subjectId)!.lastName}`
                         : "Unknown rider";
-                  const treatments = r.treatmentJson ? safeArrLen(r.treatmentJson) : 0;
+                  const treatments = arrayLength(r.treatmentJson);
                   return (
                     <tr key={r.id} className="border-t align-top">
                       <td className="px-2 py-2">
@@ -163,16 +164,6 @@ export default async function InjuriesPage() {
   );
 }
 
-// Accepts string (legacy / tests) or JsonValue (native jsonb column).
-function safeArrLen(json: unknown): number {
-  if (json === null || json === undefined || json === "") return 0;
-  try {
-    const parsed = typeof json === "string" ? JSON.parse(json) : json;
-    return Array.isArray(parsed) ? parsed.length : 0;
-  } catch {
-    return 0;
-  }
-}
 
 function Kpi({ label, value, tone }: { label: string; value: number; tone?: "amber" }) {
   return (

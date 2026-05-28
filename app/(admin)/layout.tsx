@@ -10,6 +10,7 @@ import { ConfirmHost } from "@/components/ui/confirm-dialog";
 import { PwaInstallPrompt } from "@/components/shell/pwa-install-prompt";
 import { getFeaturesForSession } from "@/lib/features-gate";
 import { getStatusForSession } from "@/lib/readonly-gate";
+import { parseEmergencyContacts } from "@/lib/json-narrow";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -77,22 +78,3 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   );
 }
 
-// Tolerant parser — bad JSON or legacy shapes return an empty list rather
-// than crash the layout for every page. Accepts both string (legacy / tests)
-// and JsonValue (native jsonb column).
-function parseEmergencyContacts(json: unknown): { label: string; number: string; type: string }[] {
-  if (json === null || json === undefined || json === "") return [];
-  try {
-    const parsed = typeof json === "string" ? JSON.parse(json) : json;
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((x) => x && typeof x === "object" && typeof x.label === "string" && typeof x.number === "string")
-      .map((x) => ({
-        label: String(x.label),
-        number: String(x.number),
-        type: typeof x.type === "string" ? x.type : "other",
-      }));
-  } catch {
-    return [];
-  }
-}

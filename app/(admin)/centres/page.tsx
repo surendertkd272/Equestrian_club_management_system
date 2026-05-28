@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { CentreEditForm } from "./edit-form";
 import { NewCentreCard, CentreDeleteButton } from "./client";
 import { EmergencyContactsPanel } from "./emergency-contacts-panel";
+import { parseEmergencyContacts } from "@/lib/json-narrow";
 
 export const dynamic = "force-dynamic";
 
@@ -125,21 +126,3 @@ export default async function CentresPage() {
   );
 }
 
-// Tolerant parser — invalid/legacy JSON returns an empty list rather than 500.
-// Accepts both string (legacy / tests) and JsonValue (native jsonb column).
-function parseEmergencyContacts(json: unknown): { label: string; number: string; type: string }[] {
-  if (json === null || json === undefined || json === "") return [];
-  try {
-    const parsed = typeof json === "string" ? JSON.parse(json) : json;
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((x) => x && typeof x === "object" && typeof x.label === "string" && typeof x.number === "string")
-      .map((x) => ({
-        label: x.label,
-        number: x.number,
-        type: typeof x.type === "string" ? x.type : "other",
-      }));
-  } catch {
-    return [];
-  }
-}
