@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Building2 } from "lucide-react";
 import { CentreEditForm } from "./edit-form";
 import { NewCentreCard, CentreDeleteButton } from "./client";
 import { EmergencyContactsPanel } from "./emergency-contacts-panel";
@@ -117,9 +119,14 @@ export default async function CentresPage() {
           );
         })}
         {centres.length === 0 && (
-          <p className="py-12 text-center text-sm text-muted-foreground">
-            No clubs yet — create the first one above.
-          </p>
+          // No CTA — the "New club" form is on the same page, just scroll
+          // up. Keeping the empty state hero-shaped matches the riders /
+          // approvals pattern so the experience feels consistent.
+          <EmptyState
+            icon={<Building2 className="h-8 w-8" />}
+            title="No clubs yet"
+            body="Each club gets its own riders, staff, horses, and invoices. Scroll up and use 'New club' to create your first one — five minutes of setup."
+          />
         )}
       </div>
     </div>

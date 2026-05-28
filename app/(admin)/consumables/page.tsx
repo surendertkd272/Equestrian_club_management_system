@@ -3,6 +3,8 @@ import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Boxes } from "lucide-react";
 import { ConsumablesClient } from "./consumables-client";
 
 export const dynamic = "force-dynamic";
@@ -47,9 +49,11 @@ export default async function ConsumablesPage() {
         </CardHeader>
         <CardContent>
           {rows.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No consumables yet — add line items above.
-            </p>
+            <EmptyState
+              icon={<Boxes className="h-8 w-8" />}
+              title="No consumables tracked yet"
+              body="Bandages, dressings, hygiene supplies, disposable tools — track stock here so the medicine cabinet auto-warns when you're running low. Use the form above to add the first item."
+            />
           ) : (
             <div className="overflow-x-auto">
             <table className="w-full text-sm">
