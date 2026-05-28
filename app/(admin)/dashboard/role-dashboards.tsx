@@ -7,6 +7,7 @@
 
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { centreWhere } from "@/lib/tenancy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDateIndia, timeAgo } from "@/lib/i18n";
@@ -35,7 +36,7 @@ function Kpi({ label, value, tone, link }: { label: string; value: number | stri
 // FARRIER
 
 export async function FarrierDashboard({ centreId }: { centreId: string | null }) {
-  const where: any = centreId ? { centreId } : {};
+  const where = centreWhere(centreId);
   const now = new Date();
   const sevenDays = new Date(now.getTime() + 7 * 86400000);
 
@@ -116,7 +117,7 @@ export async function FarrierDashboard({ centreId }: { centreId: string | null }
 // VET
 
 export async function VetDashboard({ centreId }: { centreId: string | null }) {
-  const where: any = centreId ? { centreId } : {};
+  const where = centreWhere(centreId);
   const now = new Date();
   const thirty = new Date(now.getTime() + 30 * 86400000);
   const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
@@ -210,14 +211,14 @@ export async function VetDashboard({ centreId }: { centreId: string | null }) {
 // STABLE_MANAGER
 
 export async function StableManagerDashboard({ centreId }: { centreId: string | null }) {
-  const where: any = centreId ? { centreId } : {};
+  const where = centreWhere(centreId);
   const now = new Date();
 
   const [horses, todayAllocs, openTasks, lowConsumables, recentInjuries] = await Promise.all([
     prisma.horse.count({ where: { ...where, status: "active" } }),
     prisma.horseAllocation.count({
       where: {
-        horse: where as any,
+        horse: where,
         startAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
         endAt: { lte: new Date(new Date().setHours(23, 59, 59, 999)) },
       },
@@ -244,7 +245,7 @@ export async function StableManagerDashboard({ centreId }: { centreId: string | 
 // GROOM
 
 export async function GroomDashboard({ centreId, userId }: { centreId: string | null; userId: string }) {
-  const where: any = centreId ? { centreId } : {};
+  const where = centreWhere(centreId);
   const now = new Date();
   const dayStart = new Date(now.setHours(0, 0, 0, 0));
   const dayEnd = new Date(new Date().setHours(23, 59, 59, 999));
@@ -257,7 +258,7 @@ export async function GroomDashboard({ centreId, userId }: { centreId: string | 
     }),
     prisma.horseAllocation.findMany({
       where: {
-        horse: where as any,
+        horse: where,
         startAt: { gte: dayStart, lte: dayEnd },
       },
       include: { horse: { select: { name: true, stableNo: true } } },
@@ -334,7 +335,7 @@ export async function GroomDashboard({ centreId, userId }: { centreId: string | 
 // EXAMINER
 
 export async function ExaminerDashboard({ centreId, userId }: { centreId: string | null; userId: string }) {
-  const where: any = centreId ? { centreId } : {};
+  const where = centreWhere(centreId);
   const now = new Date();
 
   const [upcoming, completedRecent, certsIssued] = await Promise.all([
@@ -392,7 +393,7 @@ export async function ExaminerDashboard({ centreId, userId }: { centreId: string
 // COMPETITION_MANAGER
 
 export async function CompetitionManagerDashboard({ centreId }: { centreId: string | null }) {
-  const where: any = centreId ? { centreId } : {};
+  const where = centreWhere(centreId);
 
   const [active, drafts, upcomingEntries, recentResults] = await Promise.all([
     prisma.competition.count({
@@ -405,7 +406,7 @@ export async function CompetitionManagerDashboard({ centreId }: { centreId: stri
       },
     }),
     prisma.competitionEntry.count({
-      where: { competition: where as any, placement: { in: [1, 2, 3] } },
+      where: { competition: where, placement: { in: [1, 2, 3] } },
     }),
   ]);
 
@@ -425,7 +426,7 @@ export async function CompetitionManagerDashboard({ centreId }: { centreId: stri
 // ACCOUNTANT
 
 export async function AccountantDashboard({ centreId }: { centreId: string | null }) {
-  const where: any = centreId ? { centreId } : {};
+  const where = centreWhere(centreId);
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
   const [openInvoices, overdue, paidThisMonth, totalCollected] = await Promise.all([
@@ -461,7 +462,7 @@ export async function AccountantDashboard({ centreId }: { centreId: string | nul
 // scoring drafts to nudge along.
 
 export async function HeadCoachDashboard({ centreId }: { centreId: string | null }) {
-  const where: any = centreId ? { centreId } : {};
+  const where = centreWhere(centreId);
   const todayStart = new Date();
   todayStart.setUTCHours(0, 0, 0, 0);
   const todayEnd = new Date(todayStart.getTime() + 86400000);
@@ -477,10 +478,10 @@ export async function HeadCoachDashboard({ centreId }: { centreId: string | null
       select: { batchId: true },
     }),
     prisma.exam.count({
-      where: { ...where, date: { gte: todayStart, lte: sevenDays }, status: "scheduled" as any },
+      where: { ...where, date: { gte: todayStart, lte: sevenDays }, status: "scheduled" },
     }),
     prisma.exam.findMany({
-      where: { ...where, status: "draft" as any },
+      where: { ...where, status: "draft" },
       select: { id: true, level: true, date: true, rider: { select: { firstName: true, lastName: true } } },
       orderBy: { date: "desc" },
       take: 6,
@@ -535,7 +536,7 @@ export async function HeadCoachDashboard({ centreId }: { centreId: string | null
 // daily checklist, and monthly-skill marking.
 
 export async function CoachDashboard({ centreId, userId }: { centreId: string | null; userId: string }) {
-  const where: any = centreId ? { centreId } : {};
+  const where = centreWhere(centreId);
   const todayStart = new Date();
   todayStart.setUTCHours(0, 0, 0, 0);
   const todayEnd = new Date(todayStart.getTime() + 86400000);

@@ -5,6 +5,36 @@ import { useForm, FormProvider, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { compressForKind } from "@/lib/image-compress";
+
+// Razorpay checkout.js types — the SDK is loaded via <script>, so it lives
+// on window.Razorpay. We type exactly the surface we touch: constructor
+// options we pass (key, amount, …) and the response shape the success
+// handler receives. Anything more would over-spec a third-party that
+// occasionally adds optional fields.
+type RazorpayResponse = {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};
+type RazorpayOptions = {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description?: string;
+  order_id: string;
+  prefill?: { name?: string; email?: string; contact?: string };
+  theme?: { color?: string };
+  handler: (response: RazorpayResponse) => void | Promise<void>;
+  modal?: { ondismiss?: () => void };
+};
+type RazorpayInstance = { open: () => void };
+type RazorpayConstructor = new (opts: RazorpayOptions) => RazorpayInstance;
+declare global {
+  interface Window {
+    Razorpay?: RazorpayConstructor;
+  }
+}
 import {
   onboardingSchema,
   personalSchema,
@@ -42,7 +72,7 @@ async function runRazorpayCheckout(invoiceId: string, centreName: string): Promi
 
   // 2) Load checkout.js once per page.
   await loadRazorpayScript();
-  const RP = (window as any).Razorpay;
+  const RP = window.Razorpay;
   if (!RP) {
     toast.error("Razorpay SDK failed to load");
     return false;
@@ -59,7 +89,7 @@ async function runRazorpayCheckout(invoiceId: string, centreName: string): Promi
       order_id: order.orderId,
       prefill: order.prefill,
       theme: { color: "#177434" },
-      handler: async (response: any) => {
+      handler: async (response) => {
         // 4) Verify the signature server-side before trusting "paid".
         const v = await fetch("/api/payments/razorpay/verify", {
           method: "POST",
@@ -89,7 +119,7 @@ async function runRazorpayCheckout(invoiceId: string, centreName: string): Promi
 let razorpayScriptPromise: Promise<void> | null = null;
 function loadRazorpayScript(): Promise<void> {
   if (typeof window === "undefined") return Promise.resolve();
-  if ((window as any).Razorpay) return Promise.resolve();
+  if (window.Razorpay) return Promise.resolve();
   if (razorpayScriptPromise) return razorpayScriptPromise;
   razorpayScriptPromise = new Promise<void>((resolve, reject) => {
     const s = document.createElement("script");

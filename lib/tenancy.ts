@@ -33,6 +33,10 @@ export function scopeCentre(session: SessionPayload, requestedCentreId?: string 
 
 // Build a Prisma `where` fragment that enforces centre scope.
 // Pass the result of scopeCentre() — null means "all centres" (HQ).
-export function centreWhere(centreId: string | null) {
+// Return type is explicit (rather than inferred as `{ centreId: string } | {}`)
+// so callers can drop the result into nested filter positions without an
+// `as any` cast — `{ centreId?: string }` is structurally a subset of every
+// Prisma *WhereInput that has a centreId column.
+export function centreWhere(centreId: string | null): { centreId?: string } {
   return centreId ? { centreId } : {};
 }
