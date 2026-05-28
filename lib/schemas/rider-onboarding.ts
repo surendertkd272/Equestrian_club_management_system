@@ -76,6 +76,21 @@ export const INJURY_NOC_TEXT =
   "still administer reasonable first aid and authorise emergency medical " +
   "care if needed.";
 
+// Versioned indemnity text — the wording shown to the rider on the
+// IndemnityStep of the wizard. Pinned so when wording later revs, signed
+// records still reference the exact paragraph that was agreed to.
+export const INDEMNITY_VERSION = "v1";
+export const INDEMNITY_TEXT =
+  "I acknowledge that horse riding is an inherently risky activity involving " +
+  "large unpredictable animals. I voluntarily assume all risks of injury, " +
+  "including but not limited to falls, kicks, bites, and equipment failure. " +
+  "I release Equiwings, its centres, employees, contractors, and agents from " +
+  "any and all claims arising out of my participation. I confirm that the " +
+  "medical and contact information provided is accurate, and I authorise " +
+  "emergency medical treatment if required. I understand that registration & " +
+  "membership fees are non-refundable, and that 15 days of un-notified " +
+  "absence may result in cancellation of membership.";
+
 // DPDPA Section 9 — verifiable parental consent. The fields are optional
 // at the schema level; the onboarding handler checks them only when the
 // rider is under 18. We keep the agreed-text version pinned so a future

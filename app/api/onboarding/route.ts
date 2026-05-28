@@ -6,6 +6,8 @@ import {
   ageYears,
   PARENTAL_CONSENT_TEXT,
   PARENTAL_CONSENT_VERSION,
+  INDEMNITY_VERSION,
+  INJURY_NOC_VERSION,
 } from "@/lib/schemas/rider-onboarding";
 import { calcBmi } from "@/lib/utils";
 import { audit } from "@/lib/audit";
@@ -103,6 +105,18 @@ export async function POST(req: NextRequest) {
       indemnitySignedAt: new Date(),
       indemnitySignerIp: ip,
       indemnitySignerUa: ua,
+      indemnityVersion: INDEMNITY_VERSION,
+      // Content-of-consent: what the rider typed as a signature + which
+      // versioned texts were shown at sign time. Pairs with the columns
+      // above (the session-identification half) to make the full consent
+      // record reproducible if ever challenged.
+      indemnityConsentJson: {
+        signature: d.fullNameSignature,
+        indemnityVersion: INDEMNITY_VERSION,
+        nocVersion: INJURY_NOC_VERSION,
+        nocAgreed: d.injuryNocAgreed,
+        agreedAt: new Date().toISOString(),
+      } satisfies Prisma.InputJsonValue,
       // jsonb column — pass the object straight in. `undefined` skips the
       // field (column stays NULL) for adult riders who don't need consent.
       parentalConsentJson: parentalConsentJson as Prisma.InputJsonValue | undefined,

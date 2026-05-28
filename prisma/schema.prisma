@@ -819,6 +819,12 @@ model Rider {
   indemnitySignerUa   String?
   indemnityDocUrl     String?
   indemnityVersion    String?
+  // Content-of-consent for the indemnity step — what was typed + which
+  // versioned texts were shown at sign time. Pairs with the columns above
+  // (which capture WHEN/FROM-WHERE the signature happened). Schema:
+  //   { signature, indemnityVersion, nocVersion, nocAgreed, agreedAt }
+  // Null for pre-2026 records that pre-date the column.
+  indemnityConsentJson Json?
   // Click-to-accept tracking for T&C + Rules. Version is the LegalText
   // row's `version` that was live when the rider accepted; lets HQ swap
   // the published text later without re-prompting old riders.
