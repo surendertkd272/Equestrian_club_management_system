@@ -20,6 +20,7 @@
 //   ew_payment_received       — body params: {1}=rider name, {2}=amount, {3}=last-8 ref
 
 import { audit } from "./audit";
+import { logDispatchFailure } from "./notify-dispatch-log";
 import { normalizeIndianPhone } from "./sms";
 
 const META_BASE = process.env.WHATSAPP_API_BASE ?? "https://graph.facebook.com/v18.0";
@@ -59,6 +60,13 @@ export async function sendWhatsApp(opts: {
       tableName: "whatsapp",
       rowId: opts.ref?.rowId ?? "—",
       after: { rawTo: opts.to, template: opts.template.name, type: opts.ref?.type },
+    });
+    await logDispatchFailure({
+      channel: "whatsapp",
+      error: "INVALID_PHONE",
+      recipient: String(opts.to ?? ""),
+      refType: opts.ref?.type,
+      refRowId: opts.ref?.rowId,
     });
     return { ok: false, error: "INVALID_PHONE" };
   }
@@ -122,6 +130,13 @@ export async function sendWhatsApp(opts: {
           type: opts.ref?.type,
         },
       });
+      await logDispatchFailure({
+        channel: "whatsapp",
+        error: `META_${res.status}`,
+        recipient: to,
+        refType: opts.ref?.type,
+        refRowId: opts.ref?.rowId,
+      });
       return { ok: false, error: `META_${res.status}` };
     }
     const data: any = await res.json();
@@ -139,6 +154,13 @@ export async function sendWhatsApp(opts: {
       tableName: "whatsapp",
       rowId: opts.ref?.rowId ?? "—",
       after: { to, error: (err as Error).message, type: opts.ref?.type },
+    });
+    await logDispatchFailure({
+      channel: "whatsapp",
+      error: "NETWORK",
+      recipient: to,
+      refType: opts.ref?.type,
+      refRowId: opts.ref?.rowId,
     });
     return { ok: false, error: "NETWORK" };
   }

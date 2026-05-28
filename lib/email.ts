@@ -7,6 +7,7 @@
 // Templates are inline HTML — no template engine to keep dep tree small.
 
 import { audit } from "./audit";
+import { logDispatchFailure } from "./notify-dispatch-log";
 
 export type SendEmailResult =
   | { ok: true; messageId?: string; skipped?: boolean }
@@ -43,6 +44,13 @@ export async function sendEmail(opts: {
       tableName: "email",
       rowId: opts.ref?.rowId ?? "—",
       after: { rawTo: opts.to, subject: opts.subject, type: opts.ref?.type },
+    });
+    await logDispatchFailure({
+      channel: "email",
+      error: "INVALID_ADDRESS",
+      recipient: String(opts.to ?? ""),
+      refType: opts.ref?.type,
+      refRowId: opts.ref?.rowId,
     });
     return { ok: false, error: "INVALID_ADDRESS" };
   }
@@ -103,6 +111,13 @@ export async function sendEmail(opts: {
           type: opts.ref?.type,
         },
       });
+      await logDispatchFailure({
+        channel: "email",
+        error: `SENDGRID_${res.status}`,
+        recipient: opts.to,
+        refType: opts.ref?.type,
+        refRowId: opts.ref?.rowId,
+      });
       return { ok: false, error: `SENDGRID_${res.status}` };
     }
     // SendGrid returns message id in the X-Message-Id header.
@@ -120,6 +135,13 @@ export async function sendEmail(opts: {
       tableName: "email",
       rowId: opts.ref?.rowId ?? "—",
       after: { to: opts.to, error: (err as Error).message, type: opts.ref?.type },
+    });
+    await logDispatchFailure({
+      channel: "email",
+      error: "NETWORK",
+      recipient: opts.to,
+      refType: opts.ref?.type,
+      refRowId: opts.ref?.rowId,
     });
     return { ok: false, error: "NETWORK" };
   }

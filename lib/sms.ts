@@ -7,6 +7,7 @@
 //   - All dispatches are fire-and-forget at the call site; never throws
 
 import { audit } from "./audit";
+import { logDispatchFailure } from "./notify-dispatch-log";
 
 export type SendSmsResult =
   | { ok: true; sid?: string; skipped?: boolean }
@@ -48,6 +49,13 @@ export async function sendSms(opts: {
       tableName: "sms",
       rowId: opts.ref?.rowId ?? "—",
       after: { rawTo: opts.to, type: opts.ref?.type },
+    });
+    await logDispatchFailure({
+      channel: "sms",
+      error: "INVALID_PHONE",
+      recipient: String(opts.to ?? ""),
+      refType: opts.ref?.type,
+      refRowId: opts.ref?.rowId,
     });
     return { ok: false, error: "INVALID_PHONE" };
   }
@@ -91,6 +99,13 @@ export async function sendSms(opts: {
         rowId: opts.ref?.rowId ?? "—",
         after: { to, body, status: res.status, error: errText.slice(0, 500), type: opts.ref?.type },
       });
+      await logDispatchFailure({
+        channel: "sms",
+        error: `TWILIO_${res.status}`,
+        recipient: to,
+        refType: opts.ref?.type,
+        refRowId: opts.ref?.rowId,
+      });
       return { ok: false, error: `TWILIO_${res.status}` };
     }
     const data: any = await res.json();
@@ -107,6 +122,13 @@ export async function sendSms(opts: {
       tableName: "sms",
       rowId: opts.ref?.rowId ?? "—",
       after: { to, error: (err as Error).message, type: opts.ref?.type },
+    });
+    await logDispatchFailure({
+      channel: "sms",
+      error: "NETWORK",
+      recipient: to,
+      refType: opts.ref?.type,
+      refRowId: opts.ref?.rowId,
     });
     return { ok: false, error: "NETWORK" };
   }

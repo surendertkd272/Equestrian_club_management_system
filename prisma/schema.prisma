@@ -3174,3 +3174,31 @@ model AuditItem {
 
   @@index([runId])
 }
+
+// Notification dispatch log — every failed outbound notification
+// (sms / email / whatsapp) writes a row here. Success paths don't;
+// audit() in the general log covers them. This table exists so an
+// admin can answer "what notifications didn't go out and why?"
+// without grepping a generic audit log full of CRUD events.
+//
+// Retention: hard 90 days. A future sweep can prune older rows; for
+// now the table is small enough not to need one.
+model NotificationDispatchLog {
+  id        String   @id @default(cuid())
+  channel   String   // "sms" | "email" | "whatsapp"
+  // Error code from the dispatcher (lib/sms.ts etc.) — e.g. "TWILIO_429",
+  // "META_400", "NETWORK", "INVALID_PHONE", "INVALID_ADDRESS".
+  error     String
+  // E.164 phone or email address. Useful for "did this user's number
+  // bounce twice in a row?" — but PII; restrict the read surface.
+  recipient String
+  // Cross-ref to the audit row that triggered the send — e.g.
+  // "invoice.due_soon" + the invoice id. Lets you drill from "this
+  // notification failed" → "what was the upstream event".
+  refType   String?
+  refRowId  String?
+  createdAt DateTime @default(now())
+
+  @@index([channel, createdAt])
+  @@index([createdAt])
+}
