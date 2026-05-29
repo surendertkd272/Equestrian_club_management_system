@@ -45,12 +45,29 @@ use `db push` for the dev SQLite flow).
    - **Settings → Webhooks → Add new** at
      `https://YOUR_DOMAIN/api/webhooks/razorpay`. Subscribe to these events
      (others can be added later, none break the flow):
-     - `payment.captured` (tenant-side rider invoices)
+     - `payment.captured` (tenant-side rider invoices — flips
+       invoice.status to paid + rider.status to active for registration)
+     - `payment.failed` (optional but recommended — surface failed payment
+       attempts so the centre knows the parent tried)
      - `subscription.charged` (SaaS billing — fires SaasInvoice)
      - `subscription.halted` / `subscription.pending`
      - `subscription.cancelled` / `subscription.completed`
      - `subscription.authenticated` / `subscription.activated`
    - Generate a secret for the webhook → `RAZORPAY_WEBHOOK_SECRET`.
+
+   **End-to-end registration flow** (once keys + webhook are live):
+   1. Parent submits at `/onboarding/<centre-slug>` → rider goes
+      `pending_approval`.
+   2. Centre admin approves on `/enrolments` → registration invoice
+      created, rider goes `pending_payment`, parent gets an email
+      + SMS + WhatsApp with a link to `/pay/<invoiceId>`.
+   3. Parent clicks the link, lands on the public payment page, hits
+      "Pay now" → Razorpay modal opens (UPI / Card / Netbanking).
+   4. On capture, `payment.captured` webhook fires → invoice marked
+      paid, rider goes `active`, parent gets a receipt by email + SMS.
+
+   For testing without real money: use the dev `/api/payments/razorpay/mock`
+   endpoint (only fires when NEXT_PUBLIC_RAZORPAY_KEY_ID is unset).
 3. **Subscription plans** — under **Subscriptions → Plans → Create plan**,
    make three plans (monthly billing) at your actual ₹ prices. Copy the
    plan IDs:
@@ -119,6 +136,10 @@ sends:
 - `ew_birthday`
 - `ew_exam_result`
 - `ew_competition_placement`
+- `ew_enrolment_approved` — fires when an admin approves a self-enrolled
+  rider; body params: `{rider name}`, `{amount with ₹ prefix}`, `{pay URL}`.
+  Sample body: *"Hi! {{1}}'s registration has been approved. Pay {{2}}
+  to activate the account: {{3}}"*
 
 Set `WHATSAPP_PHONE_NUMBER_ID` + `WHATSAPP_ACCESS_TOKEN`. `lib/whatsapp.ts`
 talks directly to Meta Cloud API at `${WHATSAPP_API_BASE}/${WHATSAPP_PHONE_NUMBER_ID}/messages`

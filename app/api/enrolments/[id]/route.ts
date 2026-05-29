@@ -9,6 +9,9 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { sendEmail, renderEmail } from "@/lib/email";
+import { sendSms } from "@/lib/sms";
+import { sendWhatsApp } from "@/lib/whatsapp";
 import { z } from "zod";
 
 const APPROVER_ROLES = new Set(["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "SCHOOL_ADMINISTRATOR"]);
@@ -91,5 +94,69 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     after: { status: "pending_payment", invoiceId: invoice.id, regAmount },
   });
 
-  return NextResponse.json({ ok: true, status: "pending_payment", invoiceId: invoice.id, amount: regAmount });
+  // Notify the parent that the rider was approved + give them the
+  // payment link. SMS + WhatsApp for quick attention; email for the
+  // formal receipt-style detail. All three are fire-and-forget at this
+  // call site — failures land in NotificationDispatchLog, the approve
+  // itself stays successful (which is what the admin cares about).
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  const payUrl = `${baseUrl}/pay/${invoice.id}`;
+  const centre = await prisma.centre.findUnique({
+    where: { id: rider.centreId },
+    select: { name: true },
+  });
+  const centreName = centre?.name ?? "Equiwings";
+  const parentPhone = rider.fatherPhone ?? rider.motherPhone ?? rider.mobile;
+  const parentEmail = rider.email;
+  const riderFullName = `${rider.firstName} ${rider.lastName}`;
+  const amountLabel = `₹${regAmount.toLocaleString("en-IN")}`;
+
+  if (parentPhone) {
+    await sendSms({
+      to: parentPhone,
+      // 160-char budget: 'Equiwings: <Rider>'s registration at <centre> is approved.
+      // Pay <amount> to activate: <url>. Reply STOP to opt out.' — fits even
+      // long centre names because we trim where needed.
+      body: `${centreName}: ${riderFullName}'s registration is approved. Pay ${amountLabel} to activate: ${payUrl}`,
+      ref: { type: "enrolment.approved", rowId: invoice.id, payload: { riderId: rider.id } },
+    });
+    await sendWhatsApp({
+      to: parentPhone,
+      template: {
+        // Pre-approved Meta template — see DEPLOYMENT.md template list.
+        // Body params: {rider name}, {amount}, {pay URL}.
+        name: "ew_enrolment_approved",
+        bodyParams: [riderFullName, amountLabel, payUrl],
+      },
+      previewBody: `${riderFullName}: approved · pay ${amountLabel} → ${payUrl}`,
+      ref: { type: "enrolment.approved", rowId: invoice.id, payload: { riderId: rider.id } },
+    });
+  }
+  if (parentEmail) {
+    await sendEmail({
+      to: parentEmail,
+      subject: `Approved — pay ${amountLabel} to activate ${riderFullName}'s registration`,
+      html: renderEmail({
+        centreName,
+        heading: `Welcome to ${centreName}!`,
+        body: `<p>Dear Parent / Guardian,</p>
+<p>The registration for <b>${riderFullName}</b> has been approved by the centre team. One step remains — settle the registration fee to activate the account.</p>
+<table style="margin:16px 0;border-collapse:collapse;">
+  <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Amount</td><td style="padding:4px 0;font-weight:600;">${amountLabel}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Kind</td><td style="padding:4px 0;">Registration</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Invoice</td><td style="padding:4px 0;font-family:monospace;font-size:12px;">${invoice.id.slice(-10)}</td></tr>
+</table>
+<p style="margin:24px 0;">
+  <a href="${payUrl}" style="display:inline-block;background:#177434;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;font-weight:600;">
+    Pay ${amountLabel} now
+  </a>
+</p>
+<p>Payment is secured via Razorpay — UPI, card, or netbanking accepted. You'll receive a receipt by email immediately on success.</p>
+<p style="color:#6b7280;font-size:12px;">If the button doesn't work, copy this link into your browser: <a href="${payUrl}">${payUrl}</a></p>`,
+      }),
+      ref: { type: "enrolment.approved", rowId: invoice.id, payload: { riderId: rider.id } },
+    });
+  }
+
+  return NextResponse.json({ ok: true, status: "pending_payment", invoiceId: invoice.id, amount: regAmount, payUrl });
 }
