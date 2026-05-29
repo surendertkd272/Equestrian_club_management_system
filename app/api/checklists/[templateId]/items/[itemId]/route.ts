@@ -57,8 +57,14 @@ export async function PATCH(
   return NextResponse.json({ ok: true });
 }
 
-// Soft-delete — flip active to false so historic submissions still
-// have a valid FK to read item label from.
+// Hard-delete when no submissions reference the item; refuse with 409
+// otherwise. ChecklistSubmissionItem already snapshots itemLabel at
+// submit time, so a hard delete doesn't break historic submission
+// readouts — they keep showing the original label.
+//
+// 'Remove' meaning hard-delete (not deactivate) is what the user expects
+// per the QA report — deactivating items quietly was confusing because
+// the items still showed up in admin templates with grey styling.
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: { templateId: string; itemId: string } },
@@ -68,21 +74,50 @@ export async function DELETE(
   if (!canEditTemplate(session.role)) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const existing = await prisma.checklistItem.findUnique({ where: { id: params.itemId } });
   if (!existing || existing.templateId !== params.templateId) {
     return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   }
 
-  await prisma.checklistItem.update({
-    where: { id: existing.id },
-    data: { active: false },
+  // FK guard. If any ChecklistSubmissionItem references this item, hard
+  // delete would fail at the DB layer — surface that cleanly with a
+  // soft-delete suggestion. Most active templates will have submissions.
+  const referenceCount = await prisma.checklistSubmissionItem.count({
+    where: { itemId: existing.id },
   });
+  if (referenceCount > 0) {
+    // Auto-fallback: deactivate when delete would break the FK. Spares
+    // the admin from a confusing 409 — the item disappears from active
+    // templates either way; the only difference is historic readouts.
+    await prisma.checklistItem.update({
+      where: { id: existing.id },
+      data: { active: false },
+    });
+    await audit({
+      userId: session.userId,
+      action: "checklist_item.deactivate",
+      tableName: "checklistItem",
+      rowId: existing.id,
+      after: { reason: "has_submissions", count: referenceCount },
+    });
+    return NextResponse.json({
+      ok: true,
+      mode: "deactivated",
+      message: `Item kept as inactive — ${referenceCount} past submission${referenceCount === 1 ? "" : "s"} reference it. The item is hidden from active templates.`,
+    });
+  }
+
+  // No history → genuine hard delete.
+  await prisma.checklistItem.delete({ where: { id: existing.id } });
   await audit({
     userId: session.userId,
-    action: "checklist_item.deactivate",
+    action: "checklist_item.delete",
     tableName: "checklistItem",
     rowId: existing.id,
+    before: { label: existing.label, templateId: existing.templateId },
   });
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, mode: "deleted" });
 }

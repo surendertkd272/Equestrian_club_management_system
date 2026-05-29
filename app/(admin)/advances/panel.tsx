@@ -101,7 +101,11 @@ export function AdvancesPanel({
                 <Label>Amount (₹) *</Label>
                 <Input
                   type="number"
-                  min={1}
+                  // min={0} so the step grid is 0, 100, 200, … and the
+                  // spinner snaps to round hundreds. The previous min={1}
+                  // made valid step values 1, 101, …, 2001, which is why
+                  // typing 2000 + tabbing-out rounded to 2001.
+                  min={0}
                   step="100"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
@@ -219,7 +223,9 @@ function AdvanceRowDisplay({ row }: { row: AdvanceRow }) {
             <Label className="text-xs">Amount (max ₹{Math.round(row.remaining).toLocaleString("en-IN")})</Label>
             <Input
               type="number"
-              min={1}
+              // min={0} so step="100" grid is 0, 100, 200, …
+              // (same off-by-one fix as the issue form above).
+              min={0}
               max={row.remaining}
               step="100"
               value={repayAmount}
