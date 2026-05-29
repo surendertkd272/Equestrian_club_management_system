@@ -147,7 +147,11 @@ export function Sidebar({
           // Desktop: sticky full-height column with its OWN scroll, pinned to
           // the top of the viewport — so the page content scrolls but the nav
           // stays put (clicking a link no longer resets the sidebar position).
-          "fixed inset-y-0 left-0 z-40 w-64 overflow-y-auto transition-transform duration-200",
+          // overscroll-contain stops wheel events from bubbling to the
+          // main page when the sidebar's own scroll hits its boundary —
+          // without it, scrolling past the bottom of the nav also scrolls
+          // the dashboard, which felt like a UX glitch.
+          "fixed inset-y-0 left-0 z-40 w-64 overflow-y-auto overscroll-contain transition-transform duration-200",
           "md:sticky md:top-0 md:h-screen md:self-start md:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
