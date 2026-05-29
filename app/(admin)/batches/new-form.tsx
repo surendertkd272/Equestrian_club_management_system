@@ -11,9 +11,15 @@ import { Select } from "@/components/ui/select";
 export function NewBatchForm({
   coaches,
   disabled,
+  centreId,
 }: {
   coaches: { id: string; name: string }[];
   disabled?: boolean;
+  // The centre the form is acting on. For centre-scoped users, this is
+  // session.centreId. For HQ admins, it's the centre they picked via the
+  // topbar filter (scopeCentre cookie). Sent in the POST body so the API
+  // doesn't try to fall back on session.centreId (which is null for HQ).
+  centreId: string | null;
 }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -32,7 +38,9 @@ export function NewBatchForm({
     const res = await fetch("/api/batches", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      // Send centreId in the body so HQ admins (no session.centreId)
+      // still POST against the centre they've picked via the topbar.
+      body: JSON.stringify({ ...form, centreId }),
     });
     setSaving(false);
     if (!res.ok) {

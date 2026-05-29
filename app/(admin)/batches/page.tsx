@@ -7,27 +7,39 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { NewBatchForm } from "./new-form";
+import { BatchDeleteButton } from "./delete-button";
 
 export const dynamic = "force-dynamic";
 
 export default async function BatchesPage() {
   const session = (await getSession())!;
+  // scopeCentre resolves the working centre: explicit topbar cookie pick
+  // for HQ admins, session.centreId for centre-scoped users. This is the
+  // centre the form POSTs against — for HQ admins it's the cookie pick,
+  // not a missing session.centreId.
   const centreId = scopeCentre(session);
   const where = centreWhere(centreId);
 
   const batches = await prisma.batch.findMany({
     where,
     orderBy: { startTime: "asc" },
-    include: { _count: { select: { riders: true, attendances: true } } },
+    include: {
+      _count: { select: { riders: true, attendances: true } },
+      centre: { select: { id: true, name: true } },
+    },
   });
 
-  const coaches =
-    session.role === "SUPER_ADMIN"
-      ? []
-      : await prisma.user.findMany({
-          where: { centreId: session.centreId!, role: "COACH", status: "active" },
-          select: { id: true, name: true },
-        });
+  // Coaches list for the form dropdown. Filter to the resolved centreId
+  // (works for both centre-scoped users + HQ admins who picked a centre
+  // via the topbar). When HQ admin hasn't picked a centre, return [].
+  const coaches = centreId
+    ? await prisma.user.findMany({
+        where: { centreId, role: "COACH", status: "active" },
+        select: { id: true, name: true },
+      })
+    : [];
+
+  const canCreate = !!centreId;
 
   return (
     <div className="space-y-6">
@@ -50,6 +62,7 @@ export default async function BatchesPage() {
                 <thead className="text-left text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="pb-2">Name</th>
+                    <th className="pb-2">Centre</th>
                     <th className="pb-2">Days</th>
                     <th className="pb-2">Time</th>
                     <th className="pb-2">Level</th>
@@ -61,22 +74,26 @@ export default async function BatchesPage() {
                   {batches.map((b) => (
                     <tr key={b.id} className="border-t">
                       <td className="py-2 font-medium">{b.name}</td>
+                      <td className="py-2 text-xs text-muted-foreground">{b.centre.name}</td>
                       <td className="py-2">{b.dayOfWeek}</td>
                       <td className="py-2">
                         {b.startTime}–{b.endTime}
                       </td>
                       <td className="py-2">{b.level ?? "—"}</td>
                       <td className="py-2">{b._count.riders}</td>
-                      <td className="py-2 text-right">
-                        <Link className="text-xs text-primary underline" href={`/attendance?batch=${b.id}`}>
-                          Mark attendance →
-                        </Link>
+                      <td className="py-2">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link className="text-xs text-primary underline" href={`/attendance?batch=${b.id}`}>
+                            Mark attendance →
+                          </Link>
+                          <BatchDeleteButton id={b.id} name={b.name} riderCount={b._count.riders} />
+                        </div>
                       </td>
                     </tr>
                   ))}
                   {batches.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                      <td colSpan={7} className="py-8 text-center text-muted-foreground">
                         No batches yet. Use the form on the right to create one.
                       </td>
                     </tr>
@@ -94,10 +111,10 @@ export default async function BatchesPage() {
               <CardTitle>New batch</CardTitle>
             </CardHeader>
             <CardContent>
-              <NewBatchForm coaches={coaches} disabled={session.role === "SUPER_ADMIN" && !session.centreId} />
-              {session.role === "SUPER_ADMIN" && !session.centreId && (
+              <NewBatchForm coaches={coaches} disabled={!canCreate} centreId={centreId} />
+              {!canCreate && (
                 <p className="mt-3 text-xs text-muted-foreground">
-                  As Super Admin you don't have a default centre. Switch to a centre context (TBD) before creating batches.
+                  Pick a centre from the topbar filter to create batches.
                 </p>
               )}
             </CardContent>
