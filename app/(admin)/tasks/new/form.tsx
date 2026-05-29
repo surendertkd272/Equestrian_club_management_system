@@ -20,10 +20,18 @@ const TEMPLATES = [
 export function NewTaskForm({
   users,
   centres = [],
+  initialCentreId = "",
 }: {
   users: { id: string; name: string; role: string; centreId?: string | null }[];
-  // Non-empty only for SUPER_ADMIN — picker resolves which centre owns the task.
+  // Non-empty only for HQ admins (SUPER_ADMIN / ADMIN) — picker resolves
+  // which centre owns the task.
   centres?: { id: string; name: string }[];
+  // The centre to default the picker to — derived server-side from the
+  // topbar centre cookie. Falls back to centres[0] when the cookie is
+  // unset. The previous default (always centres[0]) caused an empty
+  // assignee dropdown when scopeCentre's resolved centre didn't match
+  // the alphabetically-first one.
+  initialCentreId?: string;
 }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -35,7 +43,7 @@ export function NewTaskForm({
     date: today,
     time: "09:00",
     recurrence: "once",
-    centreId: centres[0]?.id ?? "",
+    centreId: initialCentreId || centres[0]?.id || "",
   });
 
   function set<K extends keyof typeof form>(k: K, v: string) {
