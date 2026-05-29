@@ -44,7 +44,13 @@ export async function POST(req: NextRequest) {
   const result = await uploadFile({ kind, buffer: buf, mime: file.type });
 
   if (!result.ok) {
-    return NextResponse.json({ error: result.error, message: result.message }, { status: 400 });
+    // `message` is user-facing (rendered by toasts). `deployerHint`, when
+    // present, gives operators the technical context (env-var names, raw
+    // FS error) — visible in logs / network panel but not surfaced in UI.
+    return NextResponse.json(
+      { error: result.error, message: result.message, deployerHint: result.deployerHint },
+      { status: 400 },
+    );
   }
 
   const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? null;

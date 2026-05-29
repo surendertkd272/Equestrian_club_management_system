@@ -39,9 +39,26 @@ const POLICY: Record<UploadKind, { mimes: string[]; maxBytes: number }> = {
   generic:                   { mimes: ["image/jpeg", "image/png", "image/webp", "application/pdf"], maxBytes: 5 * 1024 * 1024 },
 };
 
+// Upload-failure shape:
+//   error        — machine-readable code (callers can branch on it)
+//   message      — USER-facing string; what toasts show. Keep this human
+//                  and actionable; never include env var names here.
+//   deployerHint — operator-facing string for logs / API debugging. Not
+//                  rendered to end users.
 export type UploadResult =
   | { ok: true; url: string; size: number; mime: string }
-  | { ok: false; error: string; message?: string };
+  | { ok: false; error: string; message?: string; deployerHint?: string };
+
+// Map an upload kind to a friendly noun for the "X upload is temporarily
+// unavailable" toast. Keeps the message specific without forking the
+// entire string per kind.
+function uploadNoun(kind: UploadKind): string {
+  if (kind.endsWith("_photo")) return "Photo";
+  if (kind === "rider_aadhaar" || kind === "staff_aadhaar" || kind === "staff_police_verification") return "Document";
+  if (kind === "rider_indemnity") return "Document";
+  if (kind === "expense_invoice") return "Invoice";
+  return "File";
+}
 
 const EXT_BY_MIME: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -203,15 +220,26 @@ export async function uploadFile(opts: {
     return { ok: true, url: `/uploads/${filename}`, size: opts.buffer.length, mime: opts.mime };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    // Vercel's read-only FS yields EROFS / ENOENT under /public — recognise
-    // those and explain what the deployer needs to do.
+    // Vercel's read-only FS yields EROFS / ENOENT under /public.
     const isReadOnly = /EROFS|ENOENT|EACCES|EPERM/.test(msg);
+    if (isReadOnly) {
+      const noun = uploadNoun(opts.kind);
+      return {
+        ok: false,
+        error: "STORAGE_NOT_CONFIGURED",
+        // User-facing. Reads naturally as a toast — never mentions env vars.
+        message: `${noun} upload is temporarily unavailable. You can continue without it and add it later.`,
+        // Operator-facing. Stays in the API response body for logs but no
+        // toast surfaces it (callsites use data.message only).
+        deployerHint:
+          "File storage isn't configured. Set S3_BUCKET / S3_ACCESS_KEY / S3_SECRET / S3_PUBLIC_URL env vars for S3-compatible storage (AWS / R2 / Backblaze).",
+      };
+    }
     return {
       ok: false,
-      error: isReadOnly ? "STORAGE_NOT_CONFIGURED" : "LOCAL_WRITE_FAILED",
-      message: isReadOnly
-        ? "File storage isn't configured. Set S3_BUCKET / S3_ACCESS_KEY / S3_SECRET / S3_PUBLIC_URL env vars for S3-compatible storage (AWS / R2 / Backblaze)."
-        : `Local write failed: ${msg}`,
+      error: "LOCAL_WRITE_FAILED",
+      message: `${uploadNoun(opts.kind)} upload failed. Please try again.`,
+      deployerHint: `Local write failed: ${msg}`,
     };
   }
 }
