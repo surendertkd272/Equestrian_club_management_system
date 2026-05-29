@@ -178,9 +178,14 @@ function pickValues<S extends z.ZodObject<z.ZodRawShape>>(
 // riders get an extra "Parental Consent" step between Medical and Indemnity
 // — DPDPA Section 9 makes verifiable consent from a parent/guardian a
 // hard requirement, and /api/onboarding rejects the submission otherwise.
-// Adults skip that step entirely so the wizard stays the same length they're
-// used to (5 + payment = 6 panels).
-type StepKey = "personal" | "address" | "parents" | "medical" | "parental-consent" | "indemnity" | "payment";
+//
+// The final step is a 'submitted' confirmation card — the API doesn't bill
+// at submit time (status goes to pending_approval; the invoice + payment
+// link arrive by email when an admin approves). An earlier version tried
+// to render an immediate Razorpay step here against fields the API doesn't
+// return, which is what surfaced as the 'Application error: a client-side
+// exception' bug.
+type StepKey = "personal" | "address" | "parents" | "medical" | "parental-consent" | "indemnity" | "submitted";
 const STEP_TITLES: Record<StepKey, string> = {
   personal: "Personal",
   address: "Address",
@@ -188,7 +193,7 @@ const STEP_TITLES: Record<StepKey, string> = {
   medical: "Medical",
   "parental-consent": "Parental Consent",
   indemnity: "Indemnity e-sign",
-  payment: "Payment",
+  submitted: "Submitted",
 };
 
 function buildSteps(dob: string | undefined): StepKey[] {
@@ -198,8 +203,8 @@ function buildSteps(dob: string | undefined): StepKey[] {
   // suddenly add a panel and re-shuffle the index. If they're definitely
   // an adult, drop the step.
   const adult = dob ? ageYears(new Date(dob)) >= 18 : false;
-  if (adult) return ["personal", "address", "parents", "medical", "indemnity", "payment"];
-  return ["personal", "address", "parents", "medical", "parental-consent", "indemnity", "payment"];
+  if (adult) return ["personal", "address", "parents", "medical", "indemnity", "submitted"];
+  return ["personal", "address", "parents", "medical", "parental-consent", "indemnity", "submitted"];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -659,55 +664,56 @@ function IndemnityStep({
         </label>
         {agreedError && <p className="text-xs text-destructive">{agreedError}</p>}
       </div>
-      <StepFooter canBack onBack={onBack} submitting={submitting} submitLabel="Submit & continue to payment" />
+      <StepFooter canBack onBack={onBack} submitting={submitting} submitLabel="Submit application" />
     </form>
   );
 }
 
-function PaymentStep({
+// Success state after submitAll. The public-onboarding API doesn't bill on
+// submit — it sets status="pending_approval" and lets a centre manager /
+// school admin review before the registration invoice is created. So this
+// step is a confirmation card, not a Razorpay surface.
+//
+// (An earlier version of the wizard expected an invoiceId + amount in the
+// response and tried to render ₹{amount}.toLocaleString — when the API
+// shape moved to pending-approval, the missing field crashed with the
+// generic 'Application error: a client-side exception'. That's why this
+// component now reads only riderId from the result.)
+function SubmittedStep({
   result,
-  onPay,
-  submitting,
   centreName,
 }: {
-  result: { riderId: string; invoiceId: string; amount: number } | null;
-  onPay: () => void;
-  submitting: boolean;
+  result: { riderId: string; status: string } | null;
   centreName: string;
 }) {
   if (!result) {
     return (
       <div className="rounded-md border bg-muted p-4 text-sm text-muted-foreground">
-        Click <b>Submit & continue to payment</b> on the previous step to generate your invoice.
+        Click <b>Submit application</b> on the previous step to send your details.
       </div>
     );
   }
   return (
-    <div className="space-y-4">
-      <div className="rounded-md border bg-card p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm text-muted-foreground">Registration fee — {centreName}</div>
-            <div className="text-2xl font-bold">₹{result.amount.toLocaleString("en-IN")}</div>
-          </div>
-          <Badge variant="warning">Pending</Badge>
-        </div>
-        <p className="mt-3 text-xs text-muted-foreground">
-          Invoice ID: <code>{result.invoiceId}</code>
+    <div className="space-y-4 text-center">
+      <div className="rounded-md border-2 border-emerald-300 bg-emerald-50 p-6">
+        <div className="text-3xl">✓</div>
+        <h2 className="mt-2 text-lg font-bold text-emerald-900">Application received</h2>
+        <p className="mt-2 text-sm text-emerald-900">
+          Thank you. Your registration with <b>{centreName}</b> is now with the
+          centre team for review.
         </p>
       </div>
-      <Button onClick={onPay} disabled={submitting} size="lg" className="w-full">
-        {submitting
-          ? "Processing…"
-          : process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
-          ? "Pay now (UPI · Card · Netbanking)"
-          : "Pay now (mock Razorpay — dev only)"}
-      </Button>
-      <p className="text-center text-xs text-muted-foreground">
-        {process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
-          ? "Secure payment via Razorpay. We never store card details."
-          : "Set NEXT_PUBLIC_RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET to switch this to a real gateway."}
-      </p>
+      <div className="rounded-md border bg-card p-4 text-left text-sm">
+        <div className="font-semibold">What happens next?</div>
+        <ol className="ml-4 mt-2 list-decimal space-y-1 text-muted-foreground">
+          <li>The centre's admin reviews your details (usually within 1–2 business days).</li>
+          <li>Once approved, you'll receive an email with the registration invoice and payment link.</li>
+          <li>After payment, the rider is added to the active roster.</li>
+        </ol>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Reference: <code>{result.riderId.slice(-8)}</code> · Keep this for follow-up.
+        </p>
+      </div>
     </div>
   );
 }
@@ -765,7 +771,11 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
   const [stepIdx, setStepIdx] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [data, setData] = useState<WizardData>({ centreSlug });
-  const [result, setResult] = useState<{ riderId: string; invoiceId: string; amount: number } | null>(null);
+  // /api/onboarding returns { riderId, status: 'pending_approval' }.
+  // There's no immediate invoice — that's created later when a centre
+  // admin approves the rider. Confirmation card uses riderId as the
+  // reference number the applicant can quote in follow-ups.
+  const [result, setResult] = useState<{ riderId: string; status: string } | null>(null);
   const [restored, setRestored] = useState(false);
 
   // Restore in an effect (not useState init) so SSR and client agree on
@@ -840,31 +850,12 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
     setStepIdx(stepCount - 1);
   }
 
-  async function payNow() {
-    if (!result) return;
-    setSubmitting(true);
-
-    const useReal = Boolean(process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID);
-    if (useReal) {
-      const ok = await runRazorpayCheckout(result.invoiceId, centreName);
-      setSubmitting(false);
-      if (ok) toast.success("Payment received. Welcome to " + centreName + "!");
-      return;
-    }
-
-    // Dev fallback — mock endpoint flips the invoice to paid without a real gateway hop.
-    const res = await fetch("/api/payments/razorpay/mock", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ invoiceId: result.invoiceId }),
-    });
-    setSubmitting(false);
-    if (!res.ok) {
-      toast.error("Payment failed");
-      return;
-    }
-    toast.success("Payment received (mock). Welcome to " + centreName + "!");
-  }
+  // Razorpay payment is no longer initiated from this wizard — the API
+  // routes the rider through pending_approval, and the registration
+  // invoice is created (and emailed with a payment link) when an admin
+  // approves on the /enrolments page. The runRazorpayCheckout() helper
+  // at the top of this file remains exported for future use but isn't
+  // called from the onboarding flow.
 
   return (
     <Card>
@@ -928,8 +919,8 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
         {currentStep === "indemnity" && (
           <IndemnityStep initial={data} onSubmit={submitAll} onBack={back} submitting={submitting} />
         )}
-        {currentStep === "payment" && (
-          <PaymentStep result={result} onPay={payNow} submitting={submitting} centreName={centreName} />
+        {currentStep === "submitted" && (
+          <SubmittedStep result={result} centreName={centreName} />
         )}
       </CardContent>
     </Card>
