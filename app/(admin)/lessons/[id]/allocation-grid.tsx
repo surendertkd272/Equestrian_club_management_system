@@ -122,7 +122,7 @@ export function AllocationGrid({
       </table>
       <div className="flex justify-between">
         <Button variant="outline" type="button" onClick={addRow}>
-          <Plus className="mr-1 h-4 w-4" /> Add pairing
+          <Plus className="mr-1 h-4 w-4" /> Add rider
         </Button>
         <Button onClick={save} disabled={busy}>
           {busy ? "Saving…" : "Save allocations"}

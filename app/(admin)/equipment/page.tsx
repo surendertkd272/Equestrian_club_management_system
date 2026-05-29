@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InventoryRow } from "./inventory-row";
+import { EQUIPMENT_CATEGORY_ORDER } from "@/lib/schemas/equipment";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,10 @@ export default async function EquipmentPage({
 
   const [centre, catalog, stocks] = await Promise.all([
     prisma.centre.findUnique({ where: { id: centreId }, select: { id: true, name: true, slug: true } }),
-    prisma.equipmentCatalog.findMany({ where: { active: true }, orderBy: [{ category: "asc" }, { name: "asc" }] }),
+    // Pull all rows sorted by name; reorder by EQUIPMENT_CATEGORY_ORDER
+    // below in JS so the display sequence matches the canonical group
+    // order (tack → grooming → stable → rider → …) rather than alphabetical.
+    prisma.equipmentCatalog.findMany({ where: { active: true }, orderBy: [{ name: "asc" }] }),
     prisma.equipmentStock.findMany({ where: { centreId } }),
   ]);
   const stockByCatalog = new Map(stocks.map((s) => [s.catalogId, s]));
@@ -42,10 +46,16 @@ export default async function EquipmentPage({
   );
   const canManageCatalog = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
 
-  // Group by category for the on-screen layout (same shape as the level
-  // catalog above: discipline header → rows).
+  // Group by category. Map preserves insertion order — pre-sort the
+  // catalog by EQUIPMENT_CATEGORY_ORDER so the resulting iteration
+  // order is the canonical display sequence (tack first, etc.).
+  const sortedCatalog = [...catalog].sort((a, b) => {
+    const ai = EQUIPMENT_CATEGORY_ORDER[a.category] ?? 99;
+    const bi = EQUIPMENT_CATEGORY_ORDER[b.category] ?? 99;
+    return ai - bi;
+  });
   const byCategory = new Map<string, typeof catalog>();
-  for (const c of catalog) {
+  for (const c of sortedCatalog) {
     if (!byCategory.has(c.category)) byCategory.set(c.category, []);
     byCategory.get(c.category)!.push(c);
   }

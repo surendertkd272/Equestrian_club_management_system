@@ -4,17 +4,27 @@ import { z } from "zod";
 // the client's 7 categories from their PDF (Tack / Grooming / Farrier /
 // Sports / Rider / Stable / Vet). Plus "other" for admin-added items
 // that don't fit the canonical buckets.
+//
+// Display order matters — the inventory page groups by category and
+// renders them in the order listed here (tack first, then grooming,
+// then stable, then rider, then everything else). The page sorts by
+// EQUIPMENT_CATEGORY_ORDER below rather than alphabetically so this
+// order is what the admin actually sees.
 export const EQUIPMENT_CATEGORIES = [
   "tack",
   "grooming",
+  "stable",
+  "rider",
   "farrier",
   "sports",
-  "rider",
-  "stable",
   "vet",
   "other",
 ] as const;
 export type EquipmentCategory = (typeof EQUIPMENT_CATEGORIES)[number];
+
+// Index map for sorting catalog rows by category display order.
+export const EQUIPMENT_CATEGORY_ORDER: Record<string, number> =
+  Object.fromEntries(EQUIPMENT_CATEGORIES.map((c, i) => [c, i]));
 
 export const EQUIPMENT_UNITS = ["piece", "pair", "set", "metre", "kg", "litre"] as const;
 
