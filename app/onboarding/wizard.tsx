@@ -606,8 +606,8 @@ function SubmittedStep({
         <div className="font-semibold">What happens next?</div>
         <ol className="ml-4 mt-2 list-decimal space-y-1 text-muted-foreground">
           <li>The centre's admin reviews your details (usually within 1–2 business days).</li>
-          <li>Once approved, you'll receive an email with the registration confirmation and payment link.</li>
-          <li>After payment, the rider is added to the active roster.</li>
+          <li>Once approved, you'll receive a confirmation email. Any payment instructions go to your parent's contact on file.</li>
+          <li>Once payment is settled, the rider is added to the active roster.</li>
         </ol>
         <p className="mt-3 text-xs text-muted-foreground">
           Reference: <code>{result.riderId.slice(-8)}</code> · Keep this for follow-up.
