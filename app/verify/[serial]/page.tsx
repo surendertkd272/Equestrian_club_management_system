@@ -3,7 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 import { CheckCircle2, XCircle, Ban } from "lucide-react";
 
-export const dynamic = "force-dynamic";
+// Public certificate verification page — same content for every visitor.
+// Cache for 5 minutes; certificates rarely change after issue and
+// revocation propagating within 5 min is acceptable for a verification
+// URL that's already meant for slow-paced human inspection.
+export const revalidate = 300;
 
 export default async function VerifyPage({ params }: { params: { serial: string } }) {
   const cert = await prisma.certificate.findUnique({

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
@@ -81,7 +82,16 @@ export async function clearSessionCookie() {
   cookies().delete(COOKIE_NAME);
 }
 
-export async function getSession(): Promise<SessionPayload | null> {
+// React.cache() memoises this function for the lifetime of ONE server
+// request. Layout + page + components on the same render all call
+// getSession() independently — without cache(), every one triggers the
+// JWT verify + the tokenVersion DB lookup. With cache(), it happens
+// once. New requests get a fresh cache (no cross-user leak).
+//
+// Critical for free-tier perf: a typical admin page render can call
+// getSession 5-10 times via layout/page/Sidebar/Topbar/feature gates.
+// Deduping saves 4-9 DB round-trips per render.
+export const getSession = cache(async (): Promise<SessionPayload | null> => {
   const token = cookies().get(COOKIE_NAME)?.value;
   if (!token) return null;
   const payload = await verifySession(token);
@@ -120,7 +130,7 @@ export async function getSession(): Promise<SessionPayload | null> {
     return null;
   }
   return payload;
-}
+});
 
 export async function requireSession(): Promise<SessionPayload> {
   const s = await getSession();

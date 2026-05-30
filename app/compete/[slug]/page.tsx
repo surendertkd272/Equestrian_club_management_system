@@ -2,7 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
+// Public competition page — same content for every visitor. Cache for
+// 60s so repeated visits (people sharing the link) skip the DB query.
+// Class changes propagate within a minute, which is fine for a marketing
+// surface. NO force-dynamic — that would defeat the cache.
+export const revalidate = 60;
 
 // Public competition page. No auth required. Visitors see:
 //   • Show details, classes, fees, deadline

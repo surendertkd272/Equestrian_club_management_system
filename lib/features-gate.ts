@@ -5,6 +5,7 @@
 // owner portal is visible to live tenants on their next navigation — no
 // session re-issue, no logout/login dance.
 
+import { cache } from "react";
 import { NextResponse } from "next/server";
 import { notFound } from "next/navigation";
 import { prisma } from "./prisma";
@@ -12,16 +13,20 @@ import { getSession } from "./auth";
 import type { FeatureKey } from "./features";
 import type { SessionPayload } from "./auth";
 
-// Per-request lookup. Phase 5 will layer React.cache() at the call site for
-// SSR pages that hit this multiple times; we keep this function dependency-free
-// so it's safe to call from tests, scripts, and route handlers alike.
-export async function getOrgFeatures(orgId: string): Promise<Set<FeatureKey>> {
+// Per-request, per-orgId memoised feature lookup. React.cache() deduplicates
+// concurrent + sequential calls within a single server request — so a page
+// that asks for features from layout.tsx + the page itself + 3 components
+// downstream still results in exactly ONE DB query per orgId.
+//
+// Cache scope: ONE server request. No risk of cross-user data leak because
+// React allocates a new cache per request. Safe to use anywhere.
+export const getOrgFeatures = cache(async (orgId: string): Promise<Set<FeatureKey>> => {
   const rows = await prisma.orgFeature.findMany({
     where: { orgId, enabled: true },
     select: { featureKey: true },
   });
   return new Set(rows.map((r) => r.featureKey as FeatureKey));
-}
+});
 
 export async function hasFeature(orgId: string, key: FeatureKey): Promise<boolean> {
   const set = await getOrgFeatures(orgId);
@@ -44,17 +49,21 @@ export async function requireFeature(orgId: string, key: FeatureKey): Promise<vo
 //
 // Designed to swallow nulls quietly: callers that need a hard guarantee should
 // check the return value and 401/403 themselves.
-export async function getOrgIdForCentre(centreId: string | null | undefined): Promise<string | null> {
+// Memoised per-request: many components on the same page ask for the
+// caller's orgId; without dedup, that's N round-trips to find the same
+// orgId we already have.
+export const getOrgIdForCentre = cache(async (centreId: string | null | undefined): Promise<string | null> => {
   if (!centreId) return null;
   const c = await prisma.centre.findUnique({ where: { id: centreId }, select: { orgId: true } });
   return c?.orgId ?? null;
-}
+});
 
-// Resolve the tenant orgId for a session. SUPER_ADMIN (centreId=null) falls
-// back to the first centre under any organisation — this is fine because today
-// every SUPER_ADMIN runs exactly one tenant; multi-tenant super admins don't
-// exist (PLATFORM_OWNER does that job).
-export async function getOrgIdForSession(session: SessionPayload | null): Promise<string | null> {
+// Resolve the tenant orgId for a session. Memoised per-request via
+// React.cache() — getSession() is also cached, so multiple components
+// asking for the same session object hit dedup-by-identity here and
+// short-circuit straight to the cached orgId. Saves the 'find first
+// centre's org' fallback DB call from running N times per render.
+export const getOrgIdForSession = cache(async (session: SessionPayload | null): Promise<string | null> => {
   if (!session) return null;
   if (session.centreId) return getOrgIdForCentre(session.centreId);
   // HQ-tier users (SUPER_ADMIN, ADMIN) have no centreId. Prefer the explicit
@@ -87,16 +96,16 @@ export async function getOrgIdForSession(session: SessionPayload | null): Promis
     return rider?.centre.orgId ?? null;
   }
   return null;
-}
+});
 
 // Convenience for layouts/pages/components that need the active feature set.
-// Returns an empty set if the session can't resolve to an org (e.g. orphaned
-// PARENT user); callers should treat that as "no features available".
-export async function getFeaturesForSession(session: SessionPayload | null): Promise<Set<FeatureKey>> {
+// Memoised too — the most common 'how slow is this' culprit was the sidebar
+// + page both calling this independently. Now: one query per request.
+export const getFeaturesForSession = cache(async (session: SessionPayload | null): Promise<Set<FeatureKey>> => {
   const orgId = await getOrgIdForSession(session);
   if (!orgId) return new Set();
   return getOrgFeatures(orgId);
-}
+});
 
 // Uniform 403 for routes that have to refuse because a feature is off. Wraps
 // the response so the client can render a "this isn't on your plan" surface
