@@ -94,6 +94,15 @@ export default async function RiderProfile({ params }: { params: { id: string } 
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {can(session.role, "rider.write") && !isReadOnly(session.role) && (
+            <a
+              href={`/riders/${rider.id}/edit`}
+              className="rounded-md border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
+              title="Edit personal info, contact, address, anthropometrics, medical notes"
+            >
+              Edit profile
+            </a>
+          )}
           <a
             href={`/exams/new?riderId=${rider.id}`}
             className="rounded-md border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
