@@ -18,6 +18,10 @@ export default async function ProgressPage({
 
   const riderWhere: any = { ...centreWhere(centreId), status: "active" };
   if (searchParams.batch) riderWhere.batchId = searchParams.batch;
+  // Level filter — narrows the rider list to those currently at the
+  // picked level. Drives the mastery heatmap which gets harder to
+  // skim on large rosters; a coach can focus on 'who's at L2'.
+  if (searchParams.level) riderWhere.currentLevel = searchParams.level;
 
   // For coaches, default to only their assigned batches' riders unless they pick "all".
   const batchWhere: any = { ...centreWhere(centreId) };
@@ -118,6 +122,21 @@ export default async function ProgressPage({
                 {batches.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs uppercase text-muted-foreground">Level</label>
+              <select
+                name="level"
+                defaultValue={searchParams.level ?? ""}
+                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+              >
+                <option value="">All levels</option>
+                {levels.map((l) => (
+                  <option key={l.id} value={l.name}>
+                    {l.name}
                   </option>
                 ))}
               </select>
