@@ -55,6 +55,10 @@ export function NewVendorForm({
     email: "",
     address: "",
     gstin: "",
+    bankAccountName: "",
+    bankAccountNumber: "",
+    bankIfsc: "",
+    bankName: "",
     notes: "",
     centreId: pinnedCentreId ?? centres[0]?.id ?? "",
   });
@@ -145,7 +149,9 @@ export function NewVendorForm({
     toast.success("Vendor added");
     setForm((f) => ({
       ...f,
-      name: "", contactName: "", phone: "", email: "", address: "", gstin: "", notes: "",
+      name: "", contactName: "", phone: "", email: "", address: "", gstin: "",
+      bankAccountName: "", bankAccountNumber: "", bankIfsc: "", bankName: "",
+      notes: "",
     }));
     setVet({ vciNumber: "", qualification: "", specialty: "", yearsPractice: "", emergencyAvailable: false, clinicAffiliation: "" });
     setFarrier({ yearsExperience: "", specialisations: [], availableDays: [], carriesForge: false, hourlyRate: "" });
@@ -206,6 +212,37 @@ export function NewVendorForm({
         <Label>Address</Label>
         <Input value={form.address} onChange={(e) => set("address", e.target.value)} />
       </div>
+
+      {/* Bank details — optional, all four collapsed to one row to keep
+          the common case (no bank info) visually quiet. */}
+      <fieldset className="md:col-span-2 rounded-md border bg-muted/30 p-3 space-y-3">
+        <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Bank details (optional — for NEFT / IMPS payouts)
+        </legend>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Account holder name</Label>
+            <Input value={form.bankAccountName} onChange={(e) => set("bankAccountName", e.target.value)} placeholder="As on bank record" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Bank name</Label>
+            <Input value={form.bankName} onChange={(e) => set("bankName", e.target.value)} placeholder="SBI / HDFC / ICICI / …" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Account number</Label>
+            <Input value={form.bankAccountNumber} onChange={(e) => set("bankAccountNumber", e.target.value)} placeholder="123456789012" />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">IFSC code</Label>
+            <Input
+              value={form.bankIfsc}
+              onChange={(e) => set("bankIfsc", e.target.value.toUpperCase())}
+              placeholder="HDFC0000123"
+              maxLength={11}
+            />
+          </div>
+        </div>
+      </fieldset>
 
       {/* Per-category extra fields */}
       {form.category === "vet" && (

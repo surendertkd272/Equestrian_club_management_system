@@ -49,6 +49,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(d.email !== undefined ? { email: d.email } : {}),
       ...(d.address !== undefined ? { address: d.address } : {}),
       ...(d.gstin !== undefined ? { gstin: d.gstin } : {}),
+      ...(d.bankAccountName !== undefined ? { bankAccountName: d.bankAccountName || null } : {}),
+      ...(d.bankAccountNumber !== undefined ? { bankAccountNumber: d.bankAccountNumber || null } : {}),
+      ...(d.bankIfsc !== undefined ? { bankIfsc: d.bankIfsc?.toUpperCase() || null } : {}),
+      ...(d.bankName !== undefined ? { bankName: d.bankName || null } : {}),
       ...(d.notes !== undefined ? { notes: d.notes } : {}),
       ...(d.active !== undefined ? { active: d.active } : {}),
       // Native Json column — pass the object straight through (no stringify).

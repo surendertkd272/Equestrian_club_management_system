@@ -115,6 +115,13 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
                       {v.gstin && <span className="text-muted-foreground">GSTIN: <span className="font-mono">{v.gstin}</span></span>}
                     </div>
                     <CategorySpecificDisplay vendor={v} />
+                    {(v.bankAccountNumber || v.bankIfsc) && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Bank: {v.bankName ?? "—"} · <span className="font-mono">A/c {v.bankAccountNumber ?? "—"}</span>
+                        {v.bankIfsc && <> · IFSC <span className="font-mono">{v.bankIfsc}</span></>}
+                        {v.bankAccountName && <> · {v.bankAccountName}</>}
+                      </div>
+                    )}
                     {v.address && <div className="mt-1 text-xs text-muted-foreground">{v.address}</div>}
                     {v.notes && <div className="mt-1 text-xs italic text-muted-foreground">{v.notes}</div>}
                   </li>

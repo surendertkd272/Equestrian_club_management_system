@@ -2782,6 +2782,14 @@ model Vendor {
   email     String?
   address   String?
   gstin     String?
+  // Bank details for payment runs. Optional — most centres pay vendors by
+  // UPI/cash for small bills, but recurring contracts (feed suppliers,
+  // ambulance retainers) want NEFT/IMPS via these fields. Branch is
+  // derivable from IFSC so we skip storing it.
+  bankAccountName   String?
+  bankAccountNumber String?
+  bankIfsc          String?
+  bankName          String?
   notes     String?
   active    Boolean  @default(true)
   deletedAt DateTime?  // set on soft-delete; bin purges 30 days later

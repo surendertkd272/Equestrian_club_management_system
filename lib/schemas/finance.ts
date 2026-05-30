@@ -37,6 +37,12 @@ export const createVendorSchema = z.object({
   email: z.string().email().optional().or(z.literal("")).transform((v) => v || undefined),
   address: z.string().max(300).optional(),
   gstin: z.string().max(30).optional(),
+  // Bank details — optional. Useful for vendors paid via NEFT/IMPS
+  // (recurring contracts like feed suppliers + ambulance retainers).
+  bankAccountName: z.string().max(120).optional(),
+  bankAccountNumber: z.string().max(30).optional(),
+  bankIfsc: z.string().max(11).optional(),
+  bankName: z.string().max(80).optional(),
   notes: z.string().max(500).optional(),
   // Free-form JSON for category-specific fields (Vet Doctor / Farrier
   // registration extras). Persisted as a string blob in

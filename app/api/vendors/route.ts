@@ -60,6 +60,11 @@ export async function POST(req: NextRequest) {
       email: parsed.data.email,
       address: parsed.data.address,
       gstin: parsed.data.gstin,
+      // Bank details — empty strings stored as null for tidier reads.
+      bankAccountName: parsed.data.bankAccountName || null,
+      bankAccountNumber: parsed.data.bankAccountNumber || null,
+      bankIfsc: parsed.data.bankIfsc?.toUpperCase() || null,
+      bankName: parsed.data.bankName || null,
       notes: parsed.data.notes,
       // Category-specific blob (Vet Doctor / Farrier extras). Now a native
       // Json column — pass the object straight through. Drop the field if

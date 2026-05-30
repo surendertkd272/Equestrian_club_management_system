@@ -69,6 +69,11 @@ export const FARRIER_SPECIALISATIONS = [
 ] as const;
 export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
+// NOTE: app/api/vendors/route.ts uses createVendorSchema from
+// @/lib/schemas/finance — not this one. This schema below is kept as
+// reference for the canonical vendor field set but isn't the one
+// validating live requests. If you add fields, mirror them in the
+// finance schema too.
 export const createVendorSchema = z.object({
   name: z.string().min(2).max(120),
   category: z.enum(VENDOR_CATEGORIES).default("other"),
@@ -78,10 +83,7 @@ export const createVendorSchema = z.object({
   address: z.string().max(300).optional(),
   gstin: z.string().max(20).optional(),
   notes: z.string().max(500).optional(),
-  // Super admin / admin picks which centre owns the vendor entry.
   centreId: z.string().min(1),
-  // Per-category extra info — shape depends on category (see schemas
-  // above). The API stringifies and stores in categorySpecificJson.
   categorySpecific: z.record(z.any()).optional(),
 });
 
