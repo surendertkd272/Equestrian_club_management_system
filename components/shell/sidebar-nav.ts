@@ -61,7 +61,7 @@ export const NAV: NavGroup[] = [
       { href: "/attendance", label: "Attendance", iconName: "CalendarCheck2", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "SCHOOL_ADMINISTRATOR"], feature: "attendance" },
       { href: "/progress", label: "Progress", iconName: "TrendingUp", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "SCHOOL_ADMINISTRATOR"], feature: "skill-tracking" },
       // Club Catalog — manage fee plans, progress levels, and skills per club.
-      { href: "/catalog", label: "Club Catalog", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
+      { href: "/catalog", label: "Club Catalog", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"], feature: "club-catalog" },
       // Sprint 4: month-by-month skill ratings curated per centre. Distinct from
       // /progress (which is the catalog of canonical skills per discipline).
       { href: "/monthly-skills", label: "Monthly Skills", iconName: "TrendingUp", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "SCHOOL_ADMINISTRATOR"] },

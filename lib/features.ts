@@ -43,7 +43,11 @@ export type FeatureKey =
   | "analytics"
   | "whatsapp-notifications"
   // Advanced / HQ-only
-  | "hq-dashboard";
+  | "hq-dashboard"
+  // Per-tenant on/off for chrome features. Default OFF — owner toggles
+  // them on in the feature matrix when the tenant explicitly wants them.
+  | "club-catalog"
+  | "student-payment-visible";
 
 // "wired" — toggling off blocks both the UI route AND the underlying API
 // endpoints (blockIfFeatureOff in route handlers). Safe to disable for a
@@ -104,6 +108,12 @@ export const FEATURES: readonly FeatureDef[] = [
 
   // ── Advanced / HQ-only
   { key: "hq-dashboard",           label: "HQ Comparative Dashboard", description: "Cross-centre side-by-side reporting for multi-club operators.", group: "advanced",   enforcement: "ui-only" },
+
+  // ── Per-tenant chrome toggles — default OFF for new orgs (see seed.ts /
+  // /api/orgs onboarding). Owner toggles ON in the feature matrix when a
+  // specific tenant wants the feature exposed.
+  { key: "club-catalog",            label: "Club Catalog",            description: "Per-club catalog editor for fee plans, levels, skills. Hidden by default — owner toggles on for clubs that need to customise the catalog.", group: "advanced", enforcement: "ui-only" },
+  { key: "student-payment-visible", label: "Student-portal payments", description: "Show payment/invoice surfaces in the student (rider) portal. Hidden by default — payments are typically handled by the parent via emailed links, not students directly.", group: "advanced", enforcement: "ui-only" },
 ];
 
 export const FEATURE_KEYS: readonly FeatureKey[] = FEATURES.map((f) => f.key);

@@ -4,6 +4,7 @@ import { getStudentSummary, getStudentDetail } from "@/lib/student";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { getFeaturesForSession } from "@/lib/features-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,13 @@ export default async function StudentHome() {
 
   const detail = await getStudentDetail(session.userId);
   const { rider, attendancePct, attendedSessions, totalSessions, upcomingExam, latestCert, unpaidInvoices, skillsMastered, totalSkillsAtLevel } = summary;
+
+  // student-payment-visible defaults OFF — the parent handles payment
+  // via the email link, not the student. Owner toggles it on per-tenant
+  // in the feature matrix when a club explicitly wants students to see
+  // the invoice surface.
+  const features = await getFeaturesForSession(session);
+  const showPayment = features.has("student-payment-visible");
 
   return (
     <div className="space-y-6">
@@ -62,7 +70,7 @@ export default async function StudentHome() {
         </Card>
       )}
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className={showPayment ? "grid gap-4 md:grid-cols-4" : "grid gap-4 md:grid-cols-3"}>
         <Kpi label="My attendance (90d)" value={attendancePct === null ? "—" : `${attendancePct}%`} sub={attendancePct === null ? "" : `${attendedSessions}/${totalSessions} sessions`} />
         <Kpi
           label="Skills mastered"
@@ -74,12 +82,14 @@ export default async function StudentHome() {
           value={upcomingExam ? `L${upcomingExam.level}` : "—"}
           sub={upcomingExam ? `${formatDate(upcomingExam.date)} · ${upcomingExam.examinerName}` : "Nothing scheduled"}
         />
-        <Kpi
-          label="Unpaid fees"
-          value={String(unpaidInvoices)}
-          sub={unpaidInvoices > 0 ? "Talk to your parent" : "All paid up"}
-          warn={unpaidInvoices > 0}
-        />
+        {showPayment && (
+          <Kpi
+            label="Unpaid fees"
+            value={String(unpaidInvoices)}
+            sub={unpaidInvoices > 0 ? "Talk to your parent" : "All paid up"}
+            warn={unpaidInvoices > 0}
+          />
+        )}
       </div>
 
       <Card>

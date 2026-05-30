@@ -5,14 +5,21 @@ import { scopeCentre } from "@/lib/tenancy";
 import { Card, CardContent } from "@/components/ui/card";
 import { canManageCatalog } from "@/lib/schemas/catalog";
 import { CatalogManager } from "./catalog-manager";
+import { assertSessionFeature } from "@/lib/features-gate";
 
 export const dynamic = "force-dynamic";
 
 // Club Catalog — manage the per-centre master data that used to be seed-only:
 // Fee Plans, Progress Levels, and Skills. SUPER_ADMIN / ADMIN / CENTRE_MANAGER.
+//
+// Gated behind the 'club-catalog' org-feature flag — default OFF. Owner
+// toggles it on per-tenant in the feature matrix when a tenant explicitly
+// wants to customise catalog. Centre-bootstrap seeds sensible defaults
+// for every new club without this UI being exposed.
 export default async function CatalogPage() {
   const session = (await getSession())!;
   if (!canManageCatalog(session.role)) redirect("/dashboard");
+  await assertSessionFeature("club-catalog");
 
   const centreId = scopeCentre(session);
   if (!centreId) {
