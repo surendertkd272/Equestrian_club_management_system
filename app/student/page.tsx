@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { getFeaturesForSession } from "@/lib/features-gate";
 import { BmiBanner } from "./bmi-banner";
+import { BatchShiftCard } from "./batch-shift-card";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +38,23 @@ export default async function StudentHome() {
   // the invoice surface.
   const features = await getFeaturesForSession(session);
   const showPayment = features.has("student-payment-visible");
+
+  // Batch shift surface — rider sees their own request history + the
+  // 'Request a shift' button. Centre-scoped batch list (target batches
+  // they could move to). Same-centre only via this UI.
+  const [centreBatches, recentShiftRequests] = await Promise.all([
+    prisma.batch.findMany({
+      where: { centreId: rider.centreId },
+      select: { id: true, name: true, dayOfWeek: true, startTime: true, endTime: true },
+      orderBy: { startTime: "asc" },
+    }),
+    prisma.batchShiftRequest.findMany({
+      where: { riderId: rider.id },
+      include: { toBatch: { select: { name: true } }, fromBatch: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -127,6 +146,21 @@ export default async function StudentHome() {
           )}
         </CardContent>
       </Card>
+
+      <BatchShiftCard
+        currentBatchId={rider.batchId ?? null}
+        batches={centreBatches}
+        recent={recentShiftRequests.map((r) => ({
+          id: r.id,
+          kind: r.kind,
+          shiftDate: r.shiftDate?.toISOString() ?? null,
+          toBatch: { name: r.toBatch.name },
+          fromBatch: r.fromBatch ? { name: r.fromBatch.name } : null,
+          status: r.status,
+          decisionNote: r.decisionNote ?? null,
+          createdAt: r.createdAt.toISOString(),
+        }))}
+      />
 
       {detail && detail.upcomingLessons.length > 0 && (
         <Card>

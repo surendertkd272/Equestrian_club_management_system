@@ -696,6 +696,7 @@ model User {
   salaryStructures  SalaryStructure[]  @relation("SalaryStructureUser")
   coachDailyUpdates CoachDailyUpdate[] @relation("CoachDailyUpdateCoach")
   auditRuns         AuditRun[]         @relation("AuditRunInspector")
+  batchShiftDecisions BatchShiftRequest[] @relation("BatchShiftDecidedBy")
 
   // Admin /users and /approvals filter by (centreId, status) — pending
   // approvals list, centre staff roster. Without this it's a scan-and-filter.
@@ -873,6 +874,7 @@ model Rider {
   parentLinks ParentLink[]
   eventRegistrations EventRegistration[]
   accreditations Accreditation[]
+  batchShiftRequests BatchShiftRequest[]
 
   @@index([centreId])
   @@index([batchId])
@@ -899,6 +901,8 @@ model Batch {
   riders   Rider[]
   attendances Attendance[]
   lessons  Lesson[]
+  shiftRequestsFrom BatchShiftRequest[] @relation("BatchShiftFrom")
+  shiftRequestsTo   BatchShiftRequest[] @relation("BatchShiftTo")
 
   @@index([centreId])
 }
@@ -3209,4 +3213,54 @@ model NotificationDispatchLog {
 
   @@index([channel, createdAt])
   @@index([createdAt])
+}
+
+// Rider-initiated request to move to a different batch — either for a
+// single day (e.g. "I can't make Wednesday, can I attend Thursday's
+// batch this week?") or permanently (e.g. "I'm switching schools, my
+// new schedule means I need the morning slot from now on").
+//
+// Approval routing:
+//   - Single-day: any coach assigned to the target batch can approve.
+//   - Permanent: centre manager approves (riders' batch assignments
+//     are a roster decision, not a per-coach one).
+//
+// On approve, single-day creates an Attendance row in the target batch
+// for the date; permanent updates rider.batchId. Reject leaves no
+// side-effect beyond the audit + a denial notification to the rider.
+model BatchShiftRequest {
+  id           String   @id @default(cuid())
+  riderId      String
+  // 'single_day' OR 'permanent' — drives the approver gate + the side-
+  // effect on approval (see notes above).
+  kind         String
+  // The batch the rider currently belongs to (snapshot at request time
+  // so a Permanent that gets approved months later still records the
+  // original batch even if rider.batchId has since moved).
+  fromBatchId  String?
+  // The batch the rider wants to move into.
+  toBatchId    String
+  // For single_day: the specific date the rider wants to attend the
+  // target batch. Null for permanent (no date applies; the change
+  // takes effect from approval onward).
+  shiftDate    DateTime?
+  // For permanent shifts: the date from which the new batch becomes
+  // active. Defaults to approval timestamp if omitted by rider.
+  effectiveFrom DateTime?
+  reason       String?  // why the rider wants to shift; visible to approver
+  status       String   @default("pending") // pending | approved | rejected | cancelled
+  decidedByUserId String?
+  decidedAt    DateTime?
+  decisionNote String?  // approver's note on accept/reject (visible to rider)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  rider     Rider  @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  fromBatch Batch? @relation("BatchShiftFrom", fields: [fromBatchId], references: [id])
+  toBatch   Batch  @relation("BatchShiftTo",   fields: [toBatchId],   references: [id])
+  decidedBy User?  @relation("BatchShiftDecidedBy", fields: [decidedByUserId], references: [id])
+
+  @@index([riderId, status])
+  @@index([toBatchId, status])
+  @@index([status, createdAt])
 }
