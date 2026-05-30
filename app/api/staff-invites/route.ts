@@ -72,15 +72,22 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
-  const email = parsed.data.email.toLowerCase();
+  // Email is optional — empty string means the admin will share the link
+  // manually instead of email-locking it. null'd out for clarity.
+  const email = parsed.data.email && parsed.data.email.length > 0
+    ? parsed.data.email.toLowerCase()
+    : null;
 
-  // Don't invite someone who already has an account.
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
-    return NextResponse.json(
-      { error: "EMAIL_IN_USE", message: "An account with this email already exists." },
-      { status: 409 },
-    );
+  // Email-locked invites can't go to someone who already has an account.
+  // Email-less invites skip this check — there's no email to collide on.
+  if (email) {
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      return NextResponse.json(
+        { error: "EMAIL_IN_USE", message: "An account with this email already exists." },
+        { status: 409 },
+      );
+    }
   }
 
   // Generate a unique code.
@@ -100,8 +107,10 @@ export async function POST(req: NextRequest) {
       kind: "staff_hire",
       targetPath: "/staff-register",
       // jsonb column — pass the object directly (post-migration in 81f142a).
+      // email may be null for shared-link invites; the redemption page reads
+      // paramsJson.email and skips the email-match check when it's null.
       paramsJson: { email, name: parsed.data.name ?? null, role: parsed.data.role },
-      label: `Staff invite — ${email}`,
+      label: email ? `Staff invite — ${email}` : `Staff invite — ${parsed.data.name ?? parsed.data.role}`,
       expiresAt: new Date(Date.now() + parsed.data.expiresInDays * 86400000),
       singleUse: true,
       createdByUserId: session.userId,

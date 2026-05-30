@@ -16,6 +16,7 @@ import { parseDeductionRules } from "@/lib/schemas/payroll";
 import { PayrollSettings } from "./payroll-settings";
 import { SalaryStructureTable } from "./structure-table";
 import { SalaryPanel } from "./panel";
+import { MarkPaidButton } from "./mark-paid-button";
 
 export const dynamic = "force-dynamic";
 
@@ -153,9 +154,12 @@ export default async function SalaryPage() {
                       </td>
                       <td className="py-2 text-right font-mono font-semibold">₹{Math.round(p.netAmount).toLocaleString("en-IN")}</td>
                       <td className="py-2">
-                        <Badge variant={p.paidAt ? "success" : "outline"}>
-                          {p.paidAt ? `paid ${formatDate(p.paidAt)}` : "recorded"}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={p.paidAt ? "success" : "outline"}>
+                            {p.paidAt ? `paid ${formatDate(p.paidAt)}` : "recorded"}
+                          </Badge>
+                          {!p.paidAt && <MarkPaidButton id={p.id} />}
+                        </div>
                       </td>
                     </tr>
                   ))}

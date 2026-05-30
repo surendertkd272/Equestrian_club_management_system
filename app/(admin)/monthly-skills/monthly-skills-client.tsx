@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { SKILL_RATING_LABELS } from "@/lib/schemas/monthly-skill";
@@ -46,23 +47,48 @@ export function MonthlySkillsClient({ yearMonth, canEdit, skills, riders, initia
   }
 
   async function addSkill() {
-    if (newSkill.trim().length < 2) {
-      toast.error("Label is too short.");
+    // Accept multi-line input — split on newlines so the admin can paste
+    // a list ('Posting trot\nDiagonal balance\nLeg yield') and create all
+    // in one go. Single-skill flow still works: typing one line + Enter.
+    const labels = newSkill
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter((s) => s.length >= 2);
+    if (labels.length === 0) {
+      toast.error("Add at least one skill (2+ characters per line).");
       return;
     }
     setBusy("__new__");
     try {
-      const res = await fetch("/api/monthly-skills", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ yearMonth, skillLabel: newSkill.trim() }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        toast.error(data.error === "DUPLICATE_SKILL" ? "That skill is already tracked this month." : data.error ?? "Failed");
-        return;
+      // POST each one — the API rejects duplicates per skill, so a paste
+      // with one repeat doesn't kill the rest. Collect per-line failures.
+      const results = await Promise.all(
+        labels.map(async (label) => {
+          const res = await fetch("/api/monthly-skills", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ yearMonth, skillLabel: label }),
+          });
+          return { label, ok: res.ok, status: res.status };
+        }),
+      );
+      const added = results.filter((r) => r.ok);
+      const failed = results.filter((r) => !r.ok);
+      if (added.length > 0) {
+        toast.success(
+          added.length === 1
+            ? "Skill added"
+            : `${added.length} skill${added.length === 1 ? "" : "s"} added`,
+        );
       }
-      toast.success("Skill added");
+      if (failed.length > 0) {
+        const dupes = failed.filter((r) => r.status === 409).length;
+        const others = failed.length - dupes;
+        const parts: string[] = [];
+        if (dupes > 0) parts.push(`${dupes} duplicate${dupes === 1 ? "" : "s"}`);
+        if (others > 0) parts.push(`${others} failed`);
+        toast.error(`${parts.join(", ")} — see list for which.`);
+      }
       setNewSkill("");
       router.refresh();
     } finally {
@@ -131,22 +157,23 @@ export function MonthlySkillsClient({ yearMonth, canEdit, skills, riders, initia
         </div>
         {canEdit && (
           <>
-            <div className="flex-1 min-w-[200px]">
+            <div className="flex-1 min-w-[280px]">
               <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                Add a skill to track this month
+                Add skills to track this month
               </label>
-              <Input
+              <Textarea
                 value={newSkill}
                 onChange={(e) => setNewSkill(e.target.value)}
-                placeholder="e.g. Posting trot · diagonal balance"
-                maxLength={120}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") addSkill();
-                }}
+                placeholder={"One skill per line — paste a list to add many at once.\ne.g.\nPosting trot · diagonal balance\nLeg yield\nCanter departure"}
+                rows={3}
+                className="font-mono text-sm"
               />
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                Hit the button to add — Enter inserts a new line so you can paste multi-line lists.
+              </p>
             </div>
-            <Button onClick={addSkill} disabled={busy === "__new__"}>
-              {busy === "__new__" ? "Adding…" : "Add skill"}
+            <Button onClick={addSkill} disabled={busy === "__new__"} className="self-start">
+              {busy === "__new__" ? "Adding…" : "Add skill(s)"}
             </Button>
           </>
         )}

@@ -730,11 +730,14 @@ async function main() {
     "4": EQUIWINGS_RUBRICS["4"] ? (EQUIWINGS_RUBRICS["4"].categories as Prisma.InputJsonValue) : undefined,
   };
   const examLevels = [
-    // General — 4 canonical Equiwings levels
+    // General — 5 canonical Equiwings levels. Level 5 (Expert) added Oct
+    // 2026 per client request — no rubric template yet, admins add one
+    // via /exams/templates as the first Level-5 candidate emerges.
     { discipline: "general", orderIndex: 1, code: "1", name: "Beginner", passThreshold: 70, defaultRubricJson: generalRubric["1"] },
     { discipline: "general", orderIndex: 2, code: "2", name: "Elementary", passThreshold: 70, defaultRubricJson: generalRubric["2"] },
     { discipline: "general", orderIndex: 3, code: "3", name: "Intermediate", passThreshold: 70, defaultRubricJson: generalRubric["3"] },
     { discipline: "general", orderIndex: 4, code: "4", name: "Advanced", passThreshold: 70, defaultRubricJson: generalRubric["4"] },
+    { discipline: "general", orderIndex: 5, code: "5", name: "Expert", passThreshold: 75 },
     // Dressage
     { discipline: "dressage", orderIndex: 1, code: "Prelim", name: "Preliminary", passThreshold: 60 },
     { discipline: "dressage", orderIndex: 2, code: "Novice", name: "Novice", passThreshold: 62 },

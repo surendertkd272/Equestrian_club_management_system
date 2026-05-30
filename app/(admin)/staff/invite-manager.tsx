@@ -39,14 +39,11 @@ export function StaffInviteManager({ invites }: { invites: Invite[] }) {
   }
 
   async function generate() {
+    // Email is optional now — when blank, we generate a single-use link
+    // the admin can share manually (WhatsApp/SMS). When filled, the
+    // invite is email-locked: only that exact email address can redeem.
     const email = form.email.trim();
-    if (!email) {
-      toast.error("Enter the new hire's email.");
-      return;
-    }
-    // Catch the common mistake (e.g. "test@hiring" — no domain) before the
-    // round-trip, with a message that actually explains the problem.
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
       toast.error("That's not a valid email — include a domain, e.g. name@example.com");
       return;
     }
@@ -56,7 +53,7 @@ export function StaffInviteManager({ invites }: { invites: Invite[] }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email,
+          email: email || undefined,
           name: form.name.trim() || undefined,
           role: form.role,
           expiresInDays: Number(form.expiresInDays) || 14,
@@ -110,15 +107,15 @@ export function StaffInviteManager({ invites }: { invites: Invite[] }) {
       <CardHeader>
         <CardTitle className="text-base">Invite new staff</CardTitle>
         <CardDescription>
-          Generate a one-person, single-use registration link locked to the new hire's email.
-          They fill their details, then land in the pending-approval queue (<a href="/users?status=pending_approval" className="underline">/users</a>) for you to activate.
+          Generate a one-person, single-use registration link. Optionally lock to a specific email — leave email blank to make the link redeemable by anyone you share it with manually (WhatsApp/SMS).
+          New hires fill their details, then land in the pending-approval queue (<a href="/users?status=pending_approval" className="underline">/users</a>) for you to activate.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 md:grid-cols-4">
           <div>
-            <Label>Email *</Label>
-            <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="hire@example.com" />
+            <Label>Email (optional)</Label>
+            <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="hire@example.com — or leave blank" />
           </div>
           <div>
             <Label>Name (optional)</Label>

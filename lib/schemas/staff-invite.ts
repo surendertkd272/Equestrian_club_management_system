@@ -28,9 +28,15 @@ export const STAFF_INVITE_ROLE_LABEL: Record<string, string> = {
   EXAMINER: "Examiner",
 };
 
-// Create a one-person, single-use, email-locked staff invite.
+// Create a one-person, single-use staff invite.
+//
+// Email is optional — when supplied, the invite is email-locked (the
+// public staff-register page rejects mismatches). When omitted, the
+// invite is single-use only and the link must be shared manually
+// (WhatsApp / SMS / in-person). The admin gets the URL back in the
+// API response either way.
 export const createStaffInviteSchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().optional().or(z.literal("")),
   name: z.string().max(80).optional(),
   role: z.enum(STAFF_INVITE_ROLES),
   expiresInDays: z.coerce.number().int().min(1).max(90).default(14),

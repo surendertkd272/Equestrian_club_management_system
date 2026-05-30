@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { centreWhere, scopeCentre } from "@/lib/tenancy";
 import { can } from "@/lib/permissions";
-import { parseClasses } from "@/lib/schemas/competition";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -63,7 +62,6 @@ export default async function CompetitionsPage() {
                   <th className="pb-2">Scope</th>
                   <th className="pb-2">Dates</th>
                   <th className="pb-2">Venue</th>
-                  <th className="pb-2">Classes</th>
                   <th className="pb-2">Entries</th>
                   <th className="pb-2">Status</th>
                   <th className="pb-2"></th>
@@ -71,7 +69,6 @@ export default async function CompetitionsPage() {
               </thead>
               <tbody>
                 {competitions.map((c) => {
-                  const classes = parseClasses(c.classesJson);
                   return (
                     <tr key={c.id} className="border-t hover:bg-muted/40">
                       <td className="py-2">
@@ -92,7 +89,6 @@ export default async function CompetitionsPage() {
                         )}
                       </td>
                       <td className="py-2">{c.venue ?? "—"}</td>
-                      <td className="py-2">{classes.length}</td>
                       <td className="py-2">{c._count.entries}</td>
                       <td className="py-2">
                         <Badge variant={STATUS_VARIANT[c.status] ?? "outline"}>{c.status.replaceAll("_", " ")}</Badge>
