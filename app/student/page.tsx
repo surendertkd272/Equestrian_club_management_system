@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { getFeaturesForSession } from "@/lib/features-gate";
+import { BmiBanner } from "./bmi-banner";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,13 @@ export default async function StudentHome() {
           {rider.centre.name} · {rider.currentLevel ?? "Beginner"}{rider.batch ? ` · ${rider.batch.name}` : ""}
         </p>
       </div>
+
+      {/* One-shot dismissible heads-up when the rider's BMI is outside the
+          normal adult band. Stays on the dashboard not the profile so the
+          first thing they see when logging in is the note. Banner hides
+          itself once dismissed (localStorage); re-triggers if the BMI
+          value changes meaningfully. */}
+      <BmiBanner riderId={rider.id} bmi={rider.bmi} />
 
       {detail && detail.notifications.length > 0 && (
         <Card>

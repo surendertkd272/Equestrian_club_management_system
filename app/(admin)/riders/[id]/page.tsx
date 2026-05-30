@@ -13,6 +13,7 @@ import { riderActivity } from "@/lib/activity";
 import { AccreditationsPanel } from "./accreditations-panel";
 import { can } from "@/lib/permissions";
 import { isReadOnly } from "@/lib/roles";
+import { bmiBand, bmiBandLabel, bmiBandTone, bmiNeedsAttention } from "@/lib/bmi";
 
 export const dynamic = "force-dynamic";
 
@@ -212,10 +213,21 @@ export default async function RiderProfile({ params }: { params: { id: string } 
                 {rider.heightCm ?? "—"} cm / {rider.weightKg ?? "—"} kg
               </dd>
               <dt className="text-muted-foreground">BMI</dt>
-              <dd>
-                {rider.bmi ?? "—"}
+              <dd className="flex items-center gap-2">
+                <span>{rider.bmi ?? "—"}</span>
+                {/* BMI band badge — adult-band thresholds; see lib/bmi.ts
+                    header for the caveat about minors. Only renders when
+                    the band is outside normal — keeps the row visually
+                    clean for healthy riders. */}
+                {(() => {
+                  const band = bmiBand(rider.bmi);
+                  if (!bmiNeedsAttention(band)) return null;
+                  const tone = bmiBandTone(band);
+                  const variant = tone === "destructive" ? "destructive" : tone === "warning" ? "warning" : "outline";
+                  return <Badge variant={variant} className="text-[10px]">{bmiBandLabel(band)}</Badge>;
+                })()}
                 {rider.bmiMeasuredAt && (
-                  <span className="ml-2 text-xs text-muted-foreground">
+                  <span className="ml-1 text-xs text-muted-foreground">
                     (measured {formatDate(rider.bmiMeasuredAt)})
                   </span>
                 )}
