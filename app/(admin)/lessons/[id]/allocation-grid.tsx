@@ -39,7 +39,7 @@ export function AllocationGrid({
   async function save() {
     const filled = pairs.filter((p) => p.riderId && p.horseId);
     if (filled.length === 0) {
-      toast.error("Add at least one rider-horse pairing.");
+      toast.error("Add at least one rider.");
       return;
     }
     setBusy(true);
@@ -62,7 +62,7 @@ export function AllocationGrid({
       }
       return;
     }
-    toast.success(`${data.count} pairing${data.count === 1 ? "" : "s"} saved.`);
+    toast.success(`${data.count} rider${data.count === 1 ? "" : "s"} saved.`);
     router.refresh();
   }
 

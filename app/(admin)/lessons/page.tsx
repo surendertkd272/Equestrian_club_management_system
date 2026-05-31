@@ -104,11 +104,11 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
                       {l.allocations.length > 0
-                        ? `${l.allocations.length} pairing${l.allocations.length === 1 ? "" : "s"}: ${l.allocations
+                        ? `${l.allocations.length} rider${l.allocations.length === 1 ? "" : "s"}: ${l.allocations
                             .slice(0, 3)
                             .map((a) => `${a.rider?.firstName ?? "?"} → ${a.horse.name}${a.horse.stableNo ? ` (${a.horse.stableNo})` : ""}`)
                             .join(", ")}${l.allocations.length > 3 ? ` + ${l.allocations.length - 3} more` : ""}`
-                        : "No horse-rider pairings yet."}
+                        : "No riders allocated yet."}
                     </div>
                     {l.notes ? <div className="mt-1 text-xs italic text-muted-foreground">{l.notes}</div> : null}
                   </div>
