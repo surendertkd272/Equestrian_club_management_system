@@ -12,7 +12,12 @@ export async function POST(req: NextRequest) {
   if (!can(session.role, "staff.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
-  if (!session.centreId && session.role !== "SUPER_ADMIN") {
+  // HQ roles (SUPER_ADMIN, ADMIN) have no session.centreId — they pick a
+  // centre via the topbar and the page sends it in the body. Previously
+  // this guard let only SUPER_ADMIN through, so ADMIN couldn't create a
+  // batch in any centre. Same isHQ pattern the rest of the codebase uses.
+  const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  if (!session.centreId && !isHQ) {
     return NextResponse.json({ error: "NO_CENTRE" }, { status: 400 });
   }
 
@@ -24,7 +29,12 @@ export async function POST(req: NextRequest) {
   const d = parsed.data;
 
   const centreId = session.centreId ?? (body?.centreId as string | undefined);
-  if (!centreId) return NextResponse.json({ error: "centreId required for super admin" }, { status: 400 });
+  if (!centreId) {
+    return NextResponse.json(
+      { error: "NO_CENTRE_PICKED", message: "Pick a centre from the topbar before creating a batch." },
+      { status: 400 },
+    );
+  }
 
   if (d.coachId) {
     const coach = await prisma.user.findUnique({ where: { id: d.coachId } });
