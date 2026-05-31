@@ -74,7 +74,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  if (!can(session.role, "staff.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  // lesson.write — granted to COACH + HEAD_COACH + CENTRE_MANAGER + ADMIN
+  // + SUPER_ADMIN. Coaches need this to clean up wrongly-scheduled
+  // sessions for their own batches. Cross-centre is still blocked below.
+  if (!can(session.role, "lesson.write")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
 

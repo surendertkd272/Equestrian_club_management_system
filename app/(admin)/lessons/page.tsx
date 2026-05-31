@@ -118,7 +118,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
                     <Link href={`/lessons/${l.id}`} className="rounded border px-3 py-1 text-xs hover:bg-accent">
                       Allocate / Edit
                     </Link>
-                    {can(session.role, "staff.manage") && (
+                    {can(session.role, "lesson.write") && (
                       <LessonDeleteButton
                         id={l.id}
                         timeLabel={`${new Date(l.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`}

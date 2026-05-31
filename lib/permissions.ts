@@ -33,7 +33,11 @@ export type Permission =
   | "finance.write"
   | "certificate.issue"
   | "certificate.bulk"
-  | "audit.read";
+  | "audit.read"
+  // Day-to-day lesson operations (delete a wrong session, eventually:
+  // create/update too). Granted to roles that actually run lessons —
+  // not the same as staff.manage, which is about managing staff records.
+  | "lesson.write";
 
 const matrix: Record<Role, Permission[]> = {
   SUPER_ADMIN: [
@@ -45,6 +49,7 @@ const matrix: Record<Role, Permission[]> = {
     "event.manage", "expense.manage", "expense.submit", "accreditation.manage",
     "finance.read", "finance.write", "certificate.issue", "certificate.bulk", "audit.read",
     "requisition.submit", "requisition.approve_manager", "requisition.approve_accountant",
+    "lesson.write",
   ],
   CENTRE_MANAGER: [
     "rider.read", "rider.write", "rider.onboard", "attendance.mark", "progress.write",
@@ -54,6 +59,7 @@ const matrix: Record<Role, Permission[]> = {
     "event.manage", "expense.manage", "expense.submit", "accreditation.manage",
     "finance.read", "finance.write", "certificate.issue", "certificate.bulk",
     "requisition.submit", "requisition.approve_manager", "requisition.approve_accountant",
+    "lesson.write",
   ],
   HEAD_COACH: [
     // Senior trainer — broader than a regular coach. Can schedule exams and supervise other coaches'
@@ -63,8 +69,9 @@ const matrix: Record<Role, Permission[]> = {
     "staff.attendance", "leave.request", "leave.approve",
     "task.assign", "task.complete", "horse.manage", "expense.submit",
     "requisition.submit", "requisition.approve_manager",
+    "lesson.write",
   ],
-  COACH: ["rider.read", "attendance.mark", "progress.write", "task.complete", "leave.request", "expense.submit", "requisition.submit"],
+  COACH: ["rider.read", "attendance.mark", "progress.write", "task.complete", "leave.request", "expense.submit", "requisition.submit", "lesson.write"],
   STABLE_MANAGER: [
     // Owns the stable + horse roster + the tack/grooming kit needed for daily ops.
     "horse.manage", "asset.manage", "task.assign", "task.complete",
@@ -110,6 +117,7 @@ const matrix: Record<Role, Permission[]> = {
     "event.manage", "expense.manage", "expense.submit", "accreditation.manage",
     "finance.read", "finance.write", "certificate.issue", "certificate.bulk",
     "requisition.submit", "requisition.approve_manager", "requisition.approve_accountant",
+    "lesson.write",
     // Note: no "audit.read" — ADMIN gets read-only audit access via a
     // role check at /audit, but doesn't carry the global perm. Keeps the
     // permission matrix the source of truth for write-side actions.
