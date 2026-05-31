@@ -1,12 +1,12 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Archive, ChevronDown, ChevronRight, Pencil, X, Check } from "lucide-react";
+import { Plus, Trash2, Archive, ChevronDown, ChevronRight, Pencil, X, Check, ArrowUp, ArrowDown } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
 
 type RubricItem = { name: string; max_score: number | null; subitems?: RubricItem[] };
@@ -535,6 +535,30 @@ function RubricEditor({
     );
   }
 
+  // Reorder helpers — swap with adjacent neighbour. dir: -1 = up, +1 = down.
+  // No-op at the boundary so the buttons stay safe to mash.
+  function moveCat(ci: number, dir: -1 | 1) {
+    setCats((c) => {
+      const j = ci + dir;
+      if (j < 0 || j >= c.length) return c;
+      const next = [...c];
+      [next[ci], next[j]] = [next[j]!, next[ci]!];
+      return next;
+    });
+  }
+  function moveItem(ci: number, ii: number, dir: -1 | 1) {
+    setCats((c) =>
+      c.map((cat, i) => {
+        if (i !== ci) return cat;
+        const j = ii + dir;
+        if (j < 0 || j >= cat.items.length) return cat;
+        const next = [...cat.items];
+        [next[ii], next[j]] = [next[j]!, next[ii]!];
+        return { ...cat, items: next };
+      }),
+    );
+  }
+
   // Sub-item helpers. addSubitem on a leaf item promotes it to a parent
   // (max_score becomes null since it's now the sum of sub-items).
   // removeSubitem on the last sub-item demotes the parent back to a leaf
@@ -622,6 +646,23 @@ function RubricEditor({
     }
   }
 
+  // Cmd+S / Ctrl+S to save without reaching for the mouse. Stops the
+  // browser's default 'save page' dialog. Esc cancels the edit.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const isSave = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s";
+      if (isSave) {
+        e.preventDefault();
+        if (!busy) save();
+      } else if (e.key === "Escape") {
+        if (!busy) onCancel();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cats, busy]);
+
   const grandTotal = cats.reduce((s, c) => s + categoryTotal(c), 0);
 
   return (
@@ -631,6 +672,9 @@ function RubricEditor({
           <span className="font-semibold text-amber-900">Editing rubric</span>
           <span className="ml-2 text-amber-800">
             {cats.length} section{cats.length === 1 ? "" : "s"} · max <span className="font-mono">/{grandTotal}</span>
+          </span>
+          <span className="ml-2 text-[10px] text-amber-700">
+            <kbd className="rounded bg-amber-100 px-1 font-mono">⌘S</kbd> save · <kbd className="rounded bg-amber-100 px-1 font-mono">Esc</kbd> cancel
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -675,6 +719,28 @@ function RubricEditor({
               <span className="whitespace-nowrap font-mono text-[10px] text-muted-foreground">
                 /{categoryTotal(c)}
               </span>
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => moveCat(ci, -1)}
+                  disabled={ci === 0}
+                  className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
+                  title="Move section up"
+                  aria-label="Move section up"
+                >
+                  <ArrowUp className="h-3 w-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveCat(ci, 1)}
+                  disabled={ci === cats.length - 1}
+                  className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
+                  title="Move section down"
+                  aria-label="Move section down"
+                >
+                  <ArrowDown className="h-3 w-3" />
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => removeCat(ci)}
@@ -717,6 +783,28 @@ function RubricEditor({
                           placeholder="max"
                         />
                       )}
+                      <div className="flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => moveItem(ci, ii, -1)}
+                          disabled={ii === 0}
+                          className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
+                          title="Move up"
+                          aria-label="Move up"
+                        >
+                          <ArrowUp className="h-2.5 w-2.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveItem(ci, ii, 1)}
+                          disabled={ii === c.items.length - 1}
+                          className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
+                          title="Move down"
+                          aria-label="Move down"
+                        >
+                          <ArrowDown className="h-2.5 w-2.5" />
+                        </button>
+                      </div>
                       <button
                         type="button"
                         onClick={() => removeItem(ci, ii)}
