@@ -1,13 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Archive } from "lucide-react";
+import { Plus, Trash2, Archive, ChevronDown, ChevronRight } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
+
+type RubricItem = { name: string; max_score: number | null; subitems?: RubricItem[] };
+type RubricCategory = { name: string; items: RubricItem[] };
 
 type Level = {
   id: string;
@@ -20,7 +23,34 @@ type Level = {
   minExaminerLevel: number | null;
   active: boolean;
   adoptedBy: number;
+  // Canonical rubric JSON (ExamLevel.defaultRubricJson). Read-only here —
+  // edits flow through /exams/templates per-centre. Null on legacy rows
+  // that pre-date the rubric column.
+  rubric: unknown;
 };
+
+// Walk a rubric tree and count leaf items + sum max scores. Sub-items
+// (Level 3's Small Jumps, Level 4's Gallop Run + Tent Pegging) contribute
+// to both totals; their parent grouping item with max_score:null doesn't.
+function rubricSummary(rubric: unknown): { categories: number; items: number; total: number } {
+  const cats = Array.isArray(rubric) ? (rubric as RubricCategory[]) : [];
+  let items = 0;
+  let total = 0;
+  for (const c of cats) {
+    for (const i of c.items ?? []) {
+      if (Array.isArray(i.subitems) && i.subitems.length > 0) {
+        for (const s of i.subitems) {
+          items += 1;
+          total += s.max_score ?? 0;
+        }
+      } else {
+        items += 1;
+        total += i.max_score ?? 0;
+      }
+    }
+  }
+  return { categories: cats.length, items, total };
+}
 
 // Discipline is preserved as a hidden schema field (the DB column still
 // exists for FK uniqueness), but it's no longer surfaced in the UI — the
@@ -31,6 +61,7 @@ const HIDDEN_DISCIPLINE = "general";
 export function LevelsManager({ initial }: { initial: Level[] }) {
   const router = useRouter();
   const [showInactive, setShowInactive] = useState(false);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [form, setForm] = useState({
     orderIndex: "1",
     code: "",
@@ -39,6 +70,15 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
     description: "",
   });
   const [busy, setBusy] = useState(false);
+
+  function toggleExpand(id: string) {
+    setExpanded((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   // Flat sorted list — no discipline grouping.
   const rows = initial
@@ -184,17 +224,34 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
             <tr>
+              <th className="px-3 py-2 w-8"></th>
               <th className="px-3 py-2 w-14">Order</th>
               <th className="px-3 py-2 w-24">Code</th>
               <th className="px-3 py-2">Name</th>
               <th className="px-3 py-2 w-20">Pass %</th>
+              <th className="px-3 py-2 w-44">Components</th>
               <th className="px-3 py-2 w-32">Adoption</th>
               <th className="px-3 py-2 w-20"></th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((l) => (
-                  <tr key={l.id} className={`border-t ${l.active ? "" : "opacity-60"}`}>
+            {rows.map((l) => {
+              const isOpen = expanded.has(l.id);
+              const summary = rubricSummary(l.rubric);
+              return (
+              <Fragment key={l.id}>
+                  <tr className={`border-t ${l.active ? "" : "opacity-60"}`}>
+                    <td className="px-3 py-1.5">
+                      <button
+                        type="button"
+                        onClick={() => toggleExpand(l.id)}
+                        className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        aria-label={isOpen ? "Collapse components" : "Expand components"}
+                        title={isOpen ? "Hide components" : "Show components"}
+                      >
+                        {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                      </button>
+                    </td>
                     <td className="px-3 py-1.5">
                       <Input
                         type="number"
@@ -240,6 +297,20 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
                       />
                     </td>
                     <td className="px-3 py-1.5">
+                      {summary.items > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleExpand(l.id)}
+                          className="text-left text-xs text-muted-foreground hover:text-foreground hover:underline"
+                          title="Click to expand"
+                        >
+                          {summary.categories} sections · {summary.items} items · /{summary.total}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-1.5">
                       {l.adoptedBy > 0 ? (
                         <Badge variant="outline" className="text-[10px]">
                           {l.adoptedBy} centre{l.adoptedBy === 1 ? "" : "s"}
@@ -261,16 +332,84 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
                       </button>
                     </td>
                   </tr>
-            ))}
+                  {isOpen && (
+                    <tr className="border-t bg-muted/20">
+                      <td></td>
+                      <td colSpan={7} className="px-3 py-3">
+                        {summary.items === 0 ? (
+                          <div className="text-xs text-muted-foreground">
+                            No rubric components defined yet for this level. Update prisma/equiwings-level-rubrics.json + redeploy + re-heal to populate.
+                          </div>
+                        ) : (
+                          <RubricView rubric={l.rubric} />
+                        )}
+                      </td>
+                    </tr>
+                  )}
+              </Fragment>
+              );
+            })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-sm text-muted-foreground">
+                <td colSpan={8} className="px-3 py-6 text-center text-sm text-muted-foreground">
                   No levels defined yet — add one above.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+// Read-only renderer for a rubric. Each category gets its own pill with
+// the items + max scores listed beneath. Sub-items (Level 3 Small Jumps,
+// Level 4 Gallop Run / Tent Pegging) are nested under their parent with
+// a slight indent so the structure mirrors the PDF.
+function RubricView({ rubric }: { rubric: unknown }) {
+  const cats = Array.isArray(rubric) ? (rubric as RubricCategory[]) : [];
+  return (
+    <div className="space-y-4">
+      <p className="text-[11px] text-muted-foreground">
+        Read-only view from the canonical rubric. Edits flow through{" "}
+        <code className="rounded bg-background px-1 py-0.5">prisma/equiwings-level-rubrics.json</code>{" "}
+        + redeploy. Per-centre overrides are edited on{" "}
+        <a href="/exams/templates" className="text-primary underline">Scoring templates</a>.
+      </p>
+      <div className="grid gap-3 md:grid-cols-2">
+        {cats.map((c) => (
+          <div key={c.name} className="rounded-md border bg-card p-3">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {c.name}
+            </div>
+            <ul className="space-y-1 text-xs">
+              {c.items.map((item, idx) => {
+                if (Array.isArray(item.subitems) && item.subitems.length > 0) {
+                  return (
+                    <li key={`${item.name}-${idx}`}>
+                      <div className="font-medium">{item.name}</div>
+                      <ul className="ml-3 mt-1 space-y-0.5 border-l pl-2">
+                        {item.subitems.map((sub, sidx) => (
+                          <li key={`${sub.name}-${sidx}`} className="flex justify-between gap-2 text-muted-foreground">
+                            <span>{sub.name}</span>
+                            <span className="font-mono text-[10px]">/{sub.max_score ?? "—"}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </li>
+                  );
+                }
+                return (
+                  <li key={`${item.name}-${idx}`} className="flex justify-between gap-2">
+                    <span>{item.name}</span>
+                    <span className="font-mono text-[10px] text-muted-foreground">/{item.max_score ?? "—"}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </div>
     </div>
   );

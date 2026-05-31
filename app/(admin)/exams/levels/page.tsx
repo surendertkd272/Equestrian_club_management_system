@@ -64,6 +64,9 @@ export default async function ExamLevelsPage() {
               minExaminerLevel: l.minExaminerLevel,
               active: l.active,
               adoptedBy: adoption.get(l.id) ?? 0,
+              // Surface the rubric content so the manager can render
+              // the categories + items inline (expandable per row).
+              rubric: l.defaultRubricJson as unknown,
             }))}
           />
         </CardContent>
