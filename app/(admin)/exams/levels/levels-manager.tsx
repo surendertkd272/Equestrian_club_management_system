@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Archive } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
@@ -23,13 +22,16 @@ type Level = {
   adoptedBy: number;
 };
 
-const DISCIPLINES = ["general", "dressage", "jumping", "eventing", "gymkhana", "endurance", "vaulting", "polo"];
+// Discipline is preserved as a hidden schema field (the DB column still
+// exists for FK uniqueness), but it's no longer surfaced in the UI — the
+// catalog is a flat 4-level ladder driven by the Equiwings PDFs. All new
+// levels created from here default to "general".
+const HIDDEN_DISCIPLINE = "general";
 
 export function LevelsManager({ initial }: { initial: Level[] }) {
   const router = useRouter();
   const [showInactive, setShowInactive] = useState(false);
   const [form, setForm] = useState({
-    discipline: "general",
     orderIndex: "1",
     code: "",
     name: "",
@@ -38,16 +40,10 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
   });
   const [busy, setBusy] = useState(false);
 
-  // Group by discipline for the cleaner display the user asked for —
-  // discipline header, then ordered rows underneath. No more "Level 1
-  // Level 2 Level 1 Level 2" repetition.
-  const grouped = new Map<string, Level[]>();
-  for (const l of initial) {
-    if (!showInactive && !l.active) continue;
-    if (!grouped.has(l.discipline)) grouped.set(l.discipline, []);
-    grouped.get(l.discipline)!.push(l);
-  }
-  for (const arr of grouped.values()) arr.sort((a, b) => a.orderIndex - b.orderIndex);
+  // Flat sorted list — no discipline grouping.
+  const rows = initial
+    .filter((l) => showInactive || l.active)
+    .sort((a, b) => a.orderIndex - b.orderIndex);
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
@@ -61,7 +57,7 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          discipline: form.discipline,
+          discipline: HIDDEN_DISCIPLINE,
           orderIndex: Number(form.orderIndex),
           code: form.code,
           name: form.name,
@@ -73,7 +69,7 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
       if (!res.ok) {
         toast.error(
           data.error === "DUPLICATE"
-            ? "A level with that discipline + order or code already exists"
+            ? "A level with that order or code already exists"
             : (data.error ?? "Failed"),
         );
         return;
@@ -123,15 +119,7 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
 
   return (
     <div className="space-y-6">
-      <form onSubmit={add} className="grid gap-2 rounded-md border bg-muted/30 p-3 md:grid-cols-7">
-        <div className="md:col-span-2">
-          <label className="text-[10px] font-semibold uppercase text-muted-foreground">Discipline</label>
-          <Select value={form.discipline} onChange={(e) => setForm({ ...form, discipline: e.target.value })}>
-            {DISCIPLINES.map((d) => (
-              <option key={d} value={d}>{d}</option>
-            ))}
-          </Select>
-        </div>
+      <form onSubmit={add} className="grid gap-2 rounded-md border bg-muted/30 p-3 md:grid-cols-6">
         <div>
           <label className="text-[10px] font-semibold uppercase text-muted-foreground">Order</label>
           <Input
@@ -146,7 +134,7 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
           <Input
             value={form.code}
             onChange={(e) => setForm({ ...form, code: e.target.value })}
-            placeholder="1 / Stage 2 / D"
+            placeholder="5"
           />
         </div>
         <div className="md:col-span-2">
@@ -154,7 +142,7 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
           <Input
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="Beginner / Foundation / Preliminary"
+            placeholder="Level 5"
           />
         </div>
         <div>
@@ -167,6 +155,9 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
             onChange={(e) => setForm({ ...form, passThreshold: e.target.value })}
           />
         </div>
+        <Button type="submit" disabled={busy} className="md:col-span-1">
+          <Plus className="h-4 w-4" /> Add
+        </Button>
         <div className="md:col-span-6">
           <label className="text-[10px] font-semibold uppercase text-muted-foreground">Description (optional)</label>
           <Input
@@ -175,9 +166,6 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
             placeholder="What this level tests"
           />
         </div>
-        <Button type="submit" disabled={busy} className="md:col-span-1">
-          <Plus className="h-4 w-4" /> Add
-        </Button>
       </form>
 
       <div className="flex items-center justify-between text-xs">
@@ -189,28 +177,23 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
           />
           Show archived
         </label>
+        <span className="text-muted-foreground">{rows.length} level{rows.length === 1 ? "" : "s"}</span>
       </div>
 
-      {[...grouped.entries()].map(([discipline, rows]) => (
-        <div key={discipline}>
-          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            {discipline}
-            <span className="text-[10px] font-normal opacity-60">({rows.length})</span>
-          </h3>
-          <div className="overflow-hidden rounded-md border">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 w-14">Order</th>
-                  <th className="px-3 py-2 w-24">Code</th>
-                  <th className="px-3 py-2">Name</th>
-                  <th className="px-3 py-2 w-20">Pass %</th>
-                  <th className="px-3 py-2 w-32">Adoption</th>
-                  <th className="px-3 py-2 w-20"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((l) => (
+      <div className="overflow-hidden rounded-md border">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 w-14">Order</th>
+              <th className="px-3 py-2 w-24">Code</th>
+              <th className="px-3 py-2">Name</th>
+              <th className="px-3 py-2 w-20">Pass %</th>
+              <th className="px-3 py-2 w-32">Adoption</th>
+              <th className="px-3 py-2 w-20"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((l) => (
                   <tr key={l.id} className={`border-t ${l.active ? "" : "opacity-60"}`}>
                     <td className="px-3 py-1.5">
                       <Input
@@ -278,18 +261,17 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
                       </button>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ))}
-
-      {grouped.size === 0 && (
-        <div className="rounded-md border bg-muted/20 px-3 py-6 text-center text-sm text-muted-foreground">
-          No levels defined yet — add one above.
-        </div>
-      )}
+            ))}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-3 py-6 text-center text-sm text-muted-foreground">
+                  No levels defined yet — add one above.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
