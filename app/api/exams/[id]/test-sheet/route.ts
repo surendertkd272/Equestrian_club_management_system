@@ -34,13 +34,25 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   let totalMax = 0;
   const sections = rubric
     .map((cat) => {
+      // Flatten parent-with-subitems into individual sub-item rows so the
+      // printed test sheet has one row per scoreable unit. Parent name
+      // prefixes the sub-item label ("Small Jumps — Position").
       const rows = cat.items
+        .flatMap((it) => {
+          if (Array.isArray(it.subitems) && it.subitems.length > 0) {
+            return it.subitems.map((sub) => ({
+              name: `${it.name} — ${sub.name}`,
+              max: sub.max_score ?? 0,
+            }));
+          }
+          return [{ name: it.name, max: it.max_score ?? 0 }];
+        })
         .map((it) => {
-          totalMax += it.max_score;
+          totalMax += it.max;
           return `
             <tr>
               <td>${escapeHtml(it.name)}</td>
-              <td style="text-align:right;width:14mm">${it.max_score}</td>
+              <td style="text-align:right;width:14mm">${it.max}</td>
               <td style="width:24mm">&nbsp;</td>
             </tr>`;
         })

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Minus } from "lucide-react";
-import type { RubricCategory } from "@/lib/schemas/exam";
+import type { RubricCategory, RubricItem } from "@/lib/schemas/exam";
 import { cn } from "@/lib/utils";
 
 type ScoreMap = Record<string, number | string>;
@@ -36,21 +36,30 @@ export function ScoringEngine({
   const scoringCats = rubricConfig.filter(
     (c) => (!c.type || c.type === "numeric") && c.name !== "Miscellaneous Questions",
   );
-  const maxPossible = scoringCats.reduce(
-    (sum, c) => sum + c.items.filter((i) => !i.type || i.type === "numeric").reduce((s, i) => s + i.max_score, 0),
-    0,
+  // Walk each category's items + sub-items into a flat list of scoreable
+  // units. Parent items (max_score=null + subitems[]) are NOT scoreable;
+  // their sub-items are.
+  const scoreableUnits = scoringCats.flatMap((c) =>
+    c.items
+      .filter((i) => !i.type || i.type === "numeric")
+      .flatMap((i) => {
+        if (Array.isArray(i.subitems) && i.subitems.length > 0) {
+          return i.subitems
+            .filter((s) => !s.type || s.type === "numeric")
+            .map((s) => ({
+              cat: c.name,
+              key: `${c.name}_${i.name}_${s.name}`,
+              max: s.max_score ?? 0,
+            }));
+        }
+        return [{ cat: c.name, key: `${c.name}_${i.name}`, max: i.max_score ?? 0 }];
+      }),
   );
+  const maxPossible = scoreableUnits.reduce((s, u) => s + u.max, 0);
   const currentTotal = numericSum(scores, rubricConfig);
 
-  const totalItems = scoringCats.reduce((s, c) => s + c.items.filter((i) => !i.type || i.type === "numeric").length, 0);
-  const filledItems = scoringCats.reduce(
-    (s, c) =>
-      s +
-      c.items
-        .filter((i) => !i.type || i.type === "numeric")
-        .filter((i) => scores[`${c.name}_${i.name}`] !== undefined).length,
-    0,
-  );
+  const totalItems = scoreableUnits.length;
+  const filledItems = scoreableUnits.filter((u) => scores[u.key] !== undefined).length;
 
   return (
     <div className="space-y-5">
@@ -86,6 +95,15 @@ function numericSum(scores: ScoreMap, rubric: RubricCategory[]): number {
     if (cat.name === "Miscellaneous Questions") continue;
     for (const item of cat.items) {
       if (item.type && item.type !== "numeric") continue;
+      // Parent with sub-items: score the children individually.
+      if (Array.isArray(item.subitems) && item.subitems.length > 0) {
+        for (const sub of item.subitems) {
+          if (sub.type && sub.type !== "numeric") continue;
+          const v = scores[`${cat.name}_${item.name}_${sub.name}`];
+          if (typeof v === "number") total += v;
+        }
+        continue;
+      }
       const v = scores[`${cat.name}_${item.name}`];
       if (typeof v === "number") total += v;
     }
@@ -193,15 +211,26 @@ function NumericSection({
   update: (k: string, v: number | string) => void;
   readOnly: boolean;
 }) {
-  const sectionMax = section.items
-    .filter((i) => !i.type || i.type === "numeric")
-    .reduce((s, i) => s + i.max_score, 0);
-  const sectionScore = section.items
-    .filter((i) => !i.type || i.type === "numeric")
-    .reduce((s, i) => {
-      const v = scores[`${section.name}_${i.name}`];
-      return s + (typeof v === "number" ? v : 0);
-    }, 0);
+  // Walk leaf + sub-items for both max + score. Mirrors the global
+  // scoreableUnits flattener at the top of the component.
+  function scoreableInSection(): { key: string; max: number }[] {
+    return section.items
+      .filter((i) => !i.type || i.type === "numeric")
+      .flatMap((i) => {
+        if (Array.isArray(i.subitems) && i.subitems.length > 0) {
+          return i.subitems
+            .filter((s) => !s.type || s.type === "numeric")
+            .map((s) => ({ key: `${section.name}_${i.name}_${s.name}`, max: s.max_score ?? 0 }));
+        }
+        return [{ key: `${section.name}_${i.name}`, max: i.max_score ?? 0 }];
+      });
+  }
+  const units = scoreableInSection();
+  const sectionMax = units.reduce((s, u) => s + u.max, 0);
+  const sectionScore = units.reduce((s, u) => {
+    const v = scores[u.key];
+    return s + (typeof v === "number" ? v : 0);
+  }, 0);
   const isMisc = section.name === "Miscellaneous Questions";
 
   return (
@@ -222,127 +251,196 @@ function NumericSection({
       </div>
       <div className="space-y-5 p-5">
         {section.items.map((item) => {
-          const itemType = item.type ?? "numeric";
+          // Parent with sub-items: render a section sub-header, then render
+          // each sub-item as if it were a leaf. Sub-items inherit the
+          // scoring widget (numeric stepper, button row, etc.) so the
+          // examiner experience is identical to a top-level item — just
+          // indented under the parent label.
+          if (Array.isArray(item.subitems) && item.subitems.length > 0) {
+            const parentMax = item.subitems.reduce(
+              (s, sub) => s + (sub.max_score ?? 0),
+              0,
+            );
+            const parentScore = item.subitems.reduce((s, sub) => {
+              const v = scores[`${section.name}_${item.name}_${sub.name}`];
+              return s + (typeof v === "number" ? v : 0);
+            }, 0);
+            return (
+              <div key={item.name} className="rounded-md border-2 border-dashed border-muted-foreground/20 p-4">
+                <div className="mb-3 flex items-center justify-between border-b pb-2">
+                  <span className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+                    {item.name}
+                  </span>
+                  <span className="text-sm font-extrabold text-primary">
+                    {parentScore}/{parentMax}
+                  </span>
+                </div>
+                <div className="space-y-4">
+                  {item.subitems.map((sub) => (
+                    <ScoreableItem
+                      key={sub.name}
+                      item={sub}
+                      keyName={`${section.name}_${item.name}_${sub.name}`}
+                      raw={scores[`${section.name}_${item.name}_${sub.name}`]}
+                      update={update}
+                      readOnly={readOnly}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          }
           const key = `${section.name}_${item.name}`;
-          const raw = scores[key];
-
-          if (itemType === "text") {
-            return (
-              <div key={item.name} className="space-y-2">
-                <span className="text-sm font-semibold">{item.name}</span>
-                <input
-                  type="text"
-                  value={(raw as string) || ""}
-                  onChange={(e) => update(key, e.target.value)}
-                  placeholder="Type here…"
-                  disabled={readOnly}
-                  className="w-full rounded-md border border-input bg-background p-3 text-sm"
-                />
-              </div>
-            );
-          }
-
-          if (itemType === "number") {
-            return (
-              <div key={item.name} className="space-y-2">
-                <span className="text-sm font-semibold">{item.name}</span>
-                <input
-                  type="number"
-                  value={raw ?? ""}
-                  onChange={(e) => update(key, e.target.value === "" ? "" : Number(e.target.value))}
-                  placeholder="0"
-                  disabled={readOnly}
-                  className="w-full rounded-md border border-input bg-background p-3 text-sm"
-                />
-              </div>
-            );
-          }
-
-          if (itemType === "select") {
-            const current = (raw as string) || "";
-            return (
-              <div key={item.name} className="space-y-2">
-                <span className="text-sm font-semibold">{item.name}</span>
-                <div className="flex flex-wrap gap-2">
-                  {(item.options ?? []).map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => update(key, opt)}
-                      className={cn(
-                        "min-w-20 rounded-md border-2 px-4 py-2 text-sm font-semibold transition-colors",
-                        current === opt ? "border-primary bg-primary text-primary-foreground" : "border-input bg-background hover:bg-muted",
-                      )}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          }
-
-          // numeric (default)
-          const max = item.max_score;
-          const val = typeof raw === "number" ? raw : 0;
-          const step = max % 1 !== 0 ? 0.5 : 1;
-          const buttonValues = Array.from({ length: Math.round(max / step) + 1 }, (_, i) =>
-            parseFloat((i * step).toFixed(1)),
-          );
-          const useButtons = max <= 5;
-
           return (
-            <div key={item.name} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold">{item.name}</span>
-                <span className="text-sm font-extrabold text-primary">
-                  {val}/{max}
-                </span>
-              </div>
-              {useButtons ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {buttonValues.map((b) => (
-                    <button
-                      key={b}
-                      type="button"
-                      onClick={() => update(key, b)}
-                      disabled={readOnly}
-                      className={cn(
-                        "h-11 min-w-11 rounded-md border-2 font-bold transition-colors",
-                        val === b ? "border-primary bg-primary text-primary-foreground" : "border-input bg-background hover:bg-muted",
-                      )}
-                    >
-                      {b}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => update(key, parseFloat(Math.max(0, val - 1).toFixed(1)))}
-                    disabled={readOnly}
-                    className="grid h-12 w-12 place-items-center rounded-md border-2 border-input bg-muted hover:bg-muted/80"
-                    aria-label="decrease"
-                  >
-                    <Minus className="h-5 w-5" />
-                  </button>
-                  <div className="flex-1 border-b-2 pb-1 text-center text-2xl font-extrabold text-primary">{val}</div>
-                  <button
-                    type="button"
-                    onClick={() => update(key, parseFloat(Math.min(max, val + 1).toFixed(1)))}
-                    disabled={readOnly}
-                    className="grid h-12 w-12 place-items-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-                    aria-label="increase"
-                  >
-                    <Plus className="h-5 w-5" />
-                  </button>
-                </div>
-              )}
-            </div>
+            <ScoreableItem
+              key={item.name}
+              item={item}
+              keyName={key}
+              raw={scores[key]}
+              update={update}
+              readOnly={readOnly}
+            />
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// Renders a single scoreable unit — either a top-level leaf item or a
+// sub-item under a parent. Picks the right widget based on item.type
+// (text / number / select / numeric-with-buttons). Hoisted out of
+// NumericSection so the parent-with-sub-items branch can re-use it for
+// each sub-item without duplicating ~80 lines.
+function ScoreableItem({
+  item,
+  keyName,
+  raw,
+  update,
+  readOnly,
+}: {
+  item: RubricItem;
+  keyName: string;
+  raw: number | string | undefined;
+  update: (k: string, v: number | string) => void;
+  readOnly: boolean;
+}) {
+  const itemType = item.type ?? "numeric";
+
+  if (itemType === "text") {
+    return (
+      <div className="space-y-2">
+        <span className="text-sm font-semibold">{item.name}</span>
+        <input
+          type="text"
+          value={(raw as string) || ""}
+          onChange={(e) => update(keyName, e.target.value)}
+          placeholder="Type here…"
+          disabled={readOnly}
+          className="w-full rounded-md border border-input bg-background p-3 text-sm"
+        />
+      </div>
+    );
+  }
+
+  if (itemType === "number") {
+    return (
+      <div className="space-y-2">
+        <span className="text-sm font-semibold">{item.name}</span>
+        <input
+          type="number"
+          value={raw ?? ""}
+          onChange={(e) => update(keyName, e.target.value === "" ? "" : Number(e.target.value))}
+          placeholder="0"
+          disabled={readOnly}
+          className="w-full rounded-md border border-input bg-background p-3 text-sm"
+        />
+      </div>
+    );
+  }
+
+  if (itemType === "select") {
+    const current = (raw as string) || "";
+    return (
+      <div className="space-y-2">
+        <span className="text-sm font-semibold">{item.name}</span>
+        <div className="flex flex-wrap gap-2">
+          {(item.options ?? []).map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => update(keyName, opt)}
+              className={cn(
+                "min-w-20 rounded-md border-2 px-4 py-2 text-sm font-semibold transition-colors",
+                current === opt ? "border-primary bg-primary text-primary-foreground" : "border-input bg-background hover:bg-muted",
+              )}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // numeric (default). max_score may be null if a leaf item was misconfigured
+  // — treat as 0 so the widget renders harmlessly instead of crashing.
+  const max = item.max_score ?? 0;
+  const val = typeof raw === "number" ? raw : 0;
+  const step = max % 1 !== 0 ? 0.5 : 1;
+  const buttonValues = Array.from({ length: Math.round(max / step) + 1 }, (_, i) =>
+    parseFloat((i * step).toFixed(1)),
+  );
+  const useButtons = max <= 5;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold">{item.name}</span>
+        <span className="text-sm font-extrabold text-primary">
+          {val}/{max}
+        </span>
+      </div>
+      {useButtons ? (
+        <div className="flex flex-wrap gap-1.5">
+          {buttonValues.map((b) => (
+            <button
+              key={b}
+              type="button"
+              onClick={() => update(keyName, b)}
+              disabled={readOnly}
+              className={cn(
+                "h-11 min-w-11 rounded-md border-2 font-bold transition-colors",
+                val === b ? "border-primary bg-primary text-primary-foreground" : "border-input bg-background hover:bg-muted",
+              )}
+            >
+              {b}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => update(keyName, parseFloat(Math.max(0, val - 1).toFixed(1)))}
+            disabled={readOnly}
+            className="grid h-12 w-12 place-items-center rounded-md border-2 border-input bg-muted hover:bg-muted/80"
+            aria-label="decrease"
+          >
+            <Minus className="h-5 w-5" />
+          </button>
+          <div className="flex-1 border-b-2 pb-1 text-center text-2xl font-extrabold text-primary">{val}</div>
+          <button
+            type="button"
+            onClick={() => update(keyName, parseFloat(Math.min(max, val + 1).toFixed(1)))}
+            disabled={readOnly}
+            className="grid h-12 w-12 place-items-center rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
+            aria-label="increase"
+          >
+            <Plus className="h-5 w-5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

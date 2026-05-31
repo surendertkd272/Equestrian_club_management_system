@@ -1,11 +1,16 @@
 import { z } from "zod";
 
 // ScoringTemplate categoriesJson shape — keep simple to round-trip JSON safely.
+// An item is either a leaf (numeric max_score, scored directly) or a parent
+// (max_score may be null and `subitems` holds the actual scored children).
+// Parents exist for natural groupings like Level 3 "Small Jumps" and
+// Level 4 "Gallop Run (1)" / "TENT PEGGING 1 RUN" from the Equiwings PDFs.
 export type RubricItem = {
   name: string;
-  max_score: number;
+  max_score: number | null;
   type?: "numeric" | "text" | "number" | "select";
   options?: string[];
+  subitems?: RubricItem[];
 };
 
 export type RubricCategory = {
@@ -18,9 +23,11 @@ export type RubricCategory = {
 const itemSchema: z.ZodType<RubricItem> = z.lazy(() =>
   z.object({
     name: z.string().min(1),
-    max_score: z.number().min(0),
+    // null is valid for parent items whose score is the sum of subitems.
+    max_score: z.number().min(0).nullable(),
     type: z.enum(["numeric", "text", "number", "select"]).optional(),
     options: z.array(z.string()).optional(),
+    subitems: z.array(itemSchema).optional(),
   }),
 );
 
@@ -77,6 +84,8 @@ export const updateScoringTemplateSchema = z.object({
 export function computeTotal(categories: RubricCategory[], scores: Record<string, number | string>): { total: number; max: number } {
   // Sum numeric items only. Text/select categories don't contribute.
   // Mirror the ScoringEngine rule that "Miscellaneous Questions" is excluded from totals.
+  // Parent items (max_score=null + subitems[]) don't contribute themselves;
+  // their sub-items do, keyed as `${cat.name}_${item.name}_${sub.name}`.
   let total = 0;
   let max = 0;
   for (const cat of categories) {
@@ -84,9 +93,18 @@ export function computeTotal(categories: RubricCategory[], scores: Record<string
     if (cat.name === "Miscellaneous Questions") continue;
     for (const item of cat.items) {
       if (item.type && item.type !== "numeric") continue;
-      max += item.max_score;
-      const v = scores[`${cat.name}_${item.name}`];
-      if (typeof v === "number") total += v;
+      if (Array.isArray(item.subitems) && item.subitems.length > 0) {
+        for (const sub of item.subitems) {
+          if (sub.type && sub.type !== "numeric") continue;
+          max += sub.max_score ?? 0;
+          const v = scores[`${cat.name}_${item.name}_${sub.name}`];
+          if (typeof v === "number") total += v;
+        }
+      } else {
+        max += item.max_score ?? 0;
+        const v = scores[`${cat.name}_${item.name}`];
+        if (typeof v === "number") total += v;
+      }
     }
   }
   return { total, max };

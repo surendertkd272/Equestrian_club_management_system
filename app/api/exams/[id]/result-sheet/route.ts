@@ -47,18 +47,36 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   let totalMax = 0;
   const sections = rubric
     .map((cat) => {
+      // Flatten parent-with-subitems into one row per sub-item with a
+      // "Parent — Child" label. Matches how the scoring engine keys
+      // sub-item scores (`${cat}_${parent}_${child}`).
       const rows = cat.items
-        .map((it) => {
-          const isNum = !it.type || it.type === "numeric";
-          if (isNum) totalMax += it.max_score;
-          const key = `${cat.name}_${it.name}`;
-          const raw = scores[key];
+        .flatMap((it) => {
+          if (Array.isArray(it.subitems) && it.subitems.length > 0) {
+            return it.subitems.map((sub) => ({
+              name: `${it.name} — ${sub.name}`,
+              key: `${cat.name}_${it.name}_${sub.name}`,
+              max: sub.max_score ?? 0,
+              type: sub.type,
+            }));
+          }
+          return [{
+            name: it.name,
+            key: `${cat.name}_${it.name}`,
+            max: it.max_score ?? 0,
+            type: it.type,
+          }];
+        })
+        .map((unit) => {
+          const isNum = !unit.type || unit.type === "numeric";
+          if (isNum) totalMax += unit.max;
+          const raw = scores[unit.key];
           const display =
             raw === undefined ? "—" : typeof raw === "number" ? String(raw) : escapeHtml(String(raw));
           return `
             <tr>
-              <td>${escapeHtml(it.name)}</td>
-              <td style="text-align:right;width:14mm">${isNum ? it.max_score : "—"}</td>
+              <td>${escapeHtml(unit.name)}</td>
+              <td style="text-align:right;width:14mm">${isNum ? unit.max : "—"}</td>
               <td style="width:24mm;text-align:right">${display}</td>
             </tr>`;
         })

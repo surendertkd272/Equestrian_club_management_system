@@ -138,7 +138,16 @@ export default async function TemplatesPage() {
                     s +
                     (c.type && c.type !== "numeric"
                       ? 0
-                      : c.items.filter((i) => !i.type || i.type === "numeric").reduce((ss, i) => ss + i.max_score, 0)),
+                      : c.items
+                          .filter((i) => !i.type || i.type === "numeric")
+                          .reduce((ss, i) => {
+                            // Parent (has subitems) — score sums from subs;
+                            // otherwise the leaf's own max.
+                            if (Array.isArray(i.subitems) && i.subitems.length > 0) {
+                              return ss + i.subitems.reduce((t, s) => t + (s.max_score ?? 0), 0);
+                            }
+                            return ss + (i.max_score ?? 0);
+                          }, 0)),
                   0,
                 );
                 return (
