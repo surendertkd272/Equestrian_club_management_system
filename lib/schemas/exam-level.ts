@@ -22,7 +22,13 @@ export const createExamLevelSchema = z.object({
   name: z.string().min(2).max(80),
   passThreshold: z.coerce.number().int().min(0).max(100).default(70),
   description: z.string().max(500).optional(),
-  defaultRubricJson: z.string().optional(),
+  // jsonb column. Accept either a structured array (the editor on
+  // /exams/levels sends this directly) OR a string for legacy callers
+  // that POST a stringified payload. Empty array clears the rubric;
+  // we don't accept null because Prisma's Json column wants the
+  // special Prisma.JsonNull sentinel for that, which adds plumbing
+  // we don't need.
+  defaultRubricJson: z.union([z.array(z.any()), z.string()]).optional(),
   minExaminerLevel: z.coerce.number().int().min(1).max(50).optional(),
   active: z.boolean().default(true),
 });

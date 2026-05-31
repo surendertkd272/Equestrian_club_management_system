@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Archive, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Trash2, Archive, ChevronDown, ChevronRight, Pencil, X, Check } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
 
 type RubricItem = { name: string; max_score: number | null; subitems?: RubricItem[] };
@@ -62,6 +62,9 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
   const router = useRouter();
   const [showInactive, setShowInactive] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // The level whose rubric is currently in edit mode. Only one open at a
+  // time keeps the page focused and avoids "save all" ambiguity.
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     orderIndex: "1",
     code: "",
@@ -336,12 +339,34 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
                     <tr className="border-t bg-muted/20">
                       <td></td>
                       <td colSpan={7} className="px-3 py-3">
-                        {summary.items === 0 ? (
-                          <div className="text-xs text-muted-foreground">
-                            No rubric components defined yet for this level. Update prisma/equiwings-level-rubrics.json + redeploy + re-heal to populate.
-                          </div>
+                        {editingId === l.id ? (
+                          <RubricEditor
+                            levelId={l.id}
+                            initial={l.rubric}
+                            onCancel={() => setEditingId(null)}
+                            onSaved={() => {
+                              setEditingId(null);
+                              router.refresh();
+                            }}
+                          />
                         ) : (
-                          <RubricView rubric={l.rubric} />
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-[11px] text-muted-foreground">
+                                {summary.items === 0
+                                  ? "No components yet for this level — click Edit to add the first category."
+                                  : "Read-only view of the canonical rubric used by every centre."}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => setEditingId(l.id)}
+                                className="inline-flex items-center gap-1 rounded-md border bg-card px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                              >
+                                <Pencil className="h-3 w-3" /> Edit components
+                              </button>
+                            </div>
+                            {summary.items > 0 && <RubricView rubric={l.rubric} />}
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -411,6 +436,200 @@ function RubricView({ rubric }: { rubric: unknown }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// Structured editor for the canonical rubric. Lets HQ admins add /
+// remove / rename categories and items, and tune max scores, without
+// touching the JSON file. Sub-items (Level 3 Small Jumps, Level 4
+// Gallop Run / Tent Pegging) are preserved through round-trip but only
+// the parent name is editable here — adding new sub-items is deferred
+// to a future iteration. To restructure a sub-item, expand it as a
+// top-level item ("Small Jumps — Position", etc.) instead.
+function RubricEditor({
+  levelId,
+  initial,
+  onCancel,
+  onSaved,
+}: {
+  levelId: string;
+  initial: unknown;
+  onCancel: () => void;
+  onSaved: () => void;
+}) {
+  const [cats, setCats] = useState<RubricCategory[]>(() => {
+    const seed = Array.isArray(initial) ? (initial as RubricCategory[]) : [];
+    // Deep clone so edits don't mutate the original payload.
+    return JSON.parse(JSON.stringify(seed));
+  });
+  const [busy, setBusy] = useState(false);
+
+  function updateCat(ci: number, patch: Partial<RubricCategory>) {
+    setCats((c) => c.map((cat, i) => (i === ci ? { ...cat, ...patch } : cat)));
+  }
+  function removeCat(ci: number) {
+    setCats((c) => c.filter((_, i) => i !== ci));
+  }
+  function addCat() {
+    setCats((c) => [...c, { name: "New category", items: [{ name: "Item", max_score: 1 }] }]);
+  }
+  function updateItem(ci: number, ii: number, patch: Partial<RubricItem>) {
+    setCats((c) =>
+      c.map((cat, i) =>
+        i === ci ? { ...cat, items: cat.items.map((it, j) => (j === ii ? { ...it, ...patch } : it)) } : cat,
+      ),
+    );
+  }
+  function removeItem(ci: number, ii: number) {
+    setCats((c) =>
+      c.map((cat, i) => (i === ci ? { ...cat, items: cat.items.filter((_, j) => j !== ii) } : cat)),
+    );
+  }
+  function addItem(ci: number) {
+    setCats((c) =>
+      c.map((cat, i) =>
+        i === ci ? { ...cat, items: [...cat.items, { name: "Item", max_score: 1 }] } : cat,
+      ),
+    );
+  }
+
+  async function save() {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/exam-levels/${levelId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ defaultRubricJson: cats }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error ?? "Save failed");
+        return;
+      }
+      toast.success("Rubric saved");
+      onSaved();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[11px] text-muted-foreground">
+          Edits apply to the canonical rubric used by every centre. Saving here updates the catalog row directly; existing per-centre overrides on{" "}
+          <a href="/exams/templates" className="text-primary underline">Scoring templates</a>{" "}
+          are NOT touched.
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="inline-flex items-center gap-1 rounded-md border bg-card px-2.5 py-1 text-xs font-medium hover:bg-muted"
+            disabled={busy}
+          >
+            <X className="h-3 w-3" /> Cancel
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={busy}
+            className="inline-flex items-center gap-1 rounded-md border border-primary bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            <Check className="h-3 w-3" /> {busy ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        {cats.map((c, ci) => (
+          <div key={ci} className="rounded-md border bg-card p-3">
+            <div className="mb-2 flex items-center gap-2">
+              <Input
+                value={c.name}
+                onChange={(e) => updateCat(ci, { name: e.target.value })}
+                className="h-8 text-xs font-semibold uppercase"
+                placeholder="Category name"
+              />
+              <button
+                type="button"
+                onClick={() => removeCat(ci)}
+                className="rounded p-1 text-muted-foreground hover:text-destructive"
+                title="Delete category"
+                aria-label="Delete category"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <ul className="space-y-1.5 text-xs">
+              {c.items.map((item, ii) => {
+                const hasSubs = Array.isArray(item.subitems) && item.subitems.length > 0;
+                return (
+                  <li key={ii} className="space-y-1">
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        value={item.name}
+                        onChange={(e) => updateItem(ci, ii, { name: e.target.value })}
+                        className="h-7 flex-1 text-xs"
+                        placeholder="Item name"
+                      />
+                      <Input
+                        type="number"
+                        step="0.5"
+                        min={0}
+                        value={item.max_score ?? ""}
+                        onChange={(e) => updateItem(ci, ii, { max_score: e.target.value === "" ? null : Number(e.target.value) })}
+                        className="h-7 w-16 text-xs"
+                        placeholder="max"
+                        disabled={hasSubs}
+                        title={hasSubs ? "Max is the sum of sub-items" : ""}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeItem(ci, ii)}
+                        className="rounded p-1 text-muted-foreground hover:text-destructive"
+                        title="Delete item"
+                        aria-label="Delete item"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                    {hasSubs && (
+                      <ul className="ml-3 space-y-0.5 border-l pl-2 text-[11px] text-muted-foreground">
+                        {item.subitems!.map((sub, si) => (
+                          <li key={si} className="flex justify-between gap-2">
+                            <span>{sub.name}</span>
+                            <span className="font-mono">/{sub.max_score ?? "—"}</span>
+                          </li>
+                        ))}
+                        <li className="italic">
+                          Sub-items preserved as-is — edit them in prisma/equiwings-level-rubrics.json.
+                        </li>
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+            <button
+              type="button"
+              onClick={() => addItem(ci)}
+              className="mt-2 inline-flex items-center gap-1 rounded-md border border-dashed px-2 py-1 text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <Plus className="h-3 w-3" /> Add item
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={addCat}
+        className="inline-flex items-center gap-1 rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+      >
+        <Plus className="h-3.5 w-3.5" /> Add category
+      </button>
     </div>
   );
 }
