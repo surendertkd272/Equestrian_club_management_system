@@ -8,10 +8,28 @@ import { prisma } from "./prisma";
 import fs from "node:fs";
 import path from "node:path";
 
-// Canonical Equiwings rubric for general Levels 1–4 — single source of truth,
-// shared with prisma/seed.ts. Each club's ScoringTemplate rows are seeded from
-// THIS so the scorer (which reads ScoringTemplate) matches ExamLevel.defaultRubricJson.
-type CanonRubric = { levelName: string; passThreshold: number; categories: unknown[] };
+// Canonical Equiwings rubric for Levels 1–4 — single source of truth that
+// drives BOTH the exam scoring (ScoringTemplate) AND the rider progress
+// tracking (ProgressLevel + Skill). Each item in a rubric category becomes
+// a trackable skill at that level; sub-items are flattened with a "Parent —
+// Subitem" name so the progress UI can list them flat.
+//
+// Shared with prisma/seed.ts.
+type RubricItem = {
+  name: string;
+  max_score?: number | null;
+  subitems?: RubricItem[];
+};
+type RubricCategory = { name: string; items: RubricItem[] };
+type CanonRubric = {
+  code?: string;
+  levelName: string;
+  subtitle?: string;
+  passThreshold: number;
+  totalMax?: number;
+  categories: RubricCategory[];
+  meta?: unknown;
+};
 const EQUIWINGS_RUBRICS: Record<string, CanonRubric> = (() => {
   try {
     const p = path.join(process.cwd(), "prisma", "equiwings-level-rubrics.json");
@@ -21,36 +39,25 @@ const EQUIWINGS_RUBRICS: Record<string, CanonRubric> = (() => {
   }
 })();
 
-const SKILL_TREE: Record<string, Record<string, string[]>> = {
-  normal: {
-    Beginner: ["Mount & dismount", "Halt", "Walk on a circle", "Posting trot (straight)", "Aids for forward/halt"],
-    Intermediate: ["Sitting trot (5 strides)", "Two-point at trot", "Walk-trot-walk transitions", "Canter on correct lead"],
-    Advanced: ["Counter canter", "Half-halt", "Working canter on 20m circle", "Riding without stirrups"],
-  },
-  dressage: {
-    Beginner: ["20m circle at walk", "Halt at X", "Straightness on long side"],
-    Intermediate: ["20m circle at trot", "Free walk on long rein", "Leg yield at walk"],
-    Advanced: ["Shoulder-in at trot", "Simple change", "Medium trot"],
-  },
-  jumping: {
-    Beginner: ["Walk over poles", "Trot over single pole"],
-    Intermediate: ["Cross-rail single", "3 trot poles + cross-rail", "Two-point over jump"],
-    Advanced: ["60cm vertical course", "Related distance 5 strides", "Bending line"],
-  },
-  gymkhana: {
-    Beginner: ["Lead-line walk obstacle"],
-    Intermediate: ["Pole bending (walk)", "Barrel turn at trot"],
-    Advanced: ["Pole bending (canter)", "Flag race at canter"],
-  },
-  tent_pegging: {
-    Intermediate: ["Walk approach + lance carry"],
-    Advanced: ["Trot tent peg pickup", "Canter tent peg pickup"],
-  },
-  endurance: {
-    Intermediate: ["20-min trot circuit"],
-    Advanced: ["60-min endurance ride with vet check"],
-  },
-};
+// Flatten a category's items into (categoryName, displayName) pairs that
+// become Skill rows. Sub-items become "Parent — Child" composite names so
+// the flat skill list stays scannable. Parent rows that have only subitems
+// (max_score: null) are dropped — only leaf items are trackable.
+function flattenSkills(categories: RubricCategory[]): { discipline: string; name: string }[] {
+  const out: { discipline: string; name: string }[] = [];
+  for (const cat of categories) {
+    for (const item of cat.items) {
+      if (item.subitems && item.subitems.length > 0) {
+        for (const sub of item.subitems) {
+          out.push({ discipline: cat.name, name: `${item.name} — ${sub.name}` });
+        }
+      } else {
+        out.push({ discipline: cat.name, name: item.name });
+      }
+    }
+  }
+  return out;
+}
 
 
 // PDF §2 wound & bandaging consumables. Seeded on centre creation so new
@@ -92,48 +99,44 @@ const STANDARD_CONSUMABLES: Array<{
 // that's already partially set up.
 export async function bootstrapCentreCatalog(centreId: string): Promise<void> {
   // Fee plans
-  await prisma.feePlan.upsert({
-    where: { centreId_levelName: { centreId, levelName: "Beginner" } },
-    create: { centreId, levelName: "Beginner", monthlyAmount: 8000, registrationAmount: 3000 },
-    update: {},
-  });
-  await prisma.feePlan.upsert({
-    where: { centreId_levelName: { centreId, levelName: "Intermediate" } },
-    create: { centreId, levelName: "Intermediate", monthlyAmount: 10000, registrationAmount: 3000 },
-    update: {},
-  });
-
-  // Progress levels
-  const beginnerLevel = await prisma.progressLevel.upsert({
-    where: { centreId_name: { centreId, name: "Beginner" } },
-    create: { centreId, name: "Beginner", order: 1 },
-    update: {},
-  });
-  const intermediateLevel = await prisma.progressLevel.upsert({
-    where: { centreId_name: { centreId, name: "Intermediate" } },
-    create: { centreId, name: "Intermediate", order: 2 },
-    update: {},
-  });
-  const advancedLevel = await prisma.progressLevel.upsert({
-    where: { centreId_name: { centreId, name: "Advanced" } },
-    create: { centreId, name: "Advanced", order: 3 },
-    update: {},
-  });
-  const levelByName: Record<string, { id: string }> = {
-    Beginner: beginnerLevel,
-    Intermediate: intermediateLevel,
-    Advanced: advancedLevel,
+  // Default fee plans — one per canonical level. Amounts are starter
+  // values; centre managers tune them via /catalog → Fee Plans.
+  const FEE_PLAN_DEFAULTS: Record<string, { monthly: number; registration: number }> = {
+    "Level 1": { monthly: 8000, registration: 3000 },
+    "Level 2": { monthly: 10000, registration: 3000 },
+    "Level 3": { monthly: 12000, registration: 3000 },
+    "Level 4": { monthly: 14000, registration: 3000 },
   };
+  for (const [levelName, amounts] of Object.entries(FEE_PLAN_DEFAULTS)) {
+    await prisma.feePlan.upsert({
+      where: { centreId_levelName: { centreId, levelName } },
+      create: { centreId, levelName, monthlyAmount: amounts.monthly, registrationAmount: amounts.registration },
+      update: {},
+    });
+  }
 
-  // Skill catalog
-  for (const [discipline, byLevel] of Object.entries(SKILL_TREE)) {
-    for (const [levelName, names] of Object.entries(byLevel)) {
-      const level = levelByName[levelName];
-      if (!level) continue;
-      const existing = await prisma.skill.findFirst({ where: { levelId: level.id, discipline }, select: { id: true } });
-      if (existing) continue;
-      for (const name of names) {
-        await prisma.skill.create({ data: { levelId: level.id, discipline, name } });
+  // Progress levels + Skill catalog — derived from the canonical rubric file.
+  // Each rubric category becomes the Skill.discipline value; every leaf rubric
+  // item becomes a Skill row. Sub-items get flattened with "Parent — Child"
+  // composite names so the progress list stays flat and scannable.
+  const levelKeys = ["1", "2", "3", "4"] as const;
+  for (let i = 0; i < levelKeys.length; i++) {
+    const key = levelKeys[i]!;
+    const rubric = EQUIWINGS_RUBRICS[key];
+    if (!rubric) continue; // canonical file missing — skip rather than seed garbage
+    const level = await prisma.progressLevel.upsert({
+      where: { centreId_name: { centreId, name: rubric.levelName } },
+      create: { centreId, name: rubric.levelName, order: i + 1 },
+      update: { order: i + 1 },
+    });
+    const skills = flattenSkills(rubric.categories);
+    for (const s of skills) {
+      const existing = await prisma.skill.findFirst({
+        where: { levelId: level.id, discipline: s.discipline, name: s.name },
+        select: { id: true },
+      });
+      if (!existing) {
+        await prisma.skill.create({ data: { levelId: level.id, discipline: s.discipline, name: s.name } });
       }
     }
   }

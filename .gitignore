@@ -15,3 +15,8 @@ public/uploads/*
 !public/uploads/.gitkeep
 claude-skills
 .claude/
+.env*
+
+# Artifacts generated from Exam_Levels/*.pdf by pdftoppm/pdftotext
+Exam_Levels/*.png
+Exam_Levels/*.txt

@@ -22,36 +22,23 @@ const EQUIWINGS_RUBRICS: Record<string, { levelName: string; passThreshold: numb
 // Static catalogs (shared by every club)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SKILL_TREE: Record<string, Record<string, string[]>> = {
-  normal: {
-    Beginner: ["Mount & dismount", "Halt", "Walk on a circle", "Posting trot (straight)", "Aids for forward/halt"],
-    Intermediate: ["Sitting trot (5 strides)", "Two-point at trot", "Walk-trot-walk transitions", "Canter on correct lead"],
-    Advanced: ["Counter canter", "Half-halt", "Working canter on 20m circle", "Riding without stirrups"],
-  },
-  dressage: {
-    Beginner: ["20m circle at walk", "Halt at X", "Straightness on long side"],
-    Intermediate: ["20m circle at trot", "Free walk on long rein", "Leg yield at walk"],
-    Advanced: ["Shoulder-in at trot", "Simple change", "Medium trot"],
-  },
-  jumping: {
-    Beginner: ["Walk over poles", "Trot over single pole"],
-    Intermediate: ["Cross-rail single", "3 trot poles + cross-rail", "Two-point over jump"],
-    Advanced: ["60cm vertical course", "Related distance 5 strides", "Bending line"],
-  },
-  gymkhana: {
-    Beginner: ["Lead-line walk obstacle"],
-    Intermediate: ["Pole bending (walk)", "Barrel turn at trot"],
-    Advanced: ["Pole bending (canter)", "Flag race at canter"],
-  },
-  tent_pegging: {
-    Intermediate: ["Walk approach + lance carry"],
-    Advanced: ["Trot tent peg pickup", "Canter tent peg pickup"],
-  },
-  endurance: {
-    Intermediate: ["20-min trot circuit"],
-    Advanced: ["60-min endurance ride with vet check"],
-  },
-};
+// Flatten a rubric category's items into Skill rows. Sub-items become
+// "Parent — Child" composite names. Same shape used by lib/centre-bootstrap.
+function flattenRubricSkills(categories: any[]): { discipline: string; name: string }[] {
+  const out: { discipline: string; name: string }[] = [];
+  for (const cat of categories ?? []) {
+    for (const item of cat.items ?? []) {
+      if (Array.isArray(item.subitems) && item.subitems.length > 0) {
+        for (const sub of item.subitems) {
+          out.push({ discipline: cat.name, name: `${item.name} — ${sub.name}` });
+        }
+      } else {
+        out.push({ discipline: cat.name, name: item.name });
+      }
+    }
+  }
+  return out;
+}
 
 const LEVEL_1_RUBRIC = [
   {
@@ -425,19 +412,24 @@ async function seedClub(spec: ClubSpec, orgId: string, pwd: string) {
     update: {},
   });
 
-  // 5. Fee plans (Beginner + Intermediate).
-  await prisma.feePlan.upsert({
-    where: { centreId_levelName: { centreId: centre.id, levelName: "Beginner" } },
-    create: { centreId: centre.id, levelName: "Beginner", monthlyAmount: 8000, registrationAmount: 3000 },
-    update: {},
-  });
-  await prisma.feePlan.upsert({
-    where: { centreId_levelName: { centreId: centre.id, levelName: "Intermediate" } },
-    create: { centreId: centre.id, levelName: "Intermediate", monthlyAmount: 10000, registrationAmount: 3000 },
-    update: {},
-  });
+  // 5. Fee plans — one per canonical level.
+  const FEE_PLAN_DEFAULTS: Record<string, { monthly: number; registration: number }> = {
+    "Level 1": { monthly: 8000, registration: 3000 },
+    "Level 2": { monthly: 10000, registration: 3000 },
+    "Level 3": { monthly: 12000, registration: 3000 },
+    "Level 4": { monthly: 14000, registration: 3000 },
+  };
+  for (const [levelName, amounts] of Object.entries(FEE_PLAN_DEFAULTS)) {
+    await prisma.feePlan.upsert({
+      where: { centreId_levelName: { centreId: centre.id, levelName } },
+      create: { centreId: centre.id, levelName, monthlyAmount: amounts.monthly, registrationAmount: amounts.registration },
+      update: {},
+    });
+  }
 
   // 6. Batches (Morning + Evening) — coach assignment uses the regular coach user.
+  // Batch.level is left null — staff pick the appropriate level when riders
+  // are placed in the batch.
   await prisma.batch.upsert({
     where: { id: `batch_${spec.slug}_morning` },
     create: {
@@ -448,7 +440,7 @@ async function seedClub(spec: ClubSpec, orgId: string, pwd: string) {
       startTime: "06:00",
       endTime: "07:00",
       coachId: userByKey.coach.id,
-      level: "Beginner",
+      level: null,
     },
     update: {},
   });
@@ -462,43 +454,32 @@ async function seedClub(spec: ClubSpec, orgId: string, pwd: string) {
       startTime: "17:00",
       endTime: "18:00",
       coachId: userByKey.coach.id,
-      level: "Intermediate",
+      level: null,
     },
     update: {},
   });
 
-  // 7. Progress levels + skill catalog.
-  const beginnerLevel = await prisma.progressLevel.upsert({
-    where: { centreId_name: { centreId: centre.id, name: "Beginner" } },
-    create: { centreId: centre.id, name: "Beginner", order: 1 },
-    update: {},
-  });
-  const intermediateLevel = await prisma.progressLevel.upsert({
-    where: { centreId_name: { centreId: centre.id, name: "Intermediate" } },
-    create: { centreId: centre.id, name: "Intermediate", order: 2 },
-    update: {},
-  });
-  const advancedLevel = await prisma.progressLevel.upsert({
-    where: { centreId_name: { centreId: centre.id, name: "Advanced" } },
-    create: { centreId: centre.id, name: "Advanced", order: 3 },
-    update: {},
-  });
-  const levelByName: Record<string, { id: string }> = {
-    Beginner: beginnerLevel,
-    Intermediate: intermediateLevel,
-    Advanced: advancedLevel,
-  };
-  for (const [discipline, byLevel] of Object.entries(SKILL_TREE)) {
-    for (const [levelName, names] of Object.entries(byLevel)) {
-      const level = levelByName[levelName];
-      if (!level) continue;
+  // 7. Progress levels + skill catalog — derived from the canonical rubric
+  // file. Same logic as lib/centre-bootstrap so dev seed + production
+  // bootstrap stay in lock-step.
+  const levelKeys = ["1", "2", "3", "4"] as const;
+  for (let i = 0; i < levelKeys.length; i++) {
+    const key = levelKeys[i]!;
+    const r = EQUIWINGS_RUBRICS[key];
+    if (!r) continue;
+    const level = await prisma.progressLevel.upsert({
+      where: { centreId_name: { centreId: centre.id, name: r.levelName } },
+      create: { centreId: centre.id, name: r.levelName, order: i + 1 },
+      update: { order: i + 1 },
+    });
+    const skills = flattenRubricSkills(r.categories);
+    for (const s of skills) {
       const existing = await prisma.skill.findFirst({
-        where: { levelId: level.id, discipline },
+        where: { levelId: level.id, discipline: s.discipline, name: s.name },
         select: { id: true },
       });
-      if (existing) continue;
-      for (const name of names) {
-        await prisma.skill.create({ data: { levelId: level.id, discipline, name } });
+      if (!existing) {
+        await prisma.skill.create({ data: { levelId: level.id, discipline: s.discipline, name: s.name } });
       }
     }
   }
@@ -733,11 +714,10 @@ async function main() {
     // General — 5 canonical Equiwings levels. Level 5 (Expert) added Oct
     // 2026 per client request — no rubric template yet, admins add one
     // via /exams/templates as the first Level-5 candidate emerges.
-    { discipline: "general", orderIndex: 1, code: "1", name: "Beginner", passThreshold: 70, defaultRubricJson: generalRubric["1"] },
-    { discipline: "general", orderIndex: 2, code: "2", name: "Elementary", passThreshold: 70, defaultRubricJson: generalRubric["2"] },
-    { discipline: "general", orderIndex: 3, code: "3", name: "Intermediate", passThreshold: 70, defaultRubricJson: generalRubric["3"] },
-    { discipline: "general", orderIndex: 4, code: "4", name: "Advanced", passThreshold: 70, defaultRubricJson: generalRubric["4"] },
-    { discipline: "general", orderIndex: 5, code: "5", name: "Expert", passThreshold: 75 },
+    { discipline: "general", orderIndex: 1, code: "1", name: "Level 1", passThreshold: 70, defaultRubricJson: generalRubric["1"] },
+    { discipline: "general", orderIndex: 2, code: "2", name: "Level 2", passThreshold: 70, defaultRubricJson: generalRubric["2"] },
+    { discipline: "general", orderIndex: 3, code: "3", name: "Level 3", passThreshold: 70, defaultRubricJson: generalRubric["3"] },
+    { discipline: "general", orderIndex: 4, code: "4", name: "Level 4", passThreshold: 70, defaultRubricJson: generalRubric["4"] },
     // Dressage
     { discipline: "dressage", orderIndex: 1, code: "Prelim", name: "Preliminary", passThreshold: 60 },
     { discipline: "dressage", orderIndex: 2, code: "Novice", name: "Novice", passThreshold: 62 },
