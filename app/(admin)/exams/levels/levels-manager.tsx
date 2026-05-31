@@ -52,6 +52,33 @@ function rubricSummary(rubric: unknown): { categories: number; items: number; to
   return { categories: cats.length, items, total };
 }
 
+// Sum of max scores within a single category (leaf items + sub-items).
+function categoryTotal(c: RubricCategory): number {
+  let t = 0;
+  for (const i of c.items ?? []) {
+    if (Array.isArray(i.subitems) && i.subitems.length > 0) {
+      for (const s of i.subitems) t += s.max_score ?? 0;
+    } else {
+      t += i.max_score ?? 0;
+    }
+  }
+  return t;
+}
+
+// Roman numerals — only need I…X (rubrics top out at ~5-6 sections).
+function toRoman(n: number): string {
+  const map: [number, string][] = [[10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
+  let out = "";
+  let r = n;
+  for (const [val, sym] of map) {
+    while (r >= val) {
+      out += sym;
+      r -= val;
+    }
+  }
+  return out;
+}
+
 // Discipline is preserved as a hidden schema field (the DB column still
 // exists for FK uniqueness), but it's no longer surfaced in the UI — the
 // catalog is a flat 4-level ladder driven by the Equiwings PDFs. All new
@@ -351,21 +378,28 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
                           />
                         ) : (
                           <div className="space-y-3">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-[11px] text-muted-foreground">
-                                {summary.items === 0
-                                  ? "No components yet for this level — click Edit to add the first category."
-                                  : "Read-only view of the canonical rubric used by every centre."}
-                              </p>
+                            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-card px-3 py-2 text-xs">
+                              <div className="flex items-center gap-3">
+                                <span className="font-semibold">{l.name}</span>
+                                <span className="text-muted-foreground">
+                                  {summary.categories} section{summary.categories === 1 ? "" : "s"} · {summary.items} item{summary.items === 1 ? "" : "s"} · max <span className="font-mono">/{summary.total}</span> · pass <span className="font-mono">{l.passThreshold}%</span>
+                                </span>
+                              </div>
                               <button
                                 type="button"
                                 onClick={() => setEditingId(l.id)}
-                                className="inline-flex items-center gap-1 rounded-md border bg-card px-2.5 py-1 text-xs font-medium hover:bg-muted"
+                                className="inline-flex items-center gap-1 rounded-md border border-primary bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                               >
                                 <Pencil className="h-3 w-3" /> Edit components
                               </button>
                             </div>
-                            {summary.items > 0 && <RubricView rubric={l.rubric} />}
+                            {summary.items === 0 ? (
+                              <p className="rounded-md border border-dashed bg-muted/10 px-3 py-6 text-center text-xs text-muted-foreground">
+                                No components yet for this level. Click <b>Edit components</b> above to add the first category.
+                              </p>
+                            ) : (
+                              <RubricView rubric={l.rubric} />
+                            )}
                           </div>
                         )}
                       </td>
@@ -388,34 +422,41 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
   );
 }
 
-// Read-only renderer for a rubric. Each category gets its own pill with
-// the items + max scores listed beneath. Sub-items (Level 3 Small Jumps,
-// Level 4 Gallop Run / Tent Pegging) are nested under their parent with
-// a slight indent so the structure mirrors the PDF.
+// Read-only renderer for a rubric. Mirrors the PDF layout — sections
+// numbered I, II, III with a header bar showing the section total, then
+// items listed below. Sub-items (Level 3 Small Jumps, Level 4 Gallop
+// Run / Tent Pegging) nest under their parent with a left border.
 function RubricView({ rubric }: { rubric: unknown }) {
   const cats = Array.isArray(rubric) ? (rubric as RubricCategory[]) : [];
   return (
-    <div className="space-y-4">
-      <p className="text-[11px] text-muted-foreground">
-        Read-only view from the canonical rubric. Edits flow through{" "}
-        <code className="rounded bg-background px-1 py-0.5">prisma/equiwings-level-rubrics.json</code>{" "}
-        + redeploy. Per-centre overrides are edited on{" "}
-        <a href="/exams/templates" className="text-primary underline">Scoring templates</a>.
-      </p>
-      <div className="grid gap-3 md:grid-cols-2">
-        {cats.map((c) => (
-          <div key={c.name} className="rounded-md border bg-card p-3">
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {c.name}
+    <div className="grid gap-3 md:grid-cols-2">
+      {cats.map((c, ci) => {
+        const total = categoryTotal(c);
+        return (
+          <div key={c.name} className="overflow-hidden rounded-md border bg-card">
+            <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary">
+                  {toRoman(ci + 1)}
+                </span>
+                <span className="text-xs font-semibold uppercase tracking-wide">{c.name}</span>
+              </div>
+              <span className="font-mono text-[10px] text-muted-foreground">
+                {c.items.length} item{c.items.length === 1 ? "" : "s"} · /{total}
+              </span>
             </div>
-            <ul className="space-y-1 text-xs">
+            <ul className="divide-y text-xs">
               {c.items.map((item, idx) => {
-                if (Array.isArray(item.subitems) && item.subitems.length > 0) {
+                const hasSubs = Array.isArray(item.subitems) && item.subitems.length > 0;
+                if (hasSubs) {
                   return (
-                    <li key={`${item.name}-${idx}`}>
-                      <div className="font-medium">{item.name}</div>
-                      <ul className="ml-3 mt-1 space-y-0.5 border-l pl-2">
-                        {item.subitems.map((sub, sidx) => (
+                    <li key={`${item.name}-${idx}`} className="px-3 py-2">
+                      <div className="flex justify-between gap-2">
+                        <span className="font-medium">{item.name}</span>
+                        <span className="font-mono text-[10px] italic text-muted-foreground">(sum)</span>
+                      </div>
+                      <ul className="ml-3 mt-1.5 space-y-1 border-l pl-2.5">
+                        {item.subitems!.map((sub, sidx) => (
                           <li key={`${sub.name}-${sidx}`} className="flex justify-between gap-2 text-muted-foreground">
                             <span>{sub.name}</span>
                             <span className="font-mono text-[10px]">/{sub.max_score ?? "—"}</span>
@@ -426,7 +467,7 @@ function RubricView({ rubric }: { rubric: unknown }) {
                   );
                 }
                 return (
-                  <li key={`${item.name}-${idx}`} className="flex justify-between gap-2">
+                  <li key={`${item.name}-${idx}`} className="flex justify-between gap-2 px-3 py-1.5">
                     <span>{item.name}</span>
                     <span className="font-mono text-[10px] text-muted-foreground">/{item.max_score ?? "—"}</span>
                   </li>
@@ -434,8 +475,8 @@ function RubricView({ rubric }: { rubric: unknown }) {
               })}
             </ul>
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }
@@ -581,14 +622,17 @@ function RubricEditor({
     }
   }
 
+  const grandTotal = cats.reduce((s, c) => s + categoryTotal(c), 0);
+
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[11px] text-muted-foreground">
-          Edits apply to the canonical rubric used by every centre. Saving here updates the catalog row directly; existing per-centre overrides on{" "}
-          <a href="/exams/templates" className="text-primary underline">Scoring templates</a>{" "}
-          are NOT touched.
-        </p>
+      <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs">
+        <div>
+          <span className="font-semibold text-amber-900">Editing rubric</span>
+          <span className="ml-2 text-amber-800">
+            {cats.length} section{cats.length === 1 ? "" : "s"} · max <span className="font-mono">/{grandTotal}</span>
+          </span>
+        </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -609,16 +653,28 @@ function RubricEditor({
         </div>
       </div>
 
+      <p className="text-[11px] text-muted-foreground">
+        Edits apply to the canonical rubric used by every centre. Per-centre overrides on{" "}
+        <a href="/exams/templates" className="text-primary underline">Scoring templates</a>{" "}
+        are NOT touched.
+      </p>
+
       <div className="grid gap-3 md:grid-cols-2">
         {cats.map((c, ci) => (
-          <div key={ci} className="rounded-md border bg-card p-3">
-            <div className="mb-2 flex items-center gap-2">
+          <div key={ci} className="overflow-hidden rounded-md border bg-card">
+            <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-2">
+              <span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary">
+                {toRoman(ci + 1)}
+              </span>
               <Input
                 value={c.name}
                 onChange={(e) => updateCat(ci, { name: e.target.value })}
-                className="h-8 text-xs font-semibold uppercase"
+                className="h-7 flex-1 text-xs font-semibold uppercase"
                 placeholder="Category name"
               />
+              <span className="whitespace-nowrap font-mono text-[10px] text-muted-foreground">
+                /{categoryTotal(c)}
+              </span>
               <button
                 type="button"
                 onClick={() => removeCat(ci)}
@@ -629,6 +685,7 @@ function RubricEditor({
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
+            <div className="p-3">
             <ul className="space-y-1.5 text-xs">
               {c.items.map((item, ii) => {
                 const hasSubs = Array.isArray(item.subitems) && item.subitems.length > 0;
@@ -725,6 +782,7 @@ function RubricEditor({
             >
               <Plus className="h-3 w-3" /> Add item
             </button>
+            </div>
           </div>
         ))}
       </div>
