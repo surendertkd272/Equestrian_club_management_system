@@ -15,8 +15,12 @@ export default async function ExamLevelsPage() {
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/exams");
 
   const [levels, templateCounts] = await Promise.all([
+    // Discipline is no longer surfaced in this catalog — every row shown
+    // belongs to the 'general' Equiwings ladder. Other discipline rows
+    // from the old seed stay in the DB but aren't relevant here.
     prisma.examLevel.findMany({
-      orderBy: [{ discipline: "asc" }, { orderIndex: "asc" }],
+      where: { discipline: "general" },
+      orderBy: { orderIndex: "asc" },
     }),
     // Per-level count of centres that have customised a rubric. Lets HQ see
     // which levels are widely adopted vs orphaned.
