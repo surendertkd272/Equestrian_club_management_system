@@ -33,7 +33,11 @@ export function AllocationGrid({
     setPairs((p) => [...p, { riderId: "", horseId: "", notes: "" }]);
   }
   function removeRow(i: number) {
-    setPairs((p) => (p.length === 1 ? [{ riderId: "", horseId: "", notes: "" }] : p.filter((_, idx) => idx !== i)));
+    // Always remove. The previous guard reset the last row to empty fields
+    // instead of removing it — which made the trash icon look broken when
+    // the row was already empty. If the user removes every row, the
+    // 'Add rider' button below is still visible to start over.
+    setPairs((p) => p.filter((_, idx) => idx !== i));
   }
 
   async function save() {
@@ -78,6 +82,13 @@ export function AllocationGrid({
           </tr>
         </thead>
         <tbody className="divide-y">
+          {pairs.length === 0 && (
+            <tr>
+              <td colSpan={4} className="py-6 text-center text-xs text-muted-foreground">
+                No riders yet. Click <b>Add rider</b> below to start.
+              </td>
+            </tr>
+          )}
           {pairs.map((p, i) => (
             <tr key={i}>
               <td className="py-2 pr-2">
