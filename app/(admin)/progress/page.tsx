@@ -2,7 +2,6 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { centreWhere, scopeCentre } from "@/lib/tenancy";
-import { DISCIPLINES } from "@/lib/schemas/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -57,34 +56,37 @@ export default async function ProgressPage({
     }),
   ]);
 
-  // Build per-rider per-discipline mastery%
+  // Build per-rider per-category mastery%. "Category" is the value of
+  // Skill.discipline — historically a hard-coded enum (normal/dressage/…)
+  // but now driven by the rubric's section names (Dress Code / Know Your
+  // Horse / Parts of Tack / Riding Knowledge / Overall Judgement). We
+  // derive the active set from the data so this page works regardless of
+  // how a centre's catalog is configured.
   const skillById = new Map(allSkills.map((s) => [s.id, s]));
+  const activeDisciplines = Array.from(new Set(allSkills.map((s) => s.discipline))).sort();
+
   type Cell = { mastered: number; total: number };
-  const matrix = new Map<string, Map<string, Cell>>(); // riderId → discipline → cell
-  // Pre-fill totals
+  const matrix = new Map<string, Map<string, Cell>>(); // riderId → category → cell
   for (const r of riders) {
     const inner = new Map<string, Cell>();
-    for (const d of DISCIPLINES) inner.set(d, { mastered: 0, total: 0 });
+    for (const d of activeDisciplines) inner.set(d, { mastered: 0, total: 0 });
     matrix.set(r.id, inner);
   }
   for (const skill of allSkills) {
     for (const r of riders) {
-      const cell = matrix.get(r.id)!.get(skill.discipline)!;
-      cell.total += 1;
+      const cell = matrix.get(r.id)?.get(skill.discipline);
+      if (cell) cell.total += 1;
     }
   }
   for (const st of allStatuses) {
     const skill = skillById.get(st.skillId);
     if (!skill) continue;
-    const inner = matrix.get(st.riderId);
-    if (!inner) continue;
-    if (st.status === "mastered") {
-      const cell = inner.get(skill.discipline)!;
-      cell.mastered += 1;
-    }
+    if (st.status !== "mastered") continue;
+    const cell = matrix.get(st.riderId)?.get(skill.discipline);
+    if (cell) cell.mastered += 1;
   }
 
-  // Overall mastery (across all disciplines) for each rider
+  // Overall mastery (across all categories) for each rider
   const overall = new Map<string, number>();
   for (const [riderId, inner] of matrix.entries()) {
     let m = 0;
@@ -95,9 +97,6 @@ export default async function ProgressPage({
     }
     overall.set(riderId, t > 0 ? Math.round((m / t) * 100) : 0);
   }
-
-  // Disciplines that actually have skills (avoid empty columns).
-  const activeDisciplines = DISCIPLINES.filter((d) => allSkills.some((s) => s.discipline === d));
 
   return (
     <div className="space-y-6">
