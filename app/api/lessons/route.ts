@@ -14,10 +14,10 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url);
   const dateStr = url.searchParams.get("date") ?? new Date().toISOString().slice(0, 10);
-  const centreId =
-    session.role === "SUPER_ADMIN"
-      ? url.searchParams.get("centreId") ?? session.centreId
-      : session.centreId;
+  const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  const centreId = isHQ
+    ? url.searchParams.get("centreId") ?? session.centreId
+    : session.centreId;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE" }, { status: 400 });
 
   const dayStart = new Date(`${dateStr}T00:00:00`);
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  if (!can(session.role, "staff.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  if (!can(session.role, "lesson.write")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
 
@@ -54,10 +54,10 @@ export async function POST(req: NextRequest) {
   }
   const d = parsed.data;
 
-  const centreId =
-    session.role === "SUPER_ADMIN"
-      ? (d.centreId ?? session.centreId)
-      : session.centreId;
+  // HQ roles can target any centre via the request body; centre-scoped
+  // roles (including COACH) always act on their own session.centreId.
+  const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  const centreId = isHQ ? (d.centreId ?? session.centreId) : session.centreId;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE" }, { status: 400 });
 
   // Batch (if any) must belong to this centre — defends against

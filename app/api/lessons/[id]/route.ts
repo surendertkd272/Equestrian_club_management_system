@@ -32,14 +32,15 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  if (!can(session.role, "staff.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  if (!can(session.role, "lesson.write")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
 
   const lesson = await prisma.lesson.findUnique({ where: { id: params.id } });
   if (!lesson) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && lesson.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  if (!isHQ && lesson.centreId !== session.centreId) {
+    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
   }
 
   const body = await req.json().catch(() => null);
