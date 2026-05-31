@@ -494,6 +494,73 @@ function RubricEditor({
     );
   }
 
+  // Sub-item helpers. addSubitem on a leaf item promotes it to a parent
+  // (max_score becomes null since it's now the sum of sub-items).
+  // removeSubitem on the last sub-item demotes the parent back to a leaf
+  // with max_score=0 — caller can then set a real max.
+  function addSubitem(ci: number, ii: number) {
+    setCats((c) =>
+      c.map((cat, i) =>
+        i === ci
+          ? {
+              ...cat,
+              items: cat.items.map((it, j) => {
+                if (j !== ii) return it;
+                const subs = it.subitems ?? [];
+                return {
+                  ...it,
+                  max_score: null,
+                  subitems: [...subs, { name: "Sub-item", max_score: 1 }],
+                };
+              }),
+            }
+          : cat,
+      ),
+    );
+  }
+  function updateSubitem(ci: number, ii: number, si: number, patch: Partial<RubricItem>) {
+    setCats((c) =>
+      c.map((cat, i) =>
+        i === ci
+          ? {
+              ...cat,
+              items: cat.items.map((it, j) =>
+                j === ii && it.subitems
+                  ? {
+                      ...it,
+                      subitems: it.subitems.map((s, k) => (k === si ? { ...s, ...patch } : s)),
+                    }
+                  : it,
+              ),
+            }
+          : cat,
+      ),
+    );
+  }
+  function removeSubitem(ci: number, ii: number, si: number) {
+    setCats((c) =>
+      c.map((cat, i) =>
+        i === ci
+          ? {
+              ...cat,
+              items: cat.items.map((it, j) => {
+                if (j !== ii || !it.subitems) return it;
+                const next = it.subitems.filter((_, k) => k !== si);
+                if (next.length === 0) {
+                  // Demote back to a leaf — drop subitems entirely and give
+                  // it a sane starting max so the editor doesn't show blank.
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                  const { subitems, ...rest } = it;
+                  return { ...rest, max_score: 0 };
+                }
+                return { ...it, subitems: next };
+              }),
+            }
+          : cat,
+      ),
+    );
+  }
+
   async function save() {
     setBusy(true);
     try {
@@ -566,7 +633,7 @@ function RubricEditor({
               {c.items.map((item, ii) => {
                 const hasSubs = Array.isArray(item.subitems) && item.subitems.length > 0;
                 return (
-                  <li key={ii} className="space-y-1">
+                  <li key={ii} className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
                       <Input
                         value={item.name}
@@ -574,17 +641,25 @@ function RubricEditor({
                         className="h-7 flex-1 text-xs"
                         placeholder="Item name"
                       />
-                      <Input
-                        type="number"
-                        step="0.5"
-                        min={0}
-                        value={item.max_score ?? ""}
-                        onChange={(e) => updateItem(ci, ii, { max_score: e.target.value === "" ? null : Number(e.target.value) })}
-                        className="h-7 w-16 text-xs"
-                        placeholder="max"
-                        disabled={hasSubs}
-                        title={hasSubs ? "Max is the sum of sub-items" : ""}
-                      />
+                      {hasSubs ? (
+                        <span className="w-16 text-center text-[10px] italic text-muted-foreground" title="Sum of sub-items">
+                          (sum)
+                        </span>
+                      ) : (
+                        <Input
+                          type="number"
+                          step="0.5"
+                          min={0}
+                          value={item.max_score ?? ""}
+                          onChange={(e) =>
+                            updateItem(ci, ii, {
+                              max_score: e.target.value === "" ? null : Number(e.target.value),
+                            })
+                          }
+                          className="h-7 w-16 text-xs"
+                          placeholder="max"
+                        />
+                      )}
                       <button
                         type="button"
                         onClick={() => removeItem(ci, ii)}
@@ -596,18 +671,49 @@ function RubricEditor({
                       </button>
                     </div>
                     {hasSubs && (
-                      <ul className="ml-3 space-y-0.5 border-l pl-2 text-[11px] text-muted-foreground">
+                      <ul className="ml-3 space-y-1 border-l pl-2">
                         {item.subitems!.map((sub, si) => (
-                          <li key={si} className="flex justify-between gap-2">
-                            <span>{sub.name}</span>
-                            <span className="font-mono">/{sub.max_score ?? "—"}</span>
+                          <li key={si} className="flex items-center gap-1.5">
+                            <Input
+                              value={sub.name}
+                              onChange={(e) => updateSubitem(ci, ii, si, { name: e.target.value })}
+                              className="h-6 flex-1 text-[11px]"
+                              placeholder="Sub-item name"
+                            />
+                            <Input
+                              type="number"
+                              step="0.5"
+                              min={0}
+                              value={sub.max_score ?? ""}
+                              onChange={(e) =>
+                                updateSubitem(ci, ii, si, {
+                                  max_score: e.target.value === "" ? null : Number(e.target.value),
+                                })
+                              }
+                              className="h-6 w-14 text-[11px]"
+                              placeholder="max"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeSubitem(ci, ii, si)}
+                              className="rounded p-0.5 text-muted-foreground hover:text-destructive"
+                              title="Delete sub-item"
+                              aria-label="Delete sub-item"
+                            >
+                              <Trash2 className="h-2.5 w-2.5" />
+                            </button>
                           </li>
                         ))}
-                        <li className="italic">
-                          Sub-items preserved as-is — edit them in prisma/equiwings-level-rubrics.json.
-                        </li>
                       </ul>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => addSubitem(ci, ii)}
+                      className="ml-3 inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
+                      title={hasSubs ? "Add another sub-item" : "Convert to parent with sub-items"}
+                    >
+                      <Plus className="h-2.5 w-2.5" /> {hasSubs ? "Sub-item" : "Add sub-item"}
+                    </button>
                   </li>
                 );
               })}
