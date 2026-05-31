@@ -174,7 +174,7 @@ export default async function ProgressPage({
                         <Badge variant="outline">{r.currentLevel ?? "Beginner"}</Badge>
                       </td>
                       {activeDisciplines.map((d) => {
-                        const cell = matrix.get(r.id)!.get(d)!;
+                        const cell = matrix.get(r.id)?.get(d) ?? { mastered: 0, total: 0 };
                         const pct = cell.total > 0 ? Math.round((cell.mastered / cell.total) * 100) : null;
                         return (
                           <td key={d} className="py-1 text-center">
