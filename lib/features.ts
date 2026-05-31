@@ -96,7 +96,7 @@ export const FEATURES: readonly FeatureDef[] = [
   { key: "facility-bookings",      label: "Facility Bookings",      description: "Book arenas / wash bays / classroom slots.",                     group: "facility",     enforcement: "ui-only" },
 
   // ── Finance
-  { key: "fee-collection",         label: "Fees & Invoicing",       description: "Master switch for rider-side payments. When OFF: no invoices are created on enrolment / competition / event entry, the /pay page returns 404, Razorpay endpoints return 503, fee-due reminders are skipped, and approved riders go straight to active. Existing invoices are preserved as audit history but hidden from parent + admin surfaces.", group: "finance",      enforcement: "wired" },
+  { key: "fee-collection",         label: "Parent / rider payments", description: "Switch for parent + rider-facing payment surfaces. When OFF: no invoices created on enrolment / competition / event entry, /pay page 404s, Razorpay endpoints return 503, fee-due reminders skipped, approved riders go straight to active, parent invoice tiles hide. Staff bookkeeping (the /finance dashboard, manual cash recording, exports, invoice print) is unaffected so the team can still log offline payments. Existing invoices preserved as audit history.", group: "finance", enforcement: "wired" },
   { key: "expenses",               label: "Expenses & P&L",         description: "Book outgoings against chart-of-accounts; expense P&L.",         group: "finance",      enforcement: "wired" },
 
   // ── Productivity

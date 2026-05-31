@@ -36,8 +36,12 @@ export default async function StudentHome() {
   // via the email link, not the student. Owner toggles it on per-tenant
   // in the feature matrix when a club explicitly wants students to see
   // the invoice surface.
+  // AND-gated on fee-collection: if the tenant turned off parent-facing
+  // payment entirely, the student tile shouldn't appear even when the
+  // fine-grained student flag is on. fee-collection is the master.
   const features = await getFeaturesForSession(session);
-  const showPayment = features.has("student-payment-visible");
+  const showPayment =
+    features.has("student-payment-visible") && features.has("fee-collection");
 
   // Batch shift surface — rider sees their own request history + the
   // 'Request a shift' button. Centre-scoped batch list (target batches

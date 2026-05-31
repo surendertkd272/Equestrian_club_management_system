@@ -125,7 +125,7 @@ export const NAV: NavGroup[] = [
   {
     group: "Money & Records",
     items: [
-      { href: "/finance", label: "Finance", iconName: "Receipt", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "ACCOUNTANT"], feature: "fee-collection" },
+      { href: "/finance", label: "Finance", iconName: "Receipt", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "ACCOUNTANT"] },
       // Staff-side invoice submission. Distinct from the admin finance page —
       // visible to coaches/grooms/vet/etc so they can drop in bills for things
       // they purchased on behalf of the club.

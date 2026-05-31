@@ -1,6 +1,7 @@
 import { prisma } from "../prisma";
 import { notify } from "../notify";
 import { sendEmail, renderEmail } from "../email";
+import { hasFeature } from "../features-gate";
 import { SweepResult, centreManagerId, recentlyNotified } from "./shared";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -27,9 +28,21 @@ export async function sweepMonthlyReports(opts: { force?: boolean } = {}): Promi
       lastName: true,
       email: true,
       currentLevel: true,
-      centre: { select: { name: true } },
+      centre: { select: { name: true, orgId: true } },
     },
   });
+
+  // Resolve fee-collection per org once. The "Fees paid" row in the
+  // parent email is suppressed for orgs that have parent-facing payments
+  // turned off — sending ₹0 each month would imply they're collecting
+  // fees, which they aren't.
+  const orgIds = Array.from(new Set(riders.map((r) => r.centre.orgId).filter(Boolean) as string[]));
+  const feesOnByOrg = new Map<string, boolean>();
+  await Promise.all(
+    orgIds.map(async (orgId) => {
+      feesOnByOrg.set(orgId, await hasFeature(orgId, "fee-collection"));
+    }),
+  );
 
   let notified = 0;
   let skipped = 0;
@@ -82,6 +95,14 @@ export async function sweepMonthlyReports(opts: { force?: boolean } = {}): Promi
     const aPresent = attendances.filter((a) => a.status === "present" || a.status === "late").length;
     const attendancePct = aTotal > 0 ? Math.round((aPresent / aTotal) * 100) : null;
     const paid = Math.round(paymentAgg._sum.amount ?? 0);
+    // Suppress the "Fees paid" row entirely when the org has parent-facing
+    // payments off — emailing ₹0 every month implies an active billing
+    // relationship the centre isn't actually running.
+    const orgId = rider.centre.orgId;
+    const showFees = orgId ? (feesOnByOrg.get(orgId) ?? false) : false;
+    const feesRow = showFees
+      ? `<tr><td style="padding:8px;background:#f9fafb;border:1px solid #e5e7eb;color:#6b7280;font-size:12px;text-transform:uppercase;">Fees paid</td><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600;">₹${paid.toLocaleString("en-IN")}</td></tr>`
+      : "";
 
     const html = renderEmail({
       centreName: rider.centre.name,
@@ -94,7 +115,7 @@ export async function sweepMonthlyReports(opts: { force?: boolean } = {}): Promi
   <tr><td style="padding:8px;background:#f9fafb;border:1px solid #e5e7eb;color:#6b7280;font-size:12px;text-transform:uppercase;">New skills mastered</td><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600;">${masteredThisMonth}</td></tr>
   <tr><td style="padding:8px;background:#f9fafb;border:1px solid #e5e7eb;color:#6b7280;font-size:12px;text-transform:uppercase;">Exams this month</td><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600;">${exams.length} ${exams.length ? `(${exams.filter((e) => e.passed).length} passed)` : ""}</td></tr>
   <tr><td style="padding:8px;background:#f9fafb;border:1px solid #e5e7eb;color:#6b7280;font-size:12px;text-transform:uppercase;">Certificates issued</td><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600;">${certs.length}${certs.length ? ` — ${certs.map((c) => c.serialNo).join(", ")}` : ""}</td></tr>
-  <tr><td style="padding:8px;background:#f9fafb;border:1px solid #e5e7eb;color:#6b7280;font-size:12px;text-transform:uppercase;">Fees paid</td><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600;">₹${paid.toLocaleString("en-IN")}</td></tr>
+  ${feesRow}
 </table>
 <p>Visit the centre or reply to this email if you'd like to discuss progress.</p>`,
     });
