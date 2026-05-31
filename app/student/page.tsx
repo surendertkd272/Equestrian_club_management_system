@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { getFeaturesForSession } from "@/lib/features-gate";
+import { loadRiderExamHistory } from "@/lib/exam-history";
+import { ExamHistoryList } from "@/components/exams/exam-history-list";
 import { BmiBanner } from "./bmi-banner";
 import { BatchShiftCard } from "./batch-shift-card";
 import { prisma } from "@/lib/prisma";
@@ -46,7 +48,7 @@ export default async function StudentHome() {
   // Batch shift surface — rider sees their own request history + the
   // 'Request a shift' button. Centre-scoped batch list (target batches
   // they could move to). Same-centre only via this UI.
-  const [centreBatches, recentShiftRequests] = await Promise.all([
+  const [centreBatches, recentShiftRequests, examHistory] = await Promise.all([
     prisma.batch.findMany({
       where: { centreId: rider.centreId },
       select: { id: true, name: true, dayOfWeek: true, startTime: true, endTime: true },
@@ -58,6 +60,7 @@ export default async function StudentHome() {
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
+    loadRiderExamHistory(rider.id, rider.centreId, { take: 10 }),
   ]);
 
   return (
@@ -165,6 +168,15 @@ export default async function StudentHome() {
           createdAt: r.createdAt.toISOString(),
         }))}
       />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Exam history</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ExamHistoryList exams={examHistory} />
+        </CardContent>
+      </Card>
 
       {detail && detail.upcomingLessons.length > 0 && (
         <Card>

@@ -14,6 +14,8 @@ import { AccreditationsPanel } from "./accreditations-panel";
 import { can } from "@/lib/permissions";
 import { isReadOnly } from "@/lib/roles";
 import { bmiBand, bmiBandLabel, bmiBandTone, bmiNeedsAttention } from "@/lib/bmi";
+import { loadRiderExamHistory } from "@/lib/exam-history";
+import { ExamHistoryList } from "@/components/exams/exam-history-list";
 
 export const dynamic = "force-dynamic";
 
@@ -58,12 +60,13 @@ export default async function RiderProfile({ params }: { params: { id: string } 
   });
 
   // Compute progress summary (skills mastered overall).
-  const [allSkills, statuses] = await Promise.all([
+  const [allSkills, statuses, examHistory] = await Promise.all([
     prisma.skill.count({ where: { level: { centreId: rider.centreId } } }),
     prisma.riderSkillStatus.findMany({
       where: { riderId: rider.id },
       select: { status: true },
     }),
+    loadRiderExamHistory(rider.id, rider.centreId, { take: 10 }),
   ]);
   const masteredCount = statuses.filter((s) => s.status === "mastered").length;
   const progressPct = allSkills > 0 ? Math.round((masteredCount / allSkills) * 100) : 0;
@@ -335,6 +338,15 @@ export default async function RiderProfile({ params }: { params: { id: string } 
               })}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Exam history</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ExamHistoryList exams={examHistory} />
         </CardContent>
       </Card>
 

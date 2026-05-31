@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { getChildDetail } from "@/lib/parent";
 import { getFeaturesForSession } from "@/lib/features-gate";
+import { loadRiderExamHistory } from "@/lib/exam-history";
+import { ExamHistoryList } from "@/components/exams/exam-history-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -20,6 +22,8 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
   // Master fee-collection switch — when OFF, the Invoices card is suppressed.
   // Existing invoices remain in the DB for audit; only the surface disappears.
   const showPayment = features.has("fee-collection");
+  // Exam history with rubric attached for the expandable per-exam breakdown.
+  const examHistory = await loadRiderExamHistory(rider.id, rider.centreId, { take: 10 });
 
   const skillsByLevel = new Map<string, typeof skills>();
   for (const s of skills) {
@@ -164,44 +168,7 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
           <CardTitle>Exams</CardTitle>
         </CardHeader>
         <CardContent>
-          {exams.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No exams yet.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="pb-2">Date</th>
-                  <th className="pb-2">Level</th>
-                  <th className="pb-2">Examiner</th>
-                  <th className="pb-2">Status</th>
-                  <th className="pb-2">Score</th>
-                  <th className="pb-2">Result</th>
-                </tr>
-              </thead>
-              <tbody>
-                {exams.map((e) => (
-                  <tr key={e.id} className="border-t">
-                    <td className="py-2">{formatDate(e.date)}</td>
-                    <td className="py-2">L{e.level}</td>
-                    <td className="py-2">{e.examinerName}</td>
-                    <td className="py-2">
-                      <Badge variant="outline">{e.status}</Badge>
-                    </td>
-                    <td className="py-2">{e.totalScore ?? "—"}</td>
-                    <td className="py-2">
-                      {e.passed === true ? (
-                        <Badge variant="success">passed</Badge>
-                      ) : e.passed === false ? (
-                        <Badge variant="destructive">failed</Badge>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <ExamHistoryList exams={examHistory} />
         </CardContent>
       </Card>
 

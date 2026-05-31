@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -42,8 +42,40 @@ export function ExamScorer({
   const [deductions, setDeductions] = useState<number>(initialDeductions ?? 0);
   const [timeFaults, setTimeFaults] = useState<number>(initialTimeFaults ?? 0);
   const [busy, setBusy] = useState<null | "draft" | "submit" | "reset">(null);
+  // Snapshot of what's on the server. Updated after every successful save.
+  // Lets us tell the examiner whether they have unsaved changes — important
+  // for the 'mid-exam halt' case where they need confidence their work is safe.
+  const [savedSnapshot, setSavedSnapshot] = useState({
+    scores: initialScores,
+    deductions: initialDeductions ?? 0,
+    timeFaults: initialTimeFaults ?? 0,
+  });
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(
+    Object.keys(initialScores).length > 0 ? new Date() : null,
+  );
   const isCompleted = status === "completed";
   const adjusted = Math.max(0, total - deductions - timeFaults);
+
+  // Has anything changed since the last save? Cheap deep-compare via JSON
+  // since the score map is small (≤ a few dozen keys).
+  const isDirty =
+    JSON.stringify(scores) !== JSON.stringify(savedSnapshot.scores) ||
+    deductions !== savedSnapshot.deductions ||
+    timeFaults !== savedSnapshot.timeFaults;
+
+  // Warn the examiner before closing the tab when there are unsaved
+  // changes — the bridge case the user flagged where an exam halts and
+  // they need confidence their work is recoverable.
+  useEffect(() => {
+    if (!isDirty || isCompleted) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      // Some browsers (Safari) only show the prompt if returnValue is set.
+      e.returnValue = "";
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isDirty, isCompleted]);
 
   async function save(final: boolean) {
     setBusy(final ? "submit" : "draft");
@@ -64,13 +96,15 @@ export function ExamScorer({
       return;
     }
     const data = await res.json();
+    setSavedSnapshot({ scores: { ...scores }, deductions, timeFaults });
+    setLastSavedAt(new Date());
     if (final) {
       toast.success(
         data.passed === true ? "Submitted — PASS" : data.passed === false ? "Submitted — fail" : "Submitted",
       );
       router.push("/exams");
     } else {
-      toast.success("Draft saved");
+      toast.success("Draft saved — you can close this tab and come back anytime");
     }
     router.refresh();
   }
@@ -137,6 +171,23 @@ export function ExamScorer({
       )}
 
       <div className="sticky bottom-4 space-y-2 rounded-lg border bg-card p-4 shadow-lg">
+        {!isCompleted && (
+          <div className="flex items-center justify-between rounded-md border bg-muted/30 px-2 py-1 text-[11px]">
+            {isDirty ? (
+              <span className="font-semibold text-amber-700">● Unsaved changes</span>
+            ) : lastSavedAt ? (
+              <span className="text-emerald-700">✓ Saved · all scores stored</span>
+            ) : (
+              <span className="text-muted-foreground">No draft saved yet</span>
+            )}
+            {lastSavedAt && (
+              <span className="font-mono text-muted-foreground">
+                {lastSavedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Rubric subtotal</span>
           <span className="font-mono">{total}</span>
@@ -154,6 +205,13 @@ export function ExamScorer({
           <span className="text-xl font-bold text-primary">{adjusted}</span>
         </div>
         <div className="text-xs text-muted-foreground">Pass mark: {passThreshold}%</div>
+
+        {!isCompleted && (
+          <p className="rounded border border-dashed bg-muted/10 px-2 py-1 text-[11px] text-muted-foreground">
+            <b>Tip:</b> Click <b>Save draft</b> anytime — if the exam is paused or you need to step away,
+            your scores are kept and you can come back to continue here.
+          </p>
+        )}
 
         {!isCompleted && (
           <div className="grid gap-2 sm:grid-cols-3">
