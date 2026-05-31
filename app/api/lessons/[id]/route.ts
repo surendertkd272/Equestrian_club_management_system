@@ -80,9 +80,15 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
   const lesson = await prisma.lesson.findUnique({ where: { id: params.id } });
   if (!lesson) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && lesson.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  // isHQ matches the canonical pattern used elsewhere — ADMIN deserves the
+  // same cross-centre bypass that SUPER_ADMIN has.
+  const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  if (!isHQ && lesson.centreId !== session.centreId) {
+    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
   }
+  // Allocation children (HorseAllocation) have onDelete: SetNull on lessonId
+  // so the delete succeeds without an explicit cascade; the allocation rows
+  // survive with lessonId=null for audit.
   await prisma.lesson.delete({ where: { id: lesson.id } });
   await audit({ userId: session.userId, action: "delete", tableName: "lesson", rowId: lesson.id });
   return NextResponse.json({ ok: true });

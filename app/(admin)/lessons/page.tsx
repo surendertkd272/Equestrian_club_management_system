@@ -2,9 +2,11 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NewLessonForm } from "./new-form";
+import { LessonDeleteButton } from "./delete-button";
 
 export const dynamic = "force-dynamic";
 
@@ -112,9 +114,18 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
                     </div>
                     {l.notes ? <div className="mt-1 text-xs italic text-muted-foreground">{l.notes}</div> : null}
                   </div>
-                  <Link href={`/lessons/${l.id}`} className="rounded border px-3 py-1 text-xs hover:bg-accent">
-                    Allocate / Edit
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/lessons/${l.id}`} className="rounded border px-3 py-1 text-xs hover:bg-accent">
+                      Allocate / Edit
+                    </Link>
+                    {can(session.role, "staff.manage") && (
+                      <LessonDeleteButton
+                        id={l.id}
+                        timeLabel={`${new Date(l.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`}
+                        riderCount={l.allocations.length}
+                      />
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
