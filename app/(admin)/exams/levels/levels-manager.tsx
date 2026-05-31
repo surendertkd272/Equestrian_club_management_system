@@ -505,6 +505,17 @@ function RubricEditor({
     return JSON.parse(JSON.stringify(seed));
   });
   const [busy, setBusy] = useState(false);
+  // Per-category collapse state. Indices not in the set are expanded.
+  // Helps when editing a level with many sections — focus one at a time.
+  const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
+  function toggleCollapse(ci: number) {
+    setCollapsed((s) => {
+      const next = new Set(s);
+      if (next.has(ci)) next.delete(ci);
+      else next.add(ci);
+      return next;
+    });
+  }
 
   function updateCat(ci: number, patch: Partial<RubricCategory>) {
     setCats((c) => c.map((cat, i) => (i === ci ? { ...cat, ...patch } : cat)));
@@ -557,6 +568,47 @@ function RubricEditor({
         return { ...cat, items: next };
       }),
     );
+  }
+  function moveSubitem(ci: number, ii: number, si: number, dir: -1 | 1) {
+    setCats((c) =>
+      c.map((cat, i) => {
+        if (i !== ci) return cat;
+        return {
+          ...cat,
+          items: cat.items.map((it, j) => {
+            if (j !== ii || !it.subitems) return it;
+            const k = si + dir;
+            if (k < 0 || k >= it.subitems.length) return it;
+            const next = [...it.subitems];
+            [next[si], next[k]] = [next[k]!, next[si]!];
+            return { ...it, subitems: next };
+          }),
+        };
+      }),
+    );
+  }
+
+  // Move an item from one category to another. Splices out of source,
+  // appends to the end of target. Resets target collapse state so the
+  // newly-arrived item is visible.
+  function moveItemToCategory(srcCi: number, ii: number, targetCi: number) {
+    if (srcCi === targetCi) return;
+    setCats((c) => {
+      if (srcCi < 0 || srcCi >= c.length || targetCi < 0 || targetCi >= c.length) return c;
+      const item = c[srcCi]!.items[ii];
+      if (!item) return c;
+      return c.map((cat, i) => {
+        if (i === srcCi) return { ...cat, items: cat.items.filter((_, j) => j !== ii) };
+        if (i === targetCi) return { ...cat, items: [...cat.items, item] };
+        return cat;
+      });
+    });
+    setCollapsed((s) => {
+      const next = new Set(s);
+      next.delete(targetCi);
+      return next;
+    });
+    toast.success(`Moved → ${cats[targetCi]?.name ?? "category"}`);
   }
 
   // Sub-item helpers. addSubitem on a leaf item promotes it to a parent
@@ -704,9 +756,20 @@ function RubricEditor({
       </p>
 
       <div className="grid gap-3 md:grid-cols-2">
-        {cats.map((c, ci) => (
+        {cats.map((c, ci) => {
+          const isCollapsed = collapsed.has(ci);
+          return (
           <div key={ci} className="overflow-hidden rounded-md border bg-card">
             <div className="flex items-center gap-2 border-b bg-muted/40 px-3 py-2">
+              <button
+                type="button"
+                onClick={() => toggleCollapse(ci)}
+                className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                title={isCollapsed ? "Expand section" : "Collapse section"}
+                aria-label={isCollapsed ? "Expand section" : "Collapse section"}
+              >
+                {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+              </button>
               <span className="rounded bg-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-bold text-primary">
                 {toRoman(ci + 1)}
               </span>
@@ -716,6 +779,11 @@ function RubricEditor({
                 className="h-7 flex-1 text-xs font-semibold uppercase"
                 placeholder="Category name"
               />
+              {isCollapsed && (
+                <span className="whitespace-nowrap text-[10px] text-muted-foreground">
+                  {c.items.length} item{c.items.length === 1 ? "" : "s"}
+                </span>
+              )}
               <span className="whitespace-nowrap font-mono text-[10px] text-muted-foreground">
                 /{categoryTotal(c)}
               </span>
@@ -751,6 +819,7 @@ function RubricEditor({
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
             </div>
+            {!isCollapsed && (
             <div className="p-3">
             <ul className="space-y-1.5 text-xs">
               {c.items.map((item, ii) => {
@@ -805,6 +874,26 @@ function RubricEditor({
                           <ArrowDown className="h-2.5 w-2.5" />
                         </button>
                       </div>
+                      {cats.length > 1 && (
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (v !== "") moveItemToCategory(ci, ii, Number(v));
+                          }}
+                          className="h-7 max-w-[5.5rem] rounded border bg-card px-1 text-[10px]"
+                          title="Move item to another section"
+                        >
+                          <option value="">Move to…</option>
+                          {cats.map((other, oci) =>
+                            oci === ci ? null : (
+                              <option key={oci} value={oci}>
+                                {toRoman(oci + 1)} {other.name}
+                              </option>
+                            ),
+                          )}
+                        </select>
+                      )}
                       <button
                         type="button"
                         onClick={() => removeItem(ci, ii)}
@@ -838,6 +927,28 @@ function RubricEditor({
                               className="h-6 w-14 text-[11px]"
                               placeholder="max"
                             />
+                            <div className="flex items-center">
+                              <button
+                                type="button"
+                                onClick={() => moveSubitem(ci, ii, si, -1)}
+                                disabled={si === 0}
+                                className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
+                                title="Move up"
+                                aria-label="Move sub-item up"
+                              >
+                                <ArrowUp className="h-2.5 w-2.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => moveSubitem(ci, ii, si, 1)}
+                                disabled={si === item.subitems!.length - 1}
+                                className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30"
+                                title="Move down"
+                                aria-label="Move sub-item down"
+                              >
+                                <ArrowDown className="h-2.5 w-2.5" />
+                              </button>
+                            </div>
                             <button
                               type="button"
                               onClick={() => removeSubitem(ci, ii, si)}
@@ -871,8 +982,10 @@ function RubricEditor({
               <Plus className="h-3 w-3" /> Add item
             </button>
             </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <button
