@@ -8,6 +8,7 @@ import { sendSms } from "@/lib/sms";
 import { sendEmail, renderEmail } from "@/lib/email";
 import { sendWhatsApp } from "@/lib/whatsapp";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
+import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 
 const schema = z.object({
   invoiceId: z.string().min(1),
@@ -60,6 +61,20 @@ export async function POST(req: NextRequest) {
     },
   });
   if (!invoice) return NextResponse.json({ error: "INVOICE_NOT_FOUND" }, { status: 404 });
+
+  // Fee-collection master switch — if the tenant flipped fees off while a
+  // checkout was in flight, refuse to apply the payment. The Razorpay charge
+  // still happened on Razorpay's side; the tenant will need to refund manually.
+  // Logged so it's not silent.
+  if (!(await isFeatureEnabledForCentre(invoice.centreId, "fee-collection"))) {
+    await audit({
+      action: "razorpay.verify_blocked_fees_off",
+      tableName: "invoice",
+      rowId: invoice.id,
+      after: { orderId: d.razorpay_order_id, paymentId: d.razorpay_payment_id },
+    });
+    return NextResponse.json({ error: "FEATURE_DISABLED" }, { status: 503 });
+  }
 
   // Idempotent: if the webhook beat us here, just return ok.
   if (invoice.status === "paid") {

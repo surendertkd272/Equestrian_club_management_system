@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { getParentChildren } from "@/lib/parent";
+import { getFeaturesForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -9,7 +10,13 @@ export const dynamic = "force-dynamic";
 
 export default async function ParentDashboard() {
   const session = (await getSession())!;
-  const children = await getParentChildren(session.userId);
+  const [children, features] = await Promise.all([
+    getParentChildren(session.userId),
+    getFeaturesForSession(session),
+  ]);
+  // Master fee-collection switch. When OFF, hide the "Unpaid invoices"
+  // stat entirely — parent shouldn't see a tile that won't go anywhere.
+  const showPayment = features.has("fee-collection");
 
   if (children.length === 0) {
     return (
@@ -69,11 +76,13 @@ export default async function ParentDashboard() {
                   value={c.latestCertificateSerial ?? "—"}
                   mono={!!c.latestCertificateSerial}
                 />
-                <Stat
-                  label="Unpaid invoices"
-                  value={String(c.unpaidInvoiceCount)}
-                  tone={c.unpaidInvoiceCount > 0 ? "warning" : "default"}
-                />
+                {showPayment && (
+                  <Stat
+                    label="Unpaid invoices"
+                    value={String(c.unpaidInvoiceCount)}
+                    tone={c.unpaidInvoiceCount > 0 ? "warning" : "default"}
+                  />
+                )}
               </div>
               <div className="mt-4">
                 <Link href={`/parent/${c.riderId}`} className="text-sm text-primary underline">

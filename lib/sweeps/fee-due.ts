@@ -3,11 +3,14 @@ import { notify } from "../notify";
 import { sendSms } from "../sms";
 import { sendEmail, renderEmail } from "../email";
 import { sendWhatsApp } from "../whatsapp";
+import { hasFeature } from "../features-gate";
 import { SweepResult, centreManagerMap, recentlyNotified } from "./shared";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Job 1: Fee-due reminders.
 // Fires for invoices with dueDate within 1-4 days; once per invoice per day.
+// Skips invoices belonging to orgs that have turned fee-collection off — the
+// invoice rows stay in the DB for audit but reminders go silent.
 export async function sweepFeeDue(): Promise<SweepResult> {
   const now = new Date();
   const windowStart = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -17,9 +20,19 @@ export async function sweepFeeDue(): Promise<SweepResult> {
     where: { status: "due", dueDate: { gte: windowStart, lte: windowEnd } },
     include: {
       rider: { select: { firstName: true, lastName: true, mobile: true, fatherPhone: true, motherPhone: true, email: true } },
-      centre: { select: { name: true } },
+      centre: { select: { name: true, orgId: true } },
     },
   });
+
+  // Resolve fee-collection per org once for the whole batch. The set holds
+  // org IDs where fees are ON; anything else gets skipped.
+  const orgIds = Array.from(new Set(invoices.map((i) => i.centre.orgId).filter(Boolean) as string[]));
+  const feesOnOrgs = new Set<string>();
+  await Promise.all(
+    orgIds.map(async (orgId) => {
+      if (await hasFeature(orgId, "fee-collection")) feesOnOrgs.add(orgId);
+    }),
+  );
 
   // One centre lookup for the whole batch instead of one per invoice.
   const managers = await centreManagerMap(invoices.map((i) => i.centreId));
@@ -27,6 +40,11 @@ export async function sweepFeeDue(): Promise<SweepResult> {
   let notified = 0;
   let skipped = 0;
   for (const inv of invoices) {
+    // Master fee-collection switch — silence reminders for orgs that opted out.
+    if (!inv.centre.orgId || !feesOnOrgs.has(inv.centre.orgId)) {
+      skipped += 1;
+      continue;
+    }
     const mgrId = managers.get(inv.centreId) ?? null;
     if (!mgrId) {
       skipped += 1;

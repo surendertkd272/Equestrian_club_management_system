@@ -12,6 +12,7 @@ import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { sendEmail, renderEmail } from "@/lib/email";
 import { sendSms } from "@/lib/sms";
 import { sendWhatsApp } from "@/lib/whatsapp";
+import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 import { z } from "zod";
 
 const APPROVER_ROLES = new Set(["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "SCHOOL_ADMINISTRATOR"]);
@@ -63,7 +64,67 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ ok: true, status: "rejected" });
   }
 
-  // Approve → create the registration invoice + move to pending_payment.
+  // Approve. Two paths depending on the centre's fee-collection flag:
+  //   ON  → create the registration invoice + move to pending_payment
+  //         (the historical flow; parent gets paylink email/SMS/WA).
+  //   OFF → skip invoice, set registrationPaid=true + status=active
+  //         (no paylink notification, just a simple approval confirmation).
+  const feesOn = await isFeatureEnabledForCentre(rider.centreId, "fee-collection");
+
+  const centre = await prisma.centre.findUnique({
+    where: { id: rider.centreId },
+    select: { name: true },
+  });
+  const centreName = centre?.name ?? "Equiwings";
+  const parentPhone = rider.fatherPhone ?? rider.motherPhone ?? rider.mobile;
+  const parentEmail = rider.email;
+  const riderFullName = `${rider.firstName} ${rider.lastName}`;
+
+  if (!feesOn) {
+    // No-invoice approval — rider goes straight to active.
+    await prisma.rider.update({
+      where: { id: rider.id },
+      data: {
+        status: "active",
+        registrationPaid: true,
+        approvedByUserId: session.userId,
+        approvedAt: new Date(),
+      },
+    });
+    await audit({
+      userId: session.userId,
+      action: "enrolment.approve",
+      tableName: "rider",
+      rowId: rider.id,
+      before: { status: "pending_approval" },
+      after: { status: "active", feesDisabled: true },
+    });
+    // Welcome-only notification — no amount, no pay link.
+    if (parentPhone) {
+      await sendSms({
+        to: parentPhone,
+        body: `${centreName}: ${riderFullName}'s registration is approved. They're now active on the roster.`,
+        ref: { type: "enrolment.approved", rowId: rider.id, payload: { riderId: rider.id, fees: "off" } },
+      });
+    }
+    if (parentEmail) {
+      await sendEmail({
+        to: parentEmail,
+        subject: `${riderFullName} is now active at ${centreName}`,
+        html: renderEmail({
+          centreName,
+          heading: `Welcome to ${centreName}!`,
+          body: `<p>Dear Parent / Guardian,</p>
+<p>The registration for <b>${riderFullName}</b> has been approved by the centre team. The rider is now active on the roster — no further steps needed.</p>
+<p>Your centre coordinator will be in touch with batch + schedule details.</p>`,
+        }),
+        ref: { type: "enrolment.approved", rowId: rider.id, payload: { riderId: rider.id, fees: "off" } },
+      });
+    }
+    return NextResponse.json({ ok: true, status: "active", feesDisabled: true });
+  }
+
+  // Fees ON — original flow.
   const regPlan = await prisma.feePlan.findFirst({ where: { centreId: rider.centreId } });
   const regAmount = regPlan?.registrationAmount ?? 3000;
 
@@ -101,14 +162,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   // itself stays successful (which is what the admin cares about).
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
   const payUrl = `${baseUrl}/pay/${invoice.id}`;
-  const centre = await prisma.centre.findUnique({
-    where: { id: rider.centreId },
-    select: { name: true },
-  });
-  const centreName = centre?.name ?? "Equiwings";
-  const parentPhone = rider.fatherPhone ?? rider.motherPhone ?? rider.mobile;
-  const parentEmail = rider.email;
-  const riderFullName = `${rider.firstName} ${rider.lastName}`;
   const amountLabel = `₹${regAmount.toLocaleString("en-IN")}`;
 
   if (parentPhone) {

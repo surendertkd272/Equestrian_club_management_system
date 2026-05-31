@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 
 // Dev-only mock. Unauthenticated + no signature check — if reachable in
 // production, anyone can mark any invoice paid by sending a single POST.
@@ -14,6 +15,9 @@ export async function POST(req: NextRequest) {
 
   const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
   if (!invoice) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  if (!(await isFeatureEnabledForCentre(invoice.centreId, "fee-collection"))) {
+    return NextResponse.json({ error: "FEATURE_DISABLED" }, { status: 503 });
+  }
 
   await prisma.$transaction([
     prisma.payment.create({

@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createRegistrationSchema } from "@/lib/schemas/event";
 import { audit } from "@/lib/audit";
+import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 
 // POST — register a rider for an event. Auto-creates an invoice when
 // Event.fee > 0 so the finance module picks up event income alongside
@@ -46,18 +47,24 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: "RIDER_CROSS_CENTRE" }, { status: 400 });
   }
 
+  // Fee-collection master switch. When OFF, registration is recorded as
+  // paid + no invoice is created. Event.fee stays untouched so toggling
+  // fees back ON later resumes billing.
+  const feesOn = await isFeatureEnabledForCentre(ev.centreId, "fee-collection");
+  const billable = feesOn && ev.fee > 0;
+
   try {
     const reg = await prisma.eventRegistration.create({
       data: {
         eventId: ev.id,
         riderId: rider.id,
         notes: parsed.data.notes,
-        paid: ev.fee === 0,
+        paid: !billable,
       },
     });
 
     let invoiceId: string | null = null;
-    if (ev.fee > 0) {
+    if (billable) {
       const inv = await prisma.invoice.create({
         data: {
           centreId: ev.centreId,

@@ -13,6 +13,7 @@ import { calcBmi } from "@/lib/utils";
 import { audit } from "@/lib/audit";
 import { notifyCentreManager } from "@/lib/notify";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
+import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 
 export const runtime = "nodejs";
 
@@ -159,5 +160,11 @@ export async function POST(req: NextRequest) {
     payload: { riderId: rider.id },
   });
 
-  return NextResponse.json({ riderId: rider.id, status: "pending_approval" });
+  // Signal whether the centre takes rider payments — the wizard's
+  // post-submit card adapts its "what happens next" copy from this so
+  // applicants going through a no-fees centre aren't told to expect a
+  // payment link that will never arrive.
+  const feesOn = await isFeatureEnabledForCentre(centre.id, "fee-collection");
+
+  return NextResponse.json({ riderId: rider.id, status: "pending_approval", feesOn });
 }

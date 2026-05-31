@@ -9,6 +9,7 @@ import { sendEmail, renderEmail } from "@/lib/email";
 import { sendWhatsApp } from "@/lib/whatsapp";
 import { issueSaasInvoice } from "@/lib/saas-billing";
 import { isPlanKey } from "@/lib/plans";
+import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 
 // Razorpay → us. Configure in dashboard with HTTPS URL + secret matching RAZORPAY_WEBHOOK_SECRET.
 // Idempotency is critical: Razorpay may retry; our verify endpoint may also have run.
@@ -123,6 +124,20 @@ export async function POST(req: NextRequest) {
   });
   if (!invoice) {
     return NextResponse.json({ error: "INVOICE_NOT_FOUND" }, { status: 404 });
+  }
+
+  // Fee-collection master switch — if the tenant turned fees off between
+  // the user starting checkout and Razorpay's webhook landing here, log it
+  // and no-op. Razorpay still captured the charge; tenant refunds manually.
+  // Returning 200 with `skipped` so Razorpay doesn't retry indefinitely.
+  if (!(await isFeatureEnabledForCentre(invoice.centreId, "fee-collection"))) {
+    await audit({
+      action: "razorpay.webhook.skipped_fees_off",
+      tableName: "invoice",
+      rowId: invoice.id,
+      after: { orderId, paymentId, amountPaise: payment.amount },
+    });
+    return NextResponse.json({ ok: true, skipped: "fees_off" });
   }
 
   // Idempotent: if the verify endpoint already applied this payment, no-op.

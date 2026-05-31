@@ -582,7 +582,7 @@ function SubmittedStep({
   result,
   centreName,
 }: {
-  result: { riderId: string; status: string } | null;
+  result: { riderId: string; status: string; feesOn?: boolean } | null;
   centreName: string;
 }) {
   if (!result) {
@@ -592,6 +592,12 @@ function SubmittedStep({
       </div>
     );
   }
+  // The centre's fee-collection switch determines what happens after approval:
+  // fees ON → confirmation email + pay link to parent, then activation.
+  // fees OFF → confirmation email only, immediate activation, no payment step.
+  // Default to ON when the field is missing (older API clients) so we don't
+  // accidentally over-promise no-fees to a paying centre.
+  const feesOn = result.feesOn !== false;
   return (
     <div className="space-y-4 text-center">
       <div className="rounded-md border-2 border-emerald-300 bg-emerald-50 p-6">
@@ -606,8 +612,14 @@ function SubmittedStep({
         <div className="font-semibold">What happens next?</div>
         <ol className="ml-4 mt-2 list-decimal space-y-1 text-muted-foreground">
           <li>The centre's admin reviews your details (usually within 1–2 business days).</li>
-          <li>Once approved, you'll receive a confirmation email. Any payment instructions go to your parent's contact on file.</li>
-          <li>Once payment is settled, the rider is added to the active roster.</li>
+          {feesOn ? (
+            <>
+              <li>Once approved, you'll receive a confirmation email. Any payment instructions go to your parent's contact on file.</li>
+              <li>Once payment is settled, the rider is added to the active roster.</li>
+            </>
+          ) : (
+            <li>Once approved, you'll receive a confirmation email and the rider is added to the active roster — no payment step at this centre.</li>
+          )}
         </ol>
         <p className="mt-3 text-xs text-muted-foreground">
           Reference: <code>{result.riderId.slice(-8)}</code> · Keep this for follow-up.
@@ -674,7 +686,7 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
   // There's no immediate invoice — that's created later when a centre
   // admin approves the rider. Confirmation card uses riderId as the
   // reference number the applicant can quote in follow-ups.
-  const [result, setResult] = useState<{ riderId: string; status: string } | null>(null);
+  const [result, setResult] = useState<{ riderId: string; status: string; feesOn?: boolean } | null>(null);
   const [restored, setRestored] = useState(false);
 
   // Restore in an effect (not useState init) so SSR and client agree on

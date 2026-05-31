@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createEntrySchema, parseClasses } from "@/lib/schemas/competition";
 import { audit } from "@/lib/audit";
+import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -116,6 +117,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
   }
 
+  // Fee-collection master switch. When OFF for this centre's org, treat
+  // every entry as free at the entry-row level + skip invoice creation.
+  // Class.fee in the source data stays untouched so toggling fees back
+  // ON later resumes invoicing without a migration.
+  const feesOn = await isFeatureEnabledForCentre(comp.centreId, "fee-collection");
+  const billable = feesOn && cls.fee > 0;
+
   try {
     const entry = await prisma.competitionEntry.create({
       data: {
@@ -125,13 +133,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         horseId: d.horseId || null,
         teamId: d.teamId || null,
         notes: d.notes || null,
-        paid: cls.fee === 0,
+        paid: !billable,
       },
     });
 
-    // Create an invoice if there's an entry fee.
+    // Create an invoice only when fees are on AND the class is billable.
     let invoiceId: string | null = null;
-    if (cls.fee > 0) {
+    if (billable) {
       const inv = await prisma.invoice.create({
         data: {
           centreId: comp.centreId,

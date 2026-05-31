@@ -12,6 +12,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PayButton } from "./pay-button";
@@ -27,6 +28,12 @@ export default async function PayPage({ params }: { params: { invoiceId: string 
     },
   });
   if (!invoice) notFound();
+  // Fee-collection master switch — if the tenant turned payments off after
+  // this invoice was created, the link 404s. Records stay in the DB for
+  // audit; only the surface disappears.
+  if (!(await isFeatureEnabledForCentre(invoice.centreId, "fee-collection"))) {
+    notFound();
+  }
 
   const total = invoice.amount + invoice.gstAmount;
   const paid = invoice.status === "paid";

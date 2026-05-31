@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { createOrder, isConfigured, publicKeyId } from "@/lib/razorpay";
 import { audit } from "@/lib/audit";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
+import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 
 // Public endpoint — onboarding flow uses it without auth.
 // Safety: caller must hand in a valid invoice CUID; we look it up to derive amount + rider context.
@@ -36,6 +37,11 @@ export async function POST(req: NextRequest) {
     },
   });
   if (!invoice) return NextResponse.json({ error: "INVOICE_NOT_FOUND" }, { status: 404 });
+  // Fee-collection master switch — refuse to mint an order for a tenant
+  // that's turned rider payments off, even on a still-due invoice.
+  if (!(await isFeatureEnabledForCentre(invoice.centreId, "fee-collection"))) {
+    return NextResponse.json({ error: "FEATURE_DISABLED" }, { status: 503 });
+  }
   if (invoice.status === "paid") {
     return NextResponse.json({ error: "ALREADY_PAID" }, { status: 409 });
   }

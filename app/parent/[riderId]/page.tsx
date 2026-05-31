@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { getChildDetail } from "@/lib/parent";
+import { getFeaturesForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -10,9 +11,15 @@ export const dynamic = "force-dynamic";
 
 export default async function ParentChildPage({ params }: { params: { riderId: string } }) {
   const session = (await getSession())!;
-  const detail = await getChildDetail(session.userId, params.riderId);
+  const [detail, features] = await Promise.all([
+    getChildDetail(session.userId, params.riderId),
+    getFeaturesForSession(session),
+  ]);
   if (!detail) notFound();
   const { rider, relationship, attendance, attendancePct, skills, exams, certificates, invoices, upcomingLessons } = detail;
+  // Master fee-collection switch — when OFF, the Invoices card is suppressed.
+  // Existing invoices remain in the DB for audit; only the surface disappears.
+  const showPayment = features.has("fee-collection");
 
   const skillsByLevel = new Map<string, typeof skills>();
   for (const s of skills) {
@@ -222,51 +229,53 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Invoices</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {invoices.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No invoices yet.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="pb-2">Created</th>
-                  <th className="pb-2">Kind</th>
-                  <th className="pb-2">Amount</th>
-                  <th className="pb-2">Due</th>
-                  <th className="pb-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoices.map((i) => (
-                  <tr key={i.id} className="border-t">
-                    <td className="py-2">{formatDate(i.createdAt)}</td>
-                    <td className="py-2">{i.kind.replace("_", " ")}</td>
-                    <td className="py-2 font-semibold">₹{i.amount.toLocaleString("en-IN")}</td>
-                    <td className="py-2">{formatDate(i.dueDate)}</td>
-                    <td className="py-2">
-                      <Badge
-                        variant={
-                          i.status === "paid"
-                            ? "success"
-                            : i.status === "overdue"
-                              ? "destructive"
-                              : "warning"
-                        }
-                      >
-                        {i.status}
-                      </Badge>
-                    </td>
+      {showPayment && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Invoices</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {invoices.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No invoices yet.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="text-left text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="pb-2">Created</th>
+                    <th className="pb-2">Kind</th>
+                    <th className="pb-2">Amount</th>
+                    <th className="pb-2">Due</th>
+                    <th className="pb-2">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </CardContent>
-      </Card>
+                </thead>
+                <tbody>
+                  {invoices.map((i) => (
+                    <tr key={i.id} className="border-t">
+                      <td className="py-2">{formatDate(i.createdAt)}</td>
+                      <td className="py-2">{i.kind.replace("_", " ")}</td>
+                      <td className="py-2 font-semibold">₹{i.amount.toLocaleString("en-IN")}</td>
+                      <td className="py-2">{formatDate(i.dueDate)}</td>
+                      <td className="py-2">
+                        <Badge
+                          variant={
+                            i.status === "paid"
+                              ? "success"
+                              : i.status === "overdue"
+                                ? "destructive"
+                                : "warning"
+                          }
+                        >
+                          {i.status}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

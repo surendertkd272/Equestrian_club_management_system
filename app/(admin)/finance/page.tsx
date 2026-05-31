@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
+import { assertSessionFeature } from "@/lib/features-gate";
 import { centreWhere, scopeCentre } from "@/lib/tenancy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +36,10 @@ export default async function FinancePage() {
   // only. The sidebar already hides this link from other roles, but a direct
   // URL hit would otherwise render it.
   if (!can(session.role, "finance.read")) redirect("/dashboard");
+  // Master fee-collection switch — tenants who turned rider payments off
+  // get a 404 here even if they hit the direct URL. Sidebar already hides
+  // the link via the feature gate; this enforces it server-side.
+  await assertSessionFeature("fee-collection");
   const centreId = scopeCentre(session);
   const where = centreWhere(centreId);
 

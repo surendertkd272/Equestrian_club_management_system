@@ -143,3 +143,16 @@ export async function assertSessionFeature(key: FeatureKey): Promise<void> {
   const features = await getFeaturesForSession(session);
   if (!features.has(key)) notFound();
 }
+
+// Centre → org → feature lookup. Public endpoints (the /pay page, Razorpay
+// webhook + verify) have no session — they only know the invoice's centre.
+// This resolves the org behind the centre and checks the flag in one call.
+// Memoised through getOrgIdForCentre + getOrgFeatures.
+export async function isFeatureEnabledForCentre(
+  centreId: string,
+  key: FeatureKey,
+): Promise<boolean> {
+  const orgId = await getOrgIdForCentre(centreId);
+  if (!orgId) return false;
+  return hasFeature(orgId, key);
+}

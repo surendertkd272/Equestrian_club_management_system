@@ -5,6 +5,7 @@ import { can } from "@/lib/permissions";
 import { bulkMarkPaidSchema } from "@/lib/schemas/payment";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { blockIfFeatureOff } from "@/lib/features-gate";
 
 // Bulk-pay flow for the finance dashboard. For each invoice id supplied:
 //   1. Skip if the invoice is already paid or refunded.
@@ -18,6 +19,8 @@ export async function POST(req: NextRequest) {
   if (!can(session.role, "finance.write")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+  const featureBlock = await blockIfFeatureOff(session, "fee-collection");
+  if (featureBlock) return featureBlock;
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
 
