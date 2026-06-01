@@ -13,8 +13,8 @@ export default async function NewCompetitionPage() {
         <CardHeader>
           <CardTitle>New competition</CardTitle>
           <CardDescription>
-            Define the basics + at least one class. You can add entries from the detail page once the competition is in
-            draft.
+            Define the basics, scoring type, and the disciplines/events offered. You can add entries from the detail
+            page once the competition is in draft.
           </CardDescription>
         </CardHeader>
         <CardContent>

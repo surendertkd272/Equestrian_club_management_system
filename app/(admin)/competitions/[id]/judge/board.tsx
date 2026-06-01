@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { getDisciplineRules } from "@/lib/discipline";
+import { getDisciplineRules, scoringEngineFor } from "@/lib/discipline";
 
 type Entry = {
   id: string;
@@ -22,6 +22,7 @@ type Round = { id: string; className: string; roundNumber: number; name: string 
 export function JudgeBoard({
   competitionId,
   discipline,
+  classDisciplines,
   classes,
   rounds,
   startList,
@@ -29,14 +30,18 @@ export function JudgeBoard({
 }: {
   competitionId: string;
   discipline: string;
+  // className → parent discipline key, for per-event scoring.
+  classDisciplines: Record<string, string>;
   classes: string[];
   rounds: Round[];
   startList: { entryId: string; className: string; order: number }[];
   entries: Entry[];
 }) {
   const router = useRouter();
-  const rules = getDisciplineRules(discipline);
   const [activeClass, setActiveClass] = useState(classes[0] ?? "");
+  // The active class scores by its own discipline; comp.discipline is fallback.
+  const engine = scoringEngineFor(classDisciplines[activeClass], discipline);
+  const rules = getDisciplineRules(engine);
   const classRounds = useMemo(() => rounds.filter((r) => r.className === activeClass), [rounds, activeClass]);
   const [activeRound, setActiveRound] = useState<string>("aggregate");
 
@@ -70,10 +75,11 @@ export function JudgeBoard({
     router.refresh();
   }
 
-  // Per-discipline column layout — show only the channels that matter.
-  const showScore = discipline === "dressage" || discipline === "generic" || discipline === "eventing";
-  const showFaults = discipline === "jumping" || discipline === "eventing" || discipline === "gymkhana";
-  const showTime = discipline === "jumping" || discipline === "eventing" || discipline === "gymkhana";
+  // Per-discipline column layout — show only the channels that matter for the
+  // active class's scoring engine.
+  const showScore = engine === "dressage" || engine === "generic" || engine === "eventing";
+  const showFaults = engine === "jumping" || engine === "eventing" || engine === "gymkhana";
+  const showTime = engine === "jumping" || engine === "eventing" || engine === "gymkhana";
 
   return (
     <div className="space-y-4">
@@ -139,7 +145,7 @@ export function JudgeBoard({
             <div className="mt-2 grid gap-2" style={{ gridTemplateColumns: `repeat(${(showScore ? 1 : 0) + (showFaults ? 1 : 0) + (showTime ? 1 : 0) + 1}, minmax(0, 1fr))` }}>
               {showScore && (
                 <label className="block">
-                  <span className="text-[10px] uppercase text-slate-500">{discipline === "dressage" ? "%" : "Score"}</span>
+                  <span className="text-[10px] uppercase text-slate-500">{engine === "dressage" ? "%" : "Score"}</span>
                   <input
                     type="number"
                     step="0.1"

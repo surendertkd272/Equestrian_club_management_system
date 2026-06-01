@@ -51,6 +51,7 @@ export default async function JudgePage({ params }: { params: { id: string } }) 
         <JudgeBoard
           competitionId={comp.id}
           discipline={comp.discipline}
+          classDisciplines={Object.fromEntries(classes.map((c) => [c.name, c.discipline ?? ""]))}
           classes={classes.map((c) => c.name)}
           rounds={comp.rounds.map((r) => ({ id: r.id, className: r.className, roundNumber: r.roundNumber, name: r.name }))}
           startList={comp.startList.map((s) => ({

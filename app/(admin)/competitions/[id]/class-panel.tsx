@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Plus, Trash2, Medal } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
-import { getDisciplineRules, rankEntries } from "@/lib/discipline";
+import { getDisciplineRulesForClass, rankEntries, scoringEngineFor } from "@/lib/discipline";
+import { disciplineLabel } from "@/lib/competition-disciplines";
 
 type Entry = {
   id: string;
@@ -28,7 +29,7 @@ type Entry = {
   horseId: string | null;
 };
 
-type Class = { name: string; fee: number; ageGroup?: string; maxEntries?: number };
+type Class = { name: string; discipline?: string; fee: number; ageGroup?: string; maxEntries?: number };
 
 export function ClassPanel({
   competitionId,
@@ -57,7 +58,10 @@ export function ClassPanel({
   const [newHorseId, setNewHorseId] = useState("");
   const [newTeamId, setNewTeamId] = useState("");
   const acceptingEntries = competitionStatus !== "completed" && competitionStatus !== "cancelled";
-  const rules = getDisciplineRules(discipline);
+  // This event scores by its own discipline; the competition `discipline` prop
+  // is the fallback for events with no discipline of their own.
+  const engine = scoringEngineFor(cls.discipline, discipline);
+  const rules = getDisciplineRulesForClass(cls.discipline, discipline);
 
   async function addEntry(e: React.FormEvent) {
     e.preventDefault();
@@ -139,7 +143,7 @@ export function ClassPanel({
   // final fallback. Withdrawn entries sink to the bottom regardless.
   const placed = entries.filter((e) => e.placement !== null).sort((a, b) => a.placement! - b.placement!);
   const live = entries.filter((e) => e.placement === null && e.status !== "withdrawn");
-  const liveRanked = rankEntries(discipline, live).sort((a, b) => {
+  const liveRanked = rankEntries(engine, live).sort((a, b) => {
     const aHas = a.score !== null || a.faults !== null || a.time !== null;
     const bHas = b.score !== null || b.faults !== null || b.time !== null;
     if (aHas !== bHas) return aHas ? -1 : 1;
@@ -148,7 +152,7 @@ export function ClassPanel({
   // Stable tie-break on name when discipline rank says equal
   const tied: Entry[] = liveRanked.slice();
   tied.sort((a, b) => {
-    const r = rankEntries(discipline, [a, b]);
+    const r = rankEntries(engine, [a, b]);
     if (r[0]!.id === a.id) return -1;
     return 1;
   });
@@ -164,7 +168,8 @@ export function ClassPanel({
           <CardTitle>
             {cls.name}{" "}
             <span className="ml-2 text-xs font-normal text-muted-foreground">
-              {cls.ageGroup && `· age ${cls.ageGroup}`}
+              {cls.discipline && `· ${disciplineLabel(cls.discipline)}`}
+              {cls.ageGroup && ` · age ${cls.ageGroup}`}
               {cls.fee > 0 && ` · ₹${cls.fee} entry`}
               {cls.maxEntries && ` · ${entries.length}/${cls.maxEntries}`}
             </span>
@@ -302,7 +307,7 @@ export function ClassPanel({
           </table>
         )}
         <div className="text-xs text-muted-foreground">
-          Discipline: <strong>{rules.label}</strong> · ranking by {rules.primaryColumn}
+          Scoring: <strong>{rules.label}</strong> · ranking by {rules.primaryColumn}
         </div>
 
         {canManage && acceptingEntries && riders.length > 0 && (

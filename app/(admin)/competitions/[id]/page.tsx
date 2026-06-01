@@ -126,7 +126,7 @@ export default async function CompetitionDetail({ params }: { params: { id: stri
             <dd>{comp.venue ?? "—"}</dd>
             <dt className="text-muted-foreground">Scope</dt>
             <dd>{comp.scope.replaceAll("_", " ")}</dd>
-            <dt className="text-muted-foreground">Discipline</dt>
+            <dt className="text-muted-foreground">Scoring type</dt>
             <dd>{disciplineRules.label}</dd>
             <dt className="text-muted-foreground">Slug</dt>
             <dd className="font-mono text-xs">{comp.slug}</dd>

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { parseClasses } from "@/lib/schemas/competition";
 import { formatDate } from "@/lib/utils";
 import { LiveAutoRefresh } from "./auto-refresh";
-import { getDisciplineRules, rankEntries } from "@/lib/discipline";
+import { getDisciplineRulesForClass, rankEntries, scoringEngineFor } from "@/lib/discipline";
 
 export const dynamic = "force-dynamic";
 // Auto-refresh via a client component (router.refresh, no page reload).
@@ -63,12 +63,14 @@ export default async function LiveScoreboard({ params }: { params: { slug: strin
         </div>
 
         {classes.map((cls) => {
-          const rules = getDisciplineRules(comp.discipline);
+          // Each event scores by its own discipline; comp.discipline is fallback.
+          const engine = scoringEngineFor(cls.discipline, comp.discipline);
+          const rules = getDisciplineRulesForClass(cls.discipline, comp.discipline);
           const list = byClass.get(cls.name) ?? [];
           // Placed first (in order), then discipline-ranked.
           const placed = list.filter((e) => e.placement !== null).sort((a, b) => a.placement! - b.placement!);
           const live = list.filter((e) => e.placement === null);
-          const sorted = [...placed, ...rankEntries(comp.discipline, live)];
+          const sorted = [...placed, ...rankEntries(engine, live)];
 
           return (
             <section key={cls.name} className="mb-6 rounded-lg border bg-card p-4 shadow-sm">

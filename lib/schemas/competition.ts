@@ -20,6 +20,9 @@ export const ENTRY_STATUSES = ["entered", "withdrawn", "scratched"] as const;
 
 export const competitionClassSchema = z.object({
   name: z.string().min(2).max(80),
+  // Parent discipline this event belongs to (e.g. "Jumping", "Gymkhana Events").
+  // Optional for backward-compat with classes created before the discipline builder.
+  discipline: z.string().max(40).optional(),
   fee: z.coerce.number().min(0).default(0),
   ageGroup: z.string().max(40).optional(),
   maxEntries: z.coerce.number().int().min(1).max(500).optional(),
@@ -38,7 +41,7 @@ export const createCompetitionSchema = z.object({
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   venue: z.string().max(120).optional(),
   entryDeadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  classes: z.array(competitionClassSchema).min(1, "Define at least one class"),
+  classes: z.array(competitionClassSchema).default([]),
 });
 
 export const updateCompetitionSchema = z.object({

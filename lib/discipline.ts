@@ -139,6 +139,42 @@ export function getDisciplineRules(d: string | null | undefined): DisciplineRule
   return generic;
 }
 
+// Maps a competition-builder discipline (lib/competition-disciplines.ts keys) to
+// the scoring engine that ranks + formats its events. A competition can now span
+// several disciplines, so each class/event resolves its own engine from here;
+// the competition-wide "scoring type" is only the fallback for events with no
+// discipline (legacy rows) or a discipline not listed below.
+const DISCIPLINE_TO_ENGINE: Record<string, Discipline> = {
+  jumping: "jumping",
+  dressage: "dressage",
+  eventing: "eventing",
+  gymkhana: "gymkhana",
+  tent_pegging: "gymkhana", // timed runs + accuracy penalties
+  endurance: "gymkhana", // fastest qualifying time wins
+  polo: "generic", // goals scored, highest wins
+  hacks: "generic", // judged on merit, highest score
+};
+
+// Resolve the scoring engine key for a single event. `classDiscipline` is the
+// event's parent discipline (a builder key); `fallback` is the competition's
+// scoring-type selector (already an engine key).
+export function scoringEngineFor(
+  classDiscipline: string | null | undefined,
+  fallback: string | null | undefined,
+): Discipline {
+  if (classDiscipline && DISCIPLINE_TO_ENGINE[classDiscipline]) return DISCIPLINE_TO_ENGINE[classDiscipline];
+  if (fallback && (REGISTRY as Record<string, DisciplineRules>)[fallback]) return fallback as Discipline;
+  return "generic";
+}
+
+// Convenience: rules for an event, resolved per-discipline with a fallback.
+export function getDisciplineRulesForClass(
+  classDiscipline: string | null | undefined,
+  fallback: string | null | undefined,
+): DisciplineRules {
+  return getDisciplineRules(scoringEngineFor(classDiscipline, fallback));
+}
+
 export function rankEntries<T extends EntryScore>(d: string | null | undefined, entries: T[]): T[] {
   const rules = getDisciplineRules(d);
   return [...entries].sort((a, b) => rules.rank(a, b));

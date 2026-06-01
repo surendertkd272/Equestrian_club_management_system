@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { parseClasses } from "@/lib/schemas/competition";
 import { renderPrintable, pdfHeader, escapeHtml } from "@/lib/pdf";
-import { getDisciplineRules, rankEntries } from "@/lib/discipline";
+import { disciplineLabel } from "@/lib/competition-disciplines";
+import { getDisciplineRules, getDisciplineRulesForClass, rankEntries, scoringEngineFor } from "@/lib/discipline";
 
 // Printable post-event results sheet. Shows placements, headline scores
 // (discipline-formatted), sponsors-per-prize, and team standings.
@@ -31,7 +32,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   }
 
   const classes = parseClasses(comp.classesJson);
-  const rules = getDisciplineRules(comp.discipline);
+  // Competition-wide scoring type — used as the fallback + in the header line.
+  const fallbackRules = getDisciplineRules(comp.discipline);
 
   const byClass = new Map<string, typeof comp.entries>();
   for (const e of comp.entries) {
@@ -42,10 +44,13 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   const sections = classes
     .map((cls) => {
+      // Each event scores by its own discipline; comp.discipline is fallback.
+      const engine = scoringEngineFor(cls.discipline, comp.discipline);
+      const rules = getDisciplineRulesForClass(cls.discipline, comp.discipline);
       const list = byClass.get(cls.name) ?? [];
       const placed = list.filter((e) => e.placement !== null).sort((a, b) => a.placement! - b.placement!);
       const live = list.filter((e) => e.placement === null);
-      const sorted = [...placed, ...rankEntries(comp.discipline, live)];
+      const sorted = [...placed, ...rankEntries(engine, live)];
       const classPrizes = comp.prizes.filter((p) => p.className === cls.name);
 
       const rows = sorted
@@ -71,7 +76,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         })
         .join("");
       return `
-        <h3>${escapeHtml(cls.name)}${cls.ageGroup ? ` · age ${escapeHtml(cls.ageGroup)}` : ""}</h3>
+        <h3>${escapeHtml(cls.name)}${cls.discipline ? ` · ${escapeHtml(disciplineLabel(cls.discipline))}` : ""}${cls.ageGroup ? ` · age ${escapeHtml(cls.ageGroup)}` : ""}</h3>
         <table>
           <thead>
             <tr><th style="text-align:right;width:12mm">#</th><th>Rider</th><th>Team</th><th style="text-align:right">${escapeHtml(rules.primaryColumn)}</th><th>Prize</th></tr>
@@ -85,7 +90,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const body = `
     ${pdfHeader({ centreName: comp.centre.name, subtitle: `Results · ${comp.name}`, date: comp.startDate })}
     <div style="margin-bottom:4mm;font-size:10pt;color:#444">
-      Discipline: <b>${rules.label}</b> · Scope: ${escapeHtml(comp.scope.replaceAll("_", " "))}
+      Scoring type: <b>${fallbackRules.label}</b> · Scope: ${escapeHtml(comp.scope.replaceAll("_", " "))}
     </div>
     ${sections}
     <div class="signature-block" style="margin-top:10mm">
