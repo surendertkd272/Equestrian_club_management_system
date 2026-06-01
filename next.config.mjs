@@ -32,6 +32,13 @@ const nextConfig = {
   reactStrictMode: true,
   experimental: {
     serverActions: { bodySizeLimit: "8mb" },
+    // Client-side Router Cache: don't reuse dynamic-route renders across soft
+    // navigations. `force-dynamic` only governs the SERVER render — the client
+    // still served a cached RSC payload for ~30s, so a roster change (e.g. a
+    // newly added user) didn't appear in dropdowns like /tasks/new until a hard
+    // refresh. 0 = always refetch dynamic routes on navigation. (This is Next
+    // 15's default; we set it explicitly on 14.2.) Static routes keep theirs.
+    staleTimes: { dynamic: 0 },
   },
   async headers() {
     return [{ source: "/(.*)", headers: SECURITY_HEADERS }];
