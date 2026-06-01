@@ -2242,6 +2242,12 @@ model Certificate {
   revokedAt DateTime?
   revokedBy String?
   revokeReason String?
+  // Parent-notification tracking. Email is NOT auto-sent on cert issue —
+  // staff click 'Send result to parent' on the cert detail/list page when
+  // they're ready. resultEmailSentAt is set on the click; if null the
+  // UI shows the action as primary (otherwise as 'Resend').
+  resultEmailSentAt DateTime?
+  resultEmailSentBy String?
   issuedAt  DateTime @default(now())
 
   centre      Centre       @relation(fields: [centreId], references: [id])

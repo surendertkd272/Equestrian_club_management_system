@@ -11,6 +11,15 @@ import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { BulkIssuePanel } from "./bulk-issue-panel";
 import { RevokeButton } from "./revoke-button";
+import { SendResultButton } from "./[id]/send-result-button";
+
+const SEND_RESULT_ROLES = new Set([
+  "SUPER_ADMIN",
+  "ADMIN",
+  "CENTRE_MANAGER",
+  "HEAD_COACH",
+  "COACH",
+]);
 
 export const dynamic = "force-dynamic";
 
@@ -29,11 +38,12 @@ export default async function CertificatesPage({
   if (searchParams.revoked === "yes") where.revokedAt = { not: null };
   else if (searchParams.revoked === "no") where.revokedAt = null;
 
+  const canSendResult = SEND_RESULT_ROLES.has(session.role);
   const [certs, events, sittings, comps] = await Promise.all([
     prisma.certificate.findMany({
       where,
       include: {
-        rider: { select: { firstName: true, lastName: true } },
+        rider: { select: { firstName: true, lastName: true, email: true } },
         centre: { select: { name: true } },
       },
       orderBy: { issuedAt: "desc" },
@@ -161,18 +171,27 @@ export default async function CertificatesPage({
                         "—"
                       )}
                     </td>
-                    <td className="py-2 space-x-2 text-right">
-                      <Link href={`/certificates/${c.id}`} className="text-xs text-primary underline">
-                        Print
-                      </Link>
-                      <Link
-                        href={`/verify/${c.serialNo}`}
-                        className="text-xs text-primary underline"
-                        target="_blank"
-                      >
-                        Verify ↗
-                      </Link>
-                      {canBulk && !c.revokedAt && <RevokeButton id={c.id} />}
+                    <td className="py-2 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {canSendResult && c.examId && !c.revokedAt && (
+                          <SendResultButton
+                            certId={c.id}
+                            alreadySentAt={c.resultEmailSentAt?.toISOString() ?? null}
+                            parentEmail={c.rider.email}
+                          />
+                        )}
+                        <Link href={`/certificates/${c.id}`} className="text-xs text-primary underline">
+                          Print
+                        </Link>
+                        <Link
+                          href={`/verify/${c.serialNo}`}
+                          className="text-xs text-primary underline"
+                          target="_blank"
+                        >
+                          Verify ↗
+                        </Link>
+                        {canBulk && !c.revokedAt && <RevokeButton id={c.id} />}
+                      </div>
                     </td>
                   </tr>
                 ))}

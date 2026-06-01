@@ -7,7 +7,6 @@ import { updateExamScoreSchema, parseRubric, computeTotal } from "@/lib/schemas/
 import { audit } from "@/lib/audit";
 import { generateUniqueSerial, verifyUrl } from "@/lib/cert";
 import { notifyCentreManager, notify, notifyRiderAndParents } from "@/lib/notify";
-import { renderExamBreakdownHtml } from "@/lib/exam-email-breakdown";
 import { sendSms } from "@/lib/sms";
 import { sendEmail, renderEmail } from "@/lib/email";
 import { sendWhatsApp } from "@/lib/whatsapp";
@@ -158,29 +157,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
           ref: { type: "exam.passed", rowId: exam.id, payload: { riderId: exam.riderId } },
         });
       }
-      // Parent email — richer, includes the per-category score breakdown
-      // so parents can see exactly where the rider gained marks.
-      if (rider?.email) {
-        const breakdown = renderExamBreakdownHtml(
-          exam.rubricSnapshotJson ?? template.categoriesJson,
-          scores as Record<string, number | string>,
-        );
-        await sendEmail({
-          to: rider.email,
-          subject: `🎉 ${riderName} passed Level ${exam.level}!`,
-          html: renderEmail({
-            centreName: rider.centre.name,
-            heading: `Congratulations — Level ${exam.level} passed!`,
-            body: `<p>Dear Parent / Guardian,</p>
-<p>We are delighted to report that <b>${riderName}</b> successfully passed the Level ${exam.level} examination with a score of <b>${total} / ${max}</b>.</p>
-<p>Examiner: <b>${exam.examinerName}</b></p>
-${breakdown}
-<p>The certificate has been auto-issued and is ready for collection at the centre. We'll have a printed copy waiting for you on your next visit.</p>
-<p>Well done ${rider.firstName}! 🐎</p>`,
-          }),
-          ref: { type: "exam.passed", rowId: exam.id, payload: { riderId: exam.riderId, totalScore: total, max } },
-        });
-      }
+      // Parent email is NOT sent here. Staff trigger it manually from the
+      // certificate detail or certificates list ('Send result to parent'
+      // button) so they can review the score before parents see it.
     } else {
       await notifyCentreManager(exam.centreId, {
         type: "exam.failed",
@@ -199,30 +178,9 @@ ${breakdown}
         link: `/parent/${exam.riderId}`,
         payload: { examId: exam.id },
       });
-      // Parent email with the per-category breakdown — softer tone than
-      // pass, focused on "what was scored" so the parent can see where
-      // the rider needs to improve. Coach still owns the in-person
-      // conversation about next steps.
-      if (rider?.email) {
-        const breakdown = renderExamBreakdownHtml(
-          exam.rubricSnapshotJson ?? template.categoriesJson,
-          scores as Record<string, number | string>,
-        );
-        await sendEmail({
-          to: rider.email,
-          subject: `Level ${exam.level} result for ${riderName}`,
-          html: renderEmail({
-            centreName: rider.centre.name,
-            heading: `Level ${exam.level} result`,
-            body: `<p>Dear Parent / Guardian,</p>
-<p>Here is the score breakdown for <b>${riderName}</b>'s Level ${exam.level} examination on ${exam.date.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}.</p>
-<p>Total: <b>${total} / ${max}</b> (pass threshold ${template.passThreshold}%).</p>
-${breakdown}
-<p>Your coach will be in touch about the next steps — typically a focused re-attempt after additional practice on the lower-scoring areas above.</p>`,
-          }),
-          ref: { type: "exam.not_passed", rowId: exam.id, payload: { riderId: exam.riderId, totalScore: total, max } },
-        });
-      }
+      // Failed exams have no certificate, so no manual 'Send result' UI
+      // exists — coach owns the in-person follow-up. In-app notification
+      // above is the only parent-visible artifact.
     }
     // Also notify the examiner themselves so it shows in their feed.
     await notify({
