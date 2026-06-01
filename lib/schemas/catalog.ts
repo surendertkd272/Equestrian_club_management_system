@@ -27,7 +27,12 @@ export const updateProgressLevelSchema = createProgressLevelSchema.partial();
 
 export const createSkillSchema = z.object({
   levelId: z.string().min(1),
-  discipline: z.enum(SKILL_DISCIPLINES),
+  // After the rubric migration, 'discipline' became a free-form category
+  // string — driven by the exam rubric's section names (Dress Code,
+  // Know Your Horse, Parts of Saddle / Tack, Riding Knowledge, Overall
+  // Judgement). Per-tenant rename-able. Old enum values (normal /
+  // dressage / jumping / etc.) still pass since they're just strings.
+  discipline: z.string().min(1).max(80),
   name: z.string().min(1).max(120),
   description: z.string().max(300).optional(),
 });

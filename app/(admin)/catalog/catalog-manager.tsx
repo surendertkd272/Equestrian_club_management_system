@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { openConfirm } from "@/components/ui/confirm-dialog";
-import { SKILL_DISCIPLINES } from "@/lib/schemas/catalog";
 
 type FeePlan = { id: string; levelName: string; monthlyAmount: number; registrationAmount: number };
 type Skill = { id: string; discipline: string; name: string };
@@ -170,7 +169,15 @@ function LevelsCard({ levels, busy, call }: { levels: Level[]; busy: boolean; ca
 
 // ── Skills ───────────────────────────────────────────────────────────────────
 function SkillsCard({ levels, busy, call }: { levels: Level[]; busy: boolean; call: any }) {
-  const [draft, setDraft] = useState({ levelId: levels[0]?.id ?? "", discipline: SKILL_DISCIPLINES[0] as string, name: "" });
+  // Collect distinct discipline (category) values from the existing skills
+  // so the input's datalist suggests what's already in use — matches the
+  // rubric category names (Dress Code, Know Your Horse, etc.) without
+  // hard-coding them.
+  const existingDisciplines = Array.from(
+    new Set(levels.flatMap((l) => l.skills.map((s) => s.discipline))),
+  ).sort();
+  const seedDiscipline = existingDisciplines[0] ?? "Riding Knowledge";
+  const [draft, setDraft] = useState({ levelId: levels[0]?.id ?? "", discipline: seedDiscipline, name: "" });
   async function add() {
     if (!draft.levelId) return toast.error("Add a level first.");
     if (!draft.name.trim()) return toast.error("Enter a skill name.");
@@ -185,7 +192,7 @@ function SkillsCard({ levels, busy, call }: { levels: Level[]; busy: boolean; ca
     <Card>
       <CardHeader>
         <CardTitle>Skills</CardTitle>
-        <CardDescription>The skill curriculum coaches assess, grouped by level + discipline.</CardDescription>
+        <CardDescription>The skill curriculum coaches assess, grouped by level + category. Category is free-text — pick from the autocomplete (matches the exam rubric sections) or type a new one.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {levels.length === 0 ? (
@@ -200,7 +207,7 @@ function SkillsCard({ levels, busy, call }: { levels: Level[]; busy: boolean; ca
                 <ul className="divide-y rounded-md border">
                   {l.skills.map((s) => (
                     <li key={s.id} className="flex items-center justify-between px-3 py-1.5 text-sm">
-                      <span><Badge variant="outline" className="mr-2 text-[10px]">{s.discipline.replace("_", " ")}</Badge>{s.name}</span>
+                      <span><Badge variant="outline" className="mr-2 text-[10px]">{s.discipline}</Badge>{s.name}</span>
                       <Button size="sm" variant="ghost" className="text-destructive" disabled={busy} onClick={() => remove(s)}>Delete</Button>
                     </li>
                   ))}
@@ -216,10 +223,20 @@ function SkillsCard({ levels, busy, call }: { levels: Level[]; busy: boolean; ca
                 {levels.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
               </Select>
             </div>
-            <div><label className="text-[10px] uppercase text-muted-foreground">Discipline</label>
-              <Select className="h-9 w-32" value={draft.discipline} onChange={(e) => setDraft((d) => ({ ...d, discipline: e.target.value }))}>
-                {SKILL_DISCIPLINES.map((x) => <option key={x} value={x}>{x.replace("_", " ")}</option>)}
-              </Select>
+            <div>
+              <label className="text-[10px] uppercase text-muted-foreground">Category</label>
+              <Input
+                className="h-9 w-40"
+                value={draft.discipline}
+                onChange={(e) => setDraft((d) => ({ ...d, discipline: e.target.value }))}
+                placeholder="Riding Knowledge"
+                list="skill-category-suggestions"
+              />
+              <datalist id="skill-category-suggestions">
+                {existingDisciplines.map((d) => (
+                  <option key={d} value={d} />
+                ))}
+              </datalist>
             </div>
             <div className="flex-1 min-w-[160px]"><label className="text-[10px] uppercase text-muted-foreground">Skill</label><Input className="h-9" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Posting trot" /></div>
             <Button onClick={add} disabled={busy}>Add skill</Button>
