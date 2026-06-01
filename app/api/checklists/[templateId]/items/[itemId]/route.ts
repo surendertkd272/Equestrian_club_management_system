@@ -1,6 +1,8 @@
 // Edit or delete a single checklist item. Editing is permissive (any
-// field may be updated); deletion is soft (active=false) so historic
-// submissions still resolve the FK. Permission: super_admin + admin.
+// field may be updated). Deletion is a genuine hard delete when nothing
+// references the item; it only falls back to soft (active=false) when past
+// submissions hold the FK, so historic readouts stay intact. Permission:
+// super_admin + admin.
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";

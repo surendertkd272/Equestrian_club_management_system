@@ -103,14 +103,31 @@ export function TemplateEditor({ templateId, scope, items }: Props) {
     }
   }
 
-  async function softDelete(item: Item) {
+  async function remove(item: Item) {
     const ok = await openConfirm({
-      title: "Deactivate this item?",
-      body: `"${item.label}" will be hidden from new submissions. Past submissions keep their record.`,
-      confirmLabel: "Deactivate",
+      title: "Remove this item?",
+      body: `"${item.label}" will be permanently deleted. If past submissions reference it, it's kept as inactive instead so historic records stay intact.`,
+      destructive: true,
+      confirmLabel: "Remove",
     });
     if (!ok) return;
-    if (await patch(item.id, { active: false })) toast.success("Deactivated");
+    setBusy(item.id);
+    try {
+      const res = await fetch(`/api/checklists/${templateId}/items/${item.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.message ?? data.error ?? "Failed");
+        return;
+      }
+      // The API hard-deletes when possible, else falls back to deactivate
+      // (FK-protected by past submissions) and tells us which happened.
+      toast.success(data.mode === "deactivated" ? data.message ?? "Kept as inactive" : "Deleted");
+      router.refresh();
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function reactivate(item: Item) {
@@ -229,7 +246,7 @@ export function TemplateEditor({ templateId, scope, items }: Props) {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => softDelete(item)}
+                    onClick={() => remove(item)}
                     disabled={busy === item.id}
                   >
                     Remove
