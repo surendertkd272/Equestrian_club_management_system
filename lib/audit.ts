@@ -19,16 +19,27 @@ export async function audit(opts: {
   ip?: string | null;
   userAgent?: string | null;
 }) {
-  await prisma.auditLog.create({
-    data: {
-      userId: opts.userId ?? undefined,
-      action: opts.action,
-      tableName: opts.tableName,
-      rowId: opts.rowId,
-      before: opts.before ? JSON.stringify(opts.before) : null,
-      after: opts.after ? JSON.stringify(opts.after) : null,
-      ip: opts.ip ?? undefined,
-      userAgent: opts.userAgent ?? undefined,
-    },
-  });
+  // Best-effort: callers invoke audit() AFTER the primary mutation has
+  // committed, so a failed audit write must never throw back into the handler
+  // and turn an already-applied change into a 500 (e.g. an orphaned userId
+  // tripping the AuditLog FK). Log it for ops/monitoring and move on.
+  try {
+    await prisma.auditLog.create({
+      data: {
+        userId: opts.userId ?? undefined,
+        action: opts.action,
+        tableName: opts.tableName,
+        rowId: opts.rowId,
+        before: opts.before ? JSON.stringify(opts.before) : null,
+        after: opts.after ? JSON.stringify(opts.after) : null,
+        ip: opts.ip ?? undefined,
+        userAgent: opts.userAgent ?? undefined,
+      },
+    });
+  } catch (err) {
+    console.error(
+      `[audit] failed to write log for ${opts.action} on ${opts.tableName}#${opts.rowId}:`,
+      err,
+    );
+  }
 }
