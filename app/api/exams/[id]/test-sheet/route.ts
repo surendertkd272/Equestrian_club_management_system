@@ -27,7 +27,10 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     where: { centreId_levelKey: { centreId: exam.centreId, levelKey: String(exam.level) } },
   });
   if (!template) return NextResponse.json({ error: "NO_TEMPLATE_FOR_LEVEL" }, { status: 400 });
-  const rubric = parseRubric(template.categoriesJson);
+  // Rubric content comes from the snapshot when present so the printed
+  // test sheet matches what the examiner is scoring against, even if the
+  // live template has since been edited.
+  const rubric = parseRubric(exam.rubricSnapshotJson ?? template.categoriesJson);
 
   const examDate = exam.date.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
 

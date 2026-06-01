@@ -2339,6 +2339,13 @@ model Exam {
   totalScore    Float?
   // Legacy single-judge score map. Co-judge data lives on ExamJudge.scoresJson.
   scoresJson    Json?
+  // Frozen copy of the centre's ScoringTemplate.categoriesJson at the moment
+  // the exam was created. Read-only after that — historical exams render
+  // their breakdown against THIS, not the live ScoringTemplate, so admins
+  // can edit the canonical rubric without retroactively garbling old results.
+  // Null on legacy rows that pre-date this column; loadRiderExamHistory +
+  // the result-sheet PDF fall back to the live template when null.
+  rubricSnapshotJson Json?
   passed        Boolean?
   // Deductions are subtracted from the rubric total before pass/fail. Used
   // for course faults, time penalties, refusals, etc. that aren't rubric

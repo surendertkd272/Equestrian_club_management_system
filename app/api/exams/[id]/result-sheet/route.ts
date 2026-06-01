@@ -32,7 +32,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     where: { centreId_levelKey: { centreId: exam.centreId, levelKey: String(exam.level) } },
   });
   if (!template) return NextResponse.json({ error: "NO_TEMPLATE_FOR_LEVEL" }, { status: 400 });
-  const rubric = parseRubric(template.categoriesJson);
+  // Rubric content comes from the snapshot frozen at exam creation time
+  // — that's what the examiner scored against. passThreshold + levelName
+  // still come from the live template (those are display-only and rarely
+  // edited; snapshotting them too would add migration complexity).
+  const rubric = parseRubric(exam.rubricSnapshotJson ?? template.categoriesJson);
 
   // Use the legacy lead scoresJson if present; otherwise pull the lead
   // judge's row. Co-judge cards aren't shown individually on the rider

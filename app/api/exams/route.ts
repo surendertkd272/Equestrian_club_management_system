@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -90,6 +91,23 @@ export async function POST(req: NextRequest) {
     select: { id: true, attemptNumber: true },
   });
 
+  // Freeze the centre's current rubric onto the exam so edits to the
+  // canonical ScoringTemplate later don't garble this exam's historical
+  // breakdown. Falls back to ExamLevel.defaultRubricJson if the centre
+  // has no template yet (rare — bootstrap seeds one per centre on
+  // creation). Null if neither exists; reader paths handle that.
+  const tpl = await prisma.scoringTemplate.findUnique({
+    where: { centreId_levelKey: { centreId: rider.centreId, levelKey: String(d.level) } },
+    select: { categoriesJson: true },
+  });
+  const fallback = !tpl
+    ? await prisma.examLevel.findFirst({
+        where: { discipline: "general", code: String(d.level) },
+        select: { defaultRubricJson: true },
+      })
+    : null;
+  const rubricSnapshot = tpl?.categoriesJson ?? fallback?.defaultRubricJson ?? null;
+
   const exam = await prisma.exam.create({
     data: {
       centreId: rider.centreId,
@@ -102,6 +120,7 @@ export async function POST(req: NextRequest) {
       status: "scheduled",
       previousExamId: lastFailed?.id ?? null,
       attemptNumber: lastFailed ? lastFailed.attemptNumber + 1 : 1,
+      rubricSnapshotJson: rubricSnapshot as Prisma.InputJsonValue,
     },
   });
 

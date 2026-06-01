@@ -51,11 +51,18 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
     exam.judges.some((j) => j.judgeId === session.userId);
   if (session.role === "EXAMINER" && !isLeadOrJudge) redirect("/exams");
 
+  // Always fetch the live template (needed for passThreshold + levelName),
+  // but render the rubric itself from the exam's snapshot when present so
+  // an admin's mid-exam rubric edit doesn't change the categories under
+  // the examiner's feet.
   const template = await prisma.scoringTemplate.findUnique({
     where: { centreId_levelKey: { centreId: exam.centreId, levelKey: String(exam.level) } },
   });
-
-  const rubric = template ? parseRubric(template.categoriesJson) : [];
+  const rubric = exam.rubricSnapshotJson
+    ? parseRubric(exam.rubricSnapshotJson)
+    : template
+      ? parseRubric(template.categoriesJson)
+      : [];
   // If a co-judge is viewing, load their own card; otherwise fall back to
   // the lead's scoresJson on the exam row.
   const myJudgeRow =

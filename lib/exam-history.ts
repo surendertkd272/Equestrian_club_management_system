@@ -40,22 +40,31 @@ export async function loadRiderExamHistory(
       totalScore: true,
       passed: true,
       scoresJson: true,
+      rubricSnapshotJson: true,
     },
     orderBy: { date: "desc" },
     take: opts.take ?? 10,
   });
   if (exams.length === 0) return [];
 
-  // Distinct level keys seen across the rider's exams — one rubric fetch per.
-  const levelKeys = Array.from(new Set(exams.map((e) => String(e.level))));
-  const templates = await prisma.scoringTemplate.findMany({
-    where: { centreId, levelKey: { in: levelKeys } },
-    select: { levelKey: true, categoriesJson: true, passThreshold: true },
-  });
+  // Only fetch live templates for legacy exams that lack a snapshot. New
+  // exams (post the snapshot column) bring their own rubric on the row.
+  const needsLiveTemplate = exams.filter((e) => e.rubricSnapshotJson == null);
+  const levelKeys = Array.from(new Set(needsLiveTemplate.map((e) => String(e.level))));
+  const templates = levelKeys.length
+    ? await prisma.scoringTemplate.findMany({
+        where: { centreId, levelKey: { in: levelKeys } },
+        select: { levelKey: true, categoriesJson: true, passThreshold: true },
+      })
+    : [];
   const tplByLevel = new Map(templates.map((t) => [t.levelKey, t]));
 
   return exams.map((e) => {
-    const t = tplByLevel.get(String(e.level));
+    // Prefer the snapshot if present (post-rubricSnapshotJson); fall back
+    // to the live template for legacy exams. Either way, parseRubric
+    // narrows the JSON to a typed RubricCategory[].
+    const rubricJson = e.rubricSnapshotJson ?? tplByLevel.get(String(e.level))?.categoriesJson;
+    const passThreshold = tplByLevel.get(String(e.level))?.passThreshold ?? 70;
     return {
       id: e.id,
       date: e.date,
@@ -67,8 +76,8 @@ export async function loadRiderExamHistory(
         e.scoresJson && typeof e.scoresJson === "object" && !Array.isArray(e.scoresJson)
           ? (e.scoresJson as Record<string, number | string>)
           : null,
-      rubric: t ? parseRubric(t.categoriesJson) : [],
-      passThreshold: t?.passThreshold ?? 70,
+      rubric: rubricJson ? parseRubric(rubricJson) : [],
+      passThreshold,
     };
   });
 }
