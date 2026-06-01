@@ -124,7 +124,7 @@ export default async function ReportsPage() {
                     </td>
                     <td className="py-2">{r.batch?.name ?? "—"}</td>
                     <td className="py-2">
-                      <Badge variant="outline">{r.currentLevel ?? "Beginner"}</Badge>
+                      <Badge variant="outline">{r.currentLevel ?? "—"}</Badge>
                     </td>
                     <td className="py-2 text-right">
                       <Link

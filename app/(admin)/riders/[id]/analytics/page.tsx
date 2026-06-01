@@ -119,7 +119,7 @@ export default async function RiderAnalytics({ params }: { params: { id: string 
             <ChevronLeft className="h-4 w-4" /> Back to profile
           </Link>
         </Button>
-        <Badge variant="outline">{rider.currentLevel ?? "Beginner"}</Badge>
+        <Badge variant="outline">{rider.currentLevel ?? "—"}</Badge>
       </div>
 
       <div>

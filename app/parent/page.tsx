@@ -54,7 +54,7 @@ export default async function ParentDashboard() {
                 <Badge variant="outline">{c.relationship}</Badge>
               </div>
               <div className="text-xs text-muted-foreground">
-                {c.centreName} · level {c.currentLevel ?? "Beginner"} · {c.status}
+                {c.centreName} · level {c.currentLevel ?? "—"} · {c.status}
               </div>
             </CardHeader>
             <CardContent>

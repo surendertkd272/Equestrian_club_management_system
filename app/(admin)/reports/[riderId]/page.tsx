@@ -138,7 +138,7 @@ export default async function ReportCard({
           </div>
           <div>
             <div className="text-[10px] uppercase text-muted-foreground">Current level</div>
-            <div className="text-sm font-semibold">{rider.currentLevel ?? "Beginner"}</div>
+            <div className="text-sm font-semibold">{rider.currentLevel ?? "—"}</div>
           </div>
           <div>
             <div className="text-[10px] uppercase text-muted-foreground">Batch & coach</div>

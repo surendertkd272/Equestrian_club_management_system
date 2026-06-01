@@ -70,7 +70,7 @@ export default async function StudentHome() {
           Hi {rider.firstName}! 🐎
         </h1>
         <p className="text-sm text-muted-foreground">
-          {rider.centre.name} · {rider.currentLevel ?? "Beginner"}{rider.batch ? ` · ${rider.batch.name}` : ""}
+          {rider.centre.name} · {rider.currentLevel ?? "—"}{rider.batch ? ` · ${rider.batch.name}` : ""}
         </p>
       </div>
 

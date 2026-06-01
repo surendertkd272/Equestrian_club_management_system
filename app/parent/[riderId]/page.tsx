@@ -44,7 +44,7 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
             {rider.firstName} {rider.lastName}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {rider.centre.name} · level {rider.currentLevel ?? "Beginner"} ·{" "}
+            {rider.centre.name} · level {rider.currentLevel ?? "—"} ·{" "}
             <Badge variant="outline">{relationship}</Badge>
             {rider.school && <span> · {rider.school}</span>}
           </p>

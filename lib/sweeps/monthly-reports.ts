@@ -110,7 +110,7 @@ export async function sweepMonthlyReports(opts: { force?: boolean } = {}): Promi
       body: `<p>Dear Parent / Guardian,</p>
 <p>Here's a one-line snapshot of <b>${rider.firstName}'s</b> ${monthLabel}.</p>
 <table style="width:100%;margin:16px 0;border-collapse:collapse;">
-  <tr><td style="padding:8px;background:#f9fafb;border:1px solid #e5e7eb;color:#6b7280;font-size:12px;text-transform:uppercase;">Current level</td><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600;">${rider.currentLevel ?? "Beginner"}</td></tr>
+  <tr><td style="padding:8px;background:#f9fafb;border:1px solid #e5e7eb;color:#6b7280;font-size:12px;text-transform:uppercase;">Current level</td><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600;">${rider.currentLevel ?? "—"}</td></tr>
   <tr><td style="padding:8px;background:#f9fafb;border:1px solid #e5e7eb;color:#6b7280;font-size:12px;text-transform:uppercase;">Attendance</td><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600;">${attendancePct === null ? "—" : `${attendancePct}% (${aPresent}/${aTotal} sessions)`}</td></tr>
   <tr><td style="padding:8px;background:#f9fafb;border:1px solid #e5e7eb;color:#6b7280;font-size:12px;text-transform:uppercase;">New skills mastered</td><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600;">${masteredThisMonth}</td></tr>
   <tr><td style="padding:8px;background:#f9fafb;border:1px solid #e5e7eb;color:#6b7280;font-size:12px;text-transform:uppercase;">Exams this month</td><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600;">${exams.length} ${exams.length ? `(${exams.filter((e) => e.passed).length} passed)` : ""}</td></tr>

@@ -208,7 +208,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
           <CardContent>
             <dl className="grid grid-cols-2 gap-y-2 text-sm">
               <dt className="text-muted-foreground">Current level</dt>
-              <dd>{rider.currentLevel ?? "Beginner"}</dd>
+              <dd>{rider.currentLevel ?? "—"}</dd>
               <dt className="text-muted-foreground">Batch</dt>
               <dd>{rider.batch ? `${rider.batch.name} (${rider.batch.startTime}–${rider.batch.endTime})` : "Unassigned"}</dd>
               <dt className="text-muted-foreground">Skills mastered</dt>

@@ -171,7 +171,7 @@ export default async function ProgressPage({
                         </Link>
                       </td>
                       <td className="py-2">
-                        <Badge variant="outline">{r.currentLevel ?? "Beginner"}</Badge>
+                        <Badge variant="outline">{r.currentLevel ?? "—"}</Badge>
                       </td>
                       {activeDisciplines.map((d) => {
                         const cell = matrix.get(r.id)?.get(d) ?? { mastered: 0, total: 0 };
