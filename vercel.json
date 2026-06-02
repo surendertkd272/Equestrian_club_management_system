@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["bom1"],
+  "buildCommand": "prisma generate && prisma migrate deploy && next build",
   "crons": [
     {
       "path": "/api/cron/sweep?secret=$CRON_SECRET",
