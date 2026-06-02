@@ -59,6 +59,7 @@ export function NewVendorForm({
     bankAccountNumber: "",
     bankIfsc: "",
     bankName: "",
+    upiId: "",
     notes: "",
     centreId: pinnedCentreId ?? centres[0]?.id ?? "",
   });
@@ -150,7 +151,7 @@ export function NewVendorForm({
     setForm((f) => ({
       ...f,
       name: "", contactName: "", phone: "", email: "", address: "", gstin: "",
-      bankAccountName: "", bankAccountNumber: "", bankIfsc: "", bankName: "",
+      bankAccountName: "", bankAccountNumber: "", bankIfsc: "", bankName: "", upiId: "",
       notes: "",
     }));
     setVet({ vciNumber: "", qualification: "", specialty: "", yearsPractice: "", emergencyAvailable: false, clinicAffiliation: "" });
@@ -239,6 +240,15 @@ export function NewVendorForm({
               onChange={(e) => set("bankIfsc", e.target.value.toUpperCase())}
               placeholder="HDFC0000123"
               maxLength={11}
+            />
+          </div>
+          <div className="space-y-1.5 md:col-span-2">
+            <Label className="text-xs">UPI ID</Label>
+            <Input
+              value={form.upiId}
+              onChange={(e) => set("upiId", e.target.value)}
+              placeholder="vendor@okhdfcbank"
+              maxLength={60}
             />
           </div>
         </div>

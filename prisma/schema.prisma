@@ -2807,6 +2807,8 @@ model Vendor {
   bankAccountNumber String?
   bankIfsc          String?
   bankName          String?
+  // UPI VPA for instant payouts (e.g. vendor@okhdfcbank). Alternative to NEFT.
+  upiId             String?
   notes     String?
   active    Boolean  @default(true)
   deletedAt DateTime?  // set on soft-delete; bin purges 30 days later
