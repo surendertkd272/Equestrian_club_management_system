@@ -6,15 +6,20 @@ import { can } from "@/lib/permissions";
 import { parseDateOnly } from "@/lib/schemas/attendance";
 import { audit } from "@/lib/audit";
 
-// Bulk-schedule a sitting: one date, one level, one examiner, N riders.
-// Creates the ExamSitting row + a scheduled Exam per rider in a single
-// transaction. Re-attempts (most recent failed exam at this level) are
-// linked automatically.
+// Bulk-schedule a sitting: one date + level, N riders, and a POOL of examiners.
+// Creates the ExamSitting + the examiner pool (ExamSittingExaminer) + one
+// scheduled Exam per rider, all UNASSIGNED. Any examiner in the pool then
+// "claims" a rider from the sitting (see /api/exams/[id]/claim) to mark it —
+// first-come, locked to them. Re-attempts are linked automatically. One txn.
+const ALLOWED_EXAMINER_ROLES = new Set([
+  "EXAMINER", "JURY", "HEAD_COACH", "CENTRE_MANAGER", "COACH", "SUPER_ADMIN", "ADMIN",
+]);
 const schema = z.object({
   level: z.coerce.number().int().min(1).max(10),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).default("09:00"),
-  examinerId: z.string().min(1),
+  // First id = lead examiner; the rest are co-examiners on the panel.
+  examinerIds: z.array(z.string().min(1)).min(1).max(8),
   riderIds: z.array(z.string().min(1)).min(1).max(50),
   notes: z.string().max(500).optional(),
 });
@@ -31,20 +36,29 @@ export async function POST(req: NextRequest) {
   }
   const d = parsed.data;
 
-  const examiner = await prisma.user.findUnique({
-    where: { id: d.examinerId },
-    select: { id: true, name: true, role: true, centreId: true, status: true },
+  // Resolve the examiner pool (any of them may claim a rider from the sitting).
+  const examinerIds = Array.from(new Set(d.examinerIds));
+  const examinerUsers = await prisma.user.findMany({
+    where: { id: { in: examinerIds }, status: "active" },
+    select: { id: true, name: true, role: true, centreId: true },
   });
-  if (!examiner || examiner.status !== "active") {
+  if (examinerUsers.length !== examinerIds.length) {
     return NextResponse.json({ error: "EXAMINER_NOT_FOUND" }, { status: 404 });
   }
+  if (examinerUsers.some((u) => !ALLOWED_EXAMINER_ROLES.has(u.role))) {
+    return NextResponse.json({ error: "INVALID_EXAMINER_ROLE" }, { status: 400 });
+  }
 
-  // Use the examiner's centre as the sitting's centre — falls back to the
-  // session's centre when the examiner is SUPER_ADMIN with no fixed centre.
-  const centreId = examiner.centreId ?? session.centreId;
+  // Sitting centre = the session's centre, or (for HQ) the pool's shared centre.
+  const centreId = session.centreId ?? examinerUsers[0]?.centreId ?? null;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
   if (session.role !== "SUPER_ADMIN" && centreId !== session.centreId) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  }
+  // Every pool examiner must share the centre unless a SUPER_ADMIN is staffing
+  // across centres.
+  if (session.role !== "SUPER_ADMIN" && examinerUsers.some((u) => u.centreId && u.centreId !== centreId)) {
+    return NextResponse.json({ error: "EXAMINER_CROSS_CENTRE" }, { status: 400 });
   }
 
   // All riders must belong to that centre.
@@ -80,42 +94,52 @@ export async function POST(req: NextRequest) {
     if (!priorByRider.has(p.riderId)) priorByRider.set(p.riderId, { id: p.id, attemptNumber: p.attemptNumber });
   }
 
-  const sitting = await prisma.examSitting.create({
-    data: {
-      centreId,
-      level: d.level,
-      date: parseDateOnly(d.date),
-      examinerId: examiner.id,
-      examinerName: examiner.name,
-      notes: d.notes,
-    },
-  });
+  const examDate = parseDateOnly(d.date);
 
-  const examData = riders.map((r) => {
-    const prior = priorByRider.get(r.id);
-    return {
-      centreId,
-      riderId: r.id,
-      examinerId: examiner.id,
-      examinerName: examiner.name,
-      level: d.level,
-      date: parseDateOnly(d.date),
-      time: d.time,
-      status: "scheduled",
-      sittingId: sitting.id,
-      previousExamId: prior?.id ?? null,
-      attemptNumber: prior ? prior.attemptNumber + 1 : 1,
-    };
+  const { sittingId, examsCreated } = await prisma.$transaction(async (tx) => {
+    const sitting = await tx.examSitting.create({
+      data: { centreId, level: d.level, date: examDate, notes: d.notes },
+    });
+
+    // The examiner pool — anyone here can claim a rider from this sitting.
+    await tx.examSittingExaminer.createMany({
+      data: examinerUsers.map((u) => ({
+        sittingId: sitting.id,
+        examinerId: u.id,
+        examinerName: u.name,
+      })),
+    });
+
+    // One scheduled exam per rider, UNASSIGNED (examinerId null) until claimed.
+    await tx.exam.createMany({
+      data: riders.map((r) => {
+        const prior = priorByRider.get(r.id);
+        return {
+          centreId,
+          riderId: r.id,
+          examinerId: null,
+          examinerName: null,
+          level: d.level,
+          date: examDate,
+          time: d.time,
+          status: "scheduled",
+          sittingId: sitting.id,
+          previousExamId: prior?.id ?? null,
+          attemptNumber: prior ? prior.attemptNumber + 1 : 1,
+        };
+      }),
+    });
+
+    return { sittingId: sitting.id, examsCreated: riders.length };
   });
-  await prisma.exam.createMany({ data: examData });
 
   await audit({
     userId: session.userId,
     action: "exam.sitting_created",
     tableName: "examSitting",
-    rowId: sitting.id,
-    after: { level: d.level, date: d.date, time: d.time, riderCount: riders.length },
+    rowId: sittingId,
+    after: { level: d.level, date: d.date, time: d.time, riderCount: examsCreated, examinerCount: examinerIds.length },
   });
 
-  return NextResponse.json({ id: sitting.id, examsCreated: riders.length });
+  return NextResponse.json({ id: sittingId, examsCreated });
 }

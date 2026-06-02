@@ -80,12 +80,15 @@ export default async function ExamsPage({
           )}
           {canSchedule && (
             <>
+              {/* Single-exam form kept reachable but de-emphasised — the batch
+                  flow below covers it (one rider + one examiner is just the
+                  simplest case). */}
               <Button asChild variant="outline">
-                <Link href="/exams/sittings/new">Schedule sitting</Link>
+                <Link href="/exams/new">Single exam</Link>
               </Button>
               <Button asChild>
-                <Link href="/exams/new">
-                  <Plus className="h-4 w-4" /> Schedule exam
+                <Link href="/exams/sittings/new">
+                  <Plus className="h-4 w-4" /> Schedule exams
                 </Link>
               </Button>
             </>
@@ -180,7 +183,7 @@ export default async function ExamsPage({
                       {canSchedule && (
                         <>
                           {" "}
-                          <Link href="/exams/new" className="text-primary underline">
+                          <Link href="/exams/sittings/new" className="text-primary underline">
                             Schedule the first one
                           </Link>
                           .

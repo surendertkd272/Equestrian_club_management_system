@@ -102,7 +102,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const finalScore = exam.totalScore ?? 0;
   const examDate = exam.date.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
   const judgeBlock = [
-    `<div>Lead examiner: <b>${escapeHtml(exam.examinerName)}</b></div>`,
+    `<div>Lead examiner: <b>${escapeHtml(exam.examinerName ?? "—")}</b></div>`,
     ...exam.judges
       .filter((j) => j.judgeId !== exam.examinerId)
       .map((j) => `<div>Co-judge: <b>${escapeHtml(j.judgeName)}</b> · ${j.subTotal ?? "—"}</div>`),

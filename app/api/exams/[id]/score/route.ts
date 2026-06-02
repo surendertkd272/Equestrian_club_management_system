@@ -182,15 +182,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       // exists — coach owns the in-person follow-up. In-app notification
       // above is the only parent-visible artifact.
     }
-    // Also notify the examiner themselves so it shows in their feed.
-    await notify({
-      userId: exam.examinerId,
-      centreId: exam.centreId,
-      type: passed ? "exam.passed" : "exam.failed",
-      title: `Exam submitted — ${passed ? "PASS" : "FAIL"}`,
-      body: `${riderName} · Level ${exam.level} · ${total}/${max}`,
-      link: `/exams/${exam.id}`,
-    });
+    // Also notify the examiner themselves so it shows in their feed (when the
+    // exam has an assigned examiner — sitting exams are always claimed by now).
+    if (exam.examinerId) {
+      await notify({
+        userId: exam.examinerId,
+        centreId: exam.centreId,
+        type: passed ? "exam.passed" : "exam.failed",
+        title: `Exam submitted — ${passed ? "PASS" : "FAIL"}`,
+        body: `${riderName} · Level ${exam.level} · ${total}/${max}`,
+        link: `/exams/${exam.id}`,
+      });
+    }
   }
   if (final && passed === true) {
     const serial = await generateUniqueSerial(exam.level);

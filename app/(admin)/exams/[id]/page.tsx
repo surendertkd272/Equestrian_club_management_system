@@ -172,8 +172,8 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
 
       <JudgesPanel
         examId={exam.id}
-        leadExaminerId={exam.examinerId}
-        leadExaminerName={exam.examinerName}
+        leadExaminerId={exam.examinerId ?? ""}
+        leadExaminerName={exam.examinerName ?? "Unassigned"}
         canManage={session.role === "SUPER_ADMIN" || session.role === "CENTRE_MANAGER"}
         judges={exam.judges.map((j) => ({
           id: j.id,

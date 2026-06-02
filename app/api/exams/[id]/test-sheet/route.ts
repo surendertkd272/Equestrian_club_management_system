@@ -87,7 +87,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       </tr>
       <tr>
         <th>Examiner</th>
-        <td>${escapeHtml(exam.examinerName)}</td>
+        <td>${escapeHtml(exam.examinerName ?? "—")}</td>
         <th>Time</th>
         <td>${escapeHtml(exam.time)}</td>
       </tr>
