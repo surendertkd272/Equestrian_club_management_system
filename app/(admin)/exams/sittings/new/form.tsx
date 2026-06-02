@@ -145,7 +145,7 @@ export function NewSittingForm({
       </div>
 
       <Button type="submit" disabled={busy || picked.size === 0 || pool.size === 0}>
-        {busy ? "Scheduling…" : `Schedule ${picked.size} exam${picked.size === 1 ? "" : "s"}`}
+        {busy ? "Scheduling…" : "Schedule exams"}
       </Button>
     </form>
   );

@@ -22,7 +22,8 @@ export default async function NewSittingPage() {
     prisma.user.findMany({
       where: {
         ...(centreId ? { centreId } : {}),
-        role: { in: ["EXAMINER", "SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH"] as any },
+        // Only EXAMINERs may be in the pool — they're the ones who score riders.
+        role: "EXAMINER",
         status: "active",
       },
       select: { id: true, name: true, role: true },

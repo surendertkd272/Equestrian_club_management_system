@@ -107,13 +107,6 @@ export default async function RiderProfile({ params }: { params: { id: string } 
             </a>
           )}
           <a
-            href={`/exams/new?riderId=${rider.id}`}
-            className="rounded-md border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
-            title="Schedule an exam with this rider preselected"
-          >
-            Register for exam
-          </a>
-          <a
             href={`/riders/${rider.id}/analytics`}
             className="rounded-md border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
           >
