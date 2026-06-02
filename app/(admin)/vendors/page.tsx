@@ -122,6 +122,11 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
                         {v.bankAccountName && <> · {v.bankAccountName}</>}
                       </div>
                     )}
+                    {v.upiId && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        UPI: <span className="font-mono">{v.upiId}</span>
+                      </div>
+                    )}
                     {v.address && <div className="mt-1 text-xs text-muted-foreground">{v.address}</div>}
                     {v.notes && <div className="mt-1 text-xs italic text-muted-foreground">{v.notes}</div>}
                   </li>

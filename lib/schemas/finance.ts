@@ -43,6 +43,8 @@ export const createVendorSchema = z.object({
   bankAccountNumber: z.string().max(30).optional(),
   bankIfsc: z.string().max(11).optional(),
   bankName: z.string().max(80).optional(),
+  // UPI VPA — alternative to NEFT for instant payouts.
+  upiId: z.string().max(60).optional(),
   notes: z.string().max(500).optional(),
   // Free-form JSON for category-specific fields (Vet Doctor / Farrier
   // registration extras). Persisted as a string blob in

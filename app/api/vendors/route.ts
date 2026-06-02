@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
       bankAccountNumber: parsed.data.bankAccountNumber || null,
       bankIfsc: parsed.data.bankIfsc?.toUpperCase() || null,
       bankName: parsed.data.bankName || null,
+      upiId: parsed.data.upiId || null,
       notes: parsed.data.notes,
       // Category-specific blob (Vet Doctor / Farrier extras). Now a native
       // Json column — pass the object straight through. Drop the field if
