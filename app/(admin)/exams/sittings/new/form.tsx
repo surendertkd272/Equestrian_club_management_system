@@ -23,6 +23,7 @@ export function NewSittingForm({
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [time, setTime] = useState("09:00");
   const [examinerId, setExaminerId] = useState(examiners[0]?.id ?? "");
+  const [coExaminers, setCoExaminers] = useState<Set<string>>(new Set());
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
@@ -30,6 +31,14 @@ export function NewSittingForm({
 
   function toggle(id: string) {
     setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleCo(id: string) {
+    setCoExaminers((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -52,7 +61,7 @@ export function NewSittingForm({
           level: Number(level),
           date,
           time,
-          examinerId,
+          examinerIds: [examinerId, ...Array.from(coExaminers)],
           riderIds: Array.from(picked),
           notes: notes || undefined,
         }),
@@ -87,8 +96,19 @@ export function NewSittingForm({
           </Select>
         </div>
         <div>
-          <Label>Examiner</Label>
-          <Select value={examinerId} onChange={(e) => setExaminerId(e.target.value)}>
+          <Label>Lead examiner</Label>
+          <Select
+            value={examinerId}
+            onChange={(e) => {
+              const id = e.target.value;
+              setExaminerId(id);
+              setCoExaminers((p) => {
+                const n = new Set(p);
+                n.delete(id);
+                return n;
+              });
+            }}
+          >
             {examiners.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.name} · {u.role}
@@ -103,6 +123,30 @@ export function NewSittingForm({
         <div>
           <Label>Time</Label>
           <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Co-examiners (panel) — optional</Label>
+        <p className="text-[11px] text-muted-foreground">
+          Everyone added here judges every rider alongside the lead; each rider&apos;s score averages the panel&apos;s cards.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {examiners.filter((u) => u.id !== examinerId).length === 0 ? (
+            <span className="text-sm text-muted-foreground">No other examiners available.</span>
+          ) : (
+            examiners
+              .filter((u) => u.id !== examinerId)
+              .map((u) => (
+                <label
+                  key={u.id}
+                  className="flex cursor-pointer items-center gap-1.5 rounded-md border bg-card px-2.5 py-1 text-sm hover:bg-muted/40"
+                >
+                  <input type="checkbox" checked={coExaminers.has(u.id)} onChange={() => toggleCo(u.id)} />
+                  <span>{u.name}</span>
+                </label>
+              ))
+          )}
         </div>
       </div>
 
