@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { EQUIPMENT_CATEGORY_ORDER } from "@/lib/schemas/equipment";
 
 function csvCell(v: unknown): string {
   if (v === null || v === undefined) return "";
@@ -52,9 +53,15 @@ export async function GET(req: NextRequest) {
   lines.push("");
   lines.push("S.NO,Category,Item,Unit,Unused/New,In-Use,For Repair,Damaged,Total,New Required,Owner,Comments,Reorder at");
 
+  // Group categories in canonical order (tack → grooming → stable → rider → …),
+  // not the alphabetical order the query returns. Stable sort keeps name order.
+  const sortedCatalog = [...catalog].sort(
+    (a, b) => (EQUIPMENT_CATEGORY_ORDER[a.category] ?? 99) - (EQUIPMENT_CATEGORY_ORDER[b.category] ?? 99),
+  );
+
   let rowIdx = 0;
   let currentCategory = "";
-  for (const item of catalog) {
+  for (const item of sortedCatalog) {
     if (item.category !== currentCategory) {
       currentCategory = item.category;
       lines.push(""); // blank line between categories

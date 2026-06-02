@@ -9,20 +9,12 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Archive, Trash2 } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
+import { EQUIPMENT_CATEGORIES, EQUIPMENT_CATEGORY_ORDER } from "@/lib/schemas/equipment";
 
-// Categories — matches the Sprint 3.5 inventory overhaul. ADMIN /
-// SUPER_ADMIN can also type a new value via the freeform input below
-// since the schema's category column is a string.
-const CATEGORIES = [
-  "tack",
-  "grooming",
-  "farrier",
-  "sports",
-  "rider",
-  "stable",
-  "vet",
-  "other",
-];
+// Use the canonical category list + order from the schema so the dropdown and
+// the grouped list below match the rest of the app:
+// tack → grooming → stable → rider → farrier → sports → vet → other.
+const CATEGORIES = EQUIPMENT_CATEGORIES;
 const UNITS = ["piece", "pair", "set", "metre", "kg", "litre"];
 
 type Item = {
@@ -124,7 +116,10 @@ export function CatalogManager({ initial }: { initial: Item[] }) {
     router.refresh();
   }
 
-  const visible = initial.filter((i) => showInactive || i.active);
+  const visible = initial
+    .filter((i) => showInactive || i.active)
+    // Group order follows the canonical category order (Map keeps insertion order).
+    .sort((a, b) => (EQUIPMENT_CATEGORY_ORDER[a.category] ?? 99) - (EQUIPMENT_CATEGORY_ORDER[b.category] ?? 99));
   const byCategory = new Map<string, Item[]>();
   for (const i of visible) {
     if (!byCategory.has(i.category)) byCategory.set(i.category, []);
