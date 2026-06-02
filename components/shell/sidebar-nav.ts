@@ -85,6 +85,8 @@ export const NAV: NavGroup[] = [
       { href: "/checklists/templates", label: "Checklist Templates", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN"] },
       // Coach's daily 5-minute end-of-day update.
       { href: "/daily-update", label: "Daily Coach Update", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"] },
+      // Manager rollup of the whole team's daily updates.
+      { href: "/daily-update/team", label: "Team Daily Updates", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH"] },
       { href: "/approvals", label: "Approvals", iconName: "FileCheck", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "INVENTORY_MANAGER", "ACCOUNTANT", "STABLE_MANAGER"], feature: "approvals" },
       { href: "/batch-shifts", label: "Batch Shifts", iconName: "CalendarRange", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"] },
       // Procurement requisitions — staff submits, manager + accountant approve.

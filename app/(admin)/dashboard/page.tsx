@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { istTodayStr, coachUpdateDateKey, DAILY_UPDATE_ROLES } from "@/lib/coach-update";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SetupChecklist } from "@/components/dashboard/setup-checklist";
@@ -73,6 +74,8 @@ export default async function DashboardPage() {
     invoicesAwaitingReimbursement,
     upcomingVetFollowups,
     gateEventsToday,
+    coachStaffCount,
+    coachUpdatesToday,
   ] = await Promise.all([
       prisma.rider.count({ where: { ...where, status: "active" } }),
       prisma.rider.count({ where: { ...where, status: "pending_payment" } }),
@@ -111,6 +114,8 @@ export default async function DashboardPage() {
         select: { staffUserId: true, direction: true, occurredAt: true },
         orderBy: { occurredAt: "asc" },
       }),
+      prisma.user.count({ where: { ...where, status: "active", role: { in: [...DAILY_UPDATE_ROLES] } } }),
+      prisma.coachDailyUpdate.count({ where: { ...where, date: coachUpdateDateKey(istTodayStr()) } }),
     ]);
 
   // Aggregate gate events: a staff member is "on premises" if their LATEST
@@ -189,6 +194,15 @@ export default async function DashboardPage() {
       warn: overdueTasks > 0,
     },
     { label: "Low-stock meds", value: lowStock, hint: "qty ≤ 5", warn: lowStock > 0 },
+    {
+      label: "Coach updates (today)",
+      value: coachStaffCount > 0 ? `${coachUpdatesToday}/${coachStaffCount}` : "—",
+      hint:
+        coachStaffCount > 0 && coachUpdatesToday < coachStaffCount
+          ? `${coachStaffCount - coachUpdatesToday} yet to file`
+          : "all filed",
+      warn: coachStaffCount > 0 && coachUpdatesToday < coachStaffCount,
+    },
     {
       label: "Meds expiring within 30 days",
       value: expiringSoon,

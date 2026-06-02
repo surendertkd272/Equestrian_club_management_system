@@ -25,6 +25,7 @@ import { sweepTrialEnd } from "./trial-end";
 import { sweepEquipmentLowStock } from "./equipment-low-stock";
 import { sweepAccreditationExpiry } from "./accreditation-expiry";
 import { sweepBinPurge } from "./bin-purge";
+import { sweepCoachUpdateReminder } from "./coach-update-reminder";
 
 export {
   sweepFeeDue,
@@ -43,6 +44,7 @@ export {
   sweepEquipmentLowStock,
   sweepAccreditationExpiry,
   sweepBinPurge,
+  sweepCoachUpdateReminder,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -63,6 +65,7 @@ export async function runAllSweeps(): Promise<SweepResult[]> {
     sweepDunning(),
     sweepTenantOffboarding(),
     sweepBinPurge(),
+    sweepCoachUpdateReminder(),
   ]);
 }
 
@@ -83,4 +86,5 @@ export const SWEEP_JOBS: Record<string, (opts?: SweepOpts) => Promise<SweepResul
   dunning: () => sweepDunning(),
   tenant_offboarding: () => sweepTenantOffboarding(),
   bin_purge: () => sweepBinPurge(),
+  coach_update_reminder: () => sweepCoachUpdateReminder(),
 };

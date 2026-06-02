@@ -11,6 +11,7 @@ import { centreWhere } from "@/lib/tenancy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDateIndia, timeAgo } from "@/lib/i18n";
+import { istTodayStr, coachUpdateDateKey, DAILY_UPDATE_ROLES } from "@/lib/coach-update";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared atoms
@@ -468,7 +469,9 @@ export async function HeadCoachDashboard({ centreId }: { centreId: string | null
   const todayEnd = new Date(todayStart.getTime() + 86400000);
   const sevenDays = new Date(Date.now() + 7 * 86400000);
 
-  const [batches, markedToday, upcomingExams, draftExams, totalRiders] = await Promise.all([
+  const todayUpdateKey = coachUpdateDateKey(istTodayStr());
+
+  const [batches, markedToday, upcomingExams, draftExams, totalRiders, coachCount, updatesToday] = await Promise.all([
     prisma.batch.findMany({
       where,
       select: { id: true, name: true, coachId: true, _count: { select: { riders: true } } },
@@ -487,6 +490,8 @@ export async function HeadCoachDashboard({ centreId }: { centreId: string | null
       take: 6,
     }),
     prisma.rider.count({ where: { ...where, status: "active" } }),
+    prisma.user.count({ where: { ...where, status: "active", role: { in: [...DAILY_UPDATE_ROLES] } } }),
+    prisma.coachDailyUpdate.count({ where: { ...where, date: todayUpdateKey } }),
   ]);
 
   const markedSet = new Set(markedToday.map((m) => m.batchId));
@@ -504,6 +509,12 @@ export async function HeadCoachDashboard({ centreId }: { centreId: string | null
         />
         <Kpi label="Upcoming exams (7d)" value={upcomingExams} link="/exams" />
         <Kpi label="Score drafts to finalise" value={draftExams.length} tone={draftExams.length > 0 ? "amber" : undefined} link="/exams" />
+        <Kpi
+          label="Coach updates filed (today)"
+          value={`${updatesToday}/${coachCount}`}
+          tone={coachCount > 0 && updatesToday < coachCount ? "amber" : "green"}
+          link="/daily-update/team"
+        />
       </div>
 
       {unmarked.length > 0 && (
