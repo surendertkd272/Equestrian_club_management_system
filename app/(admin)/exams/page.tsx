@@ -79,19 +79,14 @@ export default async function ExamsPage({
             </Button>
           )}
           {canSchedule && (
-            <>
-              {/* Single-exam form kept reachable but de-emphasised — the batch
-                  flow below covers it (one rider + one examiner is just the
-                  simplest case). */}
-              <Button asChild variant="outline">
-                <Link href="/exams/new">Single exam</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/exams/sittings/new">
-                  <Plus className="h-4 w-4" /> Schedule exams
-                </Link>
-              </Button>
-            </>
+            // One scheduling path: the batch flow (multi-rider + examiner pool).
+            // The single-rider form still backs the per-rider "Schedule exam"
+            // shortcut on a rider's profile, but isn't a top-level option here.
+            <Button asChild>
+              <Link href="/exams/sittings/new">
+                <Plus className="h-4 w-4" /> Schedule exams
+              </Link>
+            </Button>
           )}
         </div>
       </div>
