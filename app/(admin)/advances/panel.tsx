@@ -101,12 +101,12 @@ export function AdvancesPanel({
                 <Label>Amount (₹) *</Label>
                 <Input
                   type="number"
-                  // min={0} so the step grid is 0, 100, 200, … and the
-                  // spinner snaps to round hundreds. The previous min={1}
-                  // made valid step values 1, 101, …, 2001, which is why
-                  // typing 2000 + tabbing-out rounded to 2001.
+                  // step="any" — no value grid, so the field keeps exactly what's
+                  // typed. A previous step="100" snapped the spinner/validation to
+                  // round hundreds (2000 → 2001 with the old min={1}); "any" removes
+                  // that class of bug entirely. min={0} keeps it non-negative.
                   min={0}
-                  step="100"
+                  step="any"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                 />
@@ -223,11 +223,11 @@ function AdvanceRowDisplay({ row }: { row: AdvanceRow }) {
             <Label className="text-xs">Amount (max ₹{Math.round(row.remaining).toLocaleString("en-IN")})</Label>
             <Input
               type="number"
-              // min={0} so step="100" grid is 0, 100, 200, …
-              // (same off-by-one fix as the issue form above).
+              // step="any" so the exact amount is kept (no round-hundred grid) —
+              // also lets you repay a fractional remaining balance exactly.
               min={0}
               max={row.remaining}
-              step="100"
+              step="any"
               value={repayAmount}
               onChange={(e) => setRepayAmount(e.target.value)}
               required
