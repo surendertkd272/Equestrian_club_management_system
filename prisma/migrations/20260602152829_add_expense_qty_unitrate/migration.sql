@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Expense" ADD COLUMN     "qty" DOUBLE PRECISION,
+ADD COLUMN     "unitRate" DOUBLE PRECISION;

@@ -133,6 +133,8 @@ export const NAV: NavGroup[] = [
       // they purchased on behalf of the club.
       { href: "/expenses/submit", label: "Submit Invoice", iconName: "Receipt", perm: ["HEAD_COACH", "COACH", "STABLE_MANAGER", "INVENTORY_MANAGER", "COMPETITION_MANAGER", "GROOM", "FARRIER", "VET"] },
       { href: "/reports", label: "Reports", iconName: "FileText", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER", "SCHOOL_ADMINISTRATOR"], feature: "reports" },
+      // Club-wise procurement snapshot (Farrier/Fodder/Hay/Vet medicines).
+      { href: "/reports/procurement", label: "Procurement Report", iconName: "FileText", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "ACCOUNTANT"], feature: "expenses" },
       { href: "/certificates", label: "Certificates", iconName: "Award", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "EXAMINER", "COMPETITION_MANAGER", "SCHOOL_ADMINISTRATOR"], feature: "certificates" },
       { href: "/accreditations", label: "Accreditations", iconName: "Shield", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COMPETITION_MANAGER"], feature: "accreditations" },
       { href: "/notifications", label: "Notifications", iconName: "Bell", perm: ALL_STAFF },

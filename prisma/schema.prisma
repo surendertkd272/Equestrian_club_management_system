@@ -2969,6 +2969,11 @@ model Expense {
   vendorId    String?
   amount      Float
   gstAmount   Float    @default(0)
+  // Optional quantity + per-unit rate for procurement that's bought by
+  // measure (fodder/hay by kg/bale, etc.). `amount` stays the authoritative
+  // total (qty × unitRate when both set). Null for lump-sum expenses.
+  qty         Float?
+  unitRate    Float?
   // Date of the expense as it actually occurred (vs createdAt = when it
   // was booked into the system). Used for P&L window queries.
   spentAt     DateTime

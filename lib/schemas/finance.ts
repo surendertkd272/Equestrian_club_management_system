@@ -63,6 +63,9 @@ export const createExpenseSchema = z.object({
   vendorId: z.string().optional().nullable(),
   amount: z.coerce.number().min(0).max(100_000_000),
   gstAmount: z.coerce.number().min(0).max(10_000_000).default(0),
+  // Optional quantity + per-unit rate (e.g. fodder/hay bought by kg/bale).
+  qty: z.coerce.number().min(0).max(10_000_000).optional(),
+  unitRate: z.coerce.number().min(0).max(10_000_000).optional(),
   spentAt: dateLike,
   description: z.string().min(2).max(300),
   invoiceRef: z.string().max(60).optional(),

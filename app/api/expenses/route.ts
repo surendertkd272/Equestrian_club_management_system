@@ -71,6 +71,8 @@ export async function POST(req: NextRequest) {
       vendorId: parsed.data.vendorId ?? null,
       amount: parsed.data.amount,
       gstAmount: parsed.data.gstAmount,
+      qty: parsed.data.qty ?? null,
+      unitRate: parsed.data.unitRate ?? null,
       spentAt: new Date(parsed.data.spentAt),
       description: parsed.data.description,
       invoiceRef: parsed.data.invoiceRef,
