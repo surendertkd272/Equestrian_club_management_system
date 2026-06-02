@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EQUIPMENT_CATEGORY_ORDER } from "@/lib/schemas/equipment";
 
 export const dynamic = "force-dynamic";
 
@@ -31,8 +32,14 @@ export default async function HqEquipmentMatrix() {
     grid.get(s.catalogId)!.set(s.centreId, { qty: s.qty, threshold: s.threshold ?? 0 });
   }
 
+  // Render categories in canonical order (tack → grooming → stable → rider → …),
+  // not the alphabetical order the DB query returns. Stable sort preserves the
+  // name ordering within each category.
+  const sortedCatalog = [...catalog].sort(
+    (a, b) => (EQUIPMENT_CATEGORY_ORDER[a.category] ?? 99) - (EQUIPMENT_CATEGORY_ORDER[b.category] ?? 99),
+  );
   const byCategory = new Map<string, typeof catalog>();
-  for (const c of catalog) {
+  for (const c of sortedCatalog) {
     if (!byCategory.has(c.category)) byCategory.set(c.category, []);
     byCategory.get(c.category)!.push(c);
   }
