@@ -39,10 +39,11 @@ export default async function NewSittingPage() {
     <div className="mx-auto max-w-2xl space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Schedule an exam sitting</CardTitle>
+          <CardTitle>Schedule exams</CardTitle>
           <CardDescription>
-            One date, one examiner, one level — pick the riders. We&apos;ll create a scheduled
-            exam per rider and link each to their most recent failed attempt automatically.
+            One date + level. Pick the riders and the examiner pool — we&apos;ll create a
+            scheduled exam per rider, unassigned. On the day, any examiner in the pool picks a
+            rider to mark (it then locks to them). Re-attempts link automatically.
           </CardDescription>
         </CardHeader>
         <CardContent>

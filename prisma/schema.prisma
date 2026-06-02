@@ -2333,8 +2333,11 @@ model Exam {
   id            String   @id @default(cuid())
   centreId      String
   riderId       String
-  examinerId    String   // FK to User (primary / lead judge)
-  examinerName  String   // denormalised so historical exams survive renames
+  // Assigned examiner. NULL = unassigned: scheduled from a sitting pool and not
+  // yet claimed. An examiner claims a rider from the pool (first-come), which
+  // sets these and locks scoring to them. Single-exam scheduling sets it up front.
+  examinerId    String?  // FK to User
+  examinerName  String?  // denormalised so historical exams survive renames
   level         Int      // 1..N, matches ScoringTemplate.levelKey
   date          DateTime // exam day (date-only, stored as UTC midnight)
   time          String   @default("09:00") // HH:MM 24h
@@ -2432,15 +2435,33 @@ model ExamSitting {
   centreId     String
   level        Int
   date         DateTime
-  examinerId   String
-  examinerName String
+  // Legacy single-examiner columns (kept nullable for old rows). The examiner
+  // POOL now lives in ExamSittingExaminer — any pooled examiner can claim a
+  // rider from the sitting.
+  examinerId   String?
+  examinerName String?
   notes        String?
   createdAt    DateTime @default(now())
 
-  centre Centre @relation(fields: [centreId], references: [id], onDelete: Cascade)
-  exams  Exam[]
+  centre    Centre                @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  exams     Exam[]
+  examiners ExamSittingExaminer[]
 
   @@index([centreId, date])
+}
+
+// The pool of examiners staffed on a sitting. Any of them can claim (pick) an
+// unassigned rider from the sitting to mark it.
+model ExamSittingExaminer {
+  id           String @id @default(cuid())
+  sittingId    String
+  examinerId   String // FK to User
+  examinerName String // denormalised
+
+  sitting ExamSitting @relation(fields: [sittingId], references: [id], onDelete: Cascade)
+
+  @@unique([sittingId, examinerId])
+  @@index([examinerId])
 }
 
 // ──────────────────────────────────────────────────────────────────────────

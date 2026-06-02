@@ -114,7 +114,7 @@ export default async function StudentHome() {
         <Kpi
           label="Next exam"
           value={upcomingExam ? `L${upcomingExam.level}` : "—"}
-          sub={upcomingExam ? `${formatDate(upcomingExam.date)} · ${upcomingExam.examinerName}` : "Nothing scheduled"}
+          sub={upcomingExam ? `${formatDate(upcomingExam.date)} · ${upcomingExam.examinerName ?? "examiner TBD"}` : "Nothing scheduled"}
         />
         {showPayment && (
           <Kpi
@@ -292,7 +292,7 @@ export default async function StudentHome() {
                       <tr key={e.id} className="border-t">
                         <td className="py-2">{formatDate(e.date)}</td>
                         <td className="py-2">L{e.level}</td>
-                        <td className="py-2">{e.examinerName}</td>
+                        <td className="py-2">{e.examinerName ?? "—"}</td>
                         <td className="py-2">
                           {e.passed === true ? (
                             <Badge variant="success">passed ({e.totalScore})</Badge>

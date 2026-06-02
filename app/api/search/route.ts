@@ -204,7 +204,7 @@ export async function GET(req: NextRequest) {
       id: e.id,
       href: `/exams/${e.id}`,
       primary: `Level ${e.level} · ${e.rider.firstName} ${e.rider.lastName}`,
-      secondary: `${e.date.toISOString().slice(0, 10)} · ${e.examinerName} · ${e.status}`,
+      secondary: `${e.date.toISOString().slice(0, 10)} · ${e.examinerName ?? "Unassigned"} · ${e.status}`,
     })),
     ...comps.map((c) => ({
       kind: "competition" as const,
