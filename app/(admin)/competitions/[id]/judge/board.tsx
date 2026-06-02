@@ -75,11 +75,12 @@ export function JudgeBoard({
     router.refresh();
   }
 
-  // Per-discipline column layout — show only the channels that matter for the
-  // active class's scoring engine.
-  const showScore = engine === "dressage" || engine === "generic" || engine === "eventing";
-  const showFaults = engine === "jumping" || engine === "eventing" || engine === "gymkhana";
-  const showTime = engine === "jumping" || engine === "eventing" || engine === "gymkhana";
+  // Per-discipline column layout — show only the channels the active class's
+  // engine actually uses (declared in lib/discipline.ts), so e.g. a hack class
+  // shows only Marks and a tent-pegging class shows Points + Time.
+  const showScore = rules.inputs.includes("score");
+  const showFaults = rules.inputs.includes("faults");
+  const showTime = rules.inputs.includes("time");
 
   return (
     <div className="space-y-4">
@@ -145,7 +146,7 @@ export function JudgeBoard({
             <div className="mt-2 grid gap-2" style={{ gridTemplateColumns: `repeat(${(showScore ? 1 : 0) + (showFaults ? 1 : 0) + (showTime ? 1 : 0) + 1}, minmax(0, 1fr))` }}>
               {showScore && (
                 <label className="block">
-                  <span className="text-[10px] uppercase text-slate-500">{engine === "dressage" ? "%" : "Score"}</span>
+                  <span className="text-[10px] uppercase text-slate-500">{rules.scoreLabel ?? "Score"}</span>
                   <input
                     type="number"
                     step="0.1"

@@ -10,7 +10,16 @@
 // Adding a new discipline = one entry here; the rest of the app reads from
 // this module via getDisciplineRules().
 
-export type Discipline = "generic" | "dressage" | "jumping" | "eventing" | "gymkhana";
+export type Discipline =
+  | "generic"
+  | "dressage"
+  | "jumping"
+  | "eventing"
+  | "gymkhana"
+  | "tent_pegging"
+  | "polo"
+  | "hacks"
+  | "endurance";
 
 export type EntryScore = {
   score: number | null;
@@ -18,11 +27,20 @@ export type EntryScore = {
   time: number | null;
 };
 
+// The three numeric channels a judge can fill on an entry.
+export type ScoreChannel = "score" | "faults" | "time";
+
 export type DisciplineRules = {
   key: Discipline;
   label: string;
   // Short label used in column headers.
   primaryColumn: string;
+  // Which channels this discipline actually uses — drives which input columns
+  // the ringside judge view shows (so we don't ask for "faults" on a hack class).
+  inputs: ScoreChannel[];
+  // Label for the `score` channel input ("%", "Goals", "Points", "Marks").
+  // Defaults to "Score" when omitted.
+  scoreLabel?: string;
   // Pretty-print a row's headline result. Empty string when no data yet.
   formatHeadline(e: EntryScore): string;
   // Comparator that puts the WINNER first. Stable; ties fall back to the
@@ -39,6 +57,7 @@ const generic: DisciplineRules = {
   key: "generic",
   label: "Generic",
   primaryColumn: "Score",
+  inputs: ["score"],
   formatHeadline: (e) => (e.score === null ? "" : String(e.score)),
   rank: (a, b) => {
     // Higher score wins; null/undefined go last.
@@ -52,6 +71,8 @@ const dressage: DisciplineRules = {
   key: "dressage",
   label: "Dressage",
   primaryColumn: "%",
+  inputs: ["score"],
+  scoreLabel: "%",
   formatHeadline: (e) => (e.score === null ? "" : `${e.score.toFixed(2)}%`),
   rank: (a, b) => {
     // Highest percentage wins; tie → fewer faults (collective penalties).
@@ -66,6 +87,7 @@ const jumping: DisciplineRules = {
   key: "jumping",
   label: "Show jumping",
   primaryColumn: "Faults / Time",
+  inputs: ["faults", "time"],
   formatHeadline: (e) => {
     if (e.faults === null && e.time === null) return "";
     const f = e.faults ?? 0;
@@ -85,6 +107,8 @@ const eventing: DisciplineRules = {
   key: "eventing",
   label: "Eventing",
   primaryColumn: "Penalty total",
+  inputs: ["score", "faults", "time"],
+  scoreLabel: "Penalty",
   formatHeadline: (e) => {
     if (e.score === null && e.faults === null) return "";
     const pen = e.score ?? 0;
@@ -111,6 +135,7 @@ const gymkhana: DisciplineRules = {
   key: "gymkhana",
   label: "Gymkhana",
   primaryColumn: "Time",
+  inputs: ["time", "faults"],
   formatHeadline: (e) => {
     if (e.time === null) return "";
     const f = e.faults ?? 0;
@@ -126,12 +151,84 @@ const gymkhana: DisciplineRules = {
   },
 };
 
+// ── The four disciplines that previously borrowed generic/gymkhana now have
+// their own engines. ────────────────────────────────────────────────────────
+
+// Tent pegging: accuracy POINTS decide it (carry 6 / draw 4 / strike 2 …),
+// fastest run breaks ties. Distinct from gymkhana (time-first) and generic
+// (ignores time entirely).
+const tentPegging: DisciplineRules = {
+  key: "tent_pegging",
+  label: "Tent Pegging",
+  primaryColumn: "Points / Time",
+  inputs: ["score", "time"],
+  scoreLabel: "Points",
+  formatHeadline: (e) => {
+    if (e.score === null && e.time === null) return "";
+    const pts = e.score ?? 0;
+    const t = e.time !== null ? ` · ${e.time.toFixed(2)}s` : "";
+    return `${pts} pt${pts === 1 ? "" : "s"}${t}`;
+  },
+  rank: (a, b) => {
+    // Most points wins; tie → fastest time.
+    const sa = typeof a.score === "number" ? a.score : Number.NEGATIVE_INFINITY;
+    const sb = typeof b.score === "number" ? b.score : Number.NEGATIVE_INFINITY;
+    if (sa !== sb) return sb - sa;
+    return num(a.time) - num(b.time);
+  },
+};
+
+// Polo: goals scored, highest wins.
+const polo: DisciplineRules = {
+  key: "polo",
+  label: "Polo",
+  primaryColumn: "Goals",
+  inputs: ["score"],
+  scoreLabel: "Goals",
+  formatHeadline: (e) => (e.score === null ? "" : `${e.score} goal${e.score === 1 ? "" : "s"}`),
+  rank: (a, b) => {
+    const av = typeof a.score === "number" ? a.score : Number.NEGATIVE_INFINITY;
+    const bv = typeof b.score === "number" ? b.score : Number.NEGATIVE_INFINITY;
+    return bv - av;
+  },
+};
+
+// Hacks: judged on the horse's way of going / manners — highest marks win.
+const hacks: DisciplineRules = {
+  key: "hacks",
+  label: "Hacks",
+  primaryColumn: "Marks",
+  inputs: ["score"],
+  scoreLabel: "Marks",
+  formatHeadline: (e) => (e.score === null ? "" : `${e.score} marks`),
+  rank: (a, b) => {
+    const av = typeof a.score === "number" ? a.score : Number.NEGATIVE_INFINITY;
+    const bv = typeof b.score === "number" ? b.score : Number.NEGATIVE_INFINITY;
+    return bv - av;
+  },
+};
+
+// Endurance: complete the ride in the fastest time (vet gates gate eligibility
+// upstream). No faults/penalties channel — purely time.
+const endurance: DisciplineRules = {
+  key: "endurance",
+  label: "Endurance",
+  primaryColumn: "Time",
+  inputs: ["time"],
+  formatHeadline: (e) => (e.time === null ? "" : `${e.time.toFixed(2)}`),
+  rank: (a, b) => num(a.time) - num(b.time),
+};
+
 const REGISTRY: Record<Discipline, DisciplineRules> = {
   generic,
   dressage,
   jumping,
   eventing,
   gymkhana,
+  tent_pegging: tentPegging,
+  polo,
+  hacks,
+  endurance,
 };
 
 export function getDisciplineRules(d: string | null | undefined): DisciplineRules {
@@ -149,10 +246,11 @@ const DISCIPLINE_TO_ENGINE: Record<string, Discipline> = {
   dressage: "dressage",
   eventing: "eventing",
   gymkhana: "gymkhana",
-  tent_pegging: "gymkhana", // timed runs + accuracy penalties
-  endurance: "gymkhana", // fastest qualifying time wins
-  polo: "generic", // goals scored, highest wins
-  hacks: "generic", // judged on merit, highest score
+  // Each of these now has its own engine (was a generic/gymkhana placeholder).
+  tent_pegging: "tent_pegging",
+  endurance: "endurance",
+  polo: "polo",
+  hacks: "hacks",
 };
 
 // Resolve the scoring engine key for a single event. `classDiscipline` is the
