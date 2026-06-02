@@ -21,6 +21,8 @@ export function NewExpenseForm({
   const [form, setForm] = useState({
     categoryId: categories[0]?.id ?? "",
     vendorId: "",
+    qty: "",
+    unitRate: "",
     amount: "",
     gstAmount: "0",
     spentAt: today,
@@ -34,6 +36,18 @@ export function NewExpenseForm({
 
   function set<K extends keyof typeof form>(k: K, v: any) {
     setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  // Qty + unit rate are optional; when both are present we auto-fill the
+  // total amount (qty × rate). The amount field stays editable for overrides.
+  function setQtyOrRate(k: "qty" | "unitRate", v: string) {
+    setForm((f) => {
+      const next = { ...f, [k]: v };
+      const q = parseFloat(next.qty);
+      const r = parseFloat(next.unitRate);
+      if (!Number.isNaN(q) && !Number.isNaN(r)) next.amount = String(Number((q * r).toFixed(2)));
+      return next;
+    });
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -53,6 +67,8 @@ export function NewExpenseForm({
       paid: form.paid,
     };
     if (form.invoiceRef) payload.invoiceRef = form.invoiceRef;
+    if (form.qty) payload.qty = Number(form.qty);
+    if (form.unitRate) payload.unitRate = Number(form.unitRate);
     if (form.paid) {
       payload.paidAt = form.paidAt;
       payload.method = form.method;
@@ -100,6 +116,28 @@ export function NewExpenseForm({
           <Input required type="date" value={form.spentAt} onChange={(e) => set("spentAt", e.target.value)} />
         </div>
         <div>
+          <Label>Qty</Label>
+          <Input
+            type="number"
+            min={0}
+            step="any"
+            value={form.qty}
+            onChange={(e) => setQtyOrRate("qty", e.target.value)}
+            placeholder="e.g. 30 (optional)"
+          />
+        </div>
+        <div>
+          <Label>Unit rate (₹)</Label>
+          <Input
+            type="number"
+            min={0}
+            step="any"
+            value={form.unitRate}
+            onChange={(e) => setQtyOrRate("unitRate", e.target.value)}
+            placeholder="per unit (optional)"
+          />
+        </div>
+        <div>
           <Label>Amount (₹) *</Label>
           <Input
             required
@@ -109,6 +147,9 @@ export function NewExpenseForm({
             value={form.amount}
             onChange={(e) => set("amount", e.target.value)}
           />
+          {form.qty && form.unitRate && (
+            <p className="mt-1 text-[11px] text-muted-foreground">Auto-filled from Qty × Unit rate (editable).</p>
+          )}
         </div>
         <div>
           <Label>GST (₹)</Label>
