@@ -11,9 +11,8 @@ import { audit } from "@/lib/audit";
 // scheduled Exam per rider, all UNASSIGNED. Any examiner in the pool then
 // "claims" a rider from the sitting (see /api/exams/[id]/claim) to mark it —
 // first-come, locked to them. Re-attempts are linked automatically. One txn.
-const ALLOWED_EXAMINER_ROLES = new Set([
-  "EXAMINER", "JURY", "HEAD_COACH", "CENTRE_MANAGER", "COACH", "SUPER_ADMIN", "ADMIN",
-]);
+// Only EXAMINERs may be in the pool — they're the ones who score riders.
+const ALLOWED_EXAMINER_ROLES = new Set(["EXAMINER"]);
 const schema = z.object({
   level: z.coerce.number().int().min(1).max(10),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
