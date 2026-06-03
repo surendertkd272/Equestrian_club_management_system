@@ -32,12 +32,21 @@ export default async function StaffPrintPage({
   const rows = employeeFormRows(profile.record);
   const printedOn = formatDate(new Date());
 
-  // Nothing selected → at least show the form so the page is never blank.
+  // Images embed inline and print with the form in one job. PDFs can't be
+  // embedded (the app's CSP blocks framing, and browsers don't print framed
+  // PDFs into the parent job anyway) — they open in their own tab to print.
+  const images = docs.filter((d) => !d.isPdf);
+  const pdfs = docs.filter((d) => d.isPdf);
+
+  // Honour the picker: only force the form in when nothing at all was selected
+  // (so the page is never blank). A PDF-only selection shows just the PDF card.
   const showForm = includeForm || docs.length === 0;
+  // Only auto-open the print dialog when there's something to print inline.
+  const hasInline = showForm || images.length > 0;
 
   return (
     <div className="print-packet">
-      <AutoPrint />
+      {hasInline && <AutoPrint />}
       <style
         // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{
@@ -54,19 +63,35 @@ export default async function StaffPrintPage({
             .pkg-row dd { margin: 0; font-weight: 600; text-align: right; }
             .pkg-doc-title { font-size: 13px; font-weight: 600; margin: 0 0 8px; }
             .pkg-doc-img { max-width: 100%; max-height: 250mm; display: block; margin: 0 auto; }
-            .pkg-doc-frame { width: 100%; height: 250mm; border: 1px solid #e2e8f0; }
             .pkg-open { font-size: 11px; }
             .toolbar { margin-bottom: 16px; }
-            @media print { .toolbar { display: none !important; } }
+            .pdf-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+            .pdf-btn { display: inline-block; background: #0f172a; color: #fff; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 13px; white-space: nowrap; }
+            .pdf-note { display: none; color: #64748b; font-size: 12px; }
+            @media print {
+              .toolbar { display: none !important; }
+              .pdf-card { display: none !important; }
+              .pdf-note { display: block; }
+            }
           `,
         }}
       />
 
-      <div className="toolbar flex items-center gap-3 rounded-md border bg-slate-50 p-3 text-sm">
-        <span className="text-slate-600">
-          Printing packet for <strong>{profile.staff.name}</strong>. The print dialog opens automatically — if it
-          doesn&apos;t, press <kbd>Ctrl/Cmd&nbsp;+&nbsp;P</kbd>.
+      <div className="toolbar flex flex-col gap-1 rounded-md border bg-slate-50 p-3 text-sm text-slate-600">
+        <span>
+          Packet for <strong>{profile.staff.name}</strong>.{" "}
+          {hasInline ? (
+            <>The print dialog opens automatically — if it doesn&apos;t, press <kbd>Ctrl/Cmd&nbsp;+&nbsp;P</kbd>.</>
+          ) : (
+            <>Use the button(s) below to open and print each document.</>
+          )}
         </span>
+        {pdfs.length > 0 && (
+          <span className="text-slate-500">
+            {pdfs.length} PDF attachment{pdfs.length === 1 ? "" : "s"} can&apos;t be embedded — open{" "}
+            {pdfs.length === 1 ? "it" : "each"} below to print at full quality.
+          </span>
+        )}
       </div>
 
       {showForm && (
@@ -91,7 +116,7 @@ export default async function StaffPrintPage({
         </section>
       )}
 
-      {docs.map((d) => (
+      {images.map((d) => (
         <section key={d.key} className="pkg-page">
           <p className="pkg-doc-title">
             {d.label} — {profile.staff.name}{" "}
@@ -99,12 +124,24 @@ export default async function StaffPrintPage({
               (open ↗)
             </a>
           </p>
-          {d.isPdf ? (
-            <iframe className="pkg-doc-frame" src={d.url} title={d.label} />
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img className="pkg-doc-img" src={d.url} alt={d.label} />
-          )}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="pkg-doc-img" src={d.url} alt={d.label} />
+        </section>
+      ))}
+
+      {pdfs.map((d) => (
+        <section key={d.key} className="pkg-page">
+          <p className="pkg-doc-title">{d.label} — {profile.staff.name}</p>
+          {/* PDFs can't embed under the app's CSP — open to print natively. */}
+          <div className="pdf-card">
+            <span style={{ fontSize: 13, color: "#334155" }}>
+              This is a PDF. Open it to view and print at full quality.
+            </span>
+            <a className="pdf-btn" href={d.url} target="_blank" rel="noopener">
+              Open &amp; print PDF ↗
+            </a>
+          </div>
+          <p className="pdf-note">PDF attachment — printed separately: {d.url}</p>
         </section>
       ))}
     </div>
