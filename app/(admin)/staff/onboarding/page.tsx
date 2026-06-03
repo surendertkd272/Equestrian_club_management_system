@@ -7,7 +7,8 @@ import { ROLES } from "@/lib/roles";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import { GenerateLinkButton, ApproveControl } from "./onboarding-actions";
+import { pendingItems, parseWaived } from "@/lib/onboarding-items";
+import { GenerateLinkButton, ApproveControl, WaiveControl } from "./onboarding-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,11 @@ export default async function StaffOnboardingPage() {
   });
 
   const submitted = rows.filter((r) => r.status === "submitted");
+  // Approved hires who still have blank, non-waived items.
+  const awaiting = rows
+    .filter((r) => r.status === "approved")
+    .map((r) => ({ r, pending: pendingItems(r as unknown as Record<string, unknown>, parseWaived(r.waivedItemsJson)) }))
+    .filter((x) => x.pending.length > 0);
   const others = rows.filter((r) => r.status !== "submitted");
 
   return (
@@ -110,6 +116,35 @@ export default async function StaffOnboardingPage() {
           )}
         </CardContent>
       </Card>
+
+      {awaiting.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Awaiting documents ({awaiting.length})</CardTitle>
+            <CardDescription>Approved staff with items still pending. Waive any that don&apos;t apply.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {awaiting.map(({ r, pending }) => {
+              const overdue = r.documentsDueAt ? r.documentsDueAt < new Date() : false;
+              return (
+                <div key={r.id} className="rounded-md border p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="font-medium">{r.fullName ?? r.email}</div>
+                    {overdue ? (
+                      <Badge variant="destructive">overdue · was due {r.documentsDueAt ? formatDate(r.documentsDueAt) : ""}</Badge>
+                    ) : (
+                      <Badge variant="warning">{pending.length} pending · due {r.documentsDueAt ? formatDate(r.documentsDueAt) : "—"}</Badge>
+                    )}
+                  </div>
+                  <div className="mt-2">
+                    <WaiveControl id={r.id} pending={pending.map((p) => ({ key: p.key, label: p.label }))} />
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       {others.length > 0 && (
         <Card>
