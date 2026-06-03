@@ -23,6 +23,9 @@ export type UploadKind =
   | "staff_aadhaar"
   | "staff_police_verification"
   | "expense_invoice"
+  // Employee self-registration docs (Aadhaar, PAN, bank proof, certificates,
+  // photo). Public — uploaded from the tokenised onboarding link.
+  | "onboarding_doc"
   | "generic";
 
 // Per-kind MIME whitelist + size cap. Keep tight — the upload route is public.
@@ -36,6 +39,7 @@ const POLICY: Record<UploadKind, { mimes: string[]; maxBytes: number }> = {
   staff_aadhaar:             { mimes: ["image/jpeg", "image/png", "application/pdf"], maxBytes: 5 * 1024 * 1024 },
   staff_police_verification: { mimes: ["image/jpeg", "image/png", "application/pdf"], maxBytes: 5 * 1024 * 1024 },
   expense_invoice:           { mimes: ["image/jpeg", "image/png", "application/pdf"], maxBytes: 10 * 1024 * 1024 },
+  onboarding_doc:            { mimes: ["image/jpeg", "image/png", "image/webp", "application/pdf"], maxBytes: 5 * 1024 * 1024 },
   generic:                   { mimes: ["image/jpeg", "image/png", "image/webp", "application/pdf"], maxBytes: 5 * 1024 * 1024 },
 };
 

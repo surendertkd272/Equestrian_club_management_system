@@ -8,10 +8,10 @@ import { getSession } from "@/lib/auth";
 // branches on kind: anon for onboarding kinds, getSession() required for
 // the rest.
 
-const ALLOWED_KINDS: UploadKind[] = ["rider_photo", "rider_aadhaar", "rider_indemnity", "horse_photo", "asset_photo", "user_photo", "staff_aadhaar", "staff_police_verification", "expense_invoice", "generic"];
+const ALLOWED_KINDS: UploadKind[] = ["rider_photo", "rider_aadhaar", "rider_indemnity", "horse_photo", "asset_photo", "user_photo", "staff_aadhaar", "staff_police_verification", "expense_invoice", "onboarding_doc", "generic"];
 // Kinds reachable from the public onboarding wizard. Everything else must
 // belong to a signed-in user so anonymous traffic can't seed avatar URLs.
-const ANON_KINDS: ReadonlySet<UploadKind> = new Set(["rider_photo", "rider_aadhaar", "rider_indemnity", "generic"]);
+const ANON_KINDS: ReadonlySet<UploadKind> = new Set(["rider_photo", "rider_aadhaar", "rider_indemnity", "onboarding_doc", "generic"]);
 
 export const runtime = "nodejs"; // we use node:fs in the storage impl
 
