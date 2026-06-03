@@ -7,7 +7,7 @@ import { prisma } from "./prisma";
 import {
   parseDeductionRules,
   monthBounds,
-  computeAttendanceDeduction,
+  computeAbsenceDeduction,
 } from "./schemas/payroll";
 
 // The salary in force for `periodMonth` = the structure row with the latest
@@ -59,13 +59,12 @@ export async function outstandingAdvance(userId: string): Promise<number> {
 // Full computed picture for one staff member + month, before the admin
 // chooses other-deductions / advance recovery.
 export async function salaryPreview(userId: string, centreId: string | null, periodMonth: string) {
-  const [gross, rules, counts, advanceOutstanding] = await Promise.all([
+  const [gross, counts, advanceOutstanding] = await Promise.all([
     effectiveSalary(userId, periodMonth),
-    deductionRulesForCentre(centreId),
     attendanceCounts(userId, periodMonth),
     outstandingAdvance(userId),
   ]);
-  const { total: attendanceDeducted, breakdown } = computeAttendanceDeduction(counts, rules);
+  const { total: attendanceDeducted, breakdown } = computeAbsenceDeduction(gross, counts);
   return {
     gross,
     attendanceDeducted,

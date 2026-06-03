@@ -1,7 +1,8 @@
-// Salary & Payroll. Three parts:
-//   1. Payroll settings — global per-status deduction rates (Super Admin/Admin)
-//   2. Salary structure master — every staff member's salary + raise history
-//   3. Salary recorder — auto-computes gross + attendance + advance deductions
+// Salary & Payroll. Two parts:
+//   1. Salary structure master — every staff member's salary + raise history.
+//      Only Super Admin defines salaries.
+//   2. Salary recorder — auto-computes net = base − (base/30 × absent days) −
+//      advance recovery − other deductions.
 // Companion to /advances (the advance ledger).
 
 import { redirect } from "next/navigation";
@@ -12,8 +13,6 @@ import { scopeCentre, centreWhere } from "@/lib/tenancy";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import { parseDeductionRules } from "@/lib/schemas/payroll";
-import { PayrollSettings } from "./payroll-settings";
 import { SalaryStructureTable } from "./structure-table";
 import { SalaryPanel } from "./panel";
 import { MarkPaidButton } from "./mark-paid-button";
@@ -28,17 +27,7 @@ export default async function SalaryPage() {
   const session = (await getSession())!;
   if (!canView(session.role)) redirect("/dashboard");
 
-  const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
   const centreId = scopeCentre(session);
-
-  // Resolve the org for the global payroll config.
-  const me = await prisma.user.findUnique({
-    where: { id: session.userId },
-    select: { orgId: true, centre: { select: { orgId: true } } },
-  });
-  const orgId = me?.orgId ?? me?.centre?.orgId ?? null;
-  const config = orgId ? await prisma.payrollConfig.findUnique({ where: { orgId } }) : null;
-  const rules = parseDeductionRules(config?.deductionRulesJson);
 
   const [staff, structures, recent] = await Promise.all([
     prisma.user.findMany({
@@ -95,17 +84,14 @@ export default async function SalaryPage() {
       <div>
         <h1 className="text-2xl font-bold">Salary &amp; Payroll</h1>
         <p className="text-sm text-muted-foreground">
-          Define each staff member's salary, set the global per-absent deduction, then record
-          monthly pay — attendance deductions and outstanding advances are applied automatically.
+          Define each staff member's salary (Super Admin only), then record monthly pay — one
+          absent day deducts base ÷ 30, and outstanding advances are recovered automatically.
           See the advance ledger at <Link href="/advances" className="underline">Salary Advances</Link>.
         </p>
       </div>
 
-      {/* Global deduction config — HQ tier only. Accountant sees it read-only. */}
-      <PayrollSettings initialRules={rules} canEdit={isHQ} />
-
-      {/* Salary master — set / raise each staff member's pay. */}
-      <SalaryStructureTable staff={staffRows} />
+      {/* Salary master — Super Admin sets / raises each staff member's pay. */}
+      <SalaryStructureTable staff={staffRows} canEdit={session.role === "SUPER_ADMIN"} />
 
       {/* Recorder — auto-computes from structure + config + attendance. */}
       <SalaryPanel staff={staffRows.map((s) => ({ id: s.id, name: s.name, role: s.role }))} defaultMonth={nowMonth} />
