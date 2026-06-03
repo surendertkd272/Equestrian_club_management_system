@@ -611,6 +611,7 @@ model Centre {
   salaryPayments    SalaryPayment[]
   salaryStructures  SalaryStructure[]
   coachDailyUpdates CoachDailyUpdate[]
+  employeeOnboardings EmployeeOnboarding[]
   venueTrips        VenueTrip[]
   auditRuns         AuditRun[]
 }
@@ -1035,6 +1036,71 @@ model Staff {
   user   User   @relation(fields: [userId], references: [id])
 
   @@index([centreId])
+}
+
+// Employee self-registration / onboarding. An admin generates a tokenised link
+// (one per prospective hire); the employee fills personal details, uploads KYC +
+// employment documents, accepts the agreement and a typed-name self-declaration,
+// and submits. Admin reviews and approves → creates the User + Staff records.
+// Mirrors the rider self-enrolment + external-entry-token patterns.
+model EmployeeOnboarding {
+  id        String   @id @default(cuid())
+  centreId  String
+  tokenHash String   @unique // SHA-256 of the link token; plaintext only in the URL
+  expiresAt DateTime
+  status    String   @default("draft") // draft | submitted | approved | rejected
+
+  // Personal
+  fullName         String?
+  fatherName       String?
+  emergencyContact String?
+  dob              DateTime?
+  permanentAddress String?
+  email            String?
+  maritalStatus    String?
+  aadhaarNumber    String?
+  panNumber        String?
+  bankAccountName   String?
+  bankAccountNumber String?
+  bankIfsc          String?
+  bankName          String?
+  prevEmployment   String?
+  agreedSalary     Float?
+  foodCharges      Float?
+  otherAllowances  String?
+  pfEsicConsent    Boolean  @default(false)
+  policeVerificationDetails String?
+  employmentType   String?  // full_time | trainee_stipend
+  dateOfJoining    DateTime?
+  references       String?
+
+  // Uploaded document URLs (lib/storage.ts)
+  photoUrl              String?
+  aadhaarUrl            String?
+  panUrl                String?
+  bankProofUrl          String?
+  prevEmploymentUrl     String?
+  policeVerificationUrl String?
+  characterCertUrl      String?
+
+  // Consent + legal declaration
+  agreementAccepted   Boolean @default(false)
+  declarationAccepted Boolean @default(false)
+  declarationName     String? // typed full name = legal e-acceptance
+
+  // Lifecycle
+  createdByUserId  String?
+  submittedAt      DateTime?
+  reviewedByUserId String?
+  reviewNotes      String?
+  approvedAt       DateTime?
+  createdStaffId   String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  centre Centre @relation(fields: [centreId], references: [id], onDelete: Cascade)
+
+  @@index([centreId, status])
 }
 
 // ──────────────────────────────────────────────────────────────────────────

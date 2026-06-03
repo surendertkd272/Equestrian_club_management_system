@@ -49,6 +49,10 @@ const PUBLIC_PREFIXES = [
   // re-validates the invite code.
   "/staff-register/",
   "/api/staff-register",
+  // Employee self-registration link — public form + its submit endpoint only.
+  // (Link generation + approval under /api/staff-onboarding stay auth-gated.)
+  "/onboard/staff",
+  "/api/staff-onboarding/submit",
   // Venue booking confirmation — public, read-only. Renter sees their
   // booking details from URL params; the underlying FacilityBooking row
   // still requires auth to mutate.
