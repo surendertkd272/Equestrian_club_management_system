@@ -5,15 +5,12 @@ import { centreWhere, scopeCentre } from "@/lib/tenancy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Link2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-import { StaffInviteManager } from "./invite-manager";
 
 export const dynamic = "force-dynamic";
 
-function canInvite(role: string): boolean {
-  return role === "SUPER_ADMIN" || role === "ADMIN" || role === "CENTRE_MANAGER";
-}
+const CAN_ONBOARD = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"];
 
 // Profile + printable packet are an admin / super-admin tool.
 function canViewProfile(role: string): boolean {
@@ -26,58 +23,34 @@ export default async function StaffPage() {
   const where = centreWhere(centreId);
   const showProfileLink = canViewProfile(session.role);
 
-  const [staff, inviteLinks] = await Promise.all([
-    prisma.staff.findMany({
-      where,
-      include: { user: { select: { name: true, email: true, phone: true, status: true } } },
-      orderBy: { joiningDate: "desc" },
-    }),
-    canInvite(session.role)
-      ? prisma.shortLink.findMany({
-          where: { ...where, kind: "staff_hire" },
-          orderBy: { createdAt: "desc" },
-          take: 50,
-        })
-      : Promise.resolve([]),
-  ]);
-
-  const now = new Date();
-  const invites = inviteLinks.map((l) => {
-    let email: string | null = null;
-    let role: string | null = null;
-    // paramsJson is a jsonb column — Prisma returns the parsed object.
-    if (l.paramsJson && typeof l.paramsJson === "object" && !Array.isArray(l.paramsJson)) {
-      const p = l.paramsJson as Record<string, unknown>;
-      email = typeof p.email === "string" ? p.email : null;
-      role = typeof p.role === "string" ? p.role : null;
-    }
-    return {
-      code: l.code,
-      email,
-      role,
-      used: l.singleUse && l.redeemCount > 0,
-      expired: !!l.expiresAt && l.expiresAt < now,
-      createdAt: l.createdAt.toISOString(),
-      expiresAt: l.expiresAt?.toISOString() ?? null,
-      lastRedeemedAt: l.lastRedeemedAt?.toISOString() ?? null,
-    };
+  const staff = await prisma.staff.findMany({
+    where,
+    include: { user: { select: { name: true, email: true, phone: true, status: true } } },
+    orderBy: { joiningDate: "desc" },
   });
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Staff</h1>
           <p className="text-sm text-muted-foreground">{staff.length} member{staff.length === 1 ? "" : "s"}</p>
         </div>
-        <Button asChild>
-          <Link href="/staff/new">
-            <Plus className="h-4 w-4" /> Add staff
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          {CAN_ONBOARD.includes(session.role) && (
+            <Button asChild variant="outline">
+              <Link href="/staff/onboarding">
+                <Link2 className="h-4 w-4" /> Onboard via link
+              </Link>
+            </Button>
+          )}
+          <Button asChild>
+            <Link href="/staff/new">
+              <Plus className="h-4 w-4" /> Add staff
+            </Link>
+          </Button>
+        </div>
       </div>
-
-      {canInvite(session.role) && <StaffInviteManager invites={invites} />}
 
       <Card>
         <CardHeader>
