@@ -100,6 +100,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         approvedAt: new Date(),
         reviewedByUserId: session.userId,
         createdStaffId: staff.id,
+        createdUserId: user.id,
+        // 15 days from approval to complete any still-blank fields/documents.
+        documentsDueAt: new Date(Date.now() + 15 * 86_400_000),
       },
     });
     return { userId: user.id, staffId: staff.id };

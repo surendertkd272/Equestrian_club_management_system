@@ -1095,12 +1095,19 @@ model EmployeeOnboarding {
   reviewNotes      String?
   approvedAt       DateTime?
   createdStaffId   String?
+  createdUserId    String?  // the login created on approval — for "my documents"
+  // Post-approval completion of any blank fields: 15-day deadline, waived item
+  // keys (admin/super-admin can waive what doesn't apply), overdue-notify dedup.
+  documentsDueAt    DateTime?
+  waivedItemsJson   Json?    // string[] of item keys waived by an admin
+  overdueNotifiedAt DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   centre Centre @relation(fields: [centreId], references: [id], onDelete: Cascade)
 
   @@index([centreId, status])
+  @@index([createdUserId])
 }
 
 // ──────────────────────────────────────────────────────────────────────────

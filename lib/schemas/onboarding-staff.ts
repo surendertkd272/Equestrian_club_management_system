@@ -70,6 +70,12 @@ export const submitOnboardingSchema = z.object({
 });
 export type SubmitOnboardingInput = z.infer<typeof submitOnboardingSchema>;
 
+// Employee completing still-blank fields/documents after approval (from their
+// "My Documents" page). All optional — they fill whatever's pending.
+export const completeOnboardingSchema = submitOnboardingSchema
+  .omit({ agreementAccepted: true, declarationAccepted: true, declarationName: true })
+  .partial();
+
 // Admin generates a shareable link.
 export const generateOnboardingLinkSchema = z.object({
   centreId: z.string().min(1).optional(), // SUPER_ADMIN/ADMIN may target a centre

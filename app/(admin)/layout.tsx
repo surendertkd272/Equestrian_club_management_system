@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { getSession, shouldForceRotate } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { pendingItems, parseWaived } from "@/lib/onboarding-items";
+import { formatDate } from "@/lib/utils";
 import { Sidebar } from "@/components/shell/sidebar";
 import { TopBar } from "@/components/shell/topbar";
 import { ReadOnlyBanner } from "@/components/shell/read-only-banner";
@@ -27,7 +30,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   // Pull centre + emergency contacts in one query. SUPER_ADMIN with no
   // centreId doesn't get a contacts strip (no single centre context).
-  const [centreFull, orgCentres, unreadCount, features, orgStatus, userPhoto] = await Promise.all([
+  const [centreFull, orgCentres, unreadCount, features, orgStatus, userPhoto, myOnboarding] = await Promise.all([
     session.centreId
       ? prisma.centre.findUnique({
           where: { id: session.centreId },
@@ -41,7 +44,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     getFeaturesForSession(session),
     getStatusForSession(session),
     prisma.user.findUnique({ where: { id: session.userId }, select: { photoUrl: true } }),
+    prisma.employeeOnboarding.findFirst({ where: { createdUserId: session.userId, status: "approved" } }),
   ]);
+
+  // The signed-in staff member's own pending onboarding items (if any).
+  const myPending = myOnboarding
+    ? pendingItems(myOnboarding as unknown as Record<string, unknown>, parseWaived(myOnboarding.waivedItemsJson))
+    : [];
+  const docsOverdue = myOnboarding?.documentsDueAt ? myOnboarding.documentsDueAt < new Date() : false;
 
   const centre = centreFull
     ? { id: centreFull.id, name: centreFull.name, slug: centreFull.slug }
@@ -70,6 +80,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         />
         <ImpersonationBanner impersonatedBy={session.impersonatedBy} userName={session.name} />
         <ReadOnlyBanner status={orgStatus} />
+        {myPending.length > 0 && (
+          <Link
+            href="/my-documents"
+            className={`block px-4 py-2 text-center text-sm hover:underline ${
+              docsOverdue ? "bg-rose-600 text-white" : "bg-amber-500 text-white"
+            }`}
+          >
+            {docsOverdue ? "⚠ Overdue: " : ""}
+            {myPending.length} onboarding item{myPending.length === 1 ? "" : "s"} pending
+            {myOnboarding?.documentsDueAt ? ` · due ${formatDate(myOnboarding.documentsDueAt)}` : ""} — complete your documents →
+          </Link>
+        )}
         <main className="flex-1 bg-muted/40 p-3 sm:p-4 md:p-6 pb-20 md:pb-6">{children}</main>
         <ConfirmHost />
         <PwaInstallPrompt />

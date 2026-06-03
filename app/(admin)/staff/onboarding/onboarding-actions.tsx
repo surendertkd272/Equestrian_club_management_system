@@ -97,3 +97,50 @@ export function ApproveControl({ id, roles }: { id: string; roles: string[] }) {
     </div>
   );
 }
+
+// Waive pending onboarding items (specific keys or all remaining) for a hire.
+export function WaiveControl({ id, pending }: { id: string; pending: { key: string; label: string }[] }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState<string | null>(null);
+
+  async function waive(payload: { items?: string[]; all?: boolean }, tag: string) {
+    setBusy(tag);
+    try {
+      const res = await fetch(`/api/staff-onboarding/${id}/waive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        toast.error("Failed to waive");
+        return;
+      }
+      toast.success("Waived");
+      router.refresh();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap gap-1.5">
+        {pending.map((p) => (
+          <button
+            key={p.key}
+            type="button"
+            disabled={busy !== null}
+            onClick={() => waive({ items: [p.key] }, p.key)}
+            className="rounded-full border bg-card px-2 py-0.5 text-[11px] hover:bg-muted disabled:opacity-50"
+            title="Waive this requirement"
+          >
+            {p.label} <span className="text-muted-foreground">✕ waive</span>
+          </button>
+        ))}
+      </div>
+      <Button size="sm" variant="outline" disabled={busy !== null} onClick={() => waive({ all: true }, "all")}>
+        {busy === "all" ? "Waiving…" : "Waive all remaining"}
+      </Button>
+    </div>
+  );
+}
