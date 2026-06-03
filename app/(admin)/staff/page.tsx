@@ -15,10 +15,16 @@ function canInvite(role: string): boolean {
   return role === "SUPER_ADMIN" || role === "ADMIN" || role === "CENTRE_MANAGER";
 }
 
+// Profile + printable packet are an admin / super-admin tool.
+function canViewProfile(role: string): boolean {
+  return role === "SUPER_ADMIN" || role === "ADMIN";
+}
+
 export default async function StaffPage() {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
   const where = centreWhere(centreId);
+  const showProfileLink = canViewProfile(session.role);
 
   const [staff, inviteLinks] = await Promise.all([
     prisma.staff.findMany({
@@ -93,7 +99,15 @@ export default async function StaffPage() {
             <tbody>
               {staff.map((s) => (
                 <tr key={s.id} className="border-t">
-                  <td className="py-2 font-medium">{s.user.name}</td>
+                  <td className="py-2 font-medium">
+                    {showProfileLink ? (
+                      <Link href={`/staff/${s.id}`} className="text-primary hover:underline">
+                        {s.user.name}
+                      </Link>
+                    ) : (
+                      s.user.name
+                    )}
+                  </td>
                   <td className="py-2">
                     <Badge variant="outline">{s.role.replaceAll("_", " ")}</Badge>
                   </td>
