@@ -9,8 +9,9 @@ import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { salaryStructureSchema } from "@/lib/schemas/payroll";
 
+// Only SUPER_ADMIN defines staff salaries.
 function canEdit(role: string): boolean {
-  return role === "SUPER_ADMIN" || role === "ADMIN" || role === "ACCOUNTANT";
+  return role === "SUPER_ADMIN";
 }
 
 function dateOnly(s: string): Date {

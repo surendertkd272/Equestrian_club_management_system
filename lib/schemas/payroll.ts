@@ -74,21 +74,34 @@ export function monthBounds(periodMonth: string): { start: Date; end: Date } {
   return { start, end };
 }
 
-// Given per-status day counts and the global rules, compute the attendance
-// deduction + a breakdown for the payslip. Only statuses with a configured
-// (>0) rule contribute.
-export function computeAttendanceDeduction(
+// Payroll rule: one absent day deducts (monthly base / 30); a half-day deducts
+// half of that. Late and leave don't deduct. Fixed 30-day divisor per spec.
+export const PAYROLL_DAYS = 30;
+export function dailyRate(gross: number): number {
+  return gross > 0 ? gross / PAYROLL_DAYS : 0;
+}
+
+// Attendance deduction from absences, with a payslip breakdown. Derived from the
+// staff member's base salary (not a configurable per-status rate).
+export function computeAbsenceDeduction(
+  gross: number,
   counts: Record<string, number>,
-  rules: Record<string, number>,
 ): { total: number; breakdown: { status: string; days: number; rate: number; amount: number }[] } {
+  const rate = dailyRate(gross);
   const breakdown: { status: string; days: number; rate: number; amount: number }[] = [];
   let total = 0;
-  for (const status of DEDUCTIBLE_STATUSES) {
-    const days = counts[status] ?? 0;
-    const rate = rules[status] ?? 0;
-    if (days > 0 && rate > 0) {
-      const amount = days * rate;
-      breakdown.push({ status, days, rate, amount });
+  if (rate > 0) {
+    const absent = counts["absent"] ?? 0;
+    if (absent > 0) {
+      const amount = absent * rate;
+      breakdown.push({ status: "absent", days: absent, rate, amount });
+      total += amount;
+    }
+    const half = counts["half_day"] ?? 0;
+    if (half > 0) {
+      const r = rate / 2;
+      const amount = half * r;
+      breakdown.push({ status: "half_day", days: half, rate: r, amount });
       total += amount;
     }
   }

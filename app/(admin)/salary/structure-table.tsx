@@ -19,7 +19,7 @@ type StaffRow = {
 
 // Salary master — current salary per staff + a "set / raise" action. A raise
 // is a new effective-dated row, so history is preserved.
-export function SalaryStructureTable({ staff }: { staff: StaffRow[] }) {
+export function SalaryStructureTable({ staff, canEdit }: { staff: StaffRow[]; canEdit: boolean }) {
   const router = useRouter();
   const [editing, setEditing] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -103,9 +103,13 @@ export function SalaryStructureTable({ staff }: { staff: StaffRow[] }) {
                     </td>
                     <td className="py-2 text-center text-xs text-muted-foreground">{row.revisions || "—"}</td>
                     <td className="py-2 text-right">
-                      <Button size="sm" variant="outline" onClick={() => startEdit(row)} disabled={busy}>
-                        {row.monthlySalary != null ? "Raise / edit" : "Set salary"}
-                      </Button>
+                      {canEdit ? (
+                        <Button size="sm" variant="outline" onClick={() => startEdit(row)} disabled={busy}>
+                          {row.monthlySalary != null ? "Raise / edit" : "Set salary"}
+                        </Button>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
                     </td>
                   </tr>
                   {editing === row.id && (

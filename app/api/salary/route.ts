@@ -13,8 +13,8 @@ import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { recordSalarySchema } from "@/lib/schemas/payroll";
-import { effectiveSalary, deductionRulesForCentre, attendanceCounts } from "@/lib/payroll";
-import { computeAttendanceDeduction } from "@/lib/schemas/payroll";
+import { effectiveSalary, attendanceCounts } from "@/lib/payroll";
+import { computeAbsenceDeduction } from "@/lib/schemas/payroll";
 
 function canManagePayroll(role: string): boolean {
   return role === "SUPER_ADMIN" || role === "ADMIN" || role === "ACCOUNTANT";
@@ -59,12 +59,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "NO_SALARY_STRUCTURE" }, { status: 400 });
   }
 
-  // Attendance-based deduction from the global config.
-  const [rules, counts] = await Promise.all([
-    deductionRulesForCentre(staffUser.centreId),
-    attendanceCounts(d.userId, d.periodMonth),
-  ]);
-  const { total: attendanceDeducted, breakdown } = computeAttendanceDeduction(counts, rules);
+  // Absence-based deduction: (base / 30) per absent day (half for half-days).
+  const counts = await attendanceCounts(d.userId, d.periodMonth);
+  const { total: attendanceDeducted, breakdown } = computeAbsenceDeduction(gross, counts);
   const absentDays = counts["absent"] ?? 0;
 
   // Open advances, oldest first — we recover from these in order.
