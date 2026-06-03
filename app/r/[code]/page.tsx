@@ -57,13 +57,8 @@ export default async function ShortLinkRedeem({ params }: { params: { code: stri
     .catch(() => null);
 
   // Build the destination URL — base path from the catalog + query string
-  // from the stored params. For staff_hire links we append the code as a
-  // path segment so /staff-register/[code]/page.tsx can validate it
-  // server-side (the form POST also re-validates).
+  // from the stored params.
   let target = link.targetPath;
-  if (link.kind === "staff_hire" && target === "/staff-register") {
-    target = `/staff-register/${link.code}`;
-  }
   // paramsJson is a jsonb column — Prisma returns the parsed object. Convert
   // to a string→string map for URLSearchParams; non-string values get coerced.
   if (link.paramsJson && typeof link.paramsJson === "object" && !Array.isArray(link.paramsJson)) {

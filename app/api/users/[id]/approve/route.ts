@@ -30,8 +30,9 @@ function generateTempPassword(): string {
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  // Only HQ + centre managers can approve. The /api/staff-register flow
-  // notifies these same roles.
+  // Only HQ + centre managers can approve. Activates any user still sitting in
+  // pending_approval (e.g. legacy staff-invite hires); new hires now come
+  // through Employee Onboarding instead.
   const isApprover =
     session.role === "SUPER_ADMIN" ||
     session.role === "ADMIN" ||

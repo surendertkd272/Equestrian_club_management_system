@@ -44,11 +44,6 @@ const PUBLIC_PREFIXES = [
   // (not-expired, code exists) on its own.
   "/r/",
   "/api/short-links/resolve",
-  // Staff-hire invite landing — public so recipients can register before
-  // having an account. The form POSTs to /api/staff-register which
-  // re-validates the invite code.
-  "/staff-register/",
-  "/api/staff-register",
   // Employee self-registration link — public form + its submit endpoint only.
   // (Link generation + approval under /api/staff-onboarding stay auth-gated.)
   "/onboard/staff",
