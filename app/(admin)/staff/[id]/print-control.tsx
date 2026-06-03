@@ -82,8 +82,8 @@ export function PrintControl({ staffId, docs }: { staffId: string; docs: { key: 
         </Button>
       </div>
       <p className="text-[11px] text-muted-foreground">
-        Opens a print-ready page in a new tab. PDF attachments are embedded; if your browser doesn&apos;t print them
-        inline, use the &ldquo;open&rdquo; link on that page to print each one.
+        Opens a print-ready page in a new tab. The form &amp; image documents print together; PDF attachments open in
+        their own tab to print at full quality (one click each).
       </p>
     </div>
   );
