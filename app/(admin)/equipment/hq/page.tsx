@@ -96,7 +96,7 @@ export default async function HqEquipmentMatrix() {
                         <tr key={item.id} className="border-t">
                           <td className="px-2 py-1.5 sticky left-0 bg-card">
                             <div className="font-medium text-sm">{item.name}</div>
-                            <div className="font-mono text-[10px] text-muted-foreground">{item.code}</div>
+                            <div className="text-[10px] text-muted-foreground">{item.unit}</div>
                           </td>
                           <td className="px-2 py-1.5 font-mono">{item.defaultThreshold}</td>
                           {centres.map((c) => {
