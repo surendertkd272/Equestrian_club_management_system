@@ -188,6 +188,60 @@ export function ApproveControl({ id, roles, defaultRole }: { id: string; roles: 
   );
 }
 
+// Reject a submitted onboarding (with an optional reason). No staff is created;
+// the row moves to "rejected" in the All-links list.
+export function RejectControl({ id }: { id: string }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const danger = "text-destructive hover:bg-destructive/10 hover:text-destructive";
+
+  async function reject() {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/staff-onboarding/${id}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason.trim() || undefined }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        toast.error(d.error ?? "Failed to reject");
+        return;
+      }
+      toast.success("Submission rejected");
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <Button size="sm" variant="outline" className={danger} onClick={() => setOpen(true)}>
+        Reject
+      </Button>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2">
+      <Input
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder="Reason (optional)"
+        className="h-8 w-40 text-xs"
+      />
+      <Button size="sm" variant="outline" className={danger} disabled={busy} onClick={reject}>
+        {busy ? "Rejecting…" : "Confirm reject"}
+      </Button>
+      <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+        Cancel
+      </Button>
+    </div>
+  );
+}
+
 // Waive pending onboarding items (specific keys or all remaining) for a hire.
 export function WaiveControl({ id, pending }: { id: string; pending: { key: string; label: string }[] }) {
   const router = useRouter();
