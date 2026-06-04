@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
       expiresAt: new Date(Date.now() + d.expiresDays * 86_400_000),
       status: "draft",
       createdByUserId: session.userId,
+      intendedRole: d.role ?? null, // pre-fills the role at approval (admin can override)
       reviewNotes: d.note ?? null, // admin's reference note (e.g. candidate name)
     },
   });

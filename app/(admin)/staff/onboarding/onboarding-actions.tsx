@@ -5,11 +5,18 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
-// Generate a shareable self-registration link and show it to copy.
-export function GenerateLinkButton() {
+const roleLabel = (r: string) => r.replaceAll("_", " ").toLowerCase();
+
+// Generate a shareable self-registration link — with an optional pre-set role
+// (pre-fills the approval step) and a chosen link expiry.
+export function GenerateLinkButton({ roles }: { roles: string[] }) {
   const [busy, setBusy] = useState(false);
   const [link, setLink] = useState<string | null>(null);
+  const [role, setRole] = useState(""); // "" → decide at approval
+  const [expiresDays, setExpiresDays] = useState("14");
+  const [note, setNote] = useState("");
 
   async function gen() {
     setBusy(true);
@@ -17,7 +24,11 @@ export function GenerateLinkButton() {
       const res = await fetch("/api/staff-onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: "{}",
+        body: JSON.stringify({
+          role: role || undefined,
+          expiresDays: Number(expiresDays) || 14,
+          note: note.trim() || undefined,
+        }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -31,8 +42,35 @@ export function GenerateLinkButton() {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Candidate name (optional)</label>
+          <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="For your reference" className="h-9" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Role</label>
+          <Select value={role} onChange={(e) => setRole(e.target.value)} className="h-9">
+            <option value="">Decide at approval</option>
+            {roles.map((r) => (
+              <option key={r} value={r}>{roleLabel(r)}</option>
+            ))}
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs font-medium text-muted-foreground">Link expires in</label>
+          <Select value={expiresDays} onChange={(e) => setExpiresDays(e.target.value)} className="h-9">
+            <option value="3">3 days</option>
+            <option value="7">7 days</option>
+            <option value="14">14 days</option>
+            <option value="30">30 days</option>
+            <option value="60">60 days</option>
+          </Select>
+        </div>
+      </div>
+
       <Button onClick={gen} disabled={busy}>{busy ? "Generating…" : "Generate registration link"}</Button>
+
       {link && (
         <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2 text-xs">
           <input
@@ -54,16 +92,22 @@ export function GenerateLinkButton() {
         </div>
       )}
       {link && (
-        <p className="text-[11px] text-muted-foreground">Share this with the employee. It expires in 14 days and can be filled once.</p>
+        <p className="text-[11px] text-muted-foreground">
+          Share this with the employee. It expires in {expiresDays} day{expiresDays === "1" ? "" : "s"} and can be filled once.
+          {role ? ` Pre-set role: ${roleLabel(role)} (you can still change it at approval).` : ""}
+        </p>
       )}
     </div>
   );
 }
 
 // Approve a submitted onboarding → create the staff member with a chosen role.
-export function ApproveControl({ id, roles }: { id: string; roles: string[] }) {
+// defaultRole comes from the role the admin pre-set when generating the link.
+export function ApproveControl({ id, roles, defaultRole }: { id: string; roles: string[]; defaultRole?: string | null }) {
   const router = useRouter();
-  const [role, setRole] = useState(roles.includes("COACH") ? "COACH" : roles[0]);
+  const [role, setRole] = useState(
+    defaultRole && roles.includes(defaultRole) ? defaultRole : roles.includes("COACH") ? "COACH" : roles[0],
+  );
   const [busy, setBusy] = useState(false);
 
   async function approve() {

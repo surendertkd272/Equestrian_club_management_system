@@ -80,6 +80,7 @@ export const completeOnboardingSchema = submitOnboardingSchema
 export const generateOnboardingLinkSchema = z.object({
   centreId: z.string().min(1).optional(), // SUPER_ADMIN/ADMIN may target a centre
   note: z.string().max(120).optional(), // candidate name, for the admin's reference
+  role: z.enum(ROLES).optional(), // intended role — pre-fills the approval step
   expiresDays: z.coerce.number().int().min(1).max(60).default(14),
 });
 

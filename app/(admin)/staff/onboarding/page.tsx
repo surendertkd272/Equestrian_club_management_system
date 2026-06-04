@@ -61,7 +61,7 @@ export default async function StaffOnboardingPage() {
           <CardDescription>One link per employee. Filled once, then it lands below for review.</CardDescription>
         </CardHeader>
         <CardContent>
-          <GenerateLinkButton />
+          <GenerateLinkButton roles={STAFF_ROLES} />
         </CardContent>
       </Card>
 
@@ -80,9 +80,10 @@ export default async function StaffOnboardingPage() {
                     <div className="font-medium">{r.fullName ?? "—"}</div>
                     <div className="text-xs text-muted-foreground">
                       {r.email} · submitted {r.submittedAt ? formatDate(r.submittedAt) : "—"}
+                      {r.intendedRole ? <> · pre-set role: <span className="font-medium">{r.intendedRole.replaceAll("_", " ").toLowerCase()}</span></> : null}
                     </div>
                   </div>
-                  <ApproveControl id={r.id} roles={STAFF_ROLES} />
+                  <ApproveControl id={r.id} roles={STAFF_ROLES} defaultRole={r.intendedRole} />
                 </div>
                 <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
                   {r.fatherName && <div><dt className="text-muted-foreground">Father</dt><dd>{r.fatherName}</dd></div>}
@@ -152,12 +153,13 @@ export default async function StaffOnboardingPage() {
           <CardContent>
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr><th className="pb-2">Candidate / employee</th><th className="pb-2">Created</th><th className="pb-2">Status</th></tr>
+                <tr><th className="pb-2">Candidate / employee</th><th className="pb-2">Role</th><th className="pb-2">Created</th><th className="pb-2">Status</th></tr>
               </thead>
               <tbody>
                 {others.map((r) => (
                   <tr key={r.id} className="border-t">
                     <td className="py-2">{r.fullName ?? r.reviewNotes ?? <span className="text-muted-foreground">link not used yet</span>}</td>
+                    <td className="py-2 text-xs text-muted-foreground">{r.intendedRole ? r.intendedRole.replaceAll("_", " ").toLowerCase() : "—"}</td>
                     <td className="py-2 text-xs text-muted-foreground">{formatDate(r.createdAt)}</td>
                     <td className="py-2">
                       {r.status === "approved" ? (
@@ -167,7 +169,7 @@ export default async function StaffOnboardingPage() {
                       ) : r.expiresAt < new Date() ? (
                         <Badge variant="outline">link expired</Badge>
                       ) : (
-                        <Badge variant="warning">link active · awaiting fill</Badge>
+                        <Badge variant="warning">link active · expires {formatDate(r.expiresAt)}</Badge>
                       )}
                     </td>
                   </tr>

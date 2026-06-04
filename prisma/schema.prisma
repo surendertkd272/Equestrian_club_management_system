@@ -1090,6 +1090,7 @@ model EmployeeOnboarding {
 
   // Lifecycle
   createdByUserId  String?
+  intendedRole     String?  // role chosen at link generation; pre-fills approval
   submittedAt      DateTime?
   reviewedByUserId String?
   reviewNotes      String?
