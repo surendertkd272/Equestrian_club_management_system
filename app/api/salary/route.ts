@@ -64,6 +64,20 @@ export async function POST(req: NextRequest) {
   const { total: attendanceDeducted, breakdown } = computeAbsenceDeduction(gross, counts);
   const absentDays = counts["absent"] ?? 0;
 
+  // Guard: "other deductions" can't exceed what's left after the attendance cut
+  // — otherwise net pay would go negative. (Advance recovery is capped below.)
+  const maxOtherDeductions = Math.max(0, gross - attendanceDeducted);
+  if (d.otherDeductions > maxOtherDeductions + 0.01) {
+    return NextResponse.json(
+      {
+        error: "OTHER_DEDUCTIONS_EXCEED_NET",
+        message: `Other deductions (₹${Math.round(d.otherDeductions).toLocaleString("en-IN")}) can't exceed the ₹${Math.round(maxOtherDeductions).toLocaleString("en-IN")} left after the attendance deduction.`,
+        max: maxOtherDeductions,
+      },
+      { status: 400 },
+    );
+  }
+
   // Open advances, oldest first — we recover from these in order.
   const openAdvances = await prisma.employeeAdvance.findMany({
     where: { userId: d.userId, status: { in: ["outstanding", "partially_repaid"] } },
@@ -78,7 +92,7 @@ export async function POST(req: NextRequest) {
   // Cap advance recovery: can't exceed outstanding, can't drive net negative.
   const takeHomeBeforeAdvance = Math.max(0, gross - d.otherDeductions - attendanceDeducted);
   const advanceDeducted = Math.min(d.advanceDeduction, totalOutstanding, takeHomeBeforeAdvance);
-  const netAmount = gross - d.otherDeductions - attendanceDeducted - advanceDeducted;
+  const netAmount = Math.max(0, gross - d.otherDeductions - attendanceDeducted - advanceDeducted);
 
   const result = await prisma.$transaction(async (tx) => {
     let remaining = advanceDeducted;
