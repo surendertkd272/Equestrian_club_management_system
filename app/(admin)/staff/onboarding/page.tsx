@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { pendingItems, parseWaived } from "@/lib/onboarding-items";
 import { employeeFormRows, employeeDocs } from "@/lib/employee-profile";
-import { GenerateLinkButton, ApproveControl, WaiveControl, LinkShareButtons } from "./onboarding-actions";
+import { GenerateLinkButton, ApproveControl, RejectControl, WaiveControl, LinkShareButtons } from "./onboarding-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -103,7 +103,10 @@ export default async function StaffOnboardingPage() {
                       {r.intendedRole ? <> · pre-set role: <span className="font-medium">{r.intendedRole.replaceAll("_", " ").toLowerCase()}</span></> : null}
                     </div>
                   </div>
-                  <ApproveControl id={r.id} roles={STAFF_ROLES} defaultRole={r.intendedRole} />
+                  <div className="flex flex-col items-end gap-1.5">
+                    <ApproveControl id={r.id} roles={STAFF_ROLES} defaultRole={r.intendedRole} />
+                    <RejectControl id={r.id} />
+                  </div>
                 </div>
 
                 {/* Full submitted form — every field, blanks shown as — */}
