@@ -60,6 +60,8 @@ export async function runAllSweeps(): Promise<SweepResult[]> {
     sweepHorseInsuranceExpiry(),
     sweepFarrierDigest(),
     sweepVaccinationDue(),
+    sweepEquipmentLowStock(),
+    sweepAccreditationExpiry(),
     sweepAbsenceEscalation(),
     sweepBirthdays(),
     sweepMonthlyReports(),

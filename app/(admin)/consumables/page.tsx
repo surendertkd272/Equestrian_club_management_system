@@ -86,7 +86,21 @@ export default async function ConsumablesPage() {
                       <td className="px-2 py-2 text-right text-xs text-muted-foreground">{r.reorderThreshold}</td>
                       <td className="px-2 py-2 text-xs text-muted-foreground">{r.storageLocation ?? "—"}</td>
                       <td className="px-2 py-2 text-right">
-                        <MoveButtons id={r.id} unit={r.unit} />
+                        <div className="flex items-center justify-end gap-1">
+                          <MoveButtons id={r.id} unit={r.unit} />
+                          <EditConsumable
+                            row={{
+                              id: r.id,
+                              name: r.name,
+                              category: r.category,
+                              unit: r.unit,
+                              qty: r.qty,
+                              reorderThreshold: r.reorderThreshold,
+                              supplier: r.supplier,
+                              storageLocation: r.storageLocation,
+                            }}
+                          />
+                        </div>
                       </td>
                     </tr>
                   );
@@ -111,4 +125,4 @@ function Kpi({ label, value, tone }: { label: string; value: number; tone?: "amb
   );
 }
 
-import { MoveButtons } from "./consumables-client";
+import { MoveButtons, EditConsumable } from "./consumables-client";
