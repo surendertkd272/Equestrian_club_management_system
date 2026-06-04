@@ -131,7 +131,7 @@ export function JumpScoresheet({
     <div className="space-y-4 rounded-lg border bg-card p-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-semibold">Jump scoresheet · {entryLabel}</h3>
+          <h3 className="font-semibold">Jump Scoresheet · {entryLabel}</h3>
           <p className="text-xs text-muted-foreground">
             Time allowed: {initialTimeAllowed ?? "—"}s · Time limit: {initialTimeLimit ?? "—"}s
           </p>

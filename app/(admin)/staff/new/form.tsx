@@ -102,20 +102,20 @@ export function NewStaffForm() {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label>Salary band</Label>
+          <Label>Salary Band</Label>
           <Input value={form.salaryBand} onChange={(e) => set("salaryBand", e.target.value)} placeholder="e.g. L3" />
         </div>
         <div className="space-y-1.5">
-          <Label>Initial password</Label>
+          <Label>Initial Password</Label>
           <Input value={form.password} onChange={(e) => set("password", e.target.value)} />
         </div>
       </div>
 
       <div className="rounded-md border border-dashed p-4 space-y-3">
-        <div className="text-sm font-semibold">KYC documents <span className="text-xs font-normal text-muted-foreground">(optional — can be added later)</span></div>
+        <div className="text-sm font-semibold">KYC Documents <span className="text-xs font-normal text-muted-foreground">(optional — can be added later)</span></div>
         <div className="grid gap-4 md:grid-cols-2">
           <UploadRow
-            label="Aadhaar card"
+            label="Aadhaar Card"
             field="aadhaarUrl"
             url={form.aadhaarUrl}
             busy={uploading === "aadhaarUrl"}
@@ -123,7 +123,7 @@ export function NewStaffForm() {
             onClear={() => set("aadhaarUrl", "")}
           />
           <UploadRow
-            label="Police verification certificate"
+            label="Police Verification Certificate"
             field="policeVerificationUrl"
             url={form.policeVerificationUrl}
             busy={uploading === "policeVerificationUrl"}
@@ -134,7 +134,7 @@ export function NewStaffForm() {
       </div>
 
       <Button type="submit" disabled={saving || uploading !== null} className="w-full">
-        {saving ? "Creating…" : "Create staff"}
+        {saving ? "Creating…" : "Create Staff"}
       </Button>
     </form>
   );

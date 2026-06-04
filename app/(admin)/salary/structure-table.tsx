@@ -69,7 +69,7 @@ export function SalaryStructureTable({ staff, canEdit }: { staff: StaffRow[]; ca
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Staff salary structure</CardTitle>
+        <CardTitle className="text-base">Staff Salary Structure</CardTitle>
         <CardDescription>
           Each staff member's current monthly salary. "Set / raise" adds a new effective-dated
           entry — past records are kept for history.

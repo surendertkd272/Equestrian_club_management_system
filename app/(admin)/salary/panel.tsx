@@ -102,7 +102,7 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Record a salary payment</CardTitle>
+        <CardTitle className="text-base">Record a Salary Payment</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 md:grid-cols-3">

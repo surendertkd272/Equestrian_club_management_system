@@ -96,7 +96,7 @@ export default async function StaffPrintPage({
 
       {showForm && (
         <section className="pkg-page">
-          <h1 className="pkg-h">{profile.staff.name} — Employee registration</h1>
+          <h1 className="pkg-h">{profile.staff.name} — Employee Registration</h1>
           <p className="pkg-sub">
             {profile.staff.role.replaceAll("_", " ")} · joined {formatDate(profile.staff.joiningDate)} · printed {printedOn}
           </p>

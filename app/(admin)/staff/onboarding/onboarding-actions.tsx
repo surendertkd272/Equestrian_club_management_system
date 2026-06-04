@@ -80,7 +80,7 @@ export function GenerateLinkButton({ roles }: { roles: string[] }) {
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Candidate name (optional)</label>
+          <label className="text-xs font-medium text-muted-foreground">Candidate Name (optional)</label>
           <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="For your reference" className="h-9" />
         </div>
         <div className="space-y-1">
@@ -93,7 +93,7 @@ export function GenerateLinkButton({ roles }: { roles: string[] }) {
           </Select>
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Link expires in</label>
+          <label className="text-xs font-medium text-muted-foreground">Link Expires In</label>
           <Select value={expiresDays} onChange={(e) => setExpiresDays(e.target.value)} className="h-9">
             <option value="3">3 days</option>
             <option value="7">7 days</option>
@@ -104,7 +104,7 @@ export function GenerateLinkButton({ roles }: { roles: string[] }) {
         </div>
       </div>
 
-      <Button onClick={gen} disabled={busy}>{busy ? "Generating…" : "Generate registration link"}</Button>
+      <Button onClick={gen} disabled={busy}>{busy ? "Generating…" : "Generate Registration Link"}</Button>
 
       {link && (
         <div className="flex items-center gap-2 rounded-md border bg-muted/30 p-2 text-xs">
@@ -183,7 +183,7 @@ export function ApproveControl({ id, roles, defaultRole }: { id: string; roles: 
           <option key={r} value={r}>{r.replaceAll("_", " ").toLowerCase()}</option>
         ))}
       </Select>
-      <Button size="sm" onClick={approve} disabled={busy}>{busy ? "Approving…" : "Approve & create staff"}</Button>
+      <Button size="sm" onClick={approve} disabled={busy}>{busy ? "Approving…" : "Approve & Create Staff"}</Button>
     </div>
   );
 }
@@ -233,7 +233,7 @@ export function RejectControl({ id }: { id: string }) {
         className="h-8 w-40 text-xs"
       />
       <Button size="sm" variant="outline" className={danger} disabled={busy} onClick={reject}>
-        {busy ? "Rejecting…" : "Confirm reject"}
+        {busy ? "Rejecting…" : "Confirm Reject"}
       </Button>
       <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
         Cancel
@@ -283,7 +283,7 @@ export function WaiveControl({ id, pending }: { id: string; pending: { key: stri
         ))}
       </div>
       <Button size="sm" variant="outline" disabled={busy !== null} onClick={() => waive({ all: true }, "all")}>
-        {busy === "all" ? "Waiving…" : "Waive all remaining"}
+        {busy === "all" ? "Waiving…" : "Waive All Remaining"}
       </Button>
     </div>
   );

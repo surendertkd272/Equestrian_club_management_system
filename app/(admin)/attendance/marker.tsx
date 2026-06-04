@@ -209,8 +209,8 @@ export function AttendanceMarker({
         })}
       </ul>
       <p className="text-xs text-muted-foreground">
-        Tip: tap a rider's button to cycle Present → Absent → Late → Excused. The roster status saves with your user id
-        for audit trail.
+        Tip: tap a rider's button to cycle Present → Absent → Late → Excused. The roster status saves with your user ID
+        for the audit trail.
       </p>
     </div>
   );

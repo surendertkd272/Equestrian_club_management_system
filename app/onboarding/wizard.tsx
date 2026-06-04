@@ -91,7 +91,7 @@ const STEP_TITLES: Record<StepKey, string> = {
   parents: "Parents & Emergency",
   medical: "Medical",
   "parental-consent": "Parental Consent",
-  indemnity: "Indemnity e-sign",
+  indemnity: "Indemnity E-sign",
   submitted: "Submitted",
 };
 

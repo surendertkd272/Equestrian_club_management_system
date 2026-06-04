@@ -53,7 +53,7 @@ export default async function ReportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Report cards</h1>
+        <h1 className="text-2xl font-bold">Report Cards</h1>
         <p className="text-sm text-muted-foreground">
           Monthly parent report cards. Pulls attendance, progress milestones, exam results, fees, and
           certificates for the selected period — print or save as PDF.
@@ -63,7 +63,7 @@ export default async function ReportsPage() {
       {canDispatch && (
         <Card>
           <CardHeader>
-            <CardTitle>Monthly dispatch</CardTitle>
+            <CardTitle>Monthly Dispatch</CardTitle>
             <CardDescription>
               The auto-sweep runs on the 1st of every month and emails the previous month's report card
               to every linked parent. Press the button below to fire it manually — already-sent
@@ -79,7 +79,7 @@ export default async function ReportsPage() {
       {recentDispatches.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Recent dispatches</CardTitle>
+            <CardTitle>Recent Dispatches</CardTitle>
             <CardDescription>Latest monthly report-card emails recorded on this centre.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -102,7 +102,7 @@ export default async function ReportsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Generate a report</CardTitle>
+          <CardTitle>Generate a Report</CardTitle>
           <CardDescription>Click a rider — defaults to this month ({month.label}). You can change the dates on the report page.</CardDescription>
         </CardHeader>
         <CardContent>

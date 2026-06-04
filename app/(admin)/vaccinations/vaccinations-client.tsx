@@ -98,7 +98,7 @@ export function VaccinationsClient({ horses }: { horses: Horse[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Add / update schedule</CardTitle>
+        <CardTitle className="text-base">Add / Update Schedule</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 md:grid-cols-3">

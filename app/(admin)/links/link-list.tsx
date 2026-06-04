@@ -74,7 +74,7 @@ export function LinkList({ links }: { links: LinkDTO[] }) {
           ))}
         </Select>
         <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:w-36">
-          <option value="all">All status</option>
+          <option value="all">All statuses</option>
           <option value="active">Active only</option>
           <option value="expired">Expired</option>
           <option value="used">Used (single-use)</option>

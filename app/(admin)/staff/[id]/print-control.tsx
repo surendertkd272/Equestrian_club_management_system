@@ -32,7 +32,7 @@ export function PrintControl({ staffId, docs }: { staffId: string; docs: { key: 
   if (!open) {
     return (
       <Button variant="outline" onClick={() => setOpen(true)}>
-        <Printer className="h-4 w-4" /> Print form & documents
+        <Printer className="h-4 w-4" /> Print Form & Documents
       </Button>
     );
   }
@@ -40,7 +40,7 @@ export function PrintControl({ staffId, docs }: { staffId: string; docs: { key: 
   return (
     <div className="w-full max-w-md space-y-3 rounded-md border bg-card p-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">Choose what to print</p>
+        <p className="text-sm font-medium">Choose What to Print</p>
         <button
           type="button"
           onClick={() => setAll(!allOn)}
@@ -52,7 +52,7 @@ export function PrintControl({ staffId, docs }: { staffId: string; docs: { key: 
 
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={form} onChange={(e) => setForm(e.target.checked)} className="h-4 w-4" />
-        Registration form
+        Registration Form
       </label>
 
       {docs.length === 0 ? (
@@ -75,7 +75,7 @@ export function PrintControl({ staffId, docs }: { staffId: string; docs: { key: 
 
       <div className="flex items-center gap-2 pt-1">
         <Button onClick={print} disabled={nothing}>
-          <Printer className="h-4 w-4" /> Print selected
+          <Printer className="h-4 w-4" /> Print Selected
         </Button>
         <Button variant="ghost" onClick={() => setOpen(false)}>
           Cancel

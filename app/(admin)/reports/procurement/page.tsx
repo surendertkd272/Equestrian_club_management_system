@@ -93,7 +93,7 @@ export default async function ProcurementReportPage() {
                 <thead className="text-left text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="pb-2">Category</th>
-                    <th className="pb-2">Last date</th>
+                    <th className="pb-2">Last Date</th>
                     <th className="pb-2 text-right">Rate</th>
                     <th className="pb-2 text-right">Qty</th>
                     <th className="pb-2 text-right">Amount</th>

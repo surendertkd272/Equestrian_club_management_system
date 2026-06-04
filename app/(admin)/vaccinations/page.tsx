@@ -37,7 +37,7 @@ export default async function VaccinationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Horse health schedules</h1>
+        <h1 className="text-2xl font-bold">Horse Health Schedules</h1>
         <p className="text-sm text-muted-foreground">Vaccinations · deworming rotations · dental checks. One nextDueAt sweep covers them all.</p>
         <p className="text-sm text-muted-foreground">
           Plan vaccination cycles per horse. Recording a dose rolls "next due" forward by the

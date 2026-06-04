@@ -25,7 +25,7 @@ export function ShowDayPanel({
   return (
     <div className="rounded-lg border bg-card">
       <div className="border-b px-4 py-3">
-        <h3 className="text-sm font-semibold">Show day operations</h3>
+        <h3 className="text-sm font-semibold">Show Day Operations</h3>
         <p className="text-xs text-muted-foreground">Vet checks · stable boxes · drug control · protests</p>
       </div>
       <div className="flex gap-1 border-b px-3 pt-3 text-xs">

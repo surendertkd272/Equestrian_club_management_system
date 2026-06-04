@@ -161,7 +161,7 @@ function CheckInTab() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && scan(input)}
-          placeholder="ticket id or URL"
+          placeholder="Ticket ID or URL"
           autoFocus
         />
         <Button onClick={() => scan(input)} disabled={busy || !input}>Check in</Button>

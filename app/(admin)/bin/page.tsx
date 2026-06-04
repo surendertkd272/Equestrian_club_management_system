@@ -45,7 +45,7 @@ export default async function BinPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Deleted items</CardTitle>
+          <CardTitle>Deleted Items</CardTitle>
           <CardDescription>
             {rows.length === 0 ? "The bin is empty." : `${rows.length} item${rows.length === 1 ? "" : "s"} across ${new Set(rows.map((r) => r.entity)).size} type(s).`}
           </CardDescription>

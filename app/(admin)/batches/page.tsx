@@ -54,7 +54,7 @@ export default async function BatchesPage() {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>All batches</CardTitle>
+              <CardTitle>All Batches</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -108,7 +108,7 @@ export default async function BatchesPage() {
         <div>
           <Card>
             <CardHeader>
-              <CardTitle>New batch</CardTitle>
+              <CardTitle>New Batch</CardTitle>
             </CardHeader>
             <CardContent>
               <NewBatchForm coaches={coaches} disabled={!canCreate} centreId={centreId} />

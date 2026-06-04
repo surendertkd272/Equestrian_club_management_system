@@ -92,7 +92,7 @@ export function OpsPanel({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Draw of lots / Start list</CardTitle>
+          <CardTitle className="text-base">Draw of Lots / Start List</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap items-end gap-2">

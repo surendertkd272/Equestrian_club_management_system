@@ -92,7 +92,7 @@ export default async function AuditPage({
               type="search"
               name="q"
               defaultValue={searchParams.q ?? ""}
-              placeholder="Search id / payload"
+              placeholder="Search ID / payload"
               className="h-9 rounded-md border bg-background px-2 text-sm"
             />
             <button type="submit" className="h-9 rounded-md border bg-primary px-3 text-sm font-medium text-primary-foreground">
