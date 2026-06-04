@@ -27,6 +27,7 @@ import { sweepAccreditationExpiry } from "./accreditation-expiry";
 import { sweepBinPurge } from "./bin-purge";
 import { sweepCoachUpdateReminder } from "./coach-update-reminder";
 import { sweepOnboardingDocsOverdue } from "./onboarding-docs-overdue";
+import { sweepOnboardingLinkPurge } from "./onboarding-link-purge";
 
 export {
   sweepFeeDue,
@@ -47,6 +48,7 @@ export {
   sweepBinPurge,
   sweepCoachUpdateReminder,
   sweepOnboardingDocsOverdue,
+  sweepOnboardingLinkPurge,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -69,6 +71,7 @@ export async function runAllSweeps(): Promise<SweepResult[]> {
     sweepBinPurge(),
     sweepCoachUpdateReminder(),
     sweepOnboardingDocsOverdue(),
+    sweepOnboardingLinkPurge(),
   ]);
 }
 
@@ -91,4 +94,5 @@ export const SWEEP_JOBS: Record<string, (opts?: SweepOpts) => Promise<SweepResul
   bin_purge: () => sweepBinPurge(),
   coach_update_reminder: () => sweepCoachUpdateReminder(),
   onboarding_docs_overdue: () => sweepOnboardingDocsOverdue(),
+  onboarding_link_purge: () => sweepOnboardingLinkPurge(),
 };
