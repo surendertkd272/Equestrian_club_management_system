@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { MessageCircle, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -87,7 +88,18 @@ export function GenerateLinkButton({ roles }: { roles: string[] }) {
               toast.success("Link copied — share it with the employee");
             }}
           >
-            Copy
+            <Copy className="mr-1 h-3 w-3" /> Copy
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              const msg = encodeURIComponent(
+                `${note.trim() ? note.trim() + " — " : ""}Please complete your Equiwings employee registration here:\n${link}`,
+              );
+              window.open(`https://wa.me/?text=${msg}`, "_blank", "noopener,noreferrer");
+            }}
+          >
+            <MessageCircle className="mr-1 h-3 w-3" /> WhatsApp
           </Button>
         </div>
       )}
