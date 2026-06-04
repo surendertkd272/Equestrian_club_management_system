@@ -111,7 +111,7 @@ export function InventoryRow({
     <tr className={`border-t ${isLow ? "bg-rose-50/40" : ""}`}>
       <td className="py-2">
         <div className="font-medium">{name}</div>
-        <div className="text-[10px] font-mono text-muted-foreground">{code} · {unit}</div>
+        <div className="text-[10px] text-muted-foreground">{unit}</div>
       </td>
       <td className="py-2">{qtyInput("qtyUnused", qtyUnused)}</td>
       <td className="py-2">{qtyInput("qtyInUse", qtyInUse)}</td>
