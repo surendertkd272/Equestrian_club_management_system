@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
       declarationName: d.declarationName,
       status: "submitted",
       submittedAt: new Date(),
+      shareToken: null, // link consumed — no longer re-shareable
     },
   });
 

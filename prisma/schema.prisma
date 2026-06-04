@@ -1046,7 +1046,11 @@ model Staff {
 model EmployeeOnboarding {
   id        String   @id @default(cuid())
   centreId  String
-  tokenHash String   @unique // SHA-256 of the link token; plaintext only in the URL
+  tokenHash String   @unique // SHA-256 of the link token; used to validate the URL
+  // Plaintext token kept so the admin can re-copy / re-share the link later
+  // (Copy + WhatsApp from the list). Low-sensitivity: it only opens a public
+  // registration form. Nulled once the form is submitted.
+  shareToken String?
   expiresAt DateTime
   status    String   @default("draft") // draft | submitted | approved | rejected
 

@@ -10,6 +10,40 @@ import { Input } from "@/components/ui/input";
 
 const roleLabel = (r: string) => r.replaceAll("_", " ").toLowerCase();
 
+// Re-share an already-generated, still-active link (Copy + WhatsApp). Uses the
+// stored plaintext token to rebuild the URL — survives page refreshes, unlike
+// the one-shot panel shown right after generating.
+export function LinkShareButtons({ token, note }: { token: string; note?: string | null }) {
+  const url = () => `${typeof window !== "undefined" ? window.location.origin : ""}/onboard/staff/${token}`;
+  return (
+    <div className="mt-1 flex gap-1.5">
+      <Button
+        size="sm"
+        variant="outline"
+        className="h-7 px-2 text-[11px]"
+        onClick={() => {
+          navigator.clipboard?.writeText(url());
+          toast.success("Link copied — share it with the employee");
+        }}
+      >
+        <Copy className="mr-1 h-3 w-3" /> Copy
+      </Button>
+      <Button
+        size="sm"
+        className="h-7 px-2 text-[11px]"
+        onClick={() => {
+          const msg = encodeURIComponent(
+            `${note?.trim() ? note.trim() + " — " : ""}Please complete your Equiwings employee registration here:\n${url()}`,
+          );
+          window.open(`https://wa.me/?text=${msg}`, "_blank", "noopener,noreferrer");
+        }}
+      >
+        <MessageCircle className="mr-1 h-3 w-3" /> WhatsApp
+      </Button>
+    </div>
+  );
+}
+
 // Generate a shareable self-registration link — with an optional pre-set role
 // (pre-fills the approval step) and a chosen link expiry.
 export function GenerateLinkButton({ roles }: { roles: string[] }) {

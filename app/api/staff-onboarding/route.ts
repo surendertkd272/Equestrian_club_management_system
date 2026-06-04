@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
     data: {
       centreId,
       tokenHash: hashOnboardingToken(plain),
+      shareToken: plain, // lets the admin re-copy / re-share the link later
       expiresAt: new Date(Date.now() + d.expiresDays * 86_400_000),
       status: "draft",
       createdByUserId: session.userId,
