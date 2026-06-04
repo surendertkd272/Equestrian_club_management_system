@@ -50,15 +50,15 @@ export default async function VetFollowupsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Vet follow-ups</h1>
+        <h1 className="text-2xl font-bold">Vet Follow-ups</h1>
         <p className="text-sm text-muted-foreground">
           Cross-horse view of scheduled re-checks. New follow-ups are set when the vet records a visit on a horse profile.
         </p>
       </div>
 
       <Section title="Overdue" badge="destructive" empty="Nothing overdue — good." visits={overdue} highlight />
-      <Section title="This week" badge="warning" empty="Nothing scheduled this week." visits={thisWeek} />
-      <Section title="Next 30+ days" badge="outline" empty="Nothing on the horizon." visits={later} />
+      <Section title="This Week" badge="warning" empty="Nothing scheduled this week." visits={thisWeek} />
+      <Section title="Next 30+ Days" badge="outline" empty="Nothing on the horizon." visits={later} />
     </div>
   );
 }

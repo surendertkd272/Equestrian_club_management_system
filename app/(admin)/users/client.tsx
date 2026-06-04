@@ -487,7 +487,7 @@ export function NewUserCard({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Share these credentials</CardTitle>
+          <CardTitle className="text-base">Share These Credentials</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border border-amber-400 bg-amber-50 p-3 text-sm">
@@ -521,7 +521,7 @@ export function NewUserCard({
           </div>
           <div className="mt-3 flex gap-2">
             <Button size="sm" onClick={() => setCreated(null)}>
-              Add another user
+              Add Another User
             </Button>
             <Button size="sm" variant="outline" onClick={() => { setCreated(null); setOpen(false); }}>
               Done
@@ -535,7 +535,7 @@ export function NewUserCard({
   if (!open) {
     return (
       <div className="flex justify-end">
-        <Button onClick={() => setOpen(true)}>+ New user</Button>
+        <Button onClick={() => setOpen(true)}>+ New User</Button>
       </div>
     );
   }
@@ -543,7 +543,7 @@ export function NewUserCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">New user</CardTitle>
+        <CardTitle className="text-base">New User</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 sm:grid-cols-2">

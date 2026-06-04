@@ -89,7 +89,7 @@ export default async function RequisitionsPage() {
         </div>
         <Button asChild>
           <Link href="/requisitions/new">
-            <Plus className="mr-1 h-4 w-4" /> New requisition
+            <Plus className="mr-1 h-4 w-4" /> New Requisition
           </Link>
         </Button>
       </div>

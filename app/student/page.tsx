@@ -21,7 +21,7 @@ export default async function StudentHome() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Your portal isn't set up yet</CardTitle>
+          <CardTitle>Your Portal Isn't Set Up Yet</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           Your account isn't linked to a rider profile. Please contact your centre — a
@@ -84,7 +84,7 @@ export default async function StudentHome() {
       {detail && detail.notifications.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>What's new</CardTitle>
+            <CardTitle>What's New</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2 text-sm">
@@ -105,20 +105,20 @@ export default async function StudentHome() {
       )}
 
       <div className={showPayment ? "grid gap-4 md:grid-cols-4" : "grid gap-4 md:grid-cols-3"}>
-        <Kpi label="My attendance (90d)" value={attendancePct === null ? "—" : `${attendancePct}%`} sub={attendancePct === null ? "" : `${attendedSessions}/${totalSessions} sessions`} />
+        <Kpi label="My Attendance (90d)" value={attendancePct === null ? "—" : `${attendancePct}%`} sub={attendancePct === null ? "" : `${attendedSessions}/${totalSessions} sessions`} />
         <Kpi
-          label="Skills mastered"
+          label="Skills Mastered"
           value={`${skillsMastered}${totalSkillsAtLevel > 0 ? ` / ${totalSkillsAtLevel}` : ""}`}
           sub={totalSkillsAtLevel > 0 ? `${Math.round((skillsMastered / totalSkillsAtLevel) * 100)}% of catalog` : ""}
         />
         <Kpi
-          label="Next exam"
+          label="Next Exam"
           value={upcomingExam ? `L${upcomingExam.level}` : "—"}
           sub={upcomingExam ? `${formatDate(upcomingExam.date)} · ${upcomingExam.examinerName ?? "examiner TBD"}` : "Nothing scheduled"}
         />
         {showPayment && (
           <Kpi
-            label="Unpaid fees"
+            label="Unpaid Fees"
             value={String(unpaidInvoices)}
             sub={unpaidInvoices > 0 ? "Talk to your parent" : "All paid up"}
             warn={unpaidInvoices > 0}
@@ -128,7 +128,7 @@ export default async function StudentHome() {
 
       <Card>
         <CardHeader>
-          <CardTitle>My class</CardTitle>
+          <CardTitle>My Class</CardTitle>
         </CardHeader>
         <CardContent className="text-sm">
           {rider.batch ? (
@@ -181,7 +181,7 @@ export default async function StudentHome() {
       {detail && detail.upcomingLessons.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Upcoming lessons (next 2 weeks)</CardTitle>
+            <CardTitle>Upcoming Lessons (next 2 weeks)</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="divide-y text-sm">
@@ -206,7 +206,7 @@ export default async function StudentHome() {
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Recent attendance</CardTitle>
+              <CardTitle>Recent Attendance</CardTitle>
             </CardHeader>
             <CardContent>
               {detail.attendance.length === 0 ? (
@@ -239,7 +239,7 @@ export default async function StudentHome() {
 
           <Card>
             <CardHeader>
-              <CardTitle>My skills</CardTitle>
+              <CardTitle>My Skills</CardTitle>
             </CardHeader>
             <CardContent>
               {detail.skills.length === 0 ? (
@@ -272,7 +272,7 @@ export default async function StudentHome() {
 
           <Card>
             <CardHeader>
-              <CardTitle>My exams</CardTitle>
+              <CardTitle>My Exams</CardTitle>
             </CardHeader>
             <CardContent>
               {detail.exams.length === 0 ? (
@@ -312,7 +312,7 @@ export default async function StudentHome() {
 
           <Card>
             <CardHeader>
-              <CardTitle>My certificates</CardTitle>
+              <CardTitle>My Certificates</CardTitle>
             </CardHeader>
             <CardContent>
               {detail.certificates.length === 0 ? (

@@ -29,7 +29,7 @@ export default async function TicketPage({ params }: { params: { id: string } })
     <main className="min-h-screen bg-slate-50">
       <section className="container mx-auto max-w-md px-6 py-10">
         <div className="rounded-2xl border bg-white p-6 text-center shadow-sm">
-          <div className="text-xs uppercase tracking-widest text-slate-500">Spectator pass</div>
+          <div className="text-xs uppercase tracking-widest text-slate-500">Spectator Pass</div>
           <h1 className="mt-2 text-xl font-bold">{ticket.competition.name}</h1>
           <p className="text-sm text-slate-600">
             {new Date(ticket.competition.startDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}

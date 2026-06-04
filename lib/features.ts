@@ -96,7 +96,7 @@ export const FEATURES: readonly FeatureDef[] = [
   { key: "facility-bookings",      label: "Facility Bookings",      description: "Book arenas / wash bays / classroom slots.",                     group: "facility",     enforcement: "ui-only" },
 
   // ── Finance
-  { key: "fee-collection",         label: "Parent / rider payments", description: "Switch for parent + rider-facing payment surfaces. When OFF: no invoices created on enrolment / competition / event entry, /pay page 404s, Razorpay endpoints return 503, fee-due reminders skipped, approved riders go straight to active, parent invoice tiles hide. Staff bookkeeping (the /finance dashboard, manual cash recording, exports, invoice print) is unaffected so the team can still log offline payments. Existing invoices preserved as audit history.", group: "finance", enforcement: "wired" },
+  { key: "fee-collection",         label: "Parent / Rider Payments", description: "Switch for parent + rider-facing payment surfaces. When OFF: no invoices created on enrolment / competition / event entry, /pay page 404s, Razorpay endpoints return 503, fee-due reminders skipped, approved riders go straight to active, parent invoice tiles hide. Staff bookkeeping (the /finance dashboard, manual cash recording, exports, invoice print) is unaffected so the team can still log offline payments. Existing invoices preserved as audit history.", group: "finance", enforcement: "wired" },
   { key: "expenses",               label: "Expenses & P&L",         description: "Book outgoings against chart-of-accounts; expense P&L.",         group: "finance",      enforcement: "wired" },
 
   // ── Productivity
@@ -113,7 +113,7 @@ export const FEATURES: readonly FeatureDef[] = [
   // /api/orgs onboarding). Owner toggles ON in the feature matrix when a
   // specific tenant wants the feature exposed.
   { key: "club-catalog",            label: "Club Catalog",            description: "Per-club catalog editor for fee plans, levels, skills. Hidden by default — owner toggles on for clubs that need to customise the catalog.", group: "advanced", enforcement: "ui-only" },
-  { key: "student-payment-visible", label: "Student-portal payments", description: "Show payment/invoice surfaces in the student (rider) portal. Hidden by default — payments are typically handled by the parent via emailed links, not students directly.", group: "advanced", enforcement: "ui-only" },
+  { key: "student-payment-visible", label: "Student-Portal Payments", description: "Show payment/invoice surfaces in the student (rider) portal. Hidden by default — payments are typically handled by the parent via emailed links, not students directly.", group: "advanced", enforcement: "ui-only" },
 ];
 
 export const FEATURE_KEYS: readonly FeatureKey[] = FEATURES.map((f) => f.key);

@@ -53,7 +53,7 @@ export default async function StaffAttendancePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent rows</CardTitle>
+          <CardTitle>Recent Rows</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto"><table className="w-full text-sm">

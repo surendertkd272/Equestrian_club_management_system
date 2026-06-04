@@ -45,7 +45,7 @@ export default async function ExamLevelsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Exam levels catalog</CardTitle>
+          <CardTitle>Exam Levels Catalog</CardTitle>
           <CardDescription>
             Master list of progression levels. Centres pick from this list when adding a scoring
             rubric, so every club shows the same level names instead of inventing their own.

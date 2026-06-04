@@ -70,7 +70,7 @@ export function NewCentreCard() {
   if (!open) {
     return (
       <Button onClick={() => setOpen(true)} variant="outline">
-        <Plus className="h-4 w-4" /> New club
+        <Plus className="h-4 w-4" /> New Club
       </Button>
     );
   }
@@ -78,7 +78,7 @@ export function NewCentreCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>New club</CardTitle>
+        <CardTitle>New Club</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -120,7 +120,7 @@ export function NewCentreCard() {
           </div>
           <div className="sm:col-span-2 flex gap-2">
             <Button onClick={submit} disabled={busy}>
-              {busy ? "Creating…" : "Create club"}
+              {busy ? "Creating…" : "Create Club"}
             </Button>
             <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>
               Cancel
@@ -149,7 +149,7 @@ export function CentreDeleteButton({
       title: `Permanently delete "${name}"?`,
       body: "This can't be undone. The club's catalog data (fee plans, progress levels, scoring templates) will also be removed.",
       destructive: true,
-      confirmLabel: "Delete club",
+      confirmLabel: "Delete Club",
     });
     if (!ok) return;
     setBusy(true);
@@ -181,7 +181,7 @@ export function CentreDeleteButton({
         )}
       </div>
       <Button variant="outline" size="sm" disabled={!isEmpty || busy} onClick={remove}>
-        {busy ? "Deleting…" : "Delete club"}
+        {busy ? "Deleting…" : "Delete Club"}
       </Button>
     </div>
   );

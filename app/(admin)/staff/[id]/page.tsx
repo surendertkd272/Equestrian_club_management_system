@@ -44,7 +44,7 @@ export default async function StaffProfilePage({ params }: { params: { id: strin
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Registration form</CardTitle>
+          <CardTitle className="text-base">Registration Form</CardTitle>
           <CardDescription>
             {hasOnboarding
               ? "Submitted through the employee self-registration link."
@@ -70,7 +70,7 @@ export default async function StaffProfilePage({ params }: { params: { id: strin
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Uploaded documents ({docs.length})</CardTitle>
+          <CardTitle className="text-base">Uploaded Documents ({docs.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {docs.length === 0 ? (

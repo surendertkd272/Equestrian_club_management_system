@@ -218,7 +218,7 @@ export function NewVendorForm({
           the common case (no bank info) visually quiet. */}
       <fieldset className="md:col-span-2 rounded-md border bg-muted/30 p-3 space-y-3">
         <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Bank details (optional — for NEFT / IMPS payouts)
+          Bank Details (optional — for NEFT / IMPS payouts)
         </legend>
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1.5">
@@ -258,7 +258,7 @@ export function NewVendorForm({
       {form.category === "vet" && (
         <fieldset className="md:col-span-2 rounded-md border bg-muted/30 p-3 space-y-3">
           <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Vet doctor registration
+            Vet Doctor Registration
           </legend>
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-1.5">
@@ -322,7 +322,7 @@ export function NewVendorForm({
       {form.category === "farrier" && (
         <fieldset className="md:col-span-2 rounded-md border bg-muted/30 p-3 space-y-3">
           <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Farrier registration
+            Farrier Registration
           </legend>
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-1.5">
