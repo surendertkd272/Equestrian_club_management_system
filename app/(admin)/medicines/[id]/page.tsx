@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, AlertTriangle, Snowflake } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { PrescribeForm } from "./prescribe";
+import { EditMedicineForm } from "./edit-medicine";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,8 @@ export default async function MedicineDetail({ params }: { params: { id: string 
   const isOutOfStock = med.qty <= 0;
   const isLow = med.qty <= med.reorderThreshold;
   const canPrescribe = can(session.role, "medicine.prescribe");
+  const canManage = can(session.role, "medicine.manage");
+  const toDateInput = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "");
 
   return (
     <div className="space-y-6">
@@ -72,6 +75,26 @@ export default async function MedicineDetail({ params }: { params: { id: string 
           {med.schedule && <Badge variant="outline">{med.schedule.replace("_", " ")}</Badge>}
         </div>
       </div>
+
+      {canManage && (
+        <EditMedicineForm
+          med={{
+            id: med.id,
+            name: med.name,
+            generic: med.generic,
+            category: med.category,
+            schedule: med.schedule,
+            batchNo: med.batchNo,
+            mfgDate: toDateInput(med.mfgDate),
+            expDate: toDateInput(med.expDate),
+            qty: med.qty,
+            reorderThreshold: med.reorderThreshold,
+            supplier: med.supplier,
+            storageLocation: med.storageLocation,
+            coldChain: med.coldChain,
+          }}
+        />
+      )}
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="md:col-span-2">
