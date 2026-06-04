@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Phone, Mail } from "lucide-react";
 import { VENDOR_CATEGORY_LABEL } from "@/lib/schemas/vendor";
 import { NewVendorForm } from "./form";
+import { EditVendor } from "./edit-vendor";
 import { DeactivateButton } from "@/components/ui/deactivate-button";
 
 export const dynamic = "force-dynamic";
@@ -129,6 +130,26 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
                     )}
                     {v.address && <div className="mt-1 text-xs text-muted-foreground">{v.address}</div>}
                     {v.notes && <div className="mt-1 text-xs italic text-muted-foreground">{v.notes}</div>}
+                    <div className="mt-2">
+                      <EditVendor
+                        vendor={{
+                          id: v.id,
+                          name: v.name,
+                          deliveryScope: v.deliveryScope,
+                          contactName: v.contactName,
+                          phone: v.phone,
+                          email: v.email,
+                          address: v.address,
+                          gstin: v.gstin,
+                          bankAccountName: v.bankAccountName,
+                          bankName: v.bankName,
+                          bankAccountNumber: v.bankAccountNumber,
+                          bankIfsc: v.bankIfsc,
+                          upiId: v.upiId,
+                          notes: v.notes,
+                        }}
+                      />
+                    </div>
                   </li>
                 ))}
               </ul>

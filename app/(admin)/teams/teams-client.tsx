@@ -65,6 +65,53 @@ export function TeamsClient({ canManage, riders }: { canManage: boolean; riders:
   );
 }
 
+// Edit a team's name / season / discipline (PATCH /api/teams/[id]).
+export function EditTeam({ team }: { team: { id: string; name: string; season: string | null; discipline: string | null } }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [form, setForm] = useState({ name: team.name, season: team.season ?? "", discipline: team.discipline ?? "" });
+
+  async function save() {
+    if (!form.name.trim()) return toast.error("Team name required.");
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/teams/${team.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.name.trim(), season: form.season || undefined, discipline: form.discipline || undefined }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        toast.error(d.error ?? "Failed");
+        return;
+      }
+      toast.success("Team updated");
+      setOpen(false);
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="ml-2 text-xs text-primary hover:underline">
+        Edit
+      </button>
+    );
+  }
+  return (
+    <span className="ml-2 inline-flex flex-wrap items-center gap-1 align-middle">
+      <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="h-7 w-44 text-xs" />
+      <Input value={form.season} onChange={(e) => setForm((f) => ({ ...f, season: e.target.value }))} placeholder="Season" className="h-7 w-24 text-xs" />
+      <Input value={form.discipline} onChange={(e) => setForm((f) => ({ ...f, discipline: e.target.value }))} placeholder="Discipline" className="h-7 w-28 text-xs" />
+      <Button size="sm" className="h-7" disabled={busy} onClick={save}>{busy ? "…" : "Save"}</Button>
+      <Button size="sm" variant="ghost" className="h-7" onClick={() => setOpen(false)}>Cancel</Button>
+    </span>
+  );
+}
+
 export function TeamRosterControls({
   teamId,
   riders,

@@ -5,7 +5,7 @@ import { can } from "@/lib/permissions";
 import { medalsForTeam } from "@/lib/medals";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TeamsClient } from "./teams-client";
+import { TeamsClient, EditTeam } from "./teams-client";
 import { DeactivateButton } from "@/components/ui/deactivate-button";
 
 export const dynamic = "force-dynamic";
@@ -90,6 +90,9 @@ export default async function TeamsPage() {
                         </Badge>
                       )}
                       {!t.active && <Badge variant="outline" className="ml-2">archived</Badge>}
+                      {canManage && t.active && (
+                        <EditTeam team={{ id: t.id, name: t.name, season: t.season, discipline: t.discipline }} />
+                      )}
                       {canManage && t.active && (
                         <DeactivateButton apiPath={`/api/teams/${t.id}`} itemName={t.name} label="Archive" />
                       )}
