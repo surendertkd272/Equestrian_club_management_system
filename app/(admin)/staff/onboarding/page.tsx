@@ -4,10 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre, centreWhere } from "@/lib/tenancy";
 import { ROLES } from "@/lib/roles";
+import { FileText } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { pendingItems, parseWaived } from "@/lib/onboarding-items";
+import { employeeFormRows, employeeDocs } from "@/lib/employee-profile";
 import { GenerateLinkButton, ApproveControl, WaiveControl, LinkShareButtons } from "./onboarding-actions";
 
 export const dynamic = "force-dynamic";
@@ -15,13 +17,23 @@ export const dynamic = "force-dynamic";
 const CAN_MANAGE = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"];
 const STAFF_ROLES = ROLES.filter((r) => !["SUPER_ADMIN", "ADMIN", "RIDER", "PARENT"].includes(r));
 
-const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
-
-function DocLink({ url, label }: { url: string | null; label: string }) {
-  if (!url) return null;
+// Thumbnail tile for one uploaded document — image preview (click to open full)
+// or a PDF tile. Same look as the staff profile's document grid.
+function DocTile({ url, label, isPdf }: { url: string; label: string; isPdf: boolean }) {
   return (
-    <a href={url} target="_blank" rel="noopener" className="rounded border bg-card px-2 py-0.5 text-[11px] text-primary hover:bg-muted">
-      📎 {label}
+    <a href={url} target="_blank" rel="noopener" className="group overflow-hidden rounded-md border bg-card hover:border-primary">
+      <div className="flex h-24 items-center justify-center bg-muted/40">
+        {isPdf ? (
+          <FileText className="h-8 w-8 text-muted-foreground" />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={url} alt={label} className="h-full w-full object-cover" />
+        )}
+      </div>
+      <div className="px-2 py-1 text-[11px]">
+        <div className="font-medium group-hover:text-primary">{label}</div>
+        <div className="text-[10px] uppercase text-muted-foreground">{isPdf ? "PDF" : "image"} · open ↗</div>
+      </div>
     </a>
   );
 }
@@ -77,7 +89,10 @@ export default async function StaffOnboardingPage() {
           {submitted.length === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">No submissions waiting for review.</p>
           ) : (
-            submitted.map((r) => (
+            submitted.map((r) => {
+              const detailRows = employeeFormRows(r as unknown as Record<string, unknown>);
+              const docs = employeeDocs(r as unknown as Record<string, unknown>);
+              return (
               <div key={r.id} className="rounded-md border p-3">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
@@ -90,35 +105,37 @@ export default async function StaffOnboardingPage() {
                   </div>
                   <ApproveControl id={r.id} roles={STAFF_ROLES} defaultRole={r.intendedRole} />
                 </div>
-                <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
-                  {r.fatherName && <div><dt className="text-muted-foreground">Father</dt><dd>{r.fatherName}</dd></div>}
-                  {r.dob && <div><dt className="text-muted-foreground">DOB</dt><dd>{formatDate(r.dob)}</dd></div>}
-                  {r.emergencyContact && <div><dt className="text-muted-foreground">Emergency</dt><dd>{r.emergencyContact}</dd></div>}
-                  {r.employmentType && <div><dt className="text-muted-foreground">Type</dt><dd>{r.employmentType.replaceAll("_", " ")}</dd></div>}
-                  {r.dateOfJoining && <div><dt className="text-muted-foreground">Joining</dt><dd>{formatDate(r.dateOfJoining)}</dd></div>}
-                  {r.agreedSalary != null && <div><dt className="text-muted-foreground">Salary</dt><dd>{inr(r.agreedSalary)}</dd></div>}
-                  {r.foodCharges != null && <div><dt className="text-muted-foreground">Food</dt><dd>{inr(r.foodCharges)}</dd></div>}
-                  {r.aadhaarNumber && <div><dt className="text-muted-foreground">Aadhaar</dt><dd className="font-mono">{r.aadhaarNumber}</dd></div>}
-                  {r.panNumber && <div><dt className="text-muted-foreground">PAN</dt><dd className="font-mono">{r.panNumber}</dd></div>}
-                  {r.bankAccountNumber && <div><dt className="text-muted-foreground">Bank A/c</dt><dd className="font-mono">{r.bankName ?? ""} {r.bankAccountNumber} {r.bankIfsc ?? ""}</dd></div>}
+
+                {/* Full submitted form — every field, blanks shown as — */}
+                <dl className="mt-3 grid grid-cols-1 gap-x-6 gap-y-0 sm:grid-cols-2">
+                  {detailRows.map((row) => (
+                    <div key={row.label} className="flex justify-between gap-3 border-b border-dashed py-1 text-xs">
+                      <dt className="text-muted-foreground">{row.label}</dt>
+                      <dd className="text-right font-medium">{row.value}</dd>
+                    </div>
+                  ))}
                 </dl>
-                {r.permanentAddress && <p className="mt-1 text-xs text-muted-foreground">{r.permanentAddress}</p>}
-                {r.prevEmployment && <p className="mt-1 text-xs"><span className="text-muted-foreground">Previous: </span>{r.prevEmployment}</p>}
-                {r.references && <p className="mt-1 text-xs"><span className="text-muted-foreground">References: </span>{r.references}</p>}
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  <DocLink url={r.photoUrl} label="Photo" />
-                  <DocLink url={r.aadhaarUrl} label="Aadhaar" />
-                  <DocLink url={r.panUrl} label="PAN" />
-                  <DocLink url={r.bankProofUrl} label="Bank proof" />
-                  <DocLink url={r.prevEmploymentUrl} label="Prev. employment" />
-                  <DocLink url={r.characterCertUrl} label="Character cert" />
-                  <DocLink url={r.policeVerificationUrl} label="Police verification" />
+
+                {/* All uploaded documents — image previews / PDF tiles, click to open */}
+                <div className="mt-3">
+                  <div className="mb-1.5 text-xs font-medium text-muted-foreground">Documents ({docs.length})</div>
+                  {docs.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No documents uploaded.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {docs.map((d) => (
+                        <DocTile key={d.key} url={d.url} label={d.label} isPdf={d.isPdf} />
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <p className="mt-2 text-[11px] text-muted-foreground">
+
+                <p className="mt-3 text-[11px] text-muted-foreground">
                   Declaration accepted by typing: <span className="font-medium text-foreground">{r.declarationName ?? "—"}</span>
                 </p>
               </div>
-            ))
+              );
+            })
           )}
         </CardContent>
       </Card>
