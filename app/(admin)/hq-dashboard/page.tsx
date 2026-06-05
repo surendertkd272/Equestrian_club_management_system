@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { StatTile } from "@/components/ui/stat-tile";
 
 export const dynamic = "force-dynamic";
 
@@ -185,12 +186,8 @@ const TONE_CLS: Record<string, string> = {
 };
 
 function Kpi({ label, value, tone }: { label: string; value: number; tone?: keyof typeof TONE_CLS }) {
-  return (
-    <div className="rounded-lg border bg-card p-3">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className={`mt-1 text-2xl font-semibold ${tone ? TONE_CLS[tone] : ""}`}>{value}</div>
-    </div>
-  );
+  const t: "amber" | "rose" | "default" = tone === "amber" ? "amber" : tone === "rose" ? "rose" : "default";
+  return <StatTile label={label} value={value} tone={t} />;
 }
 
 function Th({ children, left, title }: { children: React.ReactNode; left?: boolean; title?: string }) {
