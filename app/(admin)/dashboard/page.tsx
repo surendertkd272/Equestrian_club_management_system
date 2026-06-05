@@ -5,6 +5,11 @@ import { centreWhere, scopeCentre } from "@/lib/tenancy";
 import { istTodayStr, coachUpdateDateKey, DAILY_UPDATE_ROLES } from "@/lib/coach-update";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatTile } from "@/components/ui/stat-tile";
+import {
+  Users, UserPlus, CalendarClock, CalendarCheck, Receipt, IndianRupee, PawPrint,
+  ListChecks, Pill, ClipboardList, Hourglass, ShoppingCart, Wallet, Stethoscope, DoorOpen,
+} from "lucide-react";
 import { SetupChecklist } from "@/components/dashboard/setup-checklist";
 import { AnnouncementsBanner } from "@/components/dashboard/announcements-banner";
 import { NpsWidget } from "@/components/dashboard/nps-widget";
@@ -64,6 +69,7 @@ export default async function DashboardPage() {
     batches,
     openInvoices,
     paidThisMonth,
+    paidLastMonth,
     horses,
     lowStock,
     expiringSoon,
@@ -85,6 +91,17 @@ export default async function DashboardPage() {
         where: {
           invoice: centreId ? { centreId } : undefined,
           paidAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
+        },
+        _sum: { amount: true },
+      }),
+      // Last month's revenue — for an honest month-over-month delta on the tile.
+      prisma.payment.aggregate({
+        where: {
+          invoice: centreId ? { centreId } : undefined,
+          paidAt: {
+            gte: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
+            lt: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+          },
         },
         _sum: { amount: true },
       }),
@@ -171,29 +188,41 @@ export default async function DashboardPage() {
       ]
     : [];
 
+  // Honest month-over-month revenue delta (only when last month had revenue).
+  const revThis = paidThisMonth._sum.amount ?? 0;
+  const revLast = paidLastMonth._sum.amount ?? 0;
+  const revDelta: { value: string; dir: "up" | "down" } | undefined =
+    revLast > 0
+      ? { value: `${Math.abs(Math.round(((revThis - revLast) / revLast) * 100))}%`, dir: revThis >= revLast ? "up" : "down" }
+      : undefined;
+
   const tiles = [
-    { label: "Active riders", value: activeRiders, hint: "status = active" },
-    { label: "Pending sign-ups", value: pendingRiders, hint: "awaiting payment" },
-    { label: "Batches", value: batches, hint: "scheduled" },
+    { label: "Active riders", value: activeRiders, hint: "status = active", icon: <Users className="h-5 w-5" /> },
+    { label: "Pending sign-ups", value: pendingRiders, hint: "awaiting payment", icon: <UserPlus className="h-5 w-5" /> },
+    { label: "Batches", value: batches, hint: "scheduled", icon: <CalendarClock className="h-5 w-5" /> },
     {
       label: "Today's attendance",
       value: todayPct === null ? "—" : `${todayPct}%`,
       hint: todayTotal > 0 ? `${todayPresent}/${todayTotal} marked present` : "no marks yet",
+      icon: <CalendarCheck className="h-5 w-5" />,
     },
-    { label: "Open invoices", value: openInvoices, hint: "status = due" },
+    { label: "Open invoices", value: openInvoices, hint: "status = due", icon: <Receipt className="h-5 w-5" /> },
     {
       label: "Revenue (MTD)",
-      value: `₹${Math.round(paidThisMonth._sum.amount ?? 0).toLocaleString("en-IN")}`,
+      value: `₹${Math.round(revThis).toLocaleString("en-IN")}`,
       hint: "razorpay + cash",
+      icon: <IndianRupee className="h-5 w-5" />,
+      delta: revDelta,
     },
-    { label: "Horses on roster", value: horses },
+    { label: "Horses on roster", value: horses, icon: <PawPrint className="h-5 w-5" /> },
     {
       label: "Open tasks",
       value: openTasks,
       hint: overdueTasks > 0 ? `${overdueTasks} overdue` : "all on time",
       warn: overdueTasks > 0,
+      icon: <ListChecks className="h-5 w-5" />,
     },
-    { label: "Low-stock meds", value: lowStock, hint: "qty ≤ 5", warn: lowStock > 0 },
+    { label: "Low-stock meds", value: lowStock, hint: "qty ≤ 5", warn: lowStock > 0, icon: <Pill className="h-5 w-5" /> },
     {
       label: "Coach updates (today)",
       value: coachStaffCount > 0 ? `${coachUpdatesToday}/${coachStaffCount}` : "—",
@@ -202,12 +231,14 @@ export default async function DashboardPage() {
           ? `${coachStaffCount - coachUpdatesToday} yet to file`
           : "all filed",
       warn: coachStaffCount > 0 && coachUpdatesToday < coachStaffCount,
+      icon: <ClipboardList className="h-5 w-5" />,
     },
     {
       label: "Meds expiring within 30 days",
       value: expiringSoon,
       hint: "review & rotate",
       warn: expiringSoon > 0,
+      icon: <Hourglass className="h-5 w-5" />,
     },
     // New-feature widgets — only show "pending your approval" for roles
     // that can actually approve. Reimbursement + vet follow-ups + gate
@@ -218,6 +249,7 @@ export default async function DashboardPage() {
           value: reqPendingMine,
           hint: myApproverStage === "pending_accountant" ? "accountant signoff" : "manager approval",
           warn: reqPendingMine > 0,
+          icon: <ShoppingCart className="h-5 w-5" />,
         }]
       : []),
     {
@@ -225,16 +257,19 @@ export default async function DashboardPage() {
       value: invoicesAwaitingReimbursement,
       hint: "paid = false",
       warn: invoicesAwaitingReimbursement > 0,
+      icon: <Wallet className="h-5 w-5" />,
     },
     {
       label: "Vet follow-ups (next 7d)",
       value: upcomingVetFollowups,
       hint: "scheduled re-checks",
+      icon: <Stethoscope className="h-5 w-5" />,
     },
     {
       label: "Staff on premises now",
       value: onPremises,
       hint: "via gate log today",
+      icon: <DoorOpen className="h-5 w-5" />,
     },
   ];
 
@@ -253,18 +288,15 @@ export default async function DashboardPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {tiles.map((t) => (
-          <Card key={t.label}>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{t.label}</CardTitle>
-                {t.warn && <Badge variant="warning">attention</Badge>}
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{t.value}</div>
-              {t.hint && <p className="text-xs text-muted-foreground">{t.hint}</p>}
-            </CardContent>
-          </Card>
+          <StatTile
+            key={t.label}
+            label={t.label}
+            value={t.value}
+            sub={t.hint}
+            icon={t.icon}
+            tone={t.warn ? "amber" : "default"}
+            delta={"delta" in t ? t.delta : undefined}
+          />
         ))}
       </div>
 
