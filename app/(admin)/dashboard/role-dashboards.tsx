@@ -11,9 +11,22 @@ import { centreWhere } from "@/lib/tenancy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatTile } from "@/components/ui/stat-tile";
+import { HeroCard } from "@/components/dashboard/visuals";
 import { kpiIcon } from "@/lib/kpi-icon";
 import { formatDateIndia, timeAgo } from "@/lib/i18n";
 import { istTodayStr, coachUpdateDateKey, DAILY_UPDATE_ROLES } from "@/lib/coach-update";
+import { Hammer, Stethoscope, Boxes, Sparkles, GraduationCap, Trophy, Wallet, Users, ClipboardCheck } from "lucide-react";
+
+// Shared layout: an illustrated HeroCard on the left, the role's KPI tiles on
+// the right. Gives every role dashboard the same "designed" top band.
+function HeroRow({ hero, children }: { hero: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      <div className="lg:col-span-1">{hero}</div>
+      <div className="grid grid-cols-2 gap-3 self-start sm:grid-cols-4 lg:col-span-2">{children}</div>
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared atoms
@@ -51,14 +64,30 @@ export async function FarrierDashboard({ centreId }: { centreId: string | null }
     }),
   ]);
 
+  const nextVisit = upcoming[0];
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <HeroRow
+        hero={
+          <HeroCard
+            kicker="Farrier"
+            title={nextVisit ? nextVisit.horse.name : "No visits booked"}
+            subtitle={nextVisit ? `Next shoeing · ${formatDateIndia(nextVisit.scheduledAt)}` : "Schedule from the farriery page"}
+            icon={<Hammer />}
+            stats={[
+              { label: "This week", value: upcoming.length },
+              { label: "Overdue", value: overdue.length },
+              { label: "Done", value: recentlyCompleted.length },
+            ]}
+            href="/farriery"
+            cta="Open farriery"
+          />
+        }
+      >
         <Kpi label="Upcoming (7d)" value={upcoming.length} link="/farriery" />
         <Kpi label="Overdue" value={overdue.length} tone={overdue.length > 0 ? "amber" : undefined} link="/farriery" />
         <Kpi label="Completed (recent)" value={recentlyCompleted.length} />
-        <Kpi label="—" value="" />
-      </div>
+      </HeroRow>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -137,14 +166,31 @@ export async function VetDashboard({ centreId }: { centreId: string | null }) {
     }),
   ]);
 
+  const nextVacc = vaccDueSoon[0];
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <HeroRow
+        hero={
+          <HeroCard
+            kicker="Veterinary"
+            title={nextVacc ? nextVacc.horse.name : "Herd is up to date"}
+            subtitle={nextVacc ? `${nextVacc.vaccineLabel} · due ${formatDateIndia(nextVacc.nextDueAt)}` : "No vaccinations due in 30 days"}
+            icon={<Stethoscope />}
+            stats={[
+              { label: "Vacc. due", value: vaccDueSoon.length },
+              { label: "Injuries", value: recentInjuries.length },
+              { label: "Meds exp.", value: expiringMeds.length },
+            ]}
+            href="/vaccinations"
+            cta="Open vaccinations"
+          />
+        }
+      >
         <Kpi label="Vaccinations due (30d)" value={vaccDueSoon.length} tone={vaccDueSoon.length > 0 ? "amber" : undefined} link="/vaccinations" />
         <Kpi label="Active injuries" value={recentInjuries.length} tone={recentInjuries.length > 0 ? "amber" : undefined} link="/injuries" />
         <Kpi label="Medicines expiring (30d)" value={expiringMeds.length} tone={expiringMeds.length > 0 ? "amber" : undefined} link="/medicines" />
         <Kpi label="Low-stock meds" value={lowStockMeds} link="/medicines" />
-      </div>
+      </HeroRow>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -220,13 +266,29 @@ export async function StableManagerDashboard({ centreId }: { centreId: string | 
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <HeroRow
+        hero={
+          <HeroCard
+            kicker="Stable"
+            title={`${horses} horses`}
+            subtitle="on the active roster"
+            icon={<Boxes />}
+            stats={[
+              { label: "Allocs today", value: todayAllocs },
+              { label: "Open tasks", value: openTasks },
+              { label: "Injuries", value: recentInjuries },
+            ]}
+            href="/horses"
+            cta="Open stable"
+          />
+        }
+      >
         <Kpi label="Active horses" value={horses} link="/horses" />
         <Kpi label="Allocations today" value={todayAllocs} />
         <Kpi label="Open tasks" value={openTasks} link="/tasks" />
         <Kpi label="Low-stock consumables" value={lowConsumables} tone={lowConsumables > 0 ? "amber" : undefined} link="/consumables" />
         <Kpi label="Open injuries" value={recentInjuries} tone={recentInjuries > 0 ? "amber" : undefined} link="/injuries" />
-      </div>
+      </HeroRow>
     </div>
   );
 }
@@ -258,14 +320,34 @@ export async function GroomDashboard({ centreId, userId }: { centreId: string | 
     prisma.horse.count({ where: { ...where, status: "active" } }),
   ]);
 
+  const firstAlloc = todayAllocs[0];
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <HeroRow
+        hero={
+          <HeroCard
+            kicker="My day"
+            title={firstAlloc ? firstAlloc.horse.name : "Nothing scheduled"}
+            subtitle={
+              firstAlloc
+                ? `First up · ${new Date(firstAlloc.startAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+                : "No allocations today"
+            }
+            icon={<Sparkles />}
+            stats={[
+              { label: "My tasks", value: myTasks.length },
+              { label: "Allocations", value: todayAllocs.length },
+              { label: "Horses", value: horses },
+            ]}
+            href="/tasks"
+            cta="Open my tasks"
+          />
+        }
+      >
         <Kpi label="My open tasks" value={myTasks.length} link="/tasks" />
         <Kpi label="Allocations today" value={todayAllocs.length} />
         <Kpi label="Horses on roster" value={horses} link="/horses" />
-        <Kpi label="—" value="" />
-      </div>
+      </HeroRow>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -346,14 +428,30 @@ export async function ExaminerDashboard({ centreId, userId }: { centreId: string
     }),
   ]);
 
+  const nextExam = upcoming[0];
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <HeroRow
+        hero={
+          <HeroCard
+            kicker="Examiner"
+            title={nextExam ? `${nextExam.rider.firstName} ${nextExam.rider.lastName}` : "No exams scheduled"}
+            subtitle={nextExam ? `Level ${nextExam.level} · ${formatDateIndia(nextExam.date)} · ${nextExam.time}` : "Add one from the exams page"}
+            icon={<GraduationCap />}
+            stats={[
+              { label: "Upcoming", value: upcoming.length },
+              { label: "Completed", value: completedRecent.length },
+              { label: "Certs 30d", value: certsIssued },
+            ]}
+            href="/exams"
+            cta="Open exams"
+          />
+        }
+      >
         <Kpi label="Upcoming exams" value={upcoming.length} link="/exams" />
         <Kpi label="Completed (recent)" value={completedRecent.length} />
         <Kpi label="Certs signed (30d)" value={certsIssued} link="/certificates" />
-        <Kpi label="—" value="" />
-      </div>
+      </HeroRow>
 
       <Card>
         <CardHeader><CardTitle>My upcoming exams</CardTitle></CardHeader>
@@ -385,7 +483,10 @@ export async function ExaminerDashboard({ centreId, userId }: { centreId: string
 export async function CompetitionManagerDashboard({ centreId }: { centreId: string | null }) {
   const where = centreWhere(centreId);
 
-  const [active, drafts, upcomingEntries, recentResults] = await Promise.all([
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const [active, drafts, upcomingEntries, recentResults, nextComp] = await Promise.all([
     prisma.competition.count({
       where: { ...where, status: { in: ["open_for_entries", "live"] } },
     }),
@@ -398,16 +499,41 @@ export async function CompetitionManagerDashboard({ centreId }: { centreId: stri
     prisma.competitionEntry.count({
       where: { competition: where, placement: { in: [1, 2, 3] } },
     }),
+    prisma.competition.findFirst({
+      where: { ...where, status: { notIn: ["cancelled", "completed"] }, startDate: { gte: todayStart } },
+      orderBy: { startDate: "asc" },
+      include: { _count: { select: { entries: true } } },
+    }),
   ]);
+
+  const compDaysToGo = nextComp
+    ? Math.max(0, Math.ceil((nextComp.startDate.getTime() - Date.now()) / 86400000))
+    : null;
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <HeroRow
+        hero={
+          <HeroCard
+            kicker="Next competition"
+            title={nextComp ? nextComp.name : "No event scheduled"}
+            subtitle={nextComp ? `${formatDateIndia(nextComp.startDate)}${nextComp.venue ? ` · ${nextComp.venue}` : ""}` : "Create one to open entries"}
+            icon={<Trophy />}
+            stats={[
+              { label: "Entries", value: nextComp ? nextComp._count.entries : 0 },
+              { label: "Days to go", value: compDaysToGo ?? "—" },
+              { label: "Active", value: active },
+            ]}
+            href="/competitions"
+            cta="Open competitions"
+          />
+        }
+      >
         <Kpi label="Active competitions" value={active} link="/competitions" />
         <Kpi label="Drafts" value={drafts} link="/competitions" />
         <Kpi label="Total entries" value={upcomingEntries} />
         <Kpi label="Top-3 placements" value={recentResults} link="/teams" />
-      </div>
+      </HeroRow>
     </div>
   );
 }
@@ -434,14 +560,32 @@ export async function AccountantDashboard({ centreId }: { centreId: string | nul
     }),
   ]);
 
+  const paidMTD = Math.round(paidThisMonth._sum.amount ?? 0);
+  const allTime = Math.round(totalCollected._sum.amount ?? 0);
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <HeroRow
+        hero={
+          <HeroCard
+            kicker="Collections"
+            title={`₹${paidMTD.toLocaleString("en-IN")}`}
+            subtitle="collected this month"
+            icon={<Wallet />}
+            stats={[
+              { label: "Open inv.", value: openInvoices },
+              { label: "Overdue", value: overdue },
+              { label: "All-time ₹", value: allTime.toLocaleString("en-IN") },
+            ]}
+            href="/finance"
+            cta="Open finance"
+          />
+        }
+      >
         <Kpi label="Open invoices" value={openInvoices} link="/finance" />
         <Kpi label="Overdue" value={overdue} tone={overdue > 0 ? "rose" : undefined} link="/finance" />
-        <Kpi label="Paid this month (₹)" value={paidThisMonth._sum.amount ?? 0} tone="green" />
-        <Kpi label="All-time collected (₹)" value={totalCollected._sum.amount ?? 0} />
-      </div>
+        <Kpi label="Paid this month (₹)" value={paidMTD} tone="green" />
+        <Kpi label="All-time collected (₹)" value={allTime} />
+      </HeroRow>
     </div>
   );
 }
@@ -485,10 +629,28 @@ export async function HeadCoachDashboard({ centreId }: { centreId: string | null
 
   const markedSet = new Set(markedToday.map((m) => m.batchId));
   const unmarked = batches.filter((b) => !markedSet.has(b.id));
+  const markedCount = batches.length - unmarked.length;
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <HeroRow
+        hero={
+          <HeroCard
+            kicker="Coaching"
+            title={`${totalRiders} riders`}
+            subtitle="across all coaches"
+            icon={<Users />}
+            progress={{ value: markedCount, max: Math.max(1, batches.length), label: `${markedCount}/${batches.length} batches marked today` }}
+            stats={[
+              { label: "Exams 7d", value: upcomingExams },
+              { label: "Drafts", value: draftExams.length },
+              { label: "Updates", value: `${updatesToday}/${coachCount}` },
+            ]}
+            href="/attendance"
+            cta="Open attendance"
+          />
+        }
+      >
         <Kpi label="Active riders" value={totalRiders} link="/riders" />
         <Kpi
           label="Batches without attendance (today)"
@@ -504,7 +666,7 @@ export async function HeadCoachDashboard({ centreId }: { centreId: string | null
           tone={coachCount > 0 && updatesToday < coachCount ? "amber" : "green"}
           link="/daily-update/team"
         />
-      </div>
+      </HeroRow>
 
       {unmarked.length > 0 && (
         <Card>
@@ -561,10 +723,28 @@ export async function CoachDashboard({ centreId, userId }: { centreId: string | 
 
   const markedSet = new Set(markedToday.map((m) => m.batchId));
   const unmarked = myBatches.filter((b) => !markedSet.has(b.id));
+  const markedCount = myBatches.length - unmarked.length;
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <HeroRow
+        hero={
+          <HeroCard
+            kicker="My batches"
+            title={`${myBatches.length} batches`}
+            subtitle="assigned to you"
+            icon={<ClipboardCheck />}
+            progress={{ value: markedCount, max: Math.max(1, myBatches.length), label: `${markedCount}/${myBatches.length} marked today` }}
+            stats={[
+              { label: "My tasks", value: myOpenTasks },
+              { label: "Checklist", value: checklistsToday > 0 ? "✓" : "—" },
+              { label: "Riders", value: totalRiders },
+            ]}
+            href="/attendance"
+            cta="Mark attendance"
+          />
+        }
+      >
         <Kpi label="My batches" value={myBatches.length} link="/batches" />
         <Kpi
           label="My batches unmarked (today)"
@@ -579,7 +759,7 @@ export async function CoachDashboard({ centreId, userId }: { centreId: string | 
           tone={checklistsToday > 0 ? "green" : "amber"}
           link="/checklists"
         />
-      </div>
+      </HeroRow>
 
       <div className="grid gap-4 md:grid-cols-2">
         {unmarked.length > 0 && (
