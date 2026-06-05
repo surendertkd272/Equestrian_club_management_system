@@ -31,8 +31,9 @@ export function FeatureMatrix({
   const [busyKey, setBusyKey] = useState<FeatureKey | null>(null);
 
   async function toggle(key: FeatureKey) {
-    if (!allowOverrides) {
-      toast.error("Switch this tenant to Enterprise to toggle features individually.");
+    const isUiOnly = FEATURES.find((f) => f.key === key)?.enforcement === "ui-only";
+    if (!allowOverrides && !isUiOnly) {
+      toast.error("Wired (billable) features need the Enterprise plan. Cosmetic sections can be toggled on any plan.");
       return;
     }
     const current = state.get(key) ?? false;
@@ -70,9 +71,10 @@ export function FeatureMatrix({
     <div className="space-y-5">
       {!allowOverrides && (
         <div className="rounded-md border border-amber-700 bg-amber-950/50 p-3 text-sm text-amber-200">
-          <span className="font-semibold">Plan locked.</span> Starter and Pro tenants get exactly
-          the bundle their plan dictates. Switch this tenant to <strong>Enterprise</strong> in the
-          Plan panel above to enable individual toggles below.
+          <span className="font-semibold">Billable features are plan-locked.</span> Starter and Pro
+          tenants get exactly the <strong>Wired</strong> bundle their plan dictates — switch to{" "}
+          <strong>Enterprise</strong> in the Plan panel above to toggle those individually.{" "}
+          <strong>UI-only</strong> sections (cosmetic show/hide, e.g. Teams) can be toggled on any plan.
         </div>
       )}
 
@@ -85,6 +87,8 @@ export function FeatureMatrix({
             {defs.map((def) => {
               const enabled = state.get(def.key) ?? false;
               const busy = busyKey === def.key;
+              // Cosmetic sections are always toggleable; billable ones need the plan.
+              const canToggle = def.enforcement === "ui-only" || allowOverrides;
               return (
                 <li
                   key={def.key}
@@ -128,12 +132,12 @@ export function FeatureMatrix({
                     <button
                       type="button"
                       onClick={() => toggle(def.key)}
-                      disabled={busy || !allowOverrides}
+                      disabled={busy || !canToggle}
                       aria-pressed={enabled}
                       aria-label={`${def.label} — currently ${enabled ? "on" : "off"}`}
                       title={
-                        !allowOverrides
-                          ? "Plan doesn't allow individual toggles"
+                        !canToggle
+                          ? "Billable feature — switch tenant to Enterprise to toggle"
                           : enabled ? "Click to turn off" : "Click to turn on"
                       }
                       className={[
@@ -142,7 +146,7 @@ export function FeatureMatrix({
                           ? "border-emerald-400 bg-emerald-500"
                           : "border-slate-600 bg-slate-700",
                         busy ? "animate-pulse" : "",
-                        !allowOverrides ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:brightness-110",
+                        !canToggle ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:brightness-110",
                       ].join(" ")}
                     >
                       <span
