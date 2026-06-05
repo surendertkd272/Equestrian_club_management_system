@@ -4,24 +4,25 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --primary: 142 71% 30%;          /* equestrian green */
+    /* Lavender / purple refresh — soft tinted canvas, white cards, rounded. */
+    --background: 250 40% 98.5%;     /* faint lavender canvas */
+    --foreground: 250 25% 12%;
+    --card: 0 0% 100%;               /* white cards pop off the tinted canvas */
+    --card-foreground: 250 25% 12%;
+    --primary: 250 72% 62%;          /* lavender / purple */
     --primary-foreground: 0 0% 100%;
-    --secondary: 36 33% 95%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 36 65% 50%;            /* saddle tan */
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --secondary: 250 35% 96%;        /* light lavender chip */
+    --secondary-foreground: 250 30% 25%;
+    --muted: 250 30% 96%;            /* soft tile fill */
+    --muted-foreground: 250 10% 45%;
+    --accent: 250 60% 95%;           /* lavender highlight */
+    --accent-foreground: 250 45% 30%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 142 71% 30%;
-    --radius: 0.6rem;
+    --destructive-foreground: 0 0% 100%;
+    --border: 250 25% 91%;
+    --input: 250 25% 91%;
+    --ring: 250 72% 62%;
+    --radius: 1rem;                  /* rounded-2xl soft-card feel */
   }
 
   * { @apply border-border; }
