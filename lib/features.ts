@@ -75,7 +75,7 @@ export type FeatureDef = {
 export const FEATURES: readonly FeatureDef[] = [
   // ── Operations
   { key: "attendance",             label: "Rider Attendance",       description: "Mark and review rider attendance per batch.",                    group: "operations",   enforcement: "wired", selfToggle: true },
-  { key: "skill-tracking",         label: "Skill Tracking",         description: "Track per-rider skill progress across disciplines.",             group: "operations",   enforcement: "ui-only" },
+  { key: "skill-tracking",         label: "Skill Tracking",         description: "Track per-rider skill progress across disciplines.",             group: "operations",   enforcement: "wired", selfToggle: true },
   { key: "internal-exams",         label: "Internal Exams",         description: "Schedule and score in-house promotion exams.",                   group: "operations",   enforcement: "ui-only" },
   { key: "external-exams",         label: "External Examinations",  description: "Formal exam workflow with external examiners (EFI-style).",     group: "operations",   enforcement: "wired" },
   { key: "certificates",           label: "Certificates",           description: "Issue QR-verified certificates for promotions + events.",         group: "operations",   enforcement: "wired", selfToggle: true },
@@ -83,12 +83,12 @@ export const FEATURES: readonly FeatureDef[] = [
   { key: "events",                 label: "Events",                 description: "Clinics, schooling days, fundraisers, external shows.",          group: "operations",   enforcement: "wired" },
 
   // ── People
-  { key: "staff-attendance",       label: "Staff Attendance",       description: "Daily staff check-in / leave tracking.",                         group: "people",       enforcement: "ui-only" },
+  { key: "staff-attendance",       label: "Staff Attendance",       description: "Daily staff check-in / leave tracking.",                         group: "people",       enforcement: "wired", selfToggle: true },
   { key: "parent-portal",          label: "Parent Portal",          description: "Parents log in to see their kids' progress and bills.",          group: "people",       enforcement: "wired" },
   { key: "student-portal",         label: "Student / Rider Portal", description: "Riders log in to see their attendance, skills, and exams.",     group: "people",       enforcement: "wired" },
-  { key: "leave-requests",         label: "Leave Requests",         description: "Staff request leave; managers approve.",                         group: "people",       enforcement: "ui-only" },
-  { key: "training-certs",         label: "Training & Certs",       description: "Staff courses + external certifications register.",              group: "people",       enforcement: "ui-only" },
-  { key: "teams",                  label: "Teams / Squads",         description: "Group riders into named teams for competition entries.",         group: "people",       enforcement: "ui-only" },
+  { key: "leave-requests",         label: "Leave Requests",         description: "Staff request leave; managers approve.",                         group: "people",       enforcement: "wired", selfToggle: true },
+  { key: "training-certs",         label: "Training & Certs",       description: "Staff courses + external certifications register.",              group: "people",       enforcement: "wired", selfToggle: true },
+  { key: "teams",                  label: "Teams / Squads",         description: "Group riders into named teams for competition entries.",         group: "people",       enforcement: "wired", selfToggle: true },
   { key: "accreditations",         label: "Rider Accreditations",   description: "Track external federation memberships per rider (EFI/BHS/FEI).", group: "people",       enforcement: "wired" },
 
   // ── Facility
