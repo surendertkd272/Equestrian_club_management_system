@@ -102,6 +102,15 @@ export function Sidebar({
   const groups = filterSidebarNav(role, new Set(features));
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Only ONE item should highlight: the most specific (longest-href) match.
+  // Plain prefix matching lit up both a parent and its child — e.g. on
+  // /staff/onboarding both "Staff" (/staff) and "Employee Onboarding"
+  // (/staff/onboarding) matched. Longest-match-wins fixes every such pair.
+  const activeHref = groups
+    .flatMap((g) => g.items.map((it) => it.href))
+    .filter((href) => pathname === href || pathname.startsWith(href + "/"))
+    .sort((a, b) => b.length - a.length)[0];
+
   // Auto-close the drawer on route change so navigating doesn't leave a
   // half-open sheet over the new page.
   useEffect(() => {
@@ -192,7 +201,7 @@ export function Sidebar({
             </div>
             <ul className="space-y-0.5">
               {group.items.map((it) => {
-                const active = pathname === it.href || pathname.startsWith(it.href + "/");
+                const active = it.href === activeHref;
                 const Icon = ICONS[it.iconName];
                 return (
                   <li key={it.href}>
