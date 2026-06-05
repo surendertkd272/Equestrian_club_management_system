@@ -33,7 +33,15 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Apply the saved theme before paint so there's no light→dark flash. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.theme==='dark')document.documentElement.classList.add('dark')}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="min-h-screen antialiased">
         <EnvBanner />
         {children}

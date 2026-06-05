@@ -8,6 +8,7 @@ import { LogOut, Phone } from "lucide-react";
 import type { SessionPayload } from "@/lib/auth";
 import { CommandPalette } from "./cmdk";
 import { NotificationsDropdown } from "./notifications-dropdown";
+import { ThemeToggle } from "./theme-toggle";
 import { HqCentreSwitcher } from "./hq-centre-switcher";
 import { signOutAndRedirect } from "@/lib/client-logout";
 
@@ -68,6 +69,7 @@ export function TopBar({
           <div className="hidden md:block">
             <CommandPalette />
           </div>
+          <ThemeToggle />
           <NotificationsDropdown initialUnread={unreadCount} />
           <Link href="/account" className="flex items-center gap-2 text-right text-sm hover:underline" title="Account settings">
             {photoUrl ? (

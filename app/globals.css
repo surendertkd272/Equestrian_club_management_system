@@ -25,6 +25,29 @@
     --radius: 1rem;                  /* rounded-2xl soft-card feel */
   }
 
+  /* Dark mode — lavender on a deep cool-grey canvas. Activated by the `dark`
+     class on <html> (Tailwind darkMode: "class"); toggled + persisted by the
+     ThemeToggle, applied pre-paint by the no-flash script in the root layout. */
+  .dark {
+    --background: 250 24% 8%;
+    --foreground: 250 18% 96%;
+    --card: 250 22% 12%;
+    --card-foreground: 250 18% 96%;
+    --primary: 250 83% 72%;          /* brighter lavender for dark surfaces */
+    --primary-foreground: 250 35% 10%;
+    --secondary: 250 16% 18%;
+    --secondary-foreground: 250 18% 92%;
+    --muted: 250 16% 16%;
+    --muted-foreground: 250 12% 66%;
+    --accent: 250 24% 22%;
+    --accent-foreground: 250 18% 94%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 250 16% 22%;
+    --input: 250 16% 22%;
+    --ring: 250 83% 72%;
+  }
+
   * { @apply border-border; }
   body { @apply bg-background text-foreground; font-feature-settings: "rlig" 1, "calt" 1; }
 }
