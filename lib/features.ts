@@ -65,15 +65,20 @@ export type FeatureDef = {
   description: string;
   group: "operations" | "people" | "facility" | "finance" | "productivity" | "advanced";
   enforcement: FeatureEnforcement;
+  // When true, the owner can toggle this feature on ANY plan (not Enterprise-
+  // gated), even though it's `wired` (API-enforced). Lets us harden a feature's
+  // access (off = real block) without turning it into a billable plan lever.
+  // Defaults to: ui-only features are self-toggleable, wired ones are not.
+  selfToggle?: boolean;
 };
 
 export const FEATURES: readonly FeatureDef[] = [
   // ── Operations
-  { key: "attendance",             label: "Rider Attendance",       description: "Mark and review rider attendance per batch.",                    group: "operations",   enforcement: "ui-only" },
+  { key: "attendance",             label: "Rider Attendance",       description: "Mark and review rider attendance per batch.",                    group: "operations",   enforcement: "wired", selfToggle: true },
   { key: "skill-tracking",         label: "Skill Tracking",         description: "Track per-rider skill progress across disciplines.",             group: "operations",   enforcement: "ui-only" },
   { key: "internal-exams",         label: "Internal Exams",         description: "Schedule and score in-house promotion exams.",                   group: "operations",   enforcement: "ui-only" },
   { key: "external-exams",         label: "External Examinations",  description: "Formal exam workflow with external examiners (EFI-style).",     group: "operations",   enforcement: "wired" },
-  { key: "certificates",           label: "Certificates",           description: "Issue QR-verified certificates for promotions + events.",         group: "operations",   enforcement: "ui-only" },
+  { key: "certificates",           label: "Certificates",           description: "Issue QR-verified certificates for promotions + events.",         group: "operations",   enforcement: "wired", selfToggle: true },
   { key: "competitions",           label: "Competitions",           description: "Run inter-club / state / national competitions with scoring.",   group: "operations",   enforcement: "wired" },
   { key: "events",                 label: "Events",                 description: "Clinics, schooling days, fundraisers, external shows.",          group: "operations",   enforcement: "wired" },
 
@@ -120,4 +125,12 @@ export const FEATURE_KEYS: readonly FeatureKey[] = FEATURES.map((f) => f.key);
 
 export function isFeatureKey(value: unknown): value is FeatureKey {
   return typeof value === "string" && (FEATURE_KEYS as readonly string[]).includes(value);
+}
+
+// Whether the owner may toggle this feature on ANY plan (vs Enterprise-only).
+// Explicit `selfToggle` wins; otherwise ui-only features are self-toggleable.
+export function canSelfToggle(key: FeatureKey): boolean {
+  const f = FEATURES.find((x) => x.key === key);
+  if (!f) return false;
+  return f.selfToggle ?? f.enforcement === "ui-only";
 }

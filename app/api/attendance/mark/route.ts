@@ -5,10 +5,13 @@ import { can } from "@/lib/permissions";
 import { markAttendanceSchema, parseDateOnly } from "@/lib/schemas/attendance";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { blockIfFeatureOff } from "@/lib/features-gate";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  const featureBlock = await blockIfFeatureOff(session, "attendance");
+  if (featureBlock) return featureBlock;
   if (!can(session.role, "attendance.mark")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }

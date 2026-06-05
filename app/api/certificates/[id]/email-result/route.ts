@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
+import { blockIfFeatureOff } from "@/lib/features-gate";
 import { sendEmail, renderEmail } from "@/lib/email";
 import { renderExamBreakdownHtml } from "@/lib/exam-email-breakdown";
 
@@ -28,6 +29,8 @@ const ALLOWED_ROLES = new Set([
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  const featureBlock = await blockIfFeatureOff(session, "certificates");
+  if (featureBlock) return featureBlock;
   if (!ALLOWED_ROLES.has(session.role)) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }

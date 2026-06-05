@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { FEATURES, type FeatureKey } from "@/lib/features";
+import { FEATURES, canSelfToggle, type FeatureKey } from "@/lib/features";
 
 type Row = { key: FeatureKey; enabled: boolean };
 
@@ -31,9 +31,8 @@ export function FeatureMatrix({
   const [busyKey, setBusyKey] = useState<FeatureKey | null>(null);
 
   async function toggle(key: FeatureKey) {
-    const isUiOnly = FEATURES.find((f) => f.key === key)?.enforcement === "ui-only";
-    if (!allowOverrides && !isUiOnly) {
-      toast.error("Wired (billable) features need the Enterprise plan. Cosmetic sections can be toggled on any plan.");
+    if (!allowOverrides && !canSelfToggle(key)) {
+      toast.error("Billable features need the Enterprise plan. Self-serve features can be toggled on any plan.");
       return;
     }
     const current = state.get(key) ?? false;
@@ -88,7 +87,7 @@ export function FeatureMatrix({
               const enabled = state.get(def.key) ?? false;
               const busy = busyKey === def.key;
               // Cosmetic sections are always toggleable; billable ones need the plan.
-              const canToggle = def.enforcement === "ui-only" || allowOverrides;
+              const canToggle = canSelfToggle(def.key) || allowOverrides;
               return (
                 <li
                   key={def.key}

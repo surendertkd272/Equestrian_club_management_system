@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getOwnerSession } from "@/lib/owner-auth";
 import { auditOwner } from "@/lib/owner-audit";
-import { FEATURE_KEYS, isFeatureKey, FEATURES } from "@/lib/features";
+import { FEATURE_KEYS, isFeatureKey, canSelfToggle } from "@/lib/features";
 import { isPlanKey, planAllowsOverrides } from "@/lib/plans";
 import { forbidIfMissingOwnerPerm } from "@/lib/owner-permissions";
 
@@ -37,8 +37,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // Cosmetic (ui-only) features just show/hide a sidebar section — not a
   // billable capability — so the owner can toggle them on any plan. Wired
   // (billable) features stay plan-gated: Starter/Pro get a fixed bundle.
-  const isUiOnly = FEATURES.find((f) => f.key === parsed.data.featureKey)?.enforcement === "ui-only";
-  if (!isUiOnly && (!isPlanKey(org.plan) || !planAllowsOverrides(org.plan))) {
+  const selfToggle = canSelfToggle(parsed.data.featureKey);
+  if (!selfToggle && (!isPlanKey(org.plan) || !planAllowsOverrides(org.plan))) {
     return NextResponse.json(
       { error: "OVERRIDES_NOT_ALLOWED", details: { plan: org.plan } },
       { status: 409 },

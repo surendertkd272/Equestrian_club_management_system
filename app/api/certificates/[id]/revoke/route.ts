@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
+import { blockIfFeatureOff } from "@/lib/features-gate";
 
 const schema = z.object({
   reason: z.string().min(2).max(300),
@@ -15,6 +16,8 @@ const schema = z.object({
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  const featureBlock = await blockIfFeatureOff(session, "certificates");
+  if (featureBlock) return featureBlock;
   if (!can(session.role, "certificate.bulk")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
