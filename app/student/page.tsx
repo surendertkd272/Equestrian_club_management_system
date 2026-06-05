@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { getStudentSummary, getStudentDetail } from "@/lib/student";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatTile } from "@/components/ui/stat-tile";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { getFeaturesForSession } from "@/lib/features-gate";
@@ -345,13 +346,5 @@ export default async function StudentHome() {
 }
 
 function Kpi({ label, value, sub, warn = false }: { label: string; value: string; sub?: string; warn?: boolean }) {
-  return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className={`mt-1 text-2xl font-bold ${warn ? "text-amber-600" : ""}`}>{value}</div>
-        {sub && <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>}
-      </CardContent>
-    </Card>
-  );
+  return <StatTile label={label} value={value} sub={sub} tone={warn ? "amber" : "default"} />;
 }

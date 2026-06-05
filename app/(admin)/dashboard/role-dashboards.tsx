@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { centreWhere } from "@/lib/tenancy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatTile } from "@/components/ui/stat-tile";
 import { formatDateIndia, timeAgo } from "@/lib/i18n";
 import { istTodayStr, coachUpdateDateKey, DAILY_UPDATE_ROLES } from "@/lib/coach-update";
 
@@ -17,20 +18,7 @@ import { istTodayStr, coachUpdateDateKey, DAILY_UPDATE_ROLES } from "@/lib/coach
 // Shared atoms
 
 function Kpi({ label, value, tone, link }: { label: string; value: number | string; tone?: "amber" | "rose" | "green"; link?: string }) {
-  const cls = tone === "rose" ? "text-rose-600" : tone === "amber" ? "text-amber-700" : tone === "green" ? "text-emerald-600" : "";
-  const inner = (
-    <>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className={`mt-1 text-2xl font-semibold ${cls}`}>{value}</div>
-    </>
-  );
-  return link ? (
-    <Link href={link} className="block rounded-lg border bg-card p-3 hover:bg-muted/40">
-      {inner}
-    </Link>
-  ) : (
-    <div className="rounded-lg border bg-card p-3">{inner}</div>
-  );
+  return <StatTile label={label} value={value} tone={tone} link={link} />;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
