@@ -51,22 +51,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Social proof placeholder */}
-      <section className="border-y bg-white py-10">
-        <div className="container mx-auto max-w-6xl px-6">
-          <p className="text-center text-xs uppercase tracking-widest text-slate-500">Trusted by clubs across India</p>
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-x-12 gap-y-3 text-sm text-slate-400">
-            <span>Equiwings Academy</span>
-            <span>·</span>
-            <span>{"{{Club 2}}"}</span>
-            <span>·</span>
-            <span>{"{{Club 3}}"}</span>
-            <span>·</span>
-            <span>{"{{Club 4}}"}</span>
-          </div>
-        </div>
-      </section>
-
       {/* Feature grid */}
       <section id="features" className="container mx-auto max-w-6xl px-6 py-16">
         <h2 className="text-3xl font-bold">Everything an Indian academy needs.</h2>
