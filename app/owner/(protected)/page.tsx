@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PlanBadge, StatusBadge } from "./badges";
 import { getSystemStatus } from "@/lib/system-status";
+import { StatTile } from "@/components/ui/stat-tile";
 
 export const dynamic = "force-dynamic";
 
@@ -219,13 +220,7 @@ function bucket<T>(items: T[], pick: (x: T) => string): Record<string, number> {
 }
 
 function Stat({ label, value, sub, warn }: { label: string; value: number | string; sub?: string; warn?: boolean }) {
-  return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900 p-4">
-      <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
-      <div className={`mt-1 text-3xl font-semibold ${warn ? "text-amber-400" : ""}`}>{value}</div>
-      {sub && <div className="mt-0.5 text-xs text-slate-500">{sub}</div>}
-    </div>
-  );
+  return <StatTile variant="dark" label={label} value={value} sub={sub} tone={warn ? "amber" : "default"} />;
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
