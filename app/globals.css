@@ -48,6 +48,28 @@
     --ring: 250 83% 72%;
   }
 
+  /* Explicit light token set — lets a subtree (the owner shell) force light
+     even when an ancestor (<html>) carries `dark`. Mirrors :root. */
+  .light {
+    --background: 250 40% 98.5%;
+    --foreground: 250 25% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 250 25% 12%;
+    --primary: 250 72% 62%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 250 35% 96%;
+    --secondary-foreground: 250 30% 25%;
+    --muted: 250 30% 96%;
+    --muted-foreground: 250 10% 45%;
+    --accent: 250 60% 95%;
+    --accent-foreground: 250 45% 30%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 250 25% 91%;
+    --input: 250 25% 91%;
+    --ring: 250 72% 62%;
+  }
+
   * { @apply border-border; }
   body { @apply bg-background text-foreground; font-feature-settings: "rlig" 1, "calt" 1; }
 }

@@ -62,13 +62,13 @@ export default async function TenantsListPage() {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Tenants</h1>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             {initial.length} tenant{initial.length === 1 ? "" : "s"} onboarded.
           </p>
         </div>
         <Link
           href="/owner/tenants/new"
-          className="inline-flex h-10 items-center rounded-md bg-slate-100 px-4 text-sm font-medium text-slate-900 hover:bg-white"
+          className="inline-flex h-10 items-center rounded-md bg-muted px-4 text-sm font-medium text-foreground hover:bg-white"
         >
           + New tenant
         </Link>

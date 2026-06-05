@@ -132,7 +132,7 @@ export function OnboardingWizard() {
     <div className="space-y-6">
       <StepHeader step={step} />
 
-      <div className="rounded-lg border border-slate-800 bg-slate-900 p-5">
+      <div className="rounded-lg border border-border bg-card p-5">
         {step === 1 && (
           <Step1
             form={form}
@@ -151,7 +151,7 @@ export function OnboardingWizard() {
               variant="outline"
               onClick={() => setStep((s) => (s - 1) as Step)}
               disabled={busy}
-              className="border-slate-700 text-slate-200 hover:bg-slate-800"
+              className="border-border text-foreground hover:bg-muted"
             >
               Back
             </Button>
@@ -159,7 +159,7 @@ export function OnboardingWizard() {
           {step === 1 && (
             <Link
               href="/owner/tenants"
-              className="text-sm text-slate-400 hover:underline"
+              className="text-sm text-muted-foreground hover:underline"
             >
               Cancel
             </Link>
@@ -198,14 +198,14 @@ function StepHeader({ step }: { step: Step }) {
             <span
               className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold ${
                 done ? "border-emerald-500 bg-emerald-500/20 text-emerald-300"
-                : active ? "border-slate-200 bg-slate-200 text-slate-900"
-                : "border-slate-700 text-slate-500"
+                : active ? "border-border bg-muted text-foreground"
+                : "border-border text-muted-foreground"
               }`}
             >
               {done ? "✓" : n}
             </span>
-            <span className={active ? "text-slate-100" : "text-slate-500"}>{label}</span>
-            {i < labels.length - 1 && <span className="text-slate-700 mx-1">·</span>}
+            <span className={active ? "text-foreground" : "text-muted-foreground"}>{label}</span>
+            {i < labels.length - 1 && <span className="text-foreground mx-1">·</span>}
           </li>
         );
       })}
@@ -226,14 +226,14 @@ function Field({
 }) {
   return (
     <div>
-      <Label htmlFor={id} className="text-slate-300">{label}</Label>
+      <Label htmlFor={id} className="text-foreground">{label}</Label>
       {children}
-      {hint && <p className="mt-1 text-xs text-slate-500">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </div>
   );
 }
 
-const inputCls = "border-slate-700 bg-slate-950 text-slate-100";
+const inputCls = "border-border bg-background text-foreground";
 
 function Step1({
   form,
@@ -264,18 +264,18 @@ function Step1({
       </Field>
 
       <div className="sm:col-span-2">
-        <Label htmlFor="t-plan" className="text-slate-300">Plan</Label>
+        <Label htmlFor="t-plan" className="text-foreground">Plan</Label>
         <select
           id="t-plan"
           value={form.plan}
           onChange={(e) => set("plan", e.target.value as PlanKey)}
-          className="mt-1 h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-sm text-slate-100"
+          className="mt-1 h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground"
         >
           <option value="starter">Starter — 1 centre, basic ops</option>
           <option value="pro">Pro — up to 5 centres, parent + student portals</option>
           <option value="enterprise">Enterprise — unlimited centres, competitions + exams + à-la-carte</option>
         </select>
-        <p className="mt-2 text-xs text-slate-500">
+        <p className="mt-2 text-xs text-muted-foreground">
           {planFeatures.length} features will be enabled on creation.
         </p>
       </div>
@@ -302,7 +302,7 @@ function Step2({
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      <div className="sm:col-span-2 rounded border border-slate-800 bg-slate-950 p-3 text-xs text-slate-400">
+      <div className="sm:col-span-2 rounded border border-border bg-background p-3 text-xs text-muted-foreground">
         Every tenant starts with one centre. You can add more later (subject to the plan's cap).
       </div>
       <Field id="c-name" label="Centre name">
@@ -337,7 +337,7 @@ function Step3({
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      <div className="sm:col-span-2 rounded border border-slate-800 bg-slate-950 p-3 text-xs text-slate-400">
+      <div className="sm:col-span-2 rounded border border-border bg-background p-3 text-xs text-muted-foreground">
         This person becomes the tenant's HQ super admin — they manage everything inside the
         tenant. You'll get a one-time temp password to share with them on the next screen.
       </div>
@@ -406,7 +406,7 @@ function SuccessCard({ created, onDone }: { created: Created; onDone: () => void
         <Button onClick={onDone}>Open tenant detail</Button>
         <Link
           href="/owner/tenants"
-          className="inline-flex h-10 items-center rounded-md border border-slate-700 px-4 text-sm text-slate-200 hover:bg-slate-800"
+          className="inline-flex h-10 items-center rounded-md border border-border px-4 text-sm text-foreground hover:bg-muted"
         >
           Back to tenants list
         </Link>

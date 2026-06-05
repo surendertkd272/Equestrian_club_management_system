@@ -15,16 +15,16 @@ export default async function OwnerAnnouncementsPage() {
   const now = new Date();
 
   return (
-    <div className="space-y-6 text-slate-200">
+    <div className="space-y-6 text-foreground">
       <div>
         <h1 className="text-2xl font-bold">Announcements</h1>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-muted-foreground">
           Show platform-wide messages on every tenant's dashboard. Users dismiss each card individually.
           Use sparingly — bombing tenants with banners is the fastest way to train them to ignore your messages.
         </p>
       </div>
 
-      <Card className="border-slate-800 bg-slate-900">
+      <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-base">Publish new</CardTitle>
         </CardHeader>
@@ -33,16 +33,16 @@ export default async function OwnerAnnouncementsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-800 bg-slate-900">
+      <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-base">Existing ({rows.length})</CardTitle>
-          <CardDescription className="text-slate-400">Most recent first.</CardDescription>
+          <CardDescription className="text-muted-foreground">Most recent first.</CardDescription>
         </CardHeader>
         <CardContent>
           {rows.length === 0 ? (
-            <p className="text-sm text-slate-500">No announcements yet.</p>
+            <p className="text-sm text-muted-foreground">No announcements yet.</p>
           ) : (
-            <ul className="divide-y divide-slate-800">
+            <ul className="divide-y divide-border">
               {rows.map((a) => {
                 const active = a.publishedAt && a.publishedAt <= now && (!a.expiresAt || a.expiresAt > now);
                 return (
@@ -60,8 +60,8 @@ export default async function OwnerAnnouncementsPage() {
                             <Badge variant="secondary" className="text-[10px]">scheduled</Badge>
                           )}
                         </div>
-                        <div className="mt-1 text-xs text-slate-400">{a.body}</div>
-                        <div className="mt-1 text-[10px] text-slate-500">
+                        <div className="mt-1 text-xs text-muted-foreground">{a.body}</div>
+                        <div className="mt-1 text-[10px] text-muted-foreground">
                           {a.publishedAt
                             ? `Published ${a.publishedAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}`
                             : "Unpublished"}

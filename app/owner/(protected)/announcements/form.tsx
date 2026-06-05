@@ -61,47 +61,47 @@ export function NewAnnouncementForm() {
   return (
     <div className="grid gap-3 md:grid-cols-2">
       <div className="md:col-span-2">
-        <Label className="text-xs text-slate-400">Title</Label>
-        <Input value={form.title} onChange={(e) => set("title", e.target.value)} className="border-slate-700 bg-slate-950 text-slate-100" />
+        <Label className="text-xs text-muted-foreground">Title</Label>
+        <Input value={form.title} onChange={(e) => set("title", e.target.value)} className="border-border bg-background text-foreground" />
       </div>
       <div className="md:col-span-2">
-        <Label className="text-xs text-slate-400">Body</Label>
+        <Label className="text-xs text-muted-foreground">Body</Label>
         <textarea
           value={form.body}
           onChange={(e) => set("body", e.target.value)}
-          className="min-h-[80px] w-full rounded-md border border-slate-700 bg-slate-950 p-2 text-sm text-slate-100"
+          className="min-h-[80px] w-full rounded-md border border-border bg-background p-2 text-sm text-foreground"
           placeholder="One or two sentences. No HTML."
         />
       </div>
       <div>
-        <Label className="text-xs text-slate-400">Severity</Label>
+        <Label className="text-xs text-muted-foreground">Severity</Label>
         <select
           value={form.severity}
           onChange={(e) => set("severity", e.target.value as any)}
-          className="h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-2 text-sm text-slate-100"
+          className="h-10 w-full rounded-md border border-border bg-background px-2 text-sm text-foreground"
         >
           {SEVERITIES.map((s) => (<option key={s} value={s}>{s}</option>))}
         </select>
       </div>
       <div>
-        <Label className="text-xs text-slate-400">Expires (optional)</Label>
-        <Input type="datetime-local" value={form.expiresAt} onChange={(e) => set("expiresAt", e.target.value)} className="border-slate-700 bg-slate-950 text-slate-100" />
+        <Label className="text-xs text-muted-foreground">Expires (optional)</Label>
+        <Input type="datetime-local" value={form.expiresAt} onChange={(e) => set("expiresAt", e.target.value)} className="border-border bg-background text-foreground" />
       </div>
       <div>
-        <Label className="text-xs text-slate-400">CTA label</Label>
-        <Input value={form.ctaLabel} onChange={(e) => set("ctaLabel", e.target.value)} className="border-slate-700 bg-slate-950 text-slate-100" />
+        <Label className="text-xs text-muted-foreground">CTA label</Label>
+        <Input value={form.ctaLabel} onChange={(e) => set("ctaLabel", e.target.value)} className="border-border bg-background text-foreground" />
       </div>
       <div>
-        <Label className="text-xs text-slate-400">CTA URL (https://…)</Label>
-        <Input value={form.ctaHref} onChange={(e) => set("ctaHref", e.target.value)} className="border-slate-700 bg-slate-950 text-slate-100" />
+        <Label className="text-xs text-muted-foreground">CTA URL (https://…)</Label>
+        <Input value={form.ctaHref} onChange={(e) => set("ctaHref", e.target.value)} className="border-border bg-background text-foreground" />
       </div>
       <div>
-        <Label className="text-xs text-slate-400">Plan filter (CSV, e.g. "starter,pro")</Label>
-        <Input value={form.planFilter} onChange={(e) => set("planFilter", e.target.value)} className="border-slate-700 bg-slate-950 text-slate-100" />
+        <Label className="text-xs text-muted-foreground">Plan filter (CSV, e.g. "starter,pro")</Label>
+        <Input value={form.planFilter} onChange={(e) => set("planFilter", e.target.value)} className="border-border bg-background text-foreground" />
       </div>
       <div>
-        <Label className="text-xs text-slate-400">Role filter (CSV, e.g. "CENTRE_MANAGER,COACH")</Label>
-        <Input value={form.roleFilter} onChange={(e) => set("roleFilter", e.target.value)} className="border-slate-700 bg-slate-950 text-slate-100" />
+        <Label className="text-xs text-muted-foreground">Role filter (CSV, e.g. "CENTRE_MANAGER,COACH")</Label>
+        <Input value={form.roleFilter} onChange={(e) => set("roleFilter", e.target.value)} className="border-border bg-background text-foreground" />
       </div>
       <div className="md:col-span-2 flex justify-end">
         <Button onClick={publish} disabled={busy}>{busy ? "Publishing…" : "Publish"}</Button>

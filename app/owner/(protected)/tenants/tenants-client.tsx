@@ -51,12 +51,12 @@ export function TenantsClient({ initial }: { initial: Tenant[] }) {
           placeholder="Search by name or slug…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          className="border-slate-700 bg-slate-900 text-slate-100"
+          className="border-border bg-card text-foreground"
         />
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="h-10 rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100"
+          className="h-10 rounded-md border border-border bg-card px-3 text-sm text-foreground"
         >
           <option value="">All statuses</option>
           <option value="active">Active</option>
@@ -67,7 +67,7 @@ export function TenantsClient({ initial }: { initial: Tenant[] }) {
         <select
           value={plan}
           onChange={(e) => setPlan(e.target.value)}
-          className="h-10 rounded-md border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100"
+          className="h-10 rounded-md border border-border bg-card px-3 text-sm text-foreground"
         >
           <option value="">All plans</option>
           <option value="starter">Starter</option>
@@ -76,9 +76,9 @@ export function TenantsClient({ initial }: { initial: Tenant[] }) {
         </select>
       </div>
 
-      <div className="rounded-lg border border-slate-800">
+      <div className="rounded-lg border border-border">
         <table className="w-full text-sm">
-          <thead className="bg-slate-900/60 text-xs uppercase tracking-wide text-slate-400">
+          <thead className="bg-card/60 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <Th>Tenant</Th>
               <Th>Plan</Th>
@@ -90,12 +90,12 @@ export function TenantsClient({ initial }: { initial: Tenant[] }) {
           </thead>
           <tbody>
             {rows.map((t) => (
-              <tr key={t.id} className="border-t border-slate-800 hover:bg-slate-900/40">
+              <tr key={t.id} className="border-t border-border hover:bg-muted/40">
                 <Td>
-                  <Link href={`/owner/tenants/${t.id}`} className="font-medium text-slate-100 hover:underline">
+                  <Link href={`/owner/tenants/${t.id}`} className="font-medium text-foreground hover:underline">
                     {t.name}
                   </Link>
-                  <div className="font-mono text-[11px] text-slate-500">{t.slug}</div>
+                  <div className="font-mono text-[11px] text-muted-foreground">{t.slug}</div>
                 </Td>
                 <Td><PlanBadge plan={t.plan} /></Td>
                 <Td><StatusBadge status={t.status} /></Td>
@@ -106,14 +106,14 @@ export function TenantsClient({ initial }: { initial: Tenant[] }) {
             ))}
             {rows.length === 0 && !loading && (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-sm text-slate-500">
+                <td colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
                   No tenants match these filters.
                 </td>
               </tr>
             )}
             {loading && (
               <tr>
-                <td colSpan={6} className="py-3 text-center text-xs text-slate-500">
+                <td colSpan={6} className="py-3 text-center text-xs text-muted-foreground">
                   Loading…
                 </td>
               </tr>

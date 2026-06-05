@@ -83,16 +83,16 @@ export function RazorpayPanel({
   const hasActive = !!initial.razorpaySubscriptionId && ACTIVE_STATES.has(initial.razorpaySubscriptionStatus ?? "");
 
   return (
-    <div className="space-y-3 rounded-md border border-slate-800 bg-slate-950 p-3 text-sm">
+    <div className="space-y-3 rounded-md border border-border bg-background p-3 text-sm">
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-xs uppercase tracking-wide text-slate-500">Razorpay subscription</div>
-          <div className="mt-0.5 font-mono text-slate-100">
-            {initial.razorpaySubscriptionId ?? <span className="text-slate-500">not created</span>}
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">Razorpay subscription</div>
+          <div className="mt-0.5 font-mono text-foreground">
+            {initial.razorpaySubscriptionId ?? <span className="text-muted-foreground">not created</span>}
           </div>
           {initial.razorpaySubscriptionStatus && (
-            <div className="mt-1 text-xs text-slate-400">
-              Status: <code className="rounded bg-slate-800 px-1.5 py-0.5 text-slate-200">{initial.razorpaySubscriptionStatus}</code>
+            <div className="mt-1 text-xs text-muted-foreground">
+              Status: <code className="rounded bg-muted px-1.5 py-0.5 text-foreground">{initial.razorpaySubscriptionStatus}</code>
             </div>
           )}
         </div>
@@ -103,7 +103,7 @@ export function RazorpayPanel({
         )}
         {hasActive && canManage && (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => cancel(true)} disabled={busy} className="border-slate-700 text-slate-200 hover:bg-slate-800">
+            <Button variant="outline" onClick={() => cancel(true)} disabled={busy} className="border-border text-foreground hover:bg-muted">
               Cancel at cycle end
             </Button>
             <Button variant="destructive" onClick={() => cancel(false)} disabled={busy}>
@@ -118,7 +118,7 @@ export function RazorpayPanel({
           <a href={authLink} target="_blank" rel="noreferrer" className="underline">{authLink}</a>
         </div>
       )}
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-muted-foreground">
         Razorpay Subscriptions = UPI mandate or card autopay. After creation, the customer must
         click the authorisation link emailed to their billing address. Webhooks then drive status
         changes (authenticated → active → halted/cancelled).

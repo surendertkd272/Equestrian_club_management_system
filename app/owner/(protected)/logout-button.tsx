@@ -18,7 +18,7 @@ export function OwnerLogoutButton() {
   return (
     <button
       onClick={onClick}
-      className="rounded border border-slate-700 px-2 py-1 text-slate-200 hover:bg-slate-800"
+      className="rounded border border-border px-2 py-1 text-foreground hover:bg-muted"
     >
       Sign out
     </button>

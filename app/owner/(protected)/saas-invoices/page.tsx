@@ -41,10 +41,10 @@ export default async function SaasInvoicesPage({ searchParams }: { searchParams:
   const due30d = summary.find((s) => s.status === "due")?._sum.total ?? 0;
 
   return (
-    <div className="space-y-6 text-slate-200">
+    <div className="space-y-6 text-foreground">
       <div>
         <h1 className="text-2xl font-bold">SaaS invoices</h1>
-        <p className="text-sm text-slate-400">Platform-issued invoices to tenants for the subscription itself.</p>
+        <p className="text-sm text-muted-foreground">Platform-issued invoices to tenants for the subscription itself.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -53,25 +53,25 @@ export default async function SaasInvoicesPage({ searchParams }: { searchParams:
         <KPI label="Total · last 30d" value={`${summary.reduce((acc, s) => acc + s._count, 0)} invoices`} sub="across all tenants" />
       </div>
 
-      <Card className="border-slate-800 bg-slate-900">
+      <Card className="border-border bg-card">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-base">All invoices</CardTitle>
-            <CardDescription className="text-slate-400">Most recent first · cap 100. Filter via URL ?status=paid|due|void.</CardDescription>
+            <CardDescription className="text-muted-foreground">Most recent first · cap 100. Filter via URL ?status=paid|due|void.</CardDescription>
           </div>
           <div className="flex gap-2 text-xs">
-            <Link href="/owner/saas-invoices" className={!statusFilter ? "rounded bg-emerald-700 px-2 py-1" : "rounded border border-slate-700 px-2 py-1 hover:bg-slate-800"}>All</Link>
-            <Link href="/owner/saas-invoices?status=due" className={statusFilter === "due" ? "rounded bg-emerald-700 px-2 py-1" : "rounded border border-slate-700 px-2 py-1 hover:bg-slate-800"}>Due</Link>
-            <Link href="/owner/saas-invoices?status=paid" className={statusFilter === "paid" ? "rounded bg-emerald-700 px-2 py-1" : "rounded border border-slate-700 px-2 py-1 hover:bg-slate-800"}>Paid</Link>
-            <Link href="/owner/saas-invoices?status=void" className={statusFilter === "void" ? "rounded bg-emerald-700 px-2 py-1" : "rounded border border-slate-700 px-2 py-1 hover:bg-slate-800"}>Void</Link>
+            <Link href="/owner/saas-invoices" className={!statusFilter ? "rounded bg-emerald-700 px-2 py-1" : "rounded border border-border px-2 py-1 hover:bg-muted"}>All</Link>
+            <Link href="/owner/saas-invoices?status=due" className={statusFilter === "due" ? "rounded bg-emerald-700 px-2 py-1" : "rounded border border-border px-2 py-1 hover:bg-muted"}>Due</Link>
+            <Link href="/owner/saas-invoices?status=paid" className={statusFilter === "paid" ? "rounded bg-emerald-700 px-2 py-1" : "rounded border border-border px-2 py-1 hover:bg-muted"}>Paid</Link>
+            <Link href="/owner/saas-invoices?status=void" className={statusFilter === "void" ? "rounded bg-emerald-700 px-2 py-1" : "rounded border border-border px-2 py-1 hover:bg-muted"}>Void</Link>
           </div>
         </CardHeader>
         <CardContent>
           {invoices.length === 0 ? (
-            <p className="text-sm text-slate-500">No invoices match this filter.</p>
+            <p className="text-sm text-muted-foreground">No invoices match this filter.</p>
           ) : (
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wider text-slate-500">
+              <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="pb-2">Number</th>
                   <th className="pb-2">Tenant</th>
@@ -84,7 +84,7 @@ export default async function SaasInvoicesPage({ searchParams }: { searchParams:
                   <th className="pb-2" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-border">
                 {invoices.map((i) => (
                   <tr key={i.id}>
                     <td className="py-2 font-mono text-xs">{i.number}</td>
@@ -92,7 +92,7 @@ export default async function SaasInvoicesPage({ searchParams }: { searchParams:
                       <Link href={`/owner/tenants/${i.orgId}`} className="hover:underline">{i.org.name}</Link>
                     </td>
                     <td className="py-2"><Badge variant="outline" className="text-[10px]">{i.plan}</Badge></td>
-                    <td className="py-2 text-xs text-slate-400">
+                    <td className="py-2 text-xs text-muted-foreground">
                       {new Date(i.periodStart).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })} → {new Date(i.periodEnd).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" })}
                     </td>
                     <td className="py-2 text-right">₹{i.subtotal.toLocaleString("en-IN")}</td>
@@ -124,11 +124,11 @@ export default async function SaasInvoicesPage({ searchParams }: { searchParams:
 
 function KPI({ label, value, sub, warn }: { label: string; value: string; sub?: string; warn?: boolean }) {
   return (
-    <Card className="border-slate-800 bg-slate-900">
+    <Card className="border-border bg-card">
       <CardContent className="pt-6">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{label}</div>
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
         <div className={`mt-1 text-2xl font-bold ${warn ? "text-amber-400" : ""}`}>{value}</div>
-        {sub && <div className="mt-0.5 text-xs text-slate-500">{sub}</div>}
+        {sub && <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>}
       </CardContent>
     </Card>
   );
