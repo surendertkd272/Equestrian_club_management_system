@@ -175,6 +175,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     });
     await sendWhatsApp({
       to: parentPhone,
+      centreId: rider.centreId,
       template: {
         // Pre-approved Meta template — see DEPLOYMENT.md template list.
         // Body params: {rider name}, {amount}, {pay URL}.

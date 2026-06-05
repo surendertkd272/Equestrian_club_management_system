@@ -189,6 +189,7 @@ export async function POST(req: NextRequest) {
     });
     await sendWhatsApp({
       to: parentPhone,
+      centreId: invoice.centreId,
       template: {
         name: "ew_payment_received",
         bodyParams: [

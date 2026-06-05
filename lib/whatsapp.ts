@@ -22,6 +22,8 @@
 import { audit } from "./audit";
 import { logDispatchFailure } from "./notify-dispatch-log";
 import { normalizeIndianPhone } from "./sms";
+import { prisma } from "./prisma";
+import { hasFeature } from "./features-gate";
 
 const META_BASE = process.env.WHATSAPP_API_BASE ?? "https://graph.facebook.com/v18.0";
 
@@ -49,10 +51,25 @@ export type WhatsAppTemplate = {
 export async function sendWhatsApp(opts: {
   to: string;
   template: WhatsAppTemplate;
+  // Centre the message belongs to — used to enforce the per-org
+  // `whatsapp-notifications` feature (off → silently skipped, never sent).
+  centreId: string;
   // For audit + dry-run readability: the rendered body if you want to log what would have gone.
   previewBody?: string;
   ref?: WhatsAppRef;
 }): Promise<SendWhatsAppResult> {
+  // Feature gate: skip the send entirely if the org has WhatsApp notifications
+  // off. Fail-open — a DB hiccup (or test env with no DB) must never crash a
+  // send; gating is a deliberate-off control, not a hard dependency.
+  try {
+    const centre = await prisma.centre.findUnique({ where: { id: opts.centreId }, select: { orgId: true } });
+    if (centre && !(await hasFeature(centre.orgId, "whatsapp-notifications"))) {
+      return { ok: true, skipped: true };
+    }
+  } catch {
+    /* fall through and attempt the send */
+  }
+
   const to = normalizeIndianPhone(opts.to);
   if (!to) {
     await audit({

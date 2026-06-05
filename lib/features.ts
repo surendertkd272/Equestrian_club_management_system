@@ -109,7 +109,7 @@ export const FEATURES: readonly FeatureDef[] = [
   { key: "approvals",              label: "Approvals",              description: "Generic approval workflow (purchases, special requests).",       group: "productivity", enforcement: "wired", selfToggle: true },
   { key: "reports",                label: "Reports",                description: "Monthly parent report cards + analytical exports.",              group: "productivity", enforcement: "wired", selfToggle: true },
   { key: "analytics",              label: "Analytics",              description: "Per-rider performance trends + medal leaderboards.",             group: "productivity", enforcement: "wired", selfToggle: true },
-  { key: "whatsapp-notifications", label: "WhatsApp Notifications", description: "Send class reminders, dues, and certificates via WhatsApp.",    group: "productivity", enforcement: "ui-only" },
+  { key: "whatsapp-notifications", label: "WhatsApp Notifications", description: "Send class reminders, dues, and certificates via WhatsApp.",    group: "productivity", enforcement: "wired", selfToggle: true },
 
   // ── Advanced / HQ-only
   { key: "hq-dashboard",           label: "HQ Comparative Dashboard", description: "Cross-centre side-by-side reporting for multi-club operators.", group: "advanced",   enforcement: "wired", selfToggle: true },

@@ -149,6 +149,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         // Parent WhatsApp — pre-approved template `ew_exam_passed`.
         await sendWhatsApp({
           to: parentPhone,
+          centreId: exam.centreId,
           template: {
             name: "ew_exam_passed",
             bodyParams: [riderName, String(exam.level), String(total), String(max)],
