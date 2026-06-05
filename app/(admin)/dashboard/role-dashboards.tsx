@@ -11,6 +11,7 @@ import { centreWhere } from "@/lib/tenancy";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatTile } from "@/components/ui/stat-tile";
+import { kpiIcon } from "@/lib/kpi-icon";
 import { formatDateIndia, timeAgo } from "@/lib/i18n";
 import { istTodayStr, coachUpdateDateKey, DAILY_UPDATE_ROLES } from "@/lib/coach-update";
 
@@ -18,7 +19,7 @@ import { istTodayStr, coachUpdateDateKey, DAILY_UPDATE_ROLES } from "@/lib/coach
 // Shared atoms
 
 function Kpi({ label, value, tone, link }: { label: string; value: number | string; tone?: "amber" | "rose" | "green"; link?: string }) {
-  return <StatTile label={label} value={value} tone={tone} link={link} />;
+  return <StatTile label={label} value={value} tone={tone} link={link} icon={kpiIcon(label)} />;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

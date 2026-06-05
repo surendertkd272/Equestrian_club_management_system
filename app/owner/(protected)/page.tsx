@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { PlanBadge, StatusBadge } from "./badges";
 import { getSystemStatus } from "@/lib/system-status";
 import { StatTile } from "@/components/ui/stat-tile";
+import { kpiIcon } from "@/lib/kpi-icon";
 
 export const dynamic = "force-dynamic";
 
@@ -220,7 +221,7 @@ function bucket<T>(items: T[], pick: (x: T) => string): Record<string, number> {
 }
 
 function Stat({ label, value, sub, warn }: { label: string; value: number | string; sub?: string; warn?: boolean }) {
-  return <StatTile variant="dark" label={label} value={value} sub={sub} tone={warn ? "amber" : "default"} />;
+  return <StatTile variant="dark" label={label} value={value} sub={sub} tone={warn ? "amber" : "default"} icon={kpiIcon(label)} />;
 }
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {

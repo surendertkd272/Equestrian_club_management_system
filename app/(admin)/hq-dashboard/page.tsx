@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { StatTile } from "@/components/ui/stat-tile";
+import { kpiIcon } from "@/lib/kpi-icon";
 
 export const dynamic = "force-dynamic";
 
@@ -187,7 +188,7 @@ const TONE_CLS: Record<string, string> = {
 
 function Kpi({ label, value, tone }: { label: string; value: number; tone?: keyof typeof TONE_CLS }) {
   const t: "amber" | "rose" | "default" = tone === "amber" ? "amber" : tone === "rose" ? "rose" : "default";
-  return <StatTile label={label} value={value} tone={t} />;
+  return <StatTile label={label} value={value} tone={t} icon={kpiIcon(label)} />;
 }
 
 function Th({ children, left, title }: { children: React.ReactNode; left?: boolean; title?: string }) {
