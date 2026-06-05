@@ -112,12 +112,12 @@ export const FEATURES: readonly FeatureDef[] = [
   { key: "whatsapp-notifications", label: "WhatsApp Notifications", description: "Send class reminders, dues, and certificates via WhatsApp.",    group: "productivity", enforcement: "ui-only" },
 
   // ── Advanced / HQ-only
-  { key: "hq-dashboard",           label: "HQ Comparative Dashboard", description: "Cross-centre side-by-side reporting for multi-club operators.", group: "advanced",   enforcement: "ui-only" },
+  { key: "hq-dashboard",           label: "HQ Comparative Dashboard", description: "Cross-centre side-by-side reporting for multi-club operators.", group: "advanced",   enforcement: "wired", selfToggle: true },
 
   // ── Per-tenant chrome toggles — default OFF for new orgs (see seed.ts /
   // /api/orgs onboarding). Owner toggles ON in the feature matrix when a
   // specific tenant wants the feature exposed.
-  { key: "club-catalog",            label: "Club Catalog",            description: "Per-club catalog editor for fee plans, levels, skills. Hidden by default — owner toggles on for clubs that need to customise the catalog.", group: "advanced", enforcement: "ui-only" },
+  { key: "club-catalog",            label: "Club Catalog",            description: "Per-club catalog editor for fee plans, levels, skills. Hidden by default — owner toggles on for clubs that need to customise the catalog.", group: "advanced", enforcement: "wired", selfToggle: true },
   { key: "student-payment-visible", label: "Student-Portal Payments", description: "Show payment/invoice surfaces in the student (rider) portal. Hidden by default — payments are typically handled by the parent via emailed links, not students directly.", group: "advanced", enforcement: "ui-only" },
 ];
 
