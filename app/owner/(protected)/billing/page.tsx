@@ -14,20 +14,20 @@ export default async function PlatformBillingPage() {
   });
 
   return (
-    <div className="space-y-6 text-slate-200">
+    <div className="space-y-6 text-foreground">
       <div>
         <h1 className="text-2xl font-bold">Platform billing identity</h1>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-muted-foreground">
           Identifies <strong>your</strong> legal entity on every invoice we send to tenants. Tenants
           can't see this page — they see only the printed result on their SaaS invoice.
         </p>
       </div>
 
-      <Card className="border-slate-800 bg-slate-900">
+      <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-base">Company details</CardTitle>
-          <CardDescription className="text-slate-400">
-            Update once. Lives on the singleton <code className="bg-slate-800 px-1">PlatformBillingConfig</code> row.
+          <CardDescription className="text-muted-foreground">
+            Update once. Lives on the singleton <code className="bg-muted px-1">PlatformBillingConfig</code> row.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -35,21 +35,21 @@ export default async function PlatformBillingPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-800 bg-slate-900">
+      <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-base">Invoice numbering</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm text-slate-300">
+        <CardContent className="space-y-2 text-sm text-foreground">
           <div>
-            Format: <code className="bg-slate-800 px-1">{cfg.invoicePrefix}-YYYY-NNNNNN</code>
+            Format: <code className="bg-muted px-1">{cfg.invoicePrefix}-YYYY-NNNNNN</code>
           </div>
           <div>
             Current counter: <strong>{cfg.invoiceCounter}</strong> · next invoice will be{" "}
-            <code className="bg-slate-800 px-1">
+            <code className="bg-muted px-1">
               {cfg.invoicePrefix}-{new Date().getFullYear()}-{String(cfg.invoiceCounter + 1).padStart(6, "0")}
             </code>
           </div>
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-muted-foreground">
             The counter is bumped atomically when an invoice is issued — don't reset it mid-year
             or you'll create duplicates.
           </div>

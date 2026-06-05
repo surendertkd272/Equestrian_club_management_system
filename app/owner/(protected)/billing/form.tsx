@@ -66,14 +66,14 @@ export function BillingConfigForm({ initial }: { initial: Config }) {
       <Field label="Support email" value={form.supportEmail ?? ""} onChange={(v) => set("supportEmail", v || null)} type="email" />
       <Field label="Invoice prefix" value={form.invoicePrefix} onChange={(v) => set("invoicePrefix", v)} placeholder="EW" />
       <div>
-        <Label className="text-xs text-slate-400">Default GST rate (basis points)</Label>
+        <Label className="text-xs text-muted-foreground">Default GST rate (basis points)</Label>
         <Input
           type="number"
           value={form.defaultTaxBps}
           onChange={(e) => set("defaultTaxBps", Number(e.target.value))}
-          className="border-slate-700 bg-slate-950 text-slate-100"
+          className="border-border bg-background text-foreground"
         />
-        <div className="mt-1 text-xs text-slate-500">1800 = 18% (current SaaS GST rate in India)</div>
+        <div className="mt-1 text-xs text-muted-foreground">1800 = 18% (current SaaS GST rate in India)</div>
       </div>
       <div className="md:col-span-2 flex justify-end">
         <Button onClick={save} disabled={busy}>{busy ? "Saving…" : "Save changes"}</Button>
@@ -97,13 +97,13 @@ function Field({
 }) {
   return (
     <div>
-      <Label className="text-xs text-slate-400">{label}</Label>
+      <Label className="text-xs text-muted-foreground">{label}</Label>
       <Input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="border-slate-700 bg-slate-950 text-slate-100"
+        className="border-border bg-background text-foreground"
       />
     </div>
   );

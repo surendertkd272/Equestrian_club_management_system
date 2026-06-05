@@ -59,7 +59,7 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
   return (
     <div className="space-y-8">
       <div>
-        <div className="text-xs text-slate-500">
+        <div className="text-xs text-muted-foreground">
           <Link href="/owner/tenants" className="hover:underline">Tenants</Link>
           <span className="mx-1">/</span>
           <span>{tenant.name}</span>
@@ -68,9 +68,9 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
           <h1 className="text-2xl font-semibold tracking-tight">{tenant.name}</h1>
           <PlanBadge plan={tenant.plan} />
           <StatusBadge status={tenant.status} />
-          <span className="font-mono text-xs text-slate-500">{tenant.slug}</span>
+          <span className="font-mono text-xs text-muted-foreground">{tenant.slug}</span>
         </div>
-        <p className="mt-1 text-sm text-slate-400">
+        <p className="mt-1 text-sm text-muted-foreground">
           Onboarded {new Date(tenant.onboardedAt).toLocaleDateString()} · Last updated{" "}
           {new Date(tenant.updatedAt).toLocaleDateString()}
           {" · "}
@@ -103,14 +103,14 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Panel title="Centres">
           {tenant.centres.length === 0 ? (
-            <div className="text-sm text-slate-500">No centres yet.</div>
+            <div className="text-sm text-muted-foreground">No centres yet.</div>
           ) : (
-            <ul className="divide-y divide-slate-800">
+            <ul className="divide-y divide-border">
               {tenant.centres.map((c) => (
                 <li key={c.id} className="py-2 text-sm">
                   <div className="font-medium">{c.name}</div>
-                  <div className="font-mono text-[11px] text-slate-500">{c.slug}</div>
-                  <div className="mt-1 text-xs text-slate-400">
+                  <div className="font-mono text-[11px] text-muted-foreground">{c.slug}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
                     {c._count.users} users · {c._count.riders} riders · {c._count.horses} horses
                   </div>
                 </li>
@@ -120,14 +120,14 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
         </Panel>
         <Panel title="HQ super admins">
           {superAdmins.length === 0 ? (
-            <div className="text-sm text-slate-500">No super admins yet.</div>
+            <div className="text-sm text-muted-foreground">No super admins yet.</div>
           ) : (
-            <ul className="divide-y divide-slate-800">
+            <ul className="divide-y divide-border">
               {superAdmins.map((u) => (
                 <li key={u.id} className="flex items-start justify-between py-2 text-sm">
                   <div>
                     <div className="font-medium">{u.name}</div>
-                    <div className="text-xs text-slate-400">{u.email}</div>
+                    <div className="text-xs text-muted-foreground">{u.email}</div>
                     {u.status !== "active" && (
                       <div className="text-xs text-rose-400">{u.status}</div>
                     )}
@@ -240,8 +240,8 @@ function featureRows(
 
 function Stat({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900 p-4">
-      <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="mt-1 text-2xl font-semibold">{value}</div>
     </div>
   );
@@ -249,8 +249,8 @@ function Stat({ label, value }: { label: string; value: number | string }) {
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900 p-4">
-      <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {title}
       </div>
       {children}

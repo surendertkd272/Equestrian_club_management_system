@@ -74,17 +74,17 @@ export function BillingPanel({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between rounded-md border border-slate-800 bg-slate-950 p-3 text-sm">
+      <div className="flex items-center justify-between rounded-md border border-border bg-background p-3 text-sm">
         <div>
-          <div className="text-xs uppercase tracking-wide text-slate-500">Stripe customer</div>
-          <div className="mt-0.5 font-mono text-slate-100">
-            {initial.stripeCustomerId ?? <span className="text-slate-500">not linked</span>}
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">Stripe customer</div>
+          <div className="mt-0.5 font-mono text-foreground">
+            {initial.stripeCustomerId ?? <span className="text-muted-foreground">not linked</span>}
           </div>
           {initial.subscriptionStatus && (
-            <div className="mt-1 text-xs text-slate-400">
-              Subscription: <code className="rounded bg-slate-800 px-1.5 py-0.5 text-slate-200">{initial.subscriptionStatus}</code>
+            <div className="mt-1 text-xs text-muted-foreground">
+              Subscription: <code className="rounded bg-muted px-1.5 py-0.5 text-foreground">{initial.subscriptionStatus}</code>
               {initial.currentPeriodEnd && (
-                <span className="ml-2 text-slate-500">
+                <span className="ml-2 text-muted-foreground">
                   · renews {new Date(initial.currentPeriodEnd).toLocaleDateString()}
                 </span>
               )}
@@ -105,8 +105,8 @@ export function BillingPanel({
       </div>
 
       {canManage && (
-        <div className="rounded-md border border-slate-800 p-3">
-          <Label htmlFor="cus" className="text-slate-300">
+        <div className="rounded-md border border-border p-3">
+          <Label htmlFor="cus" className="text-foreground">
             {initial.stripeCustomerId ? "Re-link Stripe customer" : "Link Stripe customer"}
           </Label>
           <div className="mt-2 flex gap-2">
@@ -115,7 +115,7 @@ export function BillingPanel({
               value={customerInput}
               onChange={(e) => setCustomerInput(e.target.value.trim())}
               placeholder="cus_xxxxxxxxxxxx"
-              className="border-slate-700 bg-slate-950 font-mono text-slate-100"
+              className="border-border bg-background font-mono text-foreground"
             />
             <Button
               onClick={() => saveCustomer(customerInput || null)}
@@ -138,13 +138,13 @@ export function BillingPanel({
                   void saveCustomer(null);
                 }}
                 disabled={busy}
-                className="border-slate-700 text-slate-200 hover:bg-slate-800"
+                className="border-border text-foreground hover:bg-muted"
               >
                 Unlink
               </Button>
             )}
           </div>
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-muted-foreground">
             Create the customer in Stripe first (Dashboard → Customers), then paste the ID here.
             Once linked, the webhook flips this tenant's status as Stripe events arrive.
           </p>

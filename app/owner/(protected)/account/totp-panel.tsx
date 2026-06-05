@@ -106,11 +106,11 @@ export function OwnerTotpPanel({ enabled }: { enabled: boolean }) {
   }
 
   return (
-    <Card className="border-slate-800 bg-slate-900">
+    <Card className="border-border bg-card">
       <CardHeader>
         <CardTitle className="text-base">Two-factor authentication</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 text-sm text-slate-200">
+      <CardContent className="space-y-3 text-sm text-foreground">
         {stage === "show_recovery" && recoveryCodes.length > 0 ? (
           <div className="space-y-3">
             <div className="rounded-md border border-amber-700 bg-amber-900/30 p-3 text-xs text-amber-200">
@@ -119,14 +119,14 @@ export function OwnerTotpPanel({ enabled }: { enabled: boolean }) {
             </div>
             <ul className="grid grid-cols-2 gap-1 font-mono text-sm">
               {recoveryCodes.map((c) => (
-                <li key={c} className="rounded border border-slate-700 bg-slate-950 px-2 py-1">{c}</li>
+                <li key={c} className="rounded border border-border bg-background px-2 py-1">{c}</li>
               ))}
             </ul>
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 onClick={() => navigator.clipboard.writeText(recoveryCodes.join("\n"))}
-                className="border-slate-700 text-slate-200"
+                className="border-border text-foreground"
               >
                 Copy all
               </Button>
@@ -143,21 +143,21 @@ export function OwnerTotpPanel({ enabled }: { enabled: boolean }) {
                 <Button
                   variant="outline"
                   onClick={() => setStage("regenerating")}
-                  className="border-slate-700 text-slate-200"
+                  className="border-border text-foreground"
                 >
                   Regenerate recovery codes
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => setStage("disabling")}
-                  className="border-slate-700 text-slate-200"
+                  className="border-border text-foreground"
                 >
                   Disable 2FA
                 </Button>
               </div>
             ) : (
               <div className="space-y-2">
-                <Label htmlFor="disable-code" className="text-slate-300">
+                <Label htmlFor="disable-code" className="text-foreground">
                   {stage === "regenerating"
                     ? "Enter a current code to confirm — old recovery codes will stop working"
                     : "Enter a current code to confirm"}
@@ -168,13 +168,13 @@ export function OwnerTotpPanel({ enabled }: { enabled: boolean }) {
                   pattern="\d{6}"
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  className="border-slate-700 bg-slate-950 font-mono text-slate-100"
+                  className="border-border bg-background font-mono text-foreground"
                 />
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
                     onClick={() => { setStage("idle"); setCode(""); }}
-                    className="border-slate-700 text-slate-200"
+                    className="border-border text-foreground"
                   >
                     Cancel
                   </Button>
@@ -190,7 +190,7 @@ export function OwnerTotpPanel({ enabled }: { enabled: boolean }) {
           </>
         ) : stage === "idle" ? (
           <>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               Add a second factor (Google Authenticator, 1Password, Authy, etc.) so a stolen
               password alone can't sign in to the owner console.
             </p>
@@ -198,16 +198,16 @@ export function OwnerTotpPanel({ enabled }: { enabled: boolean }) {
           </>
         ) : (
           <div className="space-y-3">
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               1. Open your authenticator app and tap "Add account → from setup key".
             </p>
-            <div className="rounded-md border border-slate-700 bg-slate-950 p-3 font-mono text-xs">
-              <div className="text-[10px] uppercase text-slate-500">Secret</div>
+            <div className="rounded-md border border-border bg-background p-3 font-mono text-xs">
+              <div className="text-[10px] uppercase text-muted-foreground">Secret</div>
               <div className="break-all">{secret}</div>
-              <div className="mt-2 text-[10px] uppercase text-slate-500">otpauth URL (paste if your app accepts it)</div>
-              <div className="break-all text-slate-300">{otpauthUrl}</div>
+              <div className="mt-2 text-[10px] uppercase text-muted-foreground">otpauth URL (paste if your app accepts it)</div>
+              <div className="break-all text-foreground">{otpauthUrl}</div>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-muted-foreground">
               2. Enter the 6-digit code your app shows to confirm enrollment.
             </p>
             <Input
@@ -216,13 +216,13 @@ export function OwnerTotpPanel({ enabled }: { enabled: boolean }) {
               value={code}
               autoFocus
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              className="border-slate-700 bg-slate-950 text-center font-mono text-lg tracking-widest text-slate-100"
+              className="border-border bg-background text-center font-mono text-lg tracking-widest text-foreground"
             />
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 onClick={() => { setStage("idle"); setCode(""); }}
-                className="border-slate-700 text-slate-200"
+                className="border-border text-foreground"
               >
                 Cancel
               </Button>

@@ -57,10 +57,10 @@ export function CustomDomainPanel({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border border-slate-800 bg-slate-950 p-3 text-sm">
-        <div className="text-xs uppercase tracking-wide text-slate-500">Current</div>
-        <div className="mt-0.5 font-mono text-slate-100">
-          {initial.customDomain ? initial.customDomain : <span className="text-slate-500">none — using platform host</span>}
+      <div className="rounded-md border border-border bg-background p-3 text-sm">
+        <div className="text-xs uppercase tracking-wide text-muted-foreground">Current</div>
+        <div className="mt-0.5 font-mono text-foreground">
+          {initial.customDomain ? initial.customDomain : <span className="text-muted-foreground">none — using platform host</span>}
         </div>
         {initial.customDomain && (
           <div className="mt-1 text-xs">
@@ -75,15 +75,15 @@ export function CustomDomainPanel({
             )}
           </div>
         )}
-        <div className="mt-2 text-xs text-slate-500">
+        <div className="mt-2 text-xs text-muted-foreground">
           Fallback slug URL still works:{" "}
-          <code className="rounded bg-slate-800 px-1.5 py-0.5 text-slate-300">/t/{tenantSlug}/…</code>
+          <code className="rounded bg-muted px-1.5 py-0.5 text-foreground">/t/{tenantSlug}/…</code>
         </div>
       </div>
 
       {canManage && (
-        <div className="rounded-md border border-slate-800 p-3">
-          <Label htmlFor="cd" className="text-slate-300">
+        <div className="rounded-md border border-border p-3">
+          <Label htmlFor="cd" className="text-foreground">
             {initial.customDomain ? "Update domain" : "Set custom domain"}
           </Label>
           <div className="mt-2 flex gap-2">
@@ -92,7 +92,7 @@ export function CustomDomainPanel({
               value={domain}
               onChange={(e) => setDomain(e.target.value.trim().toLowerCase())}
               placeholder="app.example.com"
-              className="border-slate-700 bg-slate-950 font-mono text-slate-100"
+              className="border-border bg-background font-mono text-foreground"
             />
             <Button onClick={() => patch({ customDomain: domain || null })} disabled={!dirty || busy}>
               Save
@@ -112,7 +112,7 @@ export function CustomDomainPanel({
                   void patch({ customDomain: null });
                 }}
                 disabled={busy}
-                className="border-slate-700 text-slate-200 hover:bg-slate-800"
+                className="border-border text-foreground hover:bg-muted"
               >
                 Unlink
               </Button>
@@ -125,7 +125,7 @@ export function CustomDomainPanel({
                 onClick={() => patch({ customDomain: initial.customDomain, verified: !verified })}
                 disabled={busy}
                 variant={verified ? "outline" : "default"}
-                className={verified ? "border-slate-700 text-slate-200 hover:bg-slate-800" : ""}
+                className={verified ? "border-border text-foreground hover:bg-muted" : ""}
               >
                 {verified ? "Mark unverified" : "Mark verified"}
               </Button>
@@ -133,20 +133,20 @@ export function CustomDomainPanel({
           )}
 
           <details className="mt-3">
-            <summary className="cursor-pointer text-xs text-slate-400 hover:text-slate-200">
+            <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
               DNS &amp; SSL setup steps
             </summary>
-            <ol className="mt-2 space-y-1 pl-4 text-xs text-slate-400">
+            <ol className="mt-2 space-y-1 pl-4 text-xs text-muted-foreground">
               <li>
                 1. In the tenant's DNS provider, add a CNAME from{" "}
-                <code className="rounded bg-slate-800 px-1 text-slate-300">{domain || "app.example.com"}</code>{" "}
+                <code className="rounded bg-muted px-1 text-foreground">{domain || "app.example.com"}</code>{" "}
                 to your platform's hosted address.
               </li>
               <li>2. Wait for DNS propagation (5–60 minutes typical).</li>
               <li>3. Your hosting provider provisions an SSL certificate for that hostname.</li>
               <li>
                 4. Verify by visiting{" "}
-                <code className="rounded bg-slate-800 px-1 text-slate-300">https://{domain || "app.example.com"}/login</code>{" "}
+                <code className="rounded bg-muted px-1 text-foreground">https://{domain || "app.example.com"}/login</code>{" "}
                 — if it loads cleanly, click <b>Mark verified</b>.
               </li>
             </ol>

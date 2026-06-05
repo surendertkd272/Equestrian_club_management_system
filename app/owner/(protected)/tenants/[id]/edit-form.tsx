@@ -69,56 +69,56 @@ export function TenantEditForm({ id, initial }: { id: string; initial: Initial }
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <div>
-        <Label htmlFor={`t-name-${id}`} className="text-slate-300">Tenant name</Label>
+        <Label htmlFor={`t-name-${id}`} className="text-foreground">Tenant name</Label>
         <Input
           id={`t-name-${id}`}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="border-slate-700 bg-slate-950 text-slate-100"
+          className="border-border bg-background text-foreground"
         />
       </div>
       <div>
-        <Label htmlFor={`t-contact-${id}`} className="text-slate-300">Contact name</Label>
+        <Label htmlFor={`t-contact-${id}`} className="text-foreground">Contact name</Label>
         <Input
           id={`t-contact-${id}`}
           value={contactName}
           onChange={(e) => setContactName(e.target.value)}
-          className="border-slate-700 bg-slate-950 text-slate-100"
+          className="border-border bg-background text-foreground"
         />
       </div>
       <div>
-        <Label htmlFor={`t-billing-${id}`} className="text-slate-300">Billing email</Label>
+        <Label htmlFor={`t-billing-${id}`} className="text-foreground">Billing email</Label>
         <Input
           id={`t-billing-${id}`}
           type="email"
           value={billingEmail}
           onChange={(e) => setBillingEmail(e.target.value)}
-          className="border-slate-700 bg-slate-950 text-slate-100"
+          className="border-border bg-background text-foreground"
         />
       </div>
       <div>
-        <Label htmlFor={`t-phone-${id}`} className="text-slate-300">Phone</Label>
+        <Label htmlFor={`t-phone-${id}`} className="text-foreground">Phone</Label>
         <Input
           id={`t-phone-${id}`}
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          className="border-slate-700 bg-slate-950 text-slate-100"
+          className="border-border bg-background text-foreground"
         />
       </div>
       <div className="sm:col-span-2">
-        <Label htmlFor={`t-status-${id}`} className="text-slate-300">Status</Label>
+        <Label htmlFor={`t-status-${id}`} className="text-foreground">Status</Label>
         <select
           id={`t-status-${id}`}
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="h-10 w-full rounded-md border border-slate-700 bg-slate-950 px-3 text-sm text-slate-100"
+          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground"
         >
           <option value="active">Active</option>
           <option value="trial">Trial</option>
           <option value="past_due">Past due</option>
           <option value="suspended">Suspended</option>
         </select>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-muted-foreground">
           Phase 7 wires read-only mode for past_due / suspended. For now this is metadata only.
         </p>
       </div>
@@ -127,7 +127,7 @@ export function TenantEditForm({ id, initial }: { id: string; initial: Initial }
           {busy ? "Saving…" : "Save changes"}
         </Button>
         {dirty && (
-          <Button variant="outline" onClick={reset} disabled={busy} className="border-slate-700 text-slate-200 hover:bg-slate-800">
+          <Button variant="outline" onClick={reset} disabled={busy} className="border-border text-foreground hover:bg-muted">
             Cancel
           </Button>
         )}

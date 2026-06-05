@@ -68,21 +68,21 @@ export function PricingForm({ initial }: { initial: Row }) {
         <Field label="Tagline" value={form.tagline} onChange={(v) => set("tagline", v)} />
       </div>
       <div>
-        <Label className="text-xs text-slate-400">Monthly price (₹)</Label>
+        <Label className="text-xs text-muted-foreground">Monthly price (₹)</Label>
         <Input
           type="number"
           value={form.monthlyInr}
           onChange={(e) => set("monthlyInr", Number(e.target.value))}
-          className="border-slate-700 bg-slate-950 text-slate-100"
+          className="border-border bg-background text-foreground"
         />
       </div>
       <div>
-        <Label className="text-xs text-slate-400">Annual price (₹/month when billed annually)</Label>
+        <Label className="text-xs text-muted-foreground">Annual price (₹/month when billed annually)</Label>
         <Input
           type="number"
           value={form.annualInrPerMonth}
           onChange={(e) => set("annualInrPerMonth", Number(e.target.value))}
-          className="border-slate-700 bg-slate-950 text-slate-100"
+          className="border-border bg-background text-foreground"
         />
         {annualSavings > 0 && (
           <div className="mt-1 text-xs text-emerald-400">
@@ -145,13 +145,13 @@ function Field({
 }) {
   return (
     <div>
-      <Label className="text-xs text-slate-400">{label}</Label>
+      <Label className="text-xs text-muted-foreground">{label}</Label>
       <Input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`border-slate-700 bg-slate-950 text-slate-100 ${mono ? "font-mono text-xs" : ""}`}
+        className={`border-border bg-background text-foreground ${mono ? "font-mono text-xs" : ""}`}
       />
     </div>
   );
@@ -167,7 +167,7 @@ function Toggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-200">
+    <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
       <span
         role="switch"
         aria-checked={on}
@@ -175,7 +175,7 @@ function Toggle({
         onClick={() => onChange(!on)}
         onKeyDown={(e) => (e.key === " " || e.key === "Enter") && onChange(!on)}
         className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border transition-colors ${
-          on ? "border-emerald-400 bg-emerald-500" : "border-slate-600 bg-slate-700"
+          on ? "border-emerald-400 bg-emerald-500" : "border-border bg-muted"
         }`}
       >
         <span

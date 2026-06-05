@@ -80,10 +80,10 @@ export function FeatureMatrix({
 
       {Object.entries(groups).map(([group, defs]) => (
         <div key={group}>
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
             {GROUP_LABELS[group] ?? group}
           </div>
-          <ul className="divide-y divide-slate-800 overflow-hidden rounded-md border border-slate-800 bg-slate-950">
+          <ul className="divide-y divide-border overflow-hidden rounded-md border border-border bg-background">
             {defs.map((def) => {
               const enabled = state.get(def.key) ?? false;
               const busy = busyKey === def.key;
@@ -98,8 +98,8 @@ export function FeatureMatrix({
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-slate-100">{def.label}</span>
-                      <code className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-400">
+                      <span className="text-sm font-medium text-foreground">{def.label}</span>
+                      <code className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
                         {def.key}
                       </code>
                       {def.enforcement === "wired" ? (
@@ -118,13 +118,13 @@ export function FeatureMatrix({
                         </span>
                       )}
                     </div>
-                    <div className="mt-0.5 text-xs text-slate-500">{def.description}</div>
+                    <div className="mt-0.5 text-xs text-muted-foreground">{def.description}</div>
                   </div>
 
                   <div className="flex shrink-0 items-center gap-3">
                     <span
                       className={`min-w-[28px] text-right text-[11px] font-semibold uppercase tracking-wider ${
-                        enabled ? "text-emerald-400" : "text-slate-500"
+                        enabled ? "text-emerald-400" : "text-muted-foreground"
                       }`}
                     >
                       {enabled ? "On" : "Off"}
@@ -144,7 +144,7 @@ export function FeatureMatrix({
                         "relative inline-flex h-7 w-14 shrink-0 items-center rounded-full border transition-colors",
                         enabled
                           ? "border-emerald-400 bg-emerald-500"
-                          : "border-slate-600 bg-slate-700",
+                          : "border-border bg-muted",
                         busy ? "animate-pulse" : "",
                         !canToggle ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:brightness-110",
                       ].join(" ")}

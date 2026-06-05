@@ -5,7 +5,7 @@ const TONE: Record<string, string> = {
   blue: "bg-sky-500/20 text-sky-300",
   amber: "bg-amber-500/20 text-amber-300",
   red: "bg-rose-500/20 text-rose-300",
-  slate: "bg-slate-500/20 text-slate-300",
+  slate: "bg-muted text-foreground",
   violet: "bg-violet-500/20 text-violet-300",
 };
 

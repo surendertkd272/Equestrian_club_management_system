@@ -69,28 +69,28 @@ export default async function OwnerInsightsPage() {
     .slice(0, 20);
 
   return (
-    <div className="space-y-6 text-slate-200">
+    <div className="space-y-6 text-foreground">
       <div>
         <h1 className="text-2xl font-bold">Insights</h1>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-muted-foreground">
           Cohort retention + module usage. Both are computed live from the audit log — accurate, but
           re-run on every page load. Move to materialised aggregates if it gets slow.
         </p>
       </div>
 
-      <Card className="border-slate-800 bg-slate-900">
+      <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-base">Cohort retention (last 12 months)</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-muted-foreground">
             Tenants signed up in month X — % still in active/trial/past_due today.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {cohortRows.length === 0 ? (
-            <p className="text-sm text-slate-500">No signups yet.</p>
+            <p className="text-sm text-muted-foreground">No signups yet.</p>
           ) : (
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-slate-500">
+              <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="pb-2">Signup month</th>
                   <th className="pb-2 text-right">Signed up</th>
@@ -98,7 +98,7 @@ export default async function OwnerInsightsPage() {
                   <th className="pb-2 text-right">Retention</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-border">
                 {cohortRows.map((r) => (
                   <tr key={r.month}>
                     <td className="py-2 font-mono text-xs">{r.month}</td>
@@ -117,20 +117,20 @@ export default async function OwnerInsightsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-800 bg-slate-900">
+      <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-base">Module usage · last 30 days</CardTitle>
-          <CardDescription className="text-slate-400">
+          <CardDescription className="text-muted-foreground">
             Audit-log events grouped by module. "Days active" = distinct calendar days with any
             event in the module; "Users" = distinct users who triggered events.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {moduleRows.length === 0 ? (
-            <p className="text-sm text-slate-500">No audit-log activity in the last 30 days.</p>
+            <p className="text-sm text-muted-foreground">No audit-log activity in the last 30 days.</p>
           ) : (
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-slate-500">
+              <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="pb-2">Module</th>
                   <th className="pb-2 text-right">Events</th>
@@ -138,7 +138,7 @@ export default async function OwnerInsightsPage() {
                   <th className="pb-2 text-right">Days active</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-border">
                 {moduleRows.map((r) => (
                   <tr key={r.key}>
                     <td className="py-2 font-mono text-xs">{r.key}</td>

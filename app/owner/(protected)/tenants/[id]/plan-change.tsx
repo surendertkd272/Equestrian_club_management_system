@@ -61,12 +61,12 @@ export function PlanChange({
     <div className="space-y-3">
       <div className="flex flex-wrap items-end gap-3">
         <div>
-          <label htmlFor="plan-select" className="block text-xs text-slate-400">Plan</label>
+          <label htmlFor="plan-select" className="block text-xs text-muted-foreground">Plan</label>
           <select
             id="plan-select"
             value={plan}
             onChange={(e) => setPlan(e.target.value as PlanKey)}
-            className="mt-1 h-10 rounded-md border border-slate-700 bg-slate-950 px-3 text-sm text-slate-100"
+            className="mt-1 h-10 rounded-md border border-border bg-background px-3 text-sm text-foreground"
           >
             <option value="starter">Starter (max 1 centre)</option>
             <option value="pro">Pro (max 5 centres)</option>
@@ -81,7 +81,7 @@ export function PlanChange({
             variant="outline"
             onClick={() => setPlan(currentPlan)}
             disabled={busy}
-            className="border-slate-700 text-slate-200 hover:bg-slate-800"
+            className="border-border text-foreground hover:bg-muted"
           >
             Cancel
           </Button>
@@ -93,7 +93,7 @@ export function PlanChange({
           this tenant has {centreCount}. Downgrade blocked.
         </p>
       )}
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-muted-foreground">
         Changing the plan rewrites every feature toggle to match the new bundle. Enterprise can
         be customised after the change.
       </p>

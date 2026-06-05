@@ -75,25 +75,25 @@ export function OwnerAccountForm({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-slate-800 bg-slate-900 p-4">
-        <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Profile</div>
+      <div className="rounded-lg border border-border bg-card p-4">
+        <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Profile</div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
-            <Label htmlFor="o-name" className="text-slate-300">Name</Label>
+            <Label htmlFor="o-name" className="text-foreground">Name</Label>
             <Input
               id="o-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="border-slate-700 bg-slate-950 text-slate-100"
+              className="border-border bg-background text-foreground"
             />
           </div>
           <div>
-            <Label className="text-slate-300">Email</Label>
-            <Input value={initial.email} disabled className="border-slate-700 bg-slate-900 text-slate-400" />
+            <Label className="text-foreground">Email</Label>
+            <Input value={initial.email} disabled className="border-border bg-card text-muted-foreground" />
           </div>
           <div>
-            <Label className="text-slate-300">Role</Label>
-            <Input value={initial.role} disabled className="border-slate-700 bg-slate-900 text-slate-400" />
+            <Label className="text-foreground">Role</Label>
+            <Input value={initial.role} disabled className="border-border bg-card text-muted-foreground" />
           </div>
         </div>
         <div className="mt-3">
@@ -103,20 +103,20 @@ export function OwnerAccountForm({
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-800 bg-slate-900 p-4">
-        <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">Change password</div>
+      <div className="rounded-lg border border-border bg-card p-4">
+        <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Change password</div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div>
-            <Label htmlFor="o-cur" className="text-slate-300">Current</Label>
-            <Input id="o-cur" type="password" value={cur} onChange={(e) => setCur(e.target.value)} className="border-slate-700 bg-slate-950 text-slate-100" />
+            <Label htmlFor="o-cur" className="text-foreground">Current</Label>
+            <Input id="o-cur" type="password" value={cur} onChange={(e) => setCur(e.target.value)} className="border-border bg-background text-foreground" />
           </div>
           <div>
-            <Label htmlFor="o-next" className="text-slate-300">New</Label>
-            <Input id="o-next" type="password" value={next} onChange={(e) => setNext(e.target.value)} className="border-slate-700 bg-slate-950 text-slate-100" />
+            <Label htmlFor="o-next" className="text-foreground">New</Label>
+            <Input id="o-next" type="password" value={next} onChange={(e) => setNext(e.target.value)} className="border-border bg-background text-foreground" />
           </div>
           <div>
-            <Label htmlFor="o-conf" className="text-slate-300">Confirm</Label>
-            <Input id="o-conf" type="password" value={conf} onChange={(e) => setConf(e.target.value)} className="border-slate-700 bg-slate-950 text-slate-100" />
+            <Label htmlFor="o-conf" className="text-foreground">Confirm</Label>
+            <Input id="o-conf" type="password" value={conf} onChange={(e) => setConf(e.target.value)} className="border-border bg-background text-foreground" />
           </div>
         </div>
         <div className="mt-3">

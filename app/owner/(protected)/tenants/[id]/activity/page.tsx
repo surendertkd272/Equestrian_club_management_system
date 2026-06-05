@@ -80,30 +80,30 @@ export default async function TenantActivityPage({ params }: { params: SP }) {
   merged.sort((a, b) => b.at.getTime() - a.at.getTime());
 
   return (
-    <div className="space-y-6 text-slate-200">
+    <div className="space-y-6 text-foreground">
       <div>
-        <Link href={`/owner/tenants/${org.id}`} className="text-xs text-slate-400 hover:underline">
+        <Link href={`/owner/tenants/${org.id}`} className="text-xs text-muted-foreground hover:underline">
           ← Back to tenant
         </Link>
         <h1 className="mt-1 text-2xl font-bold">Activity · {org.name}</h1>
-        <p className="text-sm text-slate-400">
+        <p className="text-sm text-muted-foreground">
           Latest 200 events combining platform-side actions and the tenant's own audit log.
         </p>
       </div>
 
-      <Card className="border-slate-800 bg-slate-900">
+      <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-base">Timeline</CardTitle>
-          <CardDescription className="text-slate-400">Newest first.</CardDescription>
+          <CardDescription className="text-muted-foreground">Newest first.</CardDescription>
         </CardHeader>
         <CardContent>
           {merged.length === 0 ? (
-            <p className="text-sm text-slate-500">No events recorded yet.</p>
+            <p className="text-sm text-muted-foreground">No events recorded yet.</p>
           ) : (
-            <ul className="divide-y divide-slate-800">
+            <ul className="divide-y divide-border">
               {merged.slice(0, 200).map((row) => (
                 <li key={row.id} className="grid grid-cols-[140px_80px_1fr] items-start gap-3 py-2 text-xs">
-                  <span className="text-slate-400">
+                  <span className="text-muted-foreground">
                     {row.at.toLocaleString("en-IN", {
                       day: "2-digit",
                       month: "short",
@@ -114,15 +114,15 @@ export default async function TenantActivityPage({ params }: { params: SP }) {
                   </span>
                   <Badge
                     variant="outline"
-                    className={`w-fit text-[10px] ${row.source === "platform" ? "border-amber-700 text-amber-300" : "border-slate-700 text-slate-300"}`}
+                    className={`w-fit text-[10px] ${row.source === "platform" ? "border-amber-700 text-amber-300" : "border-border text-foreground"}`}
                   >
                     {row.source}
                   </Badge>
                   <div>
-                    <code className="rounded bg-slate-800 px-1.5 py-0.5 text-[11px] text-slate-200">
+                    <code className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-foreground">
                       {row.action}
                     </code>
-                    <span className="ml-2 text-slate-400">{row.details}</span>
+                    <span className="ml-2 text-muted-foreground">{row.details}</span>
                   </div>
                 </li>
               ))}

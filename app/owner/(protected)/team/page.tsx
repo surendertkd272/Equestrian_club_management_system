@@ -25,10 +25,10 @@ export default async function TeamPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Team</h1>
-        <p className="text-sm text-slate-400">
-          Platform-side users. Roles: <code className="text-slate-300">OWNER_ADMIN</code> (full)
-          {" · "}<code className="text-slate-300">OWNER_EDITOR</code> (rename / contact)
-          {" · "}<code className="text-slate-300">OWNER_BILLING</code> (status / billing email).
+        <p className="text-sm text-muted-foreground">
+          Platform-side users. Roles: <code className="text-foreground">OWNER_ADMIN</code> (full)
+          {" · "}<code className="text-foreground">OWNER_EDITOR</code> (rename / contact)
+          {" · "}<code className="text-foreground">OWNER_BILLING</code> (status / billing email).
         </p>
       </div>
 

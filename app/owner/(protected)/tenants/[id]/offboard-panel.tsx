@@ -90,7 +90,7 @@ export function OffboardPanel({
         </div>
         {initial.notes && <div className="mt-2 text-xs italic">Note: {initial.notes}</div>}
         {canManage && (
-          <Button variant="outline" onClick={cancel} disabled={busy} className="mt-3 border-slate-700 text-slate-200 hover:bg-slate-800">
+          <Button variant="outline" onClick={cancel} disabled={busy} className="mt-3 border-border text-foreground hover:bg-muted">
             {busy ? "Restoring…" : "Cancel closure / restore tenant"}
           </Button>
         )}
@@ -99,35 +99,35 @@ export function OffboardPanel({
   }
 
   if (!canManage) {
-    return <p className="text-xs text-slate-500">You don't have permission to offboard tenants.</p>;
+    return <p className="text-xs text-muted-foreground">You don't have permission to offboard tenants.</p>;
   }
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-muted-foreground">
         Schedules permanent deletion. Customer gets an immediate email with their
         data-download link and a cancellation window.
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <Label className="text-xs text-slate-400">Grace days</Label>
+          <Label className="text-xs text-muted-foreground">Grace days</Label>
           <Input
             type="number"
             min={0}
             max={180}
             value={graceDays}
             onChange={(e) => setGraceDays(e.target.value)}
-            className="border-slate-700 bg-slate-950 text-slate-100"
+            className="border-border bg-background text-foreground"
           />
         </div>
       </div>
       <div>
-        <Label className="text-xs text-slate-400">Reason (internal notes)</Label>
+        <Label className="text-xs text-muted-foreground">Reason (internal notes)</Label>
         <Input
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Customer cancelled · GDPR request · Payment defaulted 90d"
-          className="border-slate-700 bg-slate-950 text-slate-100"
+          className="border-border bg-background text-foreground"
         />
       </div>
       <Button variant="destructive" onClick={schedule} disabled={busy}>
