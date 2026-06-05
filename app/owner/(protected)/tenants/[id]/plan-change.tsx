@@ -88,7 +88,7 @@ export function PlanChange({
         )}
       </div>
       {wouldExceedCap && (
-        <p className="text-xs text-rose-400">
+        <p className="text-xs text-rose-700 dark:text-rose-400">
           {plan} allows {maxCentresForChoice === Infinity ? "unlimited" : maxCentresForChoice} centre(s);
           this tenant has {centreCount}. Downgrade blocked.
         </p>

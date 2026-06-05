@@ -51,7 +51,7 @@ export function ImpersonateButton({
       type="button"
       onClick={go}
       disabled={busy}
-      className="rounded border border-indigo-500 px-2 py-0.5 text-[11px] uppercase tracking-wide text-indigo-300 hover:bg-indigo-500/20 disabled:opacity-60"
+      className="rounded border border-indigo-500 px-2 py-0.5 text-[11px] uppercase tracking-wide text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:bg-indigo-500/20 disabled:opacity-60"
       title="Sign in as this user (audited)"
     >
       {busy ? "…" : "Sign in as"}

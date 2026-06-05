@@ -1,12 +1,12 @@
 // Shared status / plan badges for the owner portal. Dark theme.
 
 const TONE: Record<string, string> = {
-  green: "bg-emerald-500/20 text-emerald-300",
-  blue: "bg-sky-500/20 text-sky-300",
-  amber: "bg-amber-500/20 text-amber-300",
-  red: "bg-rose-500/20 text-rose-300",
+  green: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300",
+  blue: "bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300",
+  amber: "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300",
+  red: "bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300",
   slate: "bg-muted text-foreground",
-  violet: "bg-violet-500/20 text-violet-300",
+  violet: "bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300",
 };
 
 export function PlanBadge({ plan }: { plan: string }) {

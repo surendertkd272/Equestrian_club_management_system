@@ -66,22 +66,22 @@ export function TeamClient({
       {canManage && <InviteCard onInvited={(x) => { setInvited(x); router.refresh(); }} />}
 
       {invited && (
-        <div className="rounded-md border border-amber-700 bg-amber-950/30 p-4 text-sm">
-          <div className="font-semibold text-amber-300">Temp password for {invited.email}</div>
-          <div className="mt-1 font-mono text-amber-100">
-            <code className="rounded bg-amber-950 px-1.5 py-0.5">{invited.tempPassword}</code>
+        <div className="rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-50 dark:bg-amber-950/30 p-4 text-sm">
+          <div className="font-semibold text-amber-700 dark:text-amber-300">Temp password for {invited.email}</div>
+          <div className="mt-1 font-mono text-amber-900 dark:text-amber-100">
+            <code className="rounded bg-amber-50 dark:bg-amber-950 px-1.5 py-0.5">{invited.tempPassword}</code>
             <button
               type="button"
               onClick={async () => {
                 await navigator.clipboard.writeText(invited.tempPassword);
                 toast.success("Copied");
               }}
-              className="ml-2 rounded border border-amber-700 px-2 py-0.5 text-xs text-amber-200 hover:bg-amber-900"
+              className="ml-2 rounded border border-amber-300 dark:border-amber-700 px-2 py-0.5 text-xs text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:bg-amber-900"
             >
               Copy
             </button>
           </div>
-          <div className="mt-2 text-xs text-amber-300/80">
+          <div className="mt-2 text-xs text-amber-700 dark:text-amber-700 dark:text-amber-300/80">
             Shown once. Share it with them via a secure channel; ask them to rotate after first sign-in.
           </div>
         </div>
@@ -106,7 +106,7 @@ export function TeamClient({
                   <td className="px-3 py-2 align-top">
                     <div className="font-medium text-foreground">{u.name}</div>
                     <div className="text-xs text-muted-foreground">{u.email}</div>
-                    {isSelf && <div className="mt-0.5 text-[10px] uppercase tracking-wide text-emerald-400">You</div>}
+                    {isSelf && <div className="mt-0.5 text-[10px] uppercase tracking-wide text-emerald-700 dark:text-emerald-400">You</div>}
                   </td>
                   <td className="px-3 py-2 align-top">
                     {canManage ? (
@@ -132,8 +132,8 @@ export function TeamClient({
                         disabled={disabled || isSelf}
                         className={`rounded px-2 py-0.5 text-[11px] uppercase tracking-wide ${
                           u.status === "active"
-                            ? "bg-emerald-500/20 text-emerald-300 hover:brightness-110"
-                            : "bg-rose-500/20 text-rose-300 hover:brightness-110"
+                            ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 hover:brightness-110"
+                            : "bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 hover:brightness-110"
                         } disabled:cursor-not-allowed disabled:opacity-60`}
                       >
                         {u.status}

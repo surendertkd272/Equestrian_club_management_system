@@ -65,11 +65,11 @@ export function CustomDomainPanel({
         {initial.customDomain && (
           <div className="mt-1 text-xs">
             {verified ? (
-              <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-emerald-300">
+              <span className="rounded bg-emerald-100 dark:bg-emerald-500/20 px-1.5 py-0.5 text-emerald-700 dark:text-emerald-300">
                 Verified · {new Date(initial.customDomainVerifiedAt!).toLocaleDateString()}
               </span>
             ) : (
-              <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-amber-300">
+              <span className="rounded bg-amber-100 dark:bg-amber-500/20 px-1.5 py-0.5 text-amber-700 dark:text-amber-300">
                 Awaiting verification
               </span>
             )}

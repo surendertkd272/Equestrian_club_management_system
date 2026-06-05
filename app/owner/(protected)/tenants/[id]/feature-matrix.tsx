@@ -70,7 +70,7 @@ export function FeatureMatrix({
   return (
     <div className="space-y-5">
       {!allowOverrides && (
-        <div className="rounded-md border border-amber-700 bg-amber-950/50 p-3 text-sm text-amber-200">
+        <div className="rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-50 dark:bg-amber-950/50 p-3 text-sm text-amber-800 dark:text-amber-200">
           <span className="font-semibold">Billable features are plan-locked.</span> Starter and Pro
           tenants get exactly the <strong>Wired</strong> bundle their plan dictates — switch to{" "}
           <strong>Enterprise</strong> in the Plan panel above to toggle those individually.{" "}
@@ -104,14 +104,14 @@ export function FeatureMatrix({
                       </code>
                       {def.enforcement === "wired" ? (
                         <span
-                          className="rounded bg-emerald-900/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300"
+                          className="rounded bg-emerald-100 dark:bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300"
                           title="Toggle off blocks both UI and API. Safe billable gate."
                         >
                           Wired
                         </span>
                       ) : (
                         <span
-                          className="rounded bg-amber-900/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-300"
+                          className="rounded bg-amber-100 dark:bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300"
                           title="Toggle hides the sidebar but API endpoints are not yet gated. Do not sell as a hard guarantee."
                         >
                           UI-only
@@ -124,7 +124,7 @@ export function FeatureMatrix({
                   <div className="flex shrink-0 items-center gap-3">
                     <span
                       className={`min-w-[28px] text-right text-[11px] font-semibold uppercase tracking-wider ${
-                        enabled ? "text-emerald-400" : "text-muted-foreground"
+                        enabled ? "text-emerald-700 dark:text-emerald-400" : "text-muted-foreground"
                       }`}
                     >
                       {enabled ? "On" : "Off"}

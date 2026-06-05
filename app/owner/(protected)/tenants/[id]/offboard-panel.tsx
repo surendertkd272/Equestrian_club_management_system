@@ -81,7 +81,7 @@ export function OffboardPanel({
 
   if (scheduled) {
     return (
-      <div className="rounded-md border border-rose-700 bg-rose-950/40 p-3 text-sm text-rose-100">
+      <div className="rounded-md border border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-50 dark:bg-rose-950/40 p-3 text-sm text-rose-900 dark:text-rose-100">
         <div className="font-semibold">Closure scheduled</div>
         <div className="mt-1 text-xs">
           Data is wiped on{" "}

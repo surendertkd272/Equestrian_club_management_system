@@ -113,7 +113,7 @@ export function OwnerTotpPanel({ enabled }: { enabled: boolean }) {
       <CardContent className="space-y-3 text-sm text-foreground">
         {stage === "show_recovery" && recoveryCodes.length > 0 ? (
           <div className="space-y-3">
-            <div className="rounded-md border border-amber-700 bg-amber-900/30 p-3 text-xs text-amber-200">
+            <div className="rounded-md border border-amber-300 dark:border-amber-700 bg-amber-100 dark:bg-amber-100 dark:bg-amber-900/30 p-3 text-xs text-amber-800 dark:text-amber-200">
               <strong>Save these recovery codes now.</strong> They appear only once. Each
               code can sign you in if you lose your authenticator, and is single-use.
             </div>
@@ -135,7 +135,7 @@ export function OwnerTotpPanel({ enabled }: { enabled: boolean }) {
           </div>
         ) : enabled ? (
           <>
-            <div className="rounded-md border border-emerald-700 bg-emerald-900/30 px-3 py-2 text-xs text-emerald-200">
+            <div className="rounded-md border border-emerald-300 dark:border-emerald-700 bg-emerald-100 dark:bg-emerald-100 dark:bg-emerald-900/30 px-3 py-2 text-xs text-emerald-800 dark:text-emerald-200">
               2FA is <strong>on</strong>. You'll be asked for a code on every sign-in.
             </div>
             {stage !== "disabling" && stage !== "regenerating" ? (
