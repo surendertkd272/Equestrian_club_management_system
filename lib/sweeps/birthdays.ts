@@ -66,6 +66,7 @@ export async function sweepBirthdays(): Promise<SweepResult> {
     // Parent WhatsApp — pre-approved template `ew_birthday`.
     await sendWhatsApp({
       to: parentPhone,
+      centreId: r.centreId,
       template: { name: "ew_birthday", bodyParams: [r.firstName, String(age)] },
       previewBody: `Happy Birthday ${r.firstName} — ${age} 🎂`,
       ref: { type: "rider.birthday", rowId: r.id, payload: { age } },

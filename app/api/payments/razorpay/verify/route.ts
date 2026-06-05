@@ -125,6 +125,7 @@ export async function POST(req: NextRequest) {
     // Parent WhatsApp — pre-approved template `ew_payment_received`.
     await sendWhatsApp({
       to: parentPhone,
+      centreId: invoice.centreId,
       template: {
         name: "ew_payment_received",
         bodyParams: [

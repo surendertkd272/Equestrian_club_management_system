@@ -77,6 +77,7 @@ export async function sweepAbsenceEscalation(): Promise<SweepResult> {
     // Parent WhatsApp — pre-approved template `ew_absence_streak`.
     await sendWhatsApp({
       to: parentPhone,
+      centreId: rider.centreId,
       template: { name: "ew_absence_streak", bodyParams: [`${rider.firstName} ${rider.lastName}`] },
       previewBody: `${rider.firstName} absent 3+ recent sessions — please contact centre`,
       ref: { type: "rider.absence_streak", rowId: rider.id },

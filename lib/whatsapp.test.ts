@@ -42,7 +42,7 @@ describe("sendWhatsApp", () => {
 
   it("returns INVALID_PHONE for unrecognisable phone numbers (no fetch)", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
-    const res = await sendWhatsApp({ to: "not-a-phone", template: baseTemplate });
+    const res = await sendWhatsApp({ to: "not-a-phone", template: baseTemplate, centreId: "c_test" });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe("INVALID_PHONE");
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -50,7 +50,7 @@ describe("sendWhatsApp", () => {
 
   it("dry-run when env unset: skipped:true and no fetch", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch");
-    const res = await sendWhatsApp({ to: "9876543210", template: baseTemplate });
+    const res = await sendWhatsApp({ to: "9876543210", template: baseTemplate, centreId: "c_test" });
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.skipped).toBe(true);
     expect(fetchSpy).not.toHaveBeenCalled();
@@ -66,7 +66,7 @@ describe("sendWhatsApp", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    const res = await sendWhatsApp({ to: "9876543210", template: baseTemplate });
+    const res = await sendWhatsApp({ to: "9876543210", template: baseTemplate, centreId: "c_test" });
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.messageId).toBe("wamid.xyz");
 
@@ -102,6 +102,7 @@ describe("sendWhatsApp", () => {
     await sendWhatsApp({
       to: "9876543210",
       template: { ...baseTemplate, language: "en_GB" },
+      centreId: "c_test",
     });
     const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body));
     expect(body.template.language.code).toBe("en_GB");
@@ -112,7 +113,7 @@ describe("sendWhatsApp", () => {
     process.env.WHATSAPP_ACCESS_TOKEN = "token_abc";
     vi.stubGlobal("fetch", vi.fn(async () => new Response("bad token", { status: 401 })));
 
-    const res = await sendWhatsApp({ to: "9876543210", template: baseTemplate });
+    const res = await sendWhatsApp({ to: "9876543210", template: baseTemplate, centreId: "c_test" });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe("META_401");
   });
@@ -127,7 +128,7 @@ describe("sendWhatsApp", () => {
       }),
     );
 
-    const res = await sendWhatsApp({ to: "9876543210", template: baseTemplate });
+    const res = await sendWhatsApp({ to: "9876543210", template: baseTemplate, centreId: "c_test" });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error).toBe("NETWORK");
   });

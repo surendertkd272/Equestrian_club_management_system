@@ -74,6 +74,7 @@ export async function sweepFeeDue(): Promise<SweepResult> {
     // Parent WhatsApp — uses pre-approved template `ew_invoice_due_soon`.
     await sendWhatsApp({
       to: parentPhone,
+      centreId: inv.centreId,
       template: {
         name: "ew_invoice_due_soon",
         bodyParams: [
