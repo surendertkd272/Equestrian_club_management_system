@@ -3,7 +3,10 @@ import { prisma } from "@/lib/prisma";
 import { PlanBadge, StatusBadge } from "./badges";
 import { getSystemStatus } from "@/lib/system-status";
 import { StatTile } from "@/components/ui/stat-tile";
+import { ChartCard, HeroCard } from "@/components/dashboard/visuals";
+import { Sparkline, MiniBars } from "@/components/ui/charts";
 import { kpiIcon } from "@/lib/kpi-icon";
+import { Building2, IndianRupee, Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +14,15 @@ export default async function OwnerDashboardPage() {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthAgo = new Date(now.getTime() - 30 * 86400000);
+  // Six rolling month buckets (oldest → current) for the trend charts.
+  const months = Array.from({ length: 6 }, (_, idx) => {
+    const i = 5 - idx;
+    const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+    return { start, end, label: start.toLocaleString("en-IN", { month: "short" }) };
+  });
 
-  const [orgs, centreCount, riderCount, userCount, billingEvents, paidThisMonth, dueOutstanding, signupsLast30d, recentInvoices] = await Promise.all([
+  const [orgs, centreCount, riderCount, userCount, billingEvents, paidThisMonth, dueOutstanding, signupsLast30d, recentInvoices, saasPaid6] = await Promise.all([
     prisma.organisation.findMany({
       orderBy: { createdAt: "desc" },
       select: {
@@ -54,7 +64,20 @@ export default async function OwnerDashboardPage() {
       take: 5,
       include: { org: { select: { name: true } } },
     }),
+    Promise.all(
+      months.map((m) =>
+        prisma.saasInvoice.aggregate({
+          where: { status: "paid", paidAt: { gte: m.start, lt: m.end } },
+          _sum: { total: true },
+        }),
+      ),
+    ),
   ]);
+
+  // SaaS revenue trend + cumulative tenant growth (growth derived from the
+  // already-fetched org list — no extra query).
+  const revenueSeries = saasPaid6.map((r) => Math.round(r._sum.total ?? 0));
+  const tenantGrowth = months.map((m) => orgs.filter((o) => o.createdAt < m.end).length);
 
   const billingOrgIds = Array.from(new Set(billingEvents.map((e) => e.orgId).filter(Boolean) as string[]));
   const billingOrgs = billingOrgIds.length
@@ -76,19 +99,40 @@ export default async function OwnerDashboardPage() {
         <p className="text-sm text-muted-foreground">Platform-wide snapshot across all tenants.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Tenants" value={orgs.length} />
-        <Stat label="Centres" value={centreCount} />
-        <Stat label="Riders" value={riderCount} />
-        <Stat label="Users" value={userCount} />
-      </div>
-
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Stat
+      {/* Charted headline band. */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <HeroCard
+          kicker="Platform"
+          title={`${orgs.length} tenants`}
+          subtitle="across Equiwings Cloud"
+          icon={<Building2 />}
+          stats={[
+            { label: "Centres", value: centreCount },
+            { label: "Riders", value: riderCount },
+            { label: "Users", value: userCount },
+          ]}
+          href="/owner/tenants"
+          cta="View tenants"
+        />
+        <ChartCard
           label={`Paid · ${now.toLocaleString("en-IN", { month: "short" })}`}
           value={`₹${(paidThisMonth._sum.total ?? 0).toLocaleString("en-IN")}`}
-          sub={`${paidThisMonth._count} invoice${paidThisMonth._count === 1 ? "" : "s"}`}
+          sub={`${paidThisMonth._count} invoice${paidThisMonth._count === 1 ? "" : "s"} · 6-month trend`}
+          icon={<IndianRupee className="h-5 w-5" />}
+          chart={<MiniBars data={revenueSeries} />}
+          link="/owner/saas-invoices"
         />
+        <ChartCard
+          label="Tenant growth"
+          value={orgs.length}
+          sub={`${months[0].label}–${months[months.length - 1].label} cumulative`}
+          icon={<Users className="h-5 w-5" />}
+          chart={<Sparkline data={tenantGrowth} />}
+          link="/owner/tenants"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Stat
           label="Outstanding"
           value={`₹${(dueOutstanding._sum.total ?? 0).toLocaleString("en-IN")}`}

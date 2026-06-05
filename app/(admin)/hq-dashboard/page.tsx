@@ -2,7 +2,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { StatTile } from "@/components/ui/stat-tile";
+import { ChartCard, HeroCard } from "@/components/dashboard/visuals";
+import { MiniBars, RingGauge } from "@/components/ui/charts";
 import { kpiIcon } from "@/lib/kpi-icon";
+import { Building2, Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +95,11 @@ export default async function HQDashboardPage() {
     certs90: rows.reduce((s, r) => s + r.certs90, 0),
   };
 
+  // Headline visuals: riders per centre + org-wide average attendance.
+  const ridersByCentre = rows.map((r) => r.activeRiders);
+  const attPcts = rows.map((r) => r.attendancePct).filter((p): p is number => p != null);
+  const avgAttendance = attPcts.length ? Math.round(attPcts.reduce((s, p) => s + p, 0) / attPcts.length) : null;
+
   return (
     <div className="space-y-6">
       <div>
@@ -102,11 +110,40 @@ export default async function HQDashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
-        <Kpi label="Centres" value={totals.centres} />
-        <Kpi label="Riders" value={totals.riders} />
-        <Kpi label="Staff" value={totals.staff} />
-        <Kpi label="Horses" value={totals.horses} />
+      {/* Charted headline band. */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <HeroCard
+          kicker="HQ roll-up"
+          title={`${totals.centres} centres`}
+          subtitle="across your organisation"
+          icon={<Building2 />}
+          stats={[
+            { label: "Riders", value: totals.riders },
+            { label: "Staff", value: totals.staff },
+            { label: "Horses", value: totals.horses },
+          ]}
+        />
+        <ChartCard
+          label="Riders by centre"
+          value={totals.riders}
+          sub={`${totals.centres} centre${totals.centres === 1 ? "" : "s"}`}
+          icon={<Users className="h-5 w-5" />}
+          chart={<MiniBars data={ridersByCentre.length ? ridersByCentre : [0]} highlightLast={false} />}
+        />
+        <div className="flex flex-col rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Avg attendance · 30d</div>
+          <div className="flex flex-1 items-center justify-center py-2">
+            <RingGauge
+              value={avgAttendance ?? 0}
+              max={100}
+              label={avgAttendance === null ? "—" : `${avgAttendance}%`}
+              caption={avgAttendance === null ? "no data yet" : "across centres"}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Kpi label="Unpaid invoices" value={totals.unpaid} tone={totals.unpaid > 0 ? "amber" : undefined} />
         <Kpi label="Certs (90d)" value={totals.certs90} />
       </div>

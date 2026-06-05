@@ -1,12 +1,17 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { centreWhere, scopeCentre } from "@/lib/tenancy";
 import { istTodayStr, coachUpdateDateKey, DAILY_UPDATE_ROLES } from "@/lib/coach-update";
 import { StatTile } from "@/components/ui/stat-tile";
+import { ChartCard, HeroCard, ActivityTimeline } from "@/components/dashboard/visuals";
+import { Sparkline, MiniBars, RingGauge } from "@/components/ui/charts";
+import { formatDateIndia } from "@/lib/i18n";
 import {
   Users, UserPlus, CalendarClock, CalendarCheck, Receipt, IndianRupee, PawPrint,
   ListChecks, Pill, ClipboardList, Hourglass, ShoppingCart, Wallet, Stethoscope, DoorOpen,
+  Trophy,
 } from "lucide-react";
 import { SetupChecklist } from "@/components/dashboard/setup-checklist";
 import { AnnouncementsBanner } from "@/components/dashboard/announcements-banner";
@@ -133,6 +138,47 @@ export default async function DashboardPage() {
       prisma.coachDailyUpdate.count({ where: { ...where, date: coachUpdateDateKey(istTodayStr()) } }),
     ]);
 
+  // ── Trend series for the charted headline row ──────────────────────────────
+  // Six rolling calendar-month buckets (oldest → current). Real data only — no
+  // fabricated trends. Cheap for a single centre; all run in parallel.
+  const now = new Date();
+  const months = Array.from({ length: 6 }, (_, idx) => {
+    const i = 5 - idx;
+    const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+    return { start, end, label: start.toLocaleString("en-IN", { month: "short" }) };
+  });
+  const [revenue6, newRiders6, ridersBeforeWindow, nextCompetition, upcomingExams] = await Promise.all([
+    Promise.all(
+      months.map((m) =>
+        prisma.payment.aggregate({
+          where: { invoice: centreId ? { centreId } : undefined, paidAt: { gte: m.start, lt: m.end } },
+          _sum: { amount: true },
+        }),
+      ),
+    ),
+    Promise.all(months.map((m) => prisma.rider.count({ where: { ...where, createdAt: { gte: m.start, lt: m.end } } }))),
+    prisma.rider.count({ where: { ...where, createdAt: { lt: months[0].start }, status: { notIn: ["cancelled", "rejected"] } } }),
+    prisma.competition.findFirst({
+      where: { ...where, status: { notIn: ["cancelled", "completed"] }, startDate: { gte: todayStart } },
+      orderBy: { startDate: "asc" },
+      include: { _count: { select: { entries: true } } },
+    }),
+    prisma.exam.findMany({
+      where: { ...where, status: "scheduled", date: { gte: todayStart, lte: sevenDays } },
+      include: { rider: { select: { firstName: true, lastName: true } } },
+      orderBy: { date: "asc" },
+      take: 6,
+    }),
+  ]);
+
+  const revenueSeries = revenue6.map((r) => Math.round(r._sum.amount ?? 0));
+  // Cumulative roster growth: onboarded-before-window baseline + each month's
+  // new riders, accumulated → a genuine upward line.
+  let rosterRun = ridersBeforeWindow;
+  const rosterSeries = newRiders6.map((n) => (rosterRun += n));
+  const newRidersThisMonth = newRiders6[newRiders6.length - 1];
+
   // Aggregate gate events: a staff member is "on premises" if their LATEST
   // event today is an IN. Walk events oldest-to-newest, keep direction per
   // staff; count the IN-state ones at the end.
@@ -194,24 +240,28 @@ export default async function DashboardPage() {
       ? { value: `${Math.abs(Math.round(((revThis - revLast) / revLast) * 100))}%`, dir: revThis >= revLast ? "up" : "down" }
       : undefined;
 
+  // Hero card — the next competition if one is on the calendar, otherwise a
+  // roster-at-a-glance fallback so the slot is never empty.
+  const compDaysToGo = nextCompetition
+    ? Math.max(0, Math.ceil((nextCompetition.startDate.getTime() - now.getTime()) / 86400000))
+    : null;
+  const compClasses = nextCompetition && Array.isArray(nextCompetition.classesJson)
+    ? (nextCompetition.classesJson as unknown[]).length
+    : 0;
+
+  // "Exams this week" timeline — nearest one is the current step.
+  const examItems = upcomingExams.map((e, i) => ({
+    title: `${e.rider.firstName} ${e.rider.lastName}`,
+    meta: `Level ${e.level}`,
+    time: formatDateIndia(e.date),
+    status: (i === 0 ? "current" : "pending") as "current" | "pending",
+    href: "/exams",
+  }));
+
   const tiles = [
-    { label: "Active riders", value: activeRiders, hint: "status = active", icon: <Users className="h-5 w-5" /> },
     { label: "Pending sign-ups", value: pendingRiders, hint: "awaiting payment", icon: <UserPlus className="h-5 w-5" /> },
     { label: "Batches", value: batches, hint: "scheduled", icon: <CalendarClock className="h-5 w-5" /> },
-    {
-      label: "Today's attendance",
-      value: todayPct === null ? "—" : `${todayPct}%`,
-      hint: todayTotal > 0 ? `${todayPresent}/${todayTotal} marked present` : "no marks yet",
-      icon: <CalendarCheck className="h-5 w-5" />,
-    },
     { label: "Open invoices", value: openInvoices, hint: "status = due", icon: <Receipt className="h-5 w-5" /> },
-    {
-      label: "Revenue (MTD)",
-      value: `₹${Math.round(revThis).toLocaleString("en-IN")}`,
-      hint: "razorpay + cash",
-      icon: <IndianRupee className="h-5 w-5" />,
-      delta: revDelta,
-    },
     { label: "Horses on roster", value: horses, icon: <PawPrint className="h-5 w-5" /> },
     {
       label: "Open tasks",
@@ -284,20 +334,106 @@ export default async function DashboardPage() {
       {showChecklist && <SetupChecklist items={checklist} />}
       <NpsWidget />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {tiles.map((t) => (
-          <StatTile
-            key={t.label}
-            label={t.label}
-            value={t.value}
-            sub={t.hint}
-            icon={t.icon}
-            tone={t.warn ? "amber" : "default"}
-            delta={"delta" in t ? t.delta : undefined}
-          />
-        ))}
+      {/* Charted headline row — the metrics that show momentum. */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <ChartCard
+          label="Revenue (MTD)"
+          value={`₹${Math.round(revThis).toLocaleString("en-IN")}`}
+          delta={revDelta}
+          sub="razorpay + cash · 6-month trend"
+          icon={<IndianRupee className="h-5 w-5" />}
+          chart={<MiniBars data={revenueSeries} />}
+          link="/finance"
+        />
+        <ChartCard
+          label="New riders (this month)"
+          value={newRidersThisMonth}
+          sub={`${months[0].label}–${months[months.length - 1].label} sign-ups`}
+          icon={<UserPlus className="h-5 w-5" />}
+          chart={<Sparkline data={newRiders6} />}
+          link="/riders"
+        />
+        <ChartCard
+          label="Active roster"
+          value={activeRiders}
+          sub={`${rosterSeries[rosterSeries.length - 1]} onboarded all-time`}
+          icon={<Users className="h-5 w-5" />}
+          chart={<Sparkline data={rosterSeries} />}
+          link="/riders"
+        />
       </div>
 
+      {/* Feature row — hero, attendance dial, this-week timeline. */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {nextCompetition ? (
+          <HeroCard
+            kicker="Next competition"
+            title={nextCompetition.name}
+            subtitle={`${formatDateIndia(nextCompetition.startDate)}${nextCompetition.venue ? ` · ${nextCompetition.venue}` : ""}`}
+            icon={<Trophy />}
+            stats={[
+              { label: "Entries", value: nextCompetition._count.entries },
+              { label: "Classes", value: compClasses },
+              { label: "Days to go", value: compDaysToGo ?? "—" },
+            ]}
+            href="/competitions"
+            cta="View event"
+          />
+        ) : (
+          <HeroCard
+            kicker="At a glance"
+            title={`${activeRiders} active riders`}
+            subtitle="No competition on the calendar yet"
+            icon={<Trophy />}
+            stats={[
+              { label: "Horses", value: horses },
+              { label: "Batches", value: batches },
+              { label: "Attendance", value: todayPct === null ? "—" : `${todayPct}%` },
+            ]}
+            href="/competitions"
+            cta="Plan a competition"
+          />
+        )}
+
+        <div className="flex flex-col rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+          <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <CalendarCheck className="h-3.5 w-3.5" /> Today&apos;s attendance
+          </div>
+          <div className="flex flex-1 items-center justify-center py-2">
+            <RingGauge
+              value={todayPct ?? 0}
+              max={100}
+              label={todayPct === null ? "—" : `${todayPct}%`}
+              caption={todayTotal > 0 ? `${todayPresent}/${todayTotal} present` : "no marks yet"}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Exams this week</div>
+            <Link href="/exams" className="text-xs font-medium text-primary hover:underline">View all</Link>
+          </div>
+          <ActivityTimeline items={examItems} />
+        </div>
+      </div>
+
+      {/* Dense secondary metrics. */}
+      <div>
+        <h2 className="mb-3 text-sm font-semibold text-muted-foreground">More metrics</h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {tiles.map((t) => (
+            <StatTile
+              key={t.label}
+              label={t.label}
+              value={t.value}
+              sub={t.hint}
+              icon={t.icon}
+              tone={t.warn ? "amber" : "default"}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

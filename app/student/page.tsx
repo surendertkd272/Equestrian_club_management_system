@@ -2,8 +2,9 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { getStudentSummary, getStudentDetail } from "@/lib/student";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatTile } from "@/components/ui/stat-tile";
-import { kpiIcon } from "@/lib/kpi-icon";
+import { HeroCard } from "@/components/dashboard/visuals";
+import { RingGauge } from "@/components/ui/charts";
+import { Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { getFeaturesForSession } from "@/lib/features-gate";
@@ -106,26 +107,38 @@ export default async function StudentHome() {
         </Card>
       )}
 
-      <div className={showPayment ? "grid gap-4 md:grid-cols-4" : "grid gap-4 md:grid-cols-3"}>
-        <Kpi label="My Attendance (90d)" value={attendancePct === null ? "—" : `${attendancePct}%`} sub={attendancePct === null ? "" : `${attendedSessions}/${totalSessions} sessions`} />
-        <Kpi
-          label="Skills Mastered"
-          value={`${skillsMastered}${totalSkillsAtLevel > 0 ? ` / ${totalSkillsAtLevel}` : ""}`}
-          sub={totalSkillsAtLevel > 0 ? `${Math.round((skillsMastered / totalSkillsAtLevel) * 100)}% of catalog` : ""}
+      {/* Athlete hero — the rider's own progress front and centre. */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <HeroCard
+          className="lg:col-span-2"
+          kicker="My progress"
+          title={`${rider.firstName}'s journey`}
+          subtitle={`${rider.currentLevel ?? "Unranked"}${rider.batch ? ` · ${rider.batch.name}` : ""}`}
+          icon={<Trophy />}
+          progress={
+            totalSkillsAtLevel > 0
+              ? { value: skillsMastered, max: totalSkillsAtLevel, label: `${skillsMastered}/${totalSkillsAtLevel} skills mastered at this level` }
+              : undefined
+          }
+          stats={[
+            { label: "Attendance", value: attendancePct === null ? "—" : `${attendancePct}%` },
+            { label: "Next exam", value: upcomingExam ? `L${upcomingExam.level}` : "—" },
+            showPayment
+              ? { label: "Unpaid fees", value: String(unpaidInvoices) }
+              : { label: "Skills", value: String(skillsMastered) },
+          ]}
         />
-        <Kpi
-          label="Next Exam"
-          value={upcomingExam ? `L${upcomingExam.level}` : "—"}
-          sub={upcomingExam ? `${formatDate(upcomingExam.date)} · ${upcomingExam.examinerName ?? "examiner TBD"}` : "Nothing scheduled"}
-        />
-        {showPayment && (
-          <Kpi
-            label="Unpaid Fees"
-            value={String(unpaidInvoices)}
-            sub={unpaidInvoices > 0 ? "Talk to your parent" : "All paid up"}
-            warn={unpaidInvoices > 0}
-          />
-        )}
+        <div className="flex flex-col rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Attendance · 90 days</div>
+          <div className="flex flex-1 items-center justify-center py-2">
+            <RingGauge
+              value={attendancePct ?? 0}
+              max={100}
+              label={attendancePct === null ? "—" : `${attendancePct}%`}
+              caption={attendancePct === null ? "no data yet" : `${attendedSessions}/${totalSessions} sessions`}
+            />
+          </div>
+        </div>
       </div>
 
       <Card>
@@ -344,8 +357,4 @@ export default async function StudentHome() {
       )}
     </div>
   );
-}
-
-function Kpi({ label, value, sub, warn = false }: { label: string; value: string; sub?: string; warn?: boolean }) {
-  return <StatTile label={label} value={value} sub={sub} tone={warn ? "amber" : "default"} icon={kpiIcon(label)} />;
 }
