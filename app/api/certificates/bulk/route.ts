@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
+import { blockIfFeatureOff } from "@/lib/features-gate";
 import { generateUniqueSerial, verifyUrl } from "@/lib/cert";
 import { audit } from "@/lib/audit";
 
@@ -37,6 +38,8 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  const featureBlock = await blockIfFeatureOff(session, "certificates");
+  if (featureBlock) return featureBlock;
   if (!can(session.role, "certificate.bulk")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
