@@ -3,8 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { centreWhere, scopeCentre } from "@/lib/tenancy";
 import { istTodayStr, coachUpdateDateKey, DAILY_UPDATE_ROLES } from "@/lib/coach-update";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { StatTile } from "@/components/ui/stat-tile";
 import {
   Users, UserPlus, CalendarClock, CalendarCheck, Receipt, IndianRupee, PawPrint,
@@ -300,95 +298,6 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Build status</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Rider onboarding </span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Auth + multi-tenancy + role permissions</span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Riders list + profile</span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Fee invoice + Razorpay (mock)</span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Audit log</span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Attendance marking + roster + batches </span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Staff onboarding </span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Exams: scheduling + scoring engine + templates</span>
-              <Badge variant="success">Implemented (merged from exam module)</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Certificates auto-issue + public QR verify </span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Horse roster + workload + allocations </span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Vet medicines: inventory + prescribe + withdrawal→rest </span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Tasks: kanban + overdue/escalation + templates </span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Tack & Equipment: QR scan → issue/return + maintenance</span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Notifications: in-app feed + 4 wired triggers </span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Progress: per-skill checklist + cohort heatmap </span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Monthly parent report cards </span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Competitions: classes + entries + placements + public scoreboard </span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Performance Analytics: trends + medal leaderboard </span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between border-b pb-2">
-              <span className="font-medium">Real Razorpay: hosted checkout + HMAC verify + webhook</span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-medium">Cron sweeps: fee-due, expiring meds, absence streak, birthdays</span>
-              <Badge variant="success">Implemented</Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
