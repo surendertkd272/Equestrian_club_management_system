@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { blockIfFeatureOff } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { scopeCentre, centreWhere } from "@/lib/tenancy";
 import { createLeaveRequestSchema, LEAVE_STATUSES } from "@/lib/schemas/leave-request";
@@ -13,6 +14,8 @@ import { blockIfReadOnly } from "@/lib/readonly-gate";
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  const featureBlock = await blockIfFeatureOff(session, "leave-requests");
+  if (featureBlock) return featureBlock;
   if (!can(session.role, "leave.request")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
@@ -65,6 +68,8 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  const featureBlock = await blockIfFeatureOff(session, "leave-requests");
+  if (featureBlock) return featureBlock;
   if (!can(session.role, "leave.request") && !can(session.role, "leave.approve")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }

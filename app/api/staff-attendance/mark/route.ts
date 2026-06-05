@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { blockIfFeatureOff } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { markStaffAttendanceSchema, composeDateTime } from "@/lib/schemas/staff-attendance";
 import { parseDateOnly } from "@/lib/schemas/attendance";
@@ -12,6 +13,8 @@ import { blockIfReadOnly } from "@/lib/readonly-gate";
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  const featureBlock = await blockIfFeatureOff(session, "staff-attendance");
+  if (featureBlock) return featureBlock;
   if (!can(session.role, "staff.attendance")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }

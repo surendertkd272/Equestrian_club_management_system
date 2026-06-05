@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { blockIfFeatureOff } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { updateSkillStatusSchema } from "@/lib/schemas/progress";
 import { audit } from "@/lib/audit";
@@ -11,6 +12,8 @@ export async function PATCH(
 ) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  const featureBlock = await blockIfFeatureOff(session, "skill-tracking");
+  if (featureBlock) return featureBlock;
   if (!can(session.role, "progress.write")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
