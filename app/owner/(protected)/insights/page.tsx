@@ -105,7 +105,7 @@ export default async function OwnerInsightsPage() {
                     <td className="py-2 text-right">{r.total}</td>
                     <td className="py-2 text-right">{r.alive}</td>
                     <td className="py-2 text-right">
-                      <span className={`rounded px-2 py-0.5 text-xs ${r.pct >= 80 ? "bg-emerald-500/20 text-emerald-300" : r.pct >= 50 ? "bg-amber-500/20 text-amber-300" : "bg-rose-500/20 text-rose-300"}`}>
+                      <span className={`rounded px-2 py-0.5 text-xs ${r.pct >= 80 ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300" : r.pct >= 50 ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300" : "bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300"}`}>
                         {r.pct}%
                       </span>
                     </td>

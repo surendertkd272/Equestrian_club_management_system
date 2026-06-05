@@ -106,7 +106,7 @@ export default async function SaasInvoicesPage({ searchParams }: { searchParams:
                         href={`/owner/saas-invoices/${i.id}/print`}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-emerald-400 hover:underline"
+                        className="text-xs text-emerald-700 dark:text-emerald-400 hover:underline"
                       >
                         Print/PDF
                       </Link>
@@ -127,7 +127,7 @@ function KPI({ label, value, sub, warn }: { label: string; value: string; sub?: 
     <Card className="border-border bg-card">
       <CardContent className="pt-6">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</div>
-        <div className={`mt-1 text-2xl font-bold ${warn ? "text-amber-400" : ""}`}>{value}</div>
+        <div className={`mt-1 text-2xl font-bold ${warn ? "text-amber-700 dark:text-amber-400" : ""}`}>{value}</div>
         {sub && <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>}
       </CardContent>
     </Card>

@@ -85,7 +85,7 @@ export function PricingForm({ initial }: { initial: Row }) {
           className="border-border bg-background text-foreground"
         />
         {annualSavings > 0 && (
-          <div className="mt-1 text-xs text-emerald-400">
+          <div className="mt-1 text-xs text-emerald-700 dark:text-emerald-400">
             Public page shows ≈ {annualSavings}% annual discount
           </div>
         )}

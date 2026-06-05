@@ -125,8 +125,8 @@ export default async function OwnerDashboardPage() {
               const label = e.action === "owner.tenant_suspended" ? "Suspended" : "Moved to past_due";
               const tone =
                 e.action === "owner.tenant_suspended"
-                  ? "bg-rose-500/20 text-rose-300"
-                  : "bg-amber-500/20 text-amber-300";
+                  ? "bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300"
+                  : "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300";
               return (
                 <li key={e.id} className="flex items-center justify-between py-2 text-sm">
                   <div>
@@ -164,7 +164,7 @@ export default async function OwnerDashboardPage() {
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <span className="font-semibold text-foreground">₹{i.total.toLocaleString("en-IN")}</span>
-                  <span className={`rounded px-2 py-0.5 ${i.status === "paid" ? "bg-emerald-500/20 text-emerald-300" : i.status === "due" ? "bg-amber-500/20 text-amber-300" : "bg-muted text-foreground"}`}>
+                  <span className={`rounded px-2 py-0.5 ${i.status === "paid" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300" : i.status === "due" ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300" : "bg-muted text-foreground"}`}>
                     {i.status}
                   </span>
                 </div>
@@ -236,12 +236,12 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 }
 
 const TONE: Record<string, string> = {
-  green: "bg-emerald-500/20 text-emerald-300",
-  blue: "bg-sky-500/20 text-sky-300",
-  amber: "bg-amber-500/20 text-amber-300",
-  red: "bg-rose-500/20 text-rose-300",
+  green: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300",
+  blue: "bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300",
+  amber: "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300",
+  red: "bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300",
   slate: "bg-muted text-foreground",
-  violet: "bg-violet-500/20 text-violet-300",
+  violet: "bg-violet-100 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300",
 };
 
 function BreakdownRow({ label, count, tone }: { label: string; count: number; tone: keyof typeof TONE }) {

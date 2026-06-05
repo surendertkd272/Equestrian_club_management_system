@@ -57,7 +57,7 @@ export default async function PlatformBillingPage() {
       </Card>
 
       <div className="text-sm">
-        <Link href="/owner/saas-invoices" className="text-emerald-400 hover:underline">
+        <Link href="/owner/saas-invoices" className="text-emerald-700 dark:text-emerald-400 hover:underline">
           View issued SaaS invoices →
         </Link>
       </div>

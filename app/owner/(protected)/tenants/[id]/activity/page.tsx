@@ -114,7 +114,7 @@ export default async function TenantActivityPage({ params }: { params: SP }) {
                   </span>
                   <Badge
                     variant="outline"
-                    className={`w-fit text-[10px] ${row.source === "platform" ? "border-amber-700 text-amber-300" : "border-border text-foreground"}`}
+                    className={`w-fit text-[10px] ${row.source === "platform" ? "border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300" : "border-border text-foreground"}`}
                   >
                     {row.source}
                   </Badge>

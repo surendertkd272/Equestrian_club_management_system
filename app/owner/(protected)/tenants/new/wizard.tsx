@@ -197,7 +197,7 @@ function StepHeader({ step }: { step: Step }) {
           <li key={label} className="flex items-center gap-2">
             <span
               className={`flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold ${
-                done ? "border-emerald-500 bg-emerald-500/20 text-emerald-300"
+                done ? "border-emerald-500 bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                 : active ? "border-border bg-muted text-foreground"
                 : "border-border text-muted-foreground"
               }`}
@@ -362,42 +362,42 @@ function SuccessCard({ created, onDone }: { created: Created; onDone: () => void
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-emerald-700 bg-emerald-950/30 p-5">
-        <div className="text-sm font-semibold text-emerald-300">
+      <div className="rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-50 dark:bg-emerald-950/30 p-5">
+        <div className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
           ✓ {created.tenantName} provisioned
         </div>
-        <p className="mt-1 text-sm text-emerald-200/80">
-          Org slug <code className="rounded bg-emerald-950 px-1.5 py-0.5">{created.tenantSlug}</code> is live.
+        <p className="mt-1 text-sm text-emerald-800 dark:text-emerald-800 dark:text-emerald-200/80">
+          Org slug <code className="rounded bg-emerald-50 dark:bg-emerald-950 px-1.5 py-0.5">{created.tenantSlug}</code> is live.
           Share these credentials with the new super admin — the temp password is shown <strong>once</strong>.
         </p>
       </div>
 
-      <div className="rounded-lg border border-amber-700 bg-amber-950/30 p-5">
-        <div className="text-xs font-semibold uppercase tracking-wide text-amber-300">
+      <div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-50 dark:bg-amber-950/30 p-5">
+        <div className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300">
           Hand off to the new admin
         </div>
-        <div className="mt-2 space-y-1 font-mono text-sm text-amber-100">
+        <div className="mt-2 space-y-1 font-mono text-sm text-amber-900 dark:text-amber-100">
           <div>
-            <span className="text-amber-400">Login URL:</span>{" "}
-            <code className="rounded bg-amber-950 px-1.5 py-0.5">/login</code>
+            <span className="text-amber-700 dark:text-amber-400">Login URL:</span>{" "}
+            <code className="rounded bg-amber-50 dark:bg-amber-950 px-1.5 py-0.5">/login</code>
           </div>
           <div>
-            <span className="text-amber-400">Email:</span>{" "}
-            <code className="rounded bg-amber-950 px-1.5 py-0.5">{created.superAdminEmail}</code>
+            <span className="text-amber-700 dark:text-amber-400">Email:</span>{" "}
+            <code className="rounded bg-amber-50 dark:bg-amber-950 px-1.5 py-0.5">{created.superAdminEmail}</code>
           </div>
           <div>
-            <span className="text-amber-400">Temp password:</span>{" "}
-            <code className="rounded bg-amber-950 px-1.5 py-0.5 font-bold">{created.tempPassword}</code>
+            <span className="text-amber-700 dark:text-amber-400">Temp password:</span>{" "}
+            <code className="rounded bg-amber-50 dark:bg-amber-950 px-1.5 py-0.5 font-bold">{created.tempPassword}</code>
             <button
               type="button"
               onClick={copy}
-              className="ml-2 rounded border border-amber-700 px-2 py-0.5 text-xs text-amber-200 hover:bg-amber-900"
+              className="ml-2 rounded border border-amber-300 dark:border-amber-700 px-2 py-0.5 text-xs text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:bg-amber-900"
             >
               Copy
             </button>
           </div>
         </div>
-        <p className="mt-3 text-xs text-amber-300/80">
+        <p className="mt-3 text-xs text-amber-700 dark:text-amber-700 dark:text-amber-300/80">
           Shown once. Ask the admin to change their password after first sign-in.
         </p>
       </div>

@@ -74,7 +74,7 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
           Onboarded {new Date(tenant.onboardedAt).toLocaleDateString()} · Last updated{" "}
           {new Date(tenant.updatedAt).toLocaleDateString()}
           {" · "}
-          <Link href={`/owner/tenants/${tenant.id}/activity`} className="text-emerald-400 hover:underline">
+          <Link href={`/owner/tenants/${tenant.id}/activity`} className="text-emerald-700 dark:text-emerald-400 hover:underline">
             View activity timeline →
           </Link>
         </p>
@@ -129,7 +129,7 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
                     <div className="font-medium">{u.name}</div>
                     <div className="text-xs text-muted-foreground">{u.email}</div>
                     {u.status !== "active" && (
-                      <div className="text-xs text-rose-400">{u.status}</div>
+                      <div className="text-xs text-rose-700 dark:text-rose-400">{u.status}</div>
                     )}
                   </div>
                   {u.status === "active" && (
@@ -193,7 +193,7 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
             centreCount={tenant.centres.length}
           />
         ) : (
-          <p className="text-sm text-rose-400">Unknown plan: {tenant.plan}</p>
+          <p className="text-sm text-rose-700 dark:text-rose-400">Unknown plan: {tenant.plan}</p>
         )}
       </Panel>
 

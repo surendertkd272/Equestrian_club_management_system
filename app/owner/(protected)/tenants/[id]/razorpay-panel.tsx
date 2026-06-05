@@ -113,7 +113,7 @@ export function RazorpayPanel({
         )}
       </div>
       {authLink && (
-        <div className="rounded border border-emerald-700 bg-emerald-900/30 p-2 text-xs text-emerald-200">
+        <div className="rounded border border-emerald-300 dark:border-emerald-700 bg-emerald-100 dark:bg-emerald-100 dark:bg-emerald-900/30 p-2 text-xs text-emerald-800 dark:text-emerald-200">
           <strong>Mandate authorisation link sent to billing email.</strong> Direct link:{" "}
           <a href={authLink} target="_blank" rel="noreferrer" className="underline">{authLink}</a>
         </div>
