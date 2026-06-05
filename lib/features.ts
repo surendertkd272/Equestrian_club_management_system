@@ -105,10 +105,10 @@ export const FEATURES: readonly FeatureDef[] = [
   { key: "expenses",               label: "Expenses & P&L",         description: "Book outgoings against chart-of-accounts; expense P&L.",         group: "finance",      enforcement: "wired" },
 
   // ── Productivity
-  { key: "tasks",                  label: "Tasks",                  description: "Kanban for daily centre tasks + assignments.",                   group: "productivity", enforcement: "ui-only" },
-  { key: "approvals",              label: "Approvals",              description: "Generic approval workflow (purchases, special requests).",       group: "productivity", enforcement: "ui-only" },
-  { key: "reports",                label: "Reports",                description: "Monthly parent report cards + analytical exports.",              group: "productivity", enforcement: "ui-only" },
-  { key: "analytics",              label: "Analytics",              description: "Per-rider performance trends + medal leaderboards.",             group: "productivity", enforcement: "ui-only" },
+  { key: "tasks",                  label: "Tasks",                  description: "Kanban for daily centre tasks + assignments.",                   group: "productivity", enforcement: "wired", selfToggle: true },
+  { key: "approvals",              label: "Approvals",              description: "Generic approval workflow (purchases, special requests).",       group: "productivity", enforcement: "wired", selfToggle: true },
+  { key: "reports",                label: "Reports",                description: "Monthly parent report cards + analytical exports.",              group: "productivity", enforcement: "wired", selfToggle: true },
+  { key: "analytics",              label: "Analytics",              description: "Per-rider performance trends + medal leaderboards.",             group: "productivity", enforcement: "wired", selfToggle: true },
   { key: "whatsapp-notifications", label: "WhatsApp Notifications", description: "Send class reminders, dues, and certificates via WhatsApp.",    group: "productivity", enforcement: "ui-only" },
 
   // ── Advanced / HQ-only
