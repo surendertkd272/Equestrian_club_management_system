@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { blockIfFeatureOff } from "@/lib/features-gate";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { notifyCentreManager } from "@/lib/notify";
@@ -12,6 +13,8 @@ import { createInjurySchema } from "@/lib/schemas/injury";
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  const featureBlock = await blockIfFeatureOff(session, "injuries");
+  if (featureBlock) return featureBlock;
 
   const url = new URL(req.url);
   const subjectType = url.searchParams.get("subjectType");
@@ -36,6 +39,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  const featureBlock = await blockIfFeatureOff(session, "injuries");
+  if (featureBlock) return featureBlock;
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
 

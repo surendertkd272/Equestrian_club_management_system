@@ -17,7 +17,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (!can(session.role, "medicine.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
-  const featureBlock = await blockIfFeatureOff(session, "vet-records");
+  const featureBlock = await blockIfFeatureOff(session, "consumables");
   if (featureBlock) return featureBlock;
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;

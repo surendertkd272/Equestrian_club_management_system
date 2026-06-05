@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { blockIfFeatureOff } from "@/lib/features-gate";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { addTreatmentSchema, updateInjuryStatusSchema } from "@/lib/schemas/injury";
@@ -12,6 +13,8 @@ import { addTreatmentSchema, updateInjuryStatusSchema } from "@/lib/schemas/inju
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  const featureBlock = await blockIfFeatureOff(session, "injuries");
+  if (featureBlock) return featureBlock;
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
 

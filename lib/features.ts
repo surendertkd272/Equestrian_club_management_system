@@ -95,10 +95,10 @@ export const FEATURES: readonly FeatureDef[] = [
   { key: "horse-management",       label: "Horse Management",       description: "Track horses, allocations, and ownership.",                      group: "facility",     enforcement: "wired" },
   { key: "vet-records",            label: "Vet Records",            description: "Medicine inventory and per-horse treatment logs.",               group: "facility",     enforcement: "wired" },
   { key: "inventory",              label: "Tack & Equipment",       description: "Tag, issue, and maintain saddles, gear, and school assets.",     group: "facility",     enforcement: "wired" },
-  { key: "consumables",            label: "First-Aid Consumables",  description: "Per-centre stock of bandages, antiseptics, etc.",                group: "facility",     enforcement: "ui-only" },
+  { key: "consumables",            label: "First-Aid Consumables",  description: "Per-centre stock of bandages, antiseptics, etc.",                group: "facility",     enforcement: "wired", selfToggle: true },
   { key: "farriery",               label: "Farriery",               description: "Schedule and track farrier visits per horse.",                   group: "facility",     enforcement: "wired" },
-  { key: "injuries",               label: "Injury Log",             description: "Horse + rider injury records with recovery tracking.",            group: "facility",     enforcement: "ui-only" },
-  { key: "facility-bookings",      label: "Facility Bookings",      description: "Book arenas / wash bays / classroom slots.",                     group: "facility",     enforcement: "ui-only" },
+  { key: "injuries",               label: "Injury Log",             description: "Horse + rider injury records with recovery tracking.",            group: "facility",     enforcement: "wired", selfToggle: true },
+  { key: "facility-bookings",      label: "Facility Bookings",      description: "Book arenas / wash bays / classroom slots.",                     group: "facility",     enforcement: "wired", selfToggle: true },
 
   // ── Finance
   { key: "fee-collection",         label: "Parent / Rider Payments", description: "Switch for parent + rider-facing payment surfaces. When OFF: no invoices created on enrolment / competition / event entry, /pay page 404s, Razorpay endpoints return 503, fee-due reminders skipped, approved riders go straight to active, parent invoice tiles hide. Staff bookkeeping (the /finance dashboard, manual cash recording, exports, invoice print) is unaffected so the team can still log offline payments. Existing invoices preserved as audit history.", group: "finance", enforcement: "wired" },
