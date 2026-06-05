@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
+import { blockIfFeatureOff } from "@/lib/features-gate";
 import { sweepMonthlyReports } from "@/lib/sweeps";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { audit } from "@/lib/audit";
@@ -12,6 +13,8 @@ import { audit } from "@/lib/audit";
 export async function POST(_req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  const featureBlock = await blockIfFeatureOff(session, "reports");
+  if (featureBlock) return featureBlock;
   if (!["SUPER_ADMIN", "CENTRE_MANAGER"].includes(session.role)) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
