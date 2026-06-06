@@ -35,11 +35,11 @@ export default async function PublicCompetitionPage({ params }: { params: { slug
   const entriesOpen = comp.status === "open_for_entries" && (!comp.entryDeadline || comp.entryDeadline > new Date());
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <header className="border-b bg-white">
+    <main className="min-h-screen bg-muted/40">
+      <header className="border-b bg-card">
         <div className="container mx-auto flex max-w-4xl items-center justify-between px-6 py-4">
           <Link href="/" className="text-sm font-bold">Equiwings</Link>
-          <nav className="text-sm text-slate-600">
+          <nav className="text-sm text-muted-foreground">
             <Link href={`/scoreboard/${comp.slug}`} className="hover:text-primary">Live results →</Link>
           </nav>
         </div>
@@ -50,23 +50,23 @@ export default async function PublicCompetitionPage({ params }: { params: { slug
           {comp.scope.replace("_", " ").toUpperCase()} · {comp.discipline.toUpperCase()}
         </div>
         <h1 className="mt-3 text-4xl font-bold">{comp.name}</h1>
-        <p className="mt-2 text-slate-600">
+        <p className="mt-2 text-muted-foreground">
           {comp.centre.name} · {comp.centre.org.name}
         </p>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm text-muted-foreground">
           {new Date(comp.startDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}
           {comp.startDate.toDateString() !== comp.endDate.toDateString() && (
             <> → {new Date(comp.endDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}</>
           )}
           {comp.venue && <> · {comp.venue}</>}
         </p>
-        {comp.centre.address && <p className="mt-1 text-xs text-slate-500">{comp.centre.address}</p>}
+        {comp.centre.address && <p className="mt-1 text-xs text-muted-foreground">{comp.centre.address}</p>}
 
         <div className="mt-8 flex flex-wrap gap-3">
           {entriesOpen && (
             <Link
               href={`/compete/${comp.slug}/enter`}
-              className="rounded-md bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+              className="rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               Enter the competition
             </Link>
@@ -74,21 +74,21 @@ export default async function PublicCompetitionPage({ params }: { params: { slug
           {comp.ticketTiers.length > 0 && (
             <Link
               href={`/compete/${comp.slug}/tickets`}
-              className="rounded-md border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium hover:bg-slate-100"
+              className="rounded-md border border-border bg-card px-5 py-2.5 text-sm font-medium hover:bg-muted"
             >
               Buy spectator tickets
             </Link>
           )}
           <Link
             href={`/scoreboard/${comp.slug}`}
-            className="rounded-md border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium hover:bg-slate-100"
+            className="rounded-md border border-border bg-card px-5 py-2.5 text-sm font-medium hover:bg-muted"
           >
             Live results
           </Link>
         </div>
 
         {comp.entryDeadline && (
-          <p className="mt-3 text-xs text-slate-500">
+          <p className="mt-3 text-xs text-muted-foreground">
             Entry deadline: {new Date(comp.entryDeadline).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
           </p>
         )}
@@ -96,21 +96,21 @@ export default async function PublicCompetitionPage({ params }: { params: { slug
         <section className="mt-12">
           <h2 className="text-xl font-bold">Classes</h2>
           {classes.length === 0 ? (
-            <p className="mt-2 text-sm text-slate-500">No classes published yet.</p>
+            <p className="mt-2 text-sm text-muted-foreground">No classes published yet.</p>
           ) : (
-            <ul className="mt-4 divide-y rounded-lg border bg-white">
+            <ul className="mt-4 divide-y rounded-lg border bg-card">
               {classes.map((c) => (
                 <li key={c.name} className="flex items-center justify-between p-4">
                   <div>
                     <div className="font-medium">{c.name}</div>
-                    {c.ageGroup && <div className="text-xs text-slate-500">{c.ageGroup}</div>}
+                    {c.ageGroup && <div className="text-xs text-muted-foreground">{c.ageGroup}</div>}
                   </div>
                   <div className="text-right text-sm">
                     {c.fee !== undefined && (
                       <div className="font-semibold">₹{c.fee.toLocaleString("en-IN")}</div>
                     )}
                     {c.maxEntries && (
-                      <div className="text-xs text-slate-500">Cap {c.maxEntries}</div>
+                      <div className="text-xs text-muted-foreground">Cap {c.maxEntries}</div>
                     )}
                   </div>
                 </li>
@@ -124,9 +124,9 @@ export default async function PublicCompetitionPage({ params }: { params: { slug
             <h2 className="text-xl font-bold">Sponsors</h2>
             <div className="mt-4 flex flex-wrap gap-3">
               {comp.sponsors.map((s, i) => (
-                <span key={i} className="rounded-full border bg-white px-3 py-1.5 text-sm">
+                <span key={i} className="rounded-full border bg-card px-3 py-1.5 text-sm">
                   {s.name}
-                  {s.tier && <span className="ml-2 text-xs text-slate-500">{s.tier}</span>}
+                  {s.tier && <span className="ml-2 text-xs text-muted-foreground">{s.tier}</span>}
                 </span>
               ))}
             </div>
@@ -134,7 +134,7 @@ export default async function PublicCompetitionPage({ params }: { params: { slug
         )}
       </section>
 
-      <footer className="border-t bg-white py-6 text-center text-xs text-slate-500">
+      <footer className="border-t bg-card py-6 text-center text-xs text-muted-foreground">
         Powered by Equiwings
       </footer>
     </main>
