@@ -35,7 +35,7 @@ export default async function StudentHome() {
   }
 
   const detail = await getStudentDetail(session.userId);
-  const { rider, attendancePct, attendedSessions, totalSessions, upcomingExam, latestCert, unpaidInvoices, skillsMastered, totalSkillsAtLevel } = summary;
+  const { rider, attendancePct, attendedSessions, totalSessions, upcomingExam, latestCert, unpaidInvoices, skillsMastered, levelSkillsTotal, levelSkillsMastered } = summary;
 
   // student-payment-visible defaults OFF — the parent handles payment
   // via the email link, not the student. Owner toggles it on per-tenant
@@ -116,8 +116,8 @@ export default async function StudentHome() {
           subtitle={`${rider.currentLevel ?? "Unranked"}${rider.batch ? ` · ${rider.batch.name}` : ""}`}
           icon={<Trophy />}
           progress={
-            totalSkillsAtLevel > 0
-              ? { value: skillsMastered, max: totalSkillsAtLevel, label: `${skillsMastered} of ${totalSkillsAtLevel} skills mastered` }
+            rider.currentLevel && levelSkillsTotal > 0
+              ? { value: levelSkillsMastered, max: levelSkillsTotal, label: `${levelSkillsMastered} of ${levelSkillsTotal} skills mastered at ${rider.currentLevel}` }
               : undefined
           }
           stats={[
