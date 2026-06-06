@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { getFeaturesForSession } from "@/lib/features-gate";
 import { istTodayStr, coachUpdateDateKey, DAILY_UPDATE_ROLES } from "@/lib/coach-update";
 import { StatTile } from "@/components/ui/stat-tile";
 import { ChartCard, HeroCard, ActivityTimeline } from "@/components/dashboard/visuals";
@@ -34,6 +35,13 @@ export default async function DashboardPage() {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
   const where = centreWhere(centreId);
+  // The competition hero links to /competitions, which 404s when the org has
+  // the feature off (assertSessionFeature). Gate the hero + its link on it.
+  const features = await getFeaturesForSession(session);
+  const hasComps = features.has("competitions");
+  // /exams is gated on "external-exams" too — only show the exams timeline +
+  // its link when the org has it on.
+  const hasExams = features.has("external-exams");
 
   // Role-specific dashboards. The generic KPI grid below stays for roles that
   // benefit from org-wide visibility (admin / centre_manager / head_coach /
@@ -159,17 +167,21 @@ export default async function DashboardPage() {
     ),
     Promise.all(months.map((m) => prisma.rider.count({ where: { ...where, createdAt: { gte: m.start, lt: m.end } } }))),
     prisma.rider.count({ where: { ...where, createdAt: { lt: months[0].start }, status: { notIn: ["cancelled", "rejected"] } } }),
-    prisma.competition.findFirst({
-      where: { ...where, status: { notIn: ["cancelled", "completed"] }, startDate: { gte: todayStart } },
-      orderBy: { startDate: "asc" },
-      include: { _count: { select: { entries: true } } },
-    }),
-    prisma.exam.findMany({
-      where: { ...where, status: "scheduled", date: { gte: todayStart, lte: sevenDays } },
-      include: { rider: { select: { firstName: true, lastName: true } } },
-      orderBy: { date: "asc" },
-      take: 6,
-    }),
+    hasComps
+      ? prisma.competition.findFirst({
+          where: { ...where, status: { notIn: ["cancelled", "completed"] }, startDate: { gte: todayStart } },
+          orderBy: { startDate: "asc" },
+          include: { _count: { select: { entries: true } } },
+        })
+      : Promise.resolve(null),
+    hasExams
+      ? prisma.exam.findMany({
+          where: { ...where, status: "scheduled", date: { gte: todayStart, lte: sevenDays } },
+          include: { rider: { select: { firstName: true, lastName: true } } },
+          orderBy: { date: "asc" },
+          take: 6,
+        })
+      : Promise.resolve([]),
   ]);
 
   const revenueSeries = revenue6.map((r) => Math.round(r._sum.amount ?? 0));
@@ -364,8 +376,8 @@ export default async function DashboardPage() {
       </div>
 
       {/* Feature row — hero, attendance dial, this-week timeline. */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        {nextCompetition ? (
+      <div className={`grid gap-4 ${hasExams ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}>
+        {hasComps && nextCompetition ? (
           <HeroCard
             kicker="Next competition"
             title={nextCompetition.name}
@@ -383,15 +395,15 @@ export default async function DashboardPage() {
           <HeroCard
             kicker="At a glance"
             title={`${activeRiders} active riders`}
-            subtitle="No competition on the calendar yet"
+            subtitle={hasComps ? "No competition on the calendar yet" : "Your roster snapshot"}
             icon={<Trophy />}
             stats={[
               { label: "Horses", value: horses },
               { label: "Batches", value: batches },
               { label: "Attendance", value: todayPct === null ? "—" : `${todayPct}%` },
             ]}
-            href="/competitions"
-            cta="Plan a competition"
+            href={hasComps ? "/competitions" : "/riders"}
+            cta={hasComps ? "Plan a competition" : "View roster"}
           />
         )}
 
@@ -409,13 +421,15 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Exams this week</div>
-            <Link href="/exams" className="text-xs font-medium text-primary hover:underline">View all</Link>
+        {hasExams && (
+          <div className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Exams this week</div>
+              <Link href="/exams" className="text-xs font-medium text-primary hover:underline">View all</Link>
+            </div>
+            <ActivityTimeline items={examItems} />
           </div>
-          <ActivityTimeline items={examItems} />
-        </div>
+        )}
       </div>
 
       {/* Dense secondary metrics. */}
