@@ -499,7 +499,7 @@ export async function CompetitionManagerDashboard({ centreId, features }: { cent
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const [active, drafts, upcomingEntries, recentResults, nextComp] = await Promise.all([
+  const [active, drafts, openLiveEntries, topThreeAllTime, nextComp] = await Promise.all([
     prisma.competition.count({
       where: { ...where, status: { in: ["open_for_entries", "live"] } },
     }),
@@ -544,8 +544,8 @@ export async function CompetitionManagerDashboard({ centreId, features }: { cent
       >
         <Kpi label="Active competitions" value={active} link={fComps ? "/competitions" : undefined} />
         <Kpi label="Drafts" value={drafts} link={fComps ? "/competitions" : undefined} />
-        <Kpi label="Total entries" value={upcomingEntries} />
-        <Kpi label="Top-3 placements" value={recentResults} link={fTeams ? "/teams" : undefined} />
+        <Kpi label="Entries (open/live)" value={openLiveEntries} />
+        <Kpi label="Top-3 placements" value={topThreeAllTime} link={fTeams ? "/teams" : undefined} />
       </HeroRow>
     </div>
   );
