@@ -42,6 +42,9 @@ export async function getStudentSummary(userId: string) {
     }),
     prisma.invoice.count({ where: { riderId: rider.id, status: "due" } }),
     prisma.riderSkillStatus.count({ where: { riderId: rider.id, status: "mastered" } }),
+    // NOTE: despite the name, this is the centre's FULL skill catalog across
+    // every level — it is not filtered to the rider's current level. The UI
+    // frames it as "X of Y skills mastered" (catalog-wide), not "at this level".
     prisma.skill.count({ where: { level: { centreId: rider.centreId } } }),
   ]);
 
