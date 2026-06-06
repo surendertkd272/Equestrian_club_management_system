@@ -25,7 +25,16 @@ export async function getStudentSummary(userId: string) {
   const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
   const now = new Date();
 
-  const [attendance, upcomingExam, latestCert, unpaidInvoices, skillsMastered, totalSkillsAtLevel] = await Promise.all([
+  // Skills are organised per ProgressLevel; the rider's currentLevel links to
+  // ProgressLevel.name. When the rider is ranked we scope the skill counts to
+  // their level (a motivating "progress at my rank" view); when Unranked there
+  // is no level catalogue to measure against, so these resolve to 0 and the UI
+  // hides the level progress bar.
+  const levelFilter = rider.currentLevel
+    ? { centreId: rider.centreId, name: rider.currentLevel }
+    : null;
+
+  const [attendance, upcomingExam, latestCert, unpaidInvoices, skillsMastered, levelSkillsTotal, levelSkillsMastered] = await Promise.all([
     prisma.attendance.findMany({
       where: { riderId: rider.id, date: { gte: since } },
       select: { status: true },
@@ -41,11 +50,15 @@ export async function getStudentSummary(userId: string) {
       select: { serialNo: true, levelName: true, issuedAt: true },
     }),
     prisma.invoice.count({ where: { riderId: rider.id, status: "due" } }),
+    // Catalog-wide mastered count — used for the headline "Skills" stat.
     prisma.riderSkillStatus.count({ where: { riderId: rider.id, status: "mastered" } }),
-    // NOTE: despite the name, this is the centre's FULL skill catalog across
-    // every level — it is not filtered to the rider's current level. The UI
-    // frames it as "X of Y skills mastered" (catalog-wide), not "at this level".
-    prisma.skill.count({ where: { level: { centreId: rider.centreId } } }),
+    // Skills defined at the rider's current level, and how many they've mastered.
+    levelFilter ? prisma.skill.count({ where: { level: levelFilter } }) : Promise.resolve(0),
+    levelFilter
+      ? prisma.riderSkillStatus.count({
+          where: { riderId: rider.id, status: "mastered", skill: { level: levelFilter } },
+        })
+      : Promise.resolve(0),
   ]);
 
   const present = attendance.filter((a) => a.status === "present" || a.status === "late").length;
@@ -60,7 +73,8 @@ export async function getStudentSummary(userId: string) {
     latestCert,
     unpaidInvoices,
     skillsMastered,
-    totalSkillsAtLevel,
+    levelSkillsTotal,
+    levelSkillsMastered,
   };
 }
 
