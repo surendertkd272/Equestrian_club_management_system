@@ -50,7 +50,7 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
-    group: "AMS · Athletes",
+    group: "Riders & Training",
     items: [
       { href: "/riders", label: "Riders", iconName: "Users", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER", "COMPETITION_MANAGER", "SCHOOL_ADMINISTRATOR"] },
       // Self-enrolment approval queue — School Admin / Centre Manager vet
@@ -70,7 +70,7 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
-    group: "CMS · Centre",
+    group: "Centre Operations",
     items: [
       { href: "/staff", label: "Staff", iconName: "Users2", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
       { href: "/staff/onboarding", label: "Employee Onboarding", iconName: "UserCheck", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
