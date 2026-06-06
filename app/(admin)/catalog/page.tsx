@@ -10,7 +10,9 @@ import { assertSessionFeature } from "@/lib/features-gate";
 export const dynamic = "force-dynamic";
 
 // Club Catalog — manage the per-centre master data that used to be seed-only:
-// Fee Plans, Progress Levels, and Skills. SUPER_ADMIN / ADMIN / CENTRE_MANAGER.
+// Fee Plans, Progress Levels, and exam Components (the level skill catalog;
+// surfaced as "Components" in the UI to distinguish from the month-by-month
+// Monthly Skills). SUPER_ADMIN / ADMIN / CENTRE_MANAGER.
 //
 // Gated behind the 'club-catalog' org-feature flag — default OFF. Owner
 // toggles it on per-tenant in the feature matrix when a tenant explicitly
