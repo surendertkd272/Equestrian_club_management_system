@@ -58,6 +58,11 @@ export default async function EventDetailPage({ params }: { params: { id: string
         </Button>
         <div className="flex items-center gap-2">
           <Badge variant={STATUS_VARIANT[ev.status] ?? "outline"}>{ev.status}</Badge>
+          {canManage && (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/events/${ev.id}/edit`}>Edit</Link>
+            </Button>
+          )}
           {canManage && <EventStatusControl id={ev.id} currentStatus={ev.status} />}
           {canManage && ev.status !== "live" && ev.status !== "completed" && (
             <DeleteEntityButton

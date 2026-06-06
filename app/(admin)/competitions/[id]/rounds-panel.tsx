@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, SlidersHorizontal } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
 
 type Round = {
@@ -17,9 +17,25 @@ type Round = {
   roundNumber: number;
   name: string;
   phase: string | null;
+  judgingMode: string | null;
+  dressageTestId: string | null;
+  dressagePenaltyFactor: number | null;
 };
 
+type DressageTestOpt = { id: string; name: string; level: string; body: string };
+
 const EVENTING_PHASES = ["dressage", "cross_country", "show_jumping"];
+const JUDGING_MODES = [
+  { value: "simple", label: "Simple average" },
+  { value: "trimmed_mean", label: "Trimmed mean (drop high/low)" },
+  { value: "per_movement", label: "Per-movement" },
+];
+
+// A round needs dressage scoring config when the competition is dressage, or
+// it's the dressage phase of an eventing competition.
+function isDressageRound(discipline: string, phase: string | null): boolean {
+  return discipline === "dressage" || phase === "dressage" || (discipline === "eventing" && !phase);
+}
 
 export function RoundsPanel({
   competitionId,
@@ -27,12 +43,14 @@ export function RoundsPanel({
   classNames,
   discipline,
   rounds,
+  dressageTests,
 }: {
   competitionId: string;
   canManage: boolean;
   classNames: string[];
   discipline: string;
   rounds: Round[];
+  dressageTests: DressageTestOpt[];
 }) {
   const router = useRouter();
   const [className, setClassName] = useState(classNames[0] ?? "");
@@ -107,23 +125,38 @@ export function RoundsPanel({
               <div className="mb-1 text-xs font-semibold uppercase text-muted-foreground">{cls}</div>
               <ul className="space-y-1 text-sm">
                 {rs.map((r) => (
-                  <li key={r.id} className="flex items-center justify-between rounded border px-2 py-1.5">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px]">#{r.roundNumber}</Badge>
-                      <span className="font-medium">{r.name}</span>
-                      {r.phase && (
-                        <Badge variant="outline" className="text-[10px] uppercase">{r.phase.replace("_", " ")}</Badge>
+                  <li key={r.id} className="rounded border px-2 py-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-[10px]">#{r.roundNumber}</Badge>
+                        <span className="font-medium">{r.name}</span>
+                        {r.phase && (
+                          <Badge variant="outline" className="text-[10px] uppercase">{r.phase.replace("_", " ")}</Badge>
+                        )}
+                        {isDressageRound(discipline, r.phase) && r.dressageTestId && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            {dressageTests.find((t) => t.id === r.dressageTestId)?.name ?? "test set"}
+                          </Badge>
+                        )}
+                      </div>
+                      {canManage && (
+                        <button
+                          type="button"
+                          onClick={() => remove(r.id)}
+                          className="text-muted-foreground hover:text-destructive"
+                          aria-label="remove"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       )}
                     </div>
-                    {canManage && (
-                      <button
-                        type="button"
-                        onClick={() => remove(r.id)}
-                        className="text-muted-foreground hover:text-destructive"
-                        aria-label="remove"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                    {canManage && isDressageRound(discipline, r.phase) && (
+                      <RoundSettingsEditor
+                        competitionId={competitionId}
+                        round={r}
+                        dressageTests={dressageTests}
+                        showPenalty={discipline === "eventing"}
+                      />
                     )}
                   </li>
                 ))}
@@ -170,5 +203,104 @@ export function RoundsPanel({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// Inline per-round dressage scoring config (judging mode / dressage test /
+// eventing penalty factor) → PATCHes the round settings endpoint. Collapsed
+// behind a toggle so the rounds list stays scannable.
+function RoundSettingsEditor({
+  competitionId,
+  round,
+  dressageTests,
+  showPenalty,
+}: {
+  competitionId: string;
+  round: Round;
+  dressageTests: DressageTestOpt[];
+  showPenalty: boolean;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [judgingMode, setJudgingMode] = useState(round.judgingMode ?? "");
+  const [dressageTestId, setDressageTestId] = useState(round.dressageTestId ?? "");
+  const [penalty, setPenalty] = useState(round.dressagePenaltyFactor != null ? String(round.dressagePenaltyFactor) : "");
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    setBusy(true);
+    try {
+      const body: Record<string, unknown> = {
+        judgingMode: judgingMode || null,
+        dressageTestId: dressageTestId || null,
+      };
+      if (showPenalty) body.dressagePenaltyFactor = penalty === "" ? null : Number(penalty);
+      const res = await fetch(`/api/competitions/${competitionId}/rounds/${round.id}/settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(d.error ?? "Failed to save");
+        return;
+      }
+      toast.success("Scoring settings saved");
+      setOpen(false);
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-1.5 border-t pt-1.5">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+      >
+        <SlidersHorizontal className="h-3 w-3" /> Scoring settings
+      </button>
+      {open && (
+        <div className="mt-2 grid gap-2 sm:grid-cols-3">
+          <div>
+            <label className="text-[10px] uppercase text-muted-foreground">Judging mode</label>
+            <Select value={judgingMode} onChange={(e) => setJudgingMode(e.target.value)}>
+              <option value="">Default (simple)</option>
+              {JUDGING_MODES.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase text-muted-foreground">Dressage test</label>
+            <Select value={dressageTestId} onChange={(e) => setDressageTestId(e.target.value)}>
+              <option value="">(none)</option>
+              {dressageTests.map((t) => (
+                <option key={t.id} value={t.id}>{t.body} · {t.name}</option>
+              ))}
+            </Select>
+          </div>
+          {showPenalty && (
+            <div>
+              <label className="text-[10px] uppercase text-muted-foreground">Penalty factor</label>
+              <Input
+                type="number"
+                step="0.1"
+                min={0}
+                max={5}
+                value={penalty}
+                onChange={(e) => setPenalty(e.target.value)}
+                placeholder="e.g. 1.5"
+              />
+            </div>
+          )}
+          <div className="sm:col-span-3">
+            <Button onClick={save} disabled={busy} size="sm">{busy ? "Saving…" : "Save scoring settings"}</Button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
