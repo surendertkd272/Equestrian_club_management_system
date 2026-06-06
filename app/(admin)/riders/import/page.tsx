@@ -23,7 +23,7 @@ export default async function RidersImportPage() {
   const examiners = await prisma.user.findMany({
     where: {
       ...(centreId ? { centreId } : {}),
-      role: { in: ["EXAMINER", "JURY", "HEAD_COACH", "CENTRE_MANAGER", "SUPER_ADMIN"] as any },
+      role: { in: ["EXAMINER", "HEAD_COACH", "CENTRE_MANAGER", "SUPER_ADMIN"] as any },
       status: "active",
     },
     select: { id: true, name: true, role: true },

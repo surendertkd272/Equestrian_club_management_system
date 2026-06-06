@@ -12,7 +12,7 @@ import { TripManifest } from "./manifest";
 
 export const dynamic = "force-dynamic";
 
-const CAN_MANAGE = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER", "COMPETITION_MANAGER"];
+const CAN_MANAGE = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER"];
 
 export default async function TripDetailPage({ params }: { params: { id: string } }) {
   const session = (await getSession())!;

@@ -10,7 +10,7 @@ import { NewTripForm } from "./new-trip";
 
 export const dynamic = "force-dynamic";
 
-const CAN_MANAGE = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER", "COMPETITION_MANAGER"];
+const CAN_MANAGE = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER"];
 
 const STATUS_VARIANT: Record<string, "success" | "warning" | "outline" | "destructive"> = {
   planned: "outline",

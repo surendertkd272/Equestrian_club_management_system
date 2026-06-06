@@ -10,7 +10,7 @@ import { ClaimButton } from "./claim-button";
 
 export const dynamic = "force-dynamic";
 
-const CAN_VIEW = ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER", "JURY"];
+const CAN_VIEW = ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER"];
 
 // Marking queue for a sitting: pool of examiners + riders. Pool examiners pick
 // (claim) an unassigned rider to mark; claimed riders lock to their examiner.
