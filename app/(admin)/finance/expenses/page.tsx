@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, Plus } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { BulkReimburse } from "./bulk-reimburse";
+import { DeleteEntityButton } from "@/components/ui/delete-entity-button";
 
 export const dynamic = "force-dynamic";
 
@@ -158,6 +159,7 @@ export default async function ExpensesPage({
                   <th className="pb-2">Vendor</th>
                   <th className="pb-2">Amount</th>
                   <th className="pb-2">Status</th>
+                  {canManage && <th className="pb-2"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -174,11 +176,21 @@ export default async function ExpensesPage({
                     <td className="py-2">
                       <Badge variant={e.paid ? "success" : "warning"}>{e.paid ? "paid" : "due"}</Badge>
                     </td>
+                    {canManage && (
+                      <td className="py-2 text-right">
+                        <DeleteEntityButton
+                          endpoint={`/api/expenses/${e.id}`}
+                          entityLabel="expense"
+                          redirectTo="/finance/expenses"
+                          confirmBody={`Delete "${e.description}" (${inr(e.amount)})? This cannot be undone.`}
+                        />
+                      </td>
+                    )}
                   </tr>
                 ))}
                 {expenses.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                    <td colSpan={canManage ? 7 : 6} className="py-12 text-center text-muted-foreground">
                       No expenses match these filters.
                     </td>
                   </tr>

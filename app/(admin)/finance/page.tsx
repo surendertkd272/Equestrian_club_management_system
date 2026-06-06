@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { ExportCsvButton } from "@/components/ui/export-csv";
-import { Plus } from "lucide-react";
+import { StatTile } from "@/components/ui/stat-tile";
+import { Plus, TrendingUp, TrendingDown, IndianRupee, Receipt } from "lucide-react";
 import { can } from "@/lib/permissions";
 import { BulkMarkPaid } from "./bulk-mark-paid";
 import { RecordPaymentButton } from "@/components/finance/record-payment-button";
@@ -171,47 +172,11 @@ export default async function FinancePage() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium uppercase text-muted-foreground">Income (MTD)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">{inr(incomeMTD)}</div>
-            <p className="text-xs text-muted-foreground">YTD {inr(incomeYTD)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium uppercase text-muted-foreground">Expenses (MTD)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-rose-600">{inr(expenseMTD)}</div>
-            <p className="text-xs text-muted-foreground">YTD {inr(expenseYTD)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium uppercase text-muted-foreground">Net P&amp;L (MTD)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${netMTD >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
-              {inr(netMTD)}
-            </div>
-            <p className="text-xs text-muted-foreground">YTD {inr(netYTD)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium uppercase text-muted-foreground">Outstanding</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-700">{inr(outstandingAmt)}</div>
-            <p className="text-xs text-muted-foreground">
-              {outstanding._count} invoices · {overdueCount} overdue
-            </p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatTile label="Income (MTD)" value={inr(incomeMTD)} sub={`YTD ${inr(incomeYTD)}`} tone="green" icon={<TrendingUp className="h-5 w-5" />} />
+        <StatTile label="Expenses (MTD)" value={inr(expenseMTD)} sub={`YTD ${inr(expenseYTD)}`} tone="rose" icon={<TrendingDown className="h-5 w-5" />} />
+        <StatTile label="Net P&L (MTD)" value={inr(netMTD)} sub={`YTD ${inr(netYTD)}`} tone={netMTD >= 0 ? "green" : "rose"} icon={<IndianRupee className="h-5 w-5" />} />
+        <StatTile label="Outstanding" value={inr(outstandingAmt)} sub={`${outstanding._count} invoices · ${overdueCount} overdue`} tone="amber" icon={<Receipt className="h-5 w-5" />} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
