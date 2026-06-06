@@ -116,6 +116,11 @@ export default async function HorseProfile({ params }: { params: { id: string } 
           </Link>
         </Button>
         <div className="flex items-center gap-2">
+          {canManage && (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/horses/${horse.id}/edit`}>Edit</Link>
+            </Button>
+          )}
           <Button asChild variant="outline" size="sm">
             <Link href={`/horses/${horse.id}/medical`}>Medical records →</Link>
           </Button>
