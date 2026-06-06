@@ -117,7 +117,7 @@ export default async function StudentHome() {
           icon={<Trophy />}
           progress={
             totalSkillsAtLevel > 0
-              ? { value: skillsMastered, max: totalSkillsAtLevel, label: `${skillsMastered}/${totalSkillsAtLevel} skills mastered at this level` }
+              ? { value: skillsMastered, max: totalSkillsAtLevel, label: `${skillsMastered} of ${totalSkillsAtLevel} skills mastered` }
               : undefined
           }
           stats={[
