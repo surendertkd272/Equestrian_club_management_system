@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { EventStatusControl } from "./status-control";
+import { DeleteEntityButton } from "@/components/ui/delete-entity-button";
 import { RegistrationsPanel } from "./registrations-panel";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +59,14 @@ export default async function EventDetailPage({ params }: { params: { id: string
         <div className="flex items-center gap-2">
           <Badge variant={STATUS_VARIANT[ev.status] ?? "outline"}>{ev.status}</Badge>
           {canManage && <EventStatusControl id={ev.id} currentStatus={ev.status} />}
+          {canManage && ev.status !== "live" && ev.status !== "completed" && (
+            <DeleteEntityButton
+              endpoint={`/api/events/${ev.id}`}
+              entityLabel="event"
+              redirectTo="/events"
+              confirmBody={`"${ev.title}" and its registrations will be permanently removed.`}
+            />
+          )}
         </div>
       </div>
 

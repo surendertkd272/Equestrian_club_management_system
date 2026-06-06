@@ -12,6 +12,7 @@ import { ChevronLeft, ExternalLink } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { ClassPanel } from "./class-panel";
 import { StatusControl } from "./status-control";
+import { DeleteEntityButton } from "@/components/ui/delete-entity-button";
 import { OpsPanel } from "./ops-panel";
 import { TeamsPanel } from "./teams-panel";
 import { RoundsPanel } from "./rounds-panel";
@@ -108,6 +109,14 @@ export default async function CompetitionDetail({ params }: { params: { id: stri
           )}
           <Badge variant={STATUS_VARIANT[comp.status] ?? "outline"}>{comp.status.replaceAll("_", " ")}</Badge>
           {canManage && <StatusControl id={comp.id} currentStatus={comp.status} />}
+          {canManage && comp.status !== "live" && comp.status !== "completed" && (
+            <DeleteEntityButton
+              endpoint={`/api/competitions/${comp.id}`}
+              entityLabel="competition"
+              redirectTo="/competitions"
+              confirmBody={`"${comp.name}" and its rounds, entries, and draft data will be permanently removed.`}
+            />
+          )}
         </div>
       </div>
 
