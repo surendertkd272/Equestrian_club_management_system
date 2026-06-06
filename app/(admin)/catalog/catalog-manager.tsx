@@ -52,8 +52,8 @@ function humanError(code?: string): string | null {
   const map: Record<string, string> = {
     DUPLICATE_LEVEL: "A fee plan with that level name already exists.",
     DUPLICATE_NAME: "A level with that name already exists.",
-    LEVEL_IN_USE: "Clear this level's skills and exam history before deleting it.",
-    SKILL_IN_USE: "Riders have progress recorded against this skill — can't delete it.",
+    LEVEL_IN_USE: "Clear this level's components and exam history before deleting it.",
+    SKILL_IN_USE: "Riders have progress recorded against this component — can't delete it.",
   };
   return map[code] ?? code;
 }
@@ -138,7 +138,7 @@ function LevelsCard({ levels, busy, call }: { levels: Level[]; busy: boolean; ca
       setDraft({ name: "", order: "" });
   }
   async function remove(l: Level) {
-    if (!(await openConfirm({ title: "Delete level?", body: `"${l.name}" will be removed (only if it has no skills or exam history).`, confirmLabel: "Delete", destructive: true }))) return;
+    if (!(await openConfirm({ title: "Delete level?", body: `"${l.name}" will be removed (only if it has no components or exam history).`, confirmLabel: "Delete", destructive: true }))) return;
     call("DELETE", `/api/progress-levels/${l.id}`);
   }
   return (
@@ -151,7 +151,7 @@ function LevelsCard({ levels, busy, call }: { levels: Level[]; busy: boolean; ca
         <ul className="divide-y rounded-md border">
           {levels.map((l) => (
             <li key={l.id} className="flex items-center justify-between px-3 py-2 text-sm">
-              <span><span className="font-mono text-xs text-muted-foreground">#{l.order}</span> <span className="font-medium">{l.name}</span> <Badge variant="outline" className="ml-1 text-[10px]">{l.skills.length} skills</Badge></span>
+              <span><span className="font-mono text-xs text-muted-foreground">#{l.order}</span> <span className="font-medium">{l.name}</span> <Badge variant="outline" className="ml-1 text-[10px]">{l.skills.length} components</Badge></span>
               <Button size="sm" variant="ghost" className="text-destructive" disabled={busy} onClick={() => remove(l)}>Delete</Button>
             </li>
           ))}
@@ -167,9 +167,9 @@ function LevelsCard({ levels, busy, call }: { levels: Level[]; busy: boolean; ca
   );
 }
 
-// ── Skills ───────────────────────────────────────────────────────────────────
+// ── Components (the exam/level skill catalog) ────────────────────────────────
 function SkillsCard({ levels, busy, call }: { levels: Level[]; busy: boolean; call: any }) {
-  // Collect distinct discipline (category) values from the existing skills
+  // Collect distinct discipline (category) values from the existing components
   // so the input's datalist suggests what's already in use — matches the
   // rubric category names (Dress Code, Know Your Horse, etc.) without
   // hard-coding them.
@@ -180,29 +180,29 @@ function SkillsCard({ levels, busy, call }: { levels: Level[]; busy: boolean; ca
   const [draft, setDraft] = useState({ levelId: levels[0]?.id ?? "", discipline: seedDiscipline, name: "" });
   async function add() {
     if (!draft.levelId) return toast.error("Add a level first.");
-    if (!draft.name.trim()) return toast.error("Enter a skill name.");
+    if (!draft.name.trim()) return toast.error("Enter a component name.");
     if (await call("POST", "/api/skills", { levelId: draft.levelId, discipline: draft.discipline, name: draft.name.trim() }))
       setDraft((d) => ({ ...d, name: "" }));
   }
   async function remove(s: Skill) {
-    if (!(await openConfirm({ title: "Delete skill?", body: `"${s.name}" will be removed (only if no rider progress recorded).`, confirmLabel: "Delete", destructive: true }))) return;
+    if (!(await openConfirm({ title: "Delete component?", body: `"${s.name}" will be removed (only if no rider progress recorded).`, confirmLabel: "Delete", destructive: true }))) return;
     call("DELETE", `/api/skills/${s.id}`);
   }
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Skills</CardTitle>
-        <CardDescription>The skill curriculum coaches assess, grouped by level + category. Category is free-text — pick from the autocomplete (matches the exam rubric sections) or type a new one.</CardDescription>
+        <CardTitle>Components</CardTitle>
+        <CardDescription>The exam components coaches assess, grouped by level + category. Category is free-text — pick from the autocomplete (matches the exam rubric sections) or type a new one. (Distinct from the month-by-month skills tracked under Monthly Skills.)</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {levels.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Add a progress level first, then attach skills to it.</p>
+          <p className="text-sm text-muted-foreground">Add a progress level first, then attach components to it.</p>
         ) : (
           levels.map((l) => (
             <div key={l.id}>
               <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{l.name}</div>
               {l.skills.length === 0 ? (
-                <p className="px-1 py-1 text-xs text-muted-foreground">No skills.</p>
+                <p className="px-1 py-1 text-xs text-muted-foreground">No components.</p>
               ) : (
                 <ul className="divide-y rounded-md border">
                   {l.skills.map((s) => (
@@ -238,8 +238,8 @@ function SkillsCard({ levels, busy, call }: { levels: Level[]; busy: boolean; ca
                 ))}
               </datalist>
             </div>
-            <div className="flex-1 min-w-[160px]"><label className="text-[10px] uppercase text-muted-foreground">Skill</label><Input className="h-9" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Posting trot" /></div>
-            <Button onClick={add} disabled={busy}>Add Skill</Button>
+            <div className="flex-1 min-w-[160px]"><label className="text-[10px] uppercase text-muted-foreground">Component</label><Input className="h-9" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Posting trot" /></div>
+            <Button onClick={add} disabled={busy}>Add Component</Button>
           </div>
         )}
       </CardContent>
