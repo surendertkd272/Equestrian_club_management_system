@@ -20,10 +20,10 @@ export default async function EnterPage({ params }: { params: { slug: string } }
   const open = comp.status === "open_for_entries" && (!comp.entryDeadline || comp.entryDeadline > new Date());
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <header className="border-b bg-white">
+    <main className="min-h-screen bg-muted/40">
+      <header className="border-b bg-card">
         <div className="container mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <Link href={`/compete/${comp.slug}`} className="text-sm text-slate-600 hover:text-primary">← Back</Link>
+          <Link href={`/compete/${comp.slug}`} className="text-sm text-muted-foreground hover:text-primary">← Back</Link>
         </div>
       </header>
       <section className="container mx-auto max-w-3xl px-6 py-10">
@@ -33,7 +33,7 @@ export default async function EnterPage({ params }: { params: { slug: string } }
             Entries are closed. {comp.entryDeadline && `Deadline was ${new Date(comp.entryDeadline).toLocaleString("en-IN")}.`}
           </p>
         ) : classes.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-600">No classes published yet.</p>
+          <p className="mt-4 text-sm text-muted-foreground">No classes published yet.</p>
         ) : (
           <EntryForm
             slug={comp.slug}

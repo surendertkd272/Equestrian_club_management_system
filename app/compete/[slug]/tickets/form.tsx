@@ -102,7 +102,7 @@ export function TicketsForm({ slug, tiers }: { slug: string; tiers: Tier[] }) {
     <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       <form onSubmit={submit} className="mt-6 space-y-5">
-        <section className="rounded-lg border bg-white p-5">
+        <section className="rounded-lg border bg-card p-5">
           <h3 className="text-sm font-semibold">Choose your tier</h3>
           <div className="mt-3 space-y-2">
             {tiers.map((t) => (
@@ -119,14 +119,14 @@ export function TicketsForm({ slug, tiers }: { slug: string; tiers: Tier[] }) {
                     <span className="font-medium">{t.name}</span>
                     <span className="font-semibold">{t.priceInr === 0 ? "Free" : `₹${t.priceInr.toLocaleString("en-IN")}`}</span>
                   </div>
-                  {t.description && <p className="mt-1 text-xs text-slate-500">{t.description}</p>}
+                  {t.description && <p className="mt-1 text-xs text-muted-foreground">{t.description}</p>}
                 </div>
               </label>
             ))}
           </div>
         </section>
 
-        <section className="rounded-lg border bg-white p-5">
+        <section className="rounded-lg border bg-card p-5">
           <h3 className="text-sm font-semibold">Quantity + your details</h3>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <div>
@@ -137,32 +137,32 @@ export function TicketsForm({ slug, tiers }: { slug: string; tiers: Tier[] }) {
                 max={20}
                 value={quantity}
                 onChange={(e) => setQuantity(Math.max(1, Math.min(20, Number(e.target.value))))}
-                className="mt-1 h-10 w-full rounded border bg-white px-2 text-sm"
+                className="mt-1 h-10 w-full rounded border bg-card px-2 text-sm"
               />
             </div>
             <div className="text-right text-sm">
-              <div className="text-xs text-slate-500">Total</div>
+              <div className="text-xs text-muted-foreground">Total</div>
               <div className="text-2xl font-bold">{totalInr === 0 ? "Free" : `₹${totalInr.toLocaleString("en-IN")}`}</div>
             </div>
             <div>
               <label className="text-xs font-medium">Name *</label>
-              <input value={buyerName} onChange={(e) => setBuyerName(e.target.value)} required className="mt-1 h-10 w-full rounded border bg-white px-2 text-sm" />
+              <input value={buyerName} onChange={(e) => setBuyerName(e.target.value)} required className="mt-1 h-10 w-full rounded border bg-card px-2 text-sm" />
             </div>
             <div>
               <label className="text-xs font-medium">Email *</label>
-              <input type="email" value={buyerEmail} onChange={(e) => setBuyerEmail(e.target.value)} required className="mt-1 h-10 w-full rounded border bg-white px-2 text-sm" />
+              <input type="email" value={buyerEmail} onChange={(e) => setBuyerEmail(e.target.value)} required className="mt-1 h-10 w-full rounded border bg-card px-2 text-sm" />
             </div>
             <div>
               <label className="text-xs font-medium">Phone</label>
-              <input value={buyerPhone} onChange={(e) => setBuyerPhone(e.target.value)} className="mt-1 h-10 w-full rounded border bg-white px-2 text-sm" />
+              <input value={buyerPhone} onChange={(e) => setBuyerPhone(e.target.value)} className="mt-1 h-10 w-full rounded border bg-card px-2 text-sm" />
             </div>
           </div>
         </section>
 
-        <section className="rounded-lg border bg-white p-5">
+        <section className="rounded-lg border bg-card p-5">
           <h3 className="text-sm font-semibold">Quick check</h3>
           <p className="mt-2 text-sm">What is <strong>{captchaQuestion}</strong>?</p>
-          <input value={captchaAnswer} onChange={(e) => setCaptchaAnswer(e.target.value)} className="mt-2 h-10 w-32 rounded border bg-white px-2 text-sm" required />
+          <input value={captchaAnswer} onChange={(e) => setCaptchaAnswer(e.target.value)} className="mt-2 h-10 w-32 rounded border bg-card px-2 text-sm" required />
         </section>
 
         {error && (
@@ -172,7 +172,7 @@ export function TicketsForm({ slug, tiers }: { slug: string; tiers: Tier[] }) {
         <button
           type="submit"
           disabled={busy || !tierId || !buyerName || !buyerEmail}
-          className="w-full rounded-md bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+          className="w-full rounded-md bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
           {busy ? "Processing…" : totalInr === 0 ? "Get free tickets" : `Pay ₹${totalInr.toLocaleString("en-IN")}`}
         </button>

@@ -94,12 +94,12 @@ export function EntryForm({ slug, classes, scope }: { slug: string; classes: Cls
 
   return (
     <form onSubmit={submit} className="mt-6 space-y-6">
-      <section className="rounded-lg border bg-white p-5">
+      <section className="rounded-lg border bg-card p-5">
         <h3 className="text-sm font-semibold">Class</h3>
         <select
           value={form.className}
           onChange={(e) => set("className", e.target.value)}
-          className="mt-2 h-10 w-full rounded border bg-white px-2 text-sm"
+          className="mt-2 h-10 w-full rounded border bg-card px-2 text-sm"
         >
           {classes.map((c) => (
             <option key={c.name} value={c.name}>
@@ -109,7 +109,7 @@ export function EntryForm({ slug, classes, scope }: { slug: string; classes: Cls
         </select>
       </section>
 
-      <section className="rounded-lg border bg-white p-5">
+      <section className="rounded-lg border bg-card p-5">
         <h3 className="text-sm font-semibold">Rider details</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <Field label="First name" value={form.firstName} onChange={(v) => set("firstName", v)} required />
@@ -123,7 +123,7 @@ export function EntryForm({ slug, classes, scope }: { slug: string; classes: Cls
       {isMinor && (
         <section className="rounded-lg border bg-amber-50 p-5">
           <h3 className="text-sm font-semibold">Parental consent (under 18)</h3>
-          <p className="mt-1 text-xs text-slate-600">
+          <p className="mt-1 text-xs text-muted-foreground">
             DPDPA Section 9 requires verifiable parental consent for minors.
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -133,7 +133,7 @@ export function EntryForm({ slug, classes, scope }: { slug: string; classes: Cls
               <select
                 value={form.parentRelation}
                 onChange={(e) => set("parentRelation", e.target.value as any)}
-                className="mt-1 h-10 w-full rounded border bg-white px-2 text-sm"
+                className="mt-1 h-10 w-full rounded border bg-card px-2 text-sm"
               >
                 <option value="father">Father</option>
                 <option value="mother">Mother</option>
@@ -157,9 +157,9 @@ export function EntryForm({ slug, classes, scope }: { slug: string; classes: Cls
       )}
 
       {needsAccreditation && (
-        <section className="rounded-lg border bg-white p-5">
+        <section className="rounded-lg border bg-card p-5">
           <h3 className="text-sm font-semibold">Federation accreditation</h3>
-          <p className="mt-1 text-xs text-slate-600">
+          <p className="mt-1 text-xs text-muted-foreground">
             Required for {scope}-scope events.
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-3">
@@ -170,7 +170,7 @@ export function EntryForm({ slug, classes, scope }: { slug: string; classes: Cls
         </section>
       )}
 
-      <section className="rounded-lg border bg-white p-5">
+      <section className="rounded-lg border bg-card p-5">
         <h3 className="text-sm font-semibold">Horse</h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           <Field label="Horse name" value={form.horseName} onChange={(v) => set("horseName", v)} />
@@ -179,7 +179,7 @@ export function EntryForm({ slug, classes, scope }: { slug: string; classes: Cls
         </div>
       </section>
 
-      <section className="rounded-lg border bg-white p-5">
+      <section className="rounded-lg border bg-card p-5">
         <h3 className="text-sm font-semibold">Quick check</h3>
         <p className="mt-2 text-sm">
           What is <strong>{captchaQuestion}</strong>?
@@ -187,7 +187,7 @@ export function EntryForm({ slug, classes, scope }: { slug: string; classes: Cls
         <input
           value={form.captchaAnswer}
           onChange={(e) => set("captchaAnswer", e.target.value)}
-          className="mt-2 h-10 w-32 rounded border bg-white px-2 text-sm"
+          className="mt-2 h-10 w-32 rounded border bg-card px-2 text-sm"
           required
         />
       </section>
@@ -199,7 +199,7 @@ export function EntryForm({ slug, classes, scope }: { slug: string; classes: Cls
       <button
         type="submit"
         disabled={busy}
-        className="w-full rounded-md bg-slate-900 px-5 py-3 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+        className="w-full rounded-md bg-primary px-5 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
       >
         {busy ? "Submitting…" : "Submit entry"}
       </button>
@@ -231,7 +231,7 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         required={required}
         placeholder={placeholder}
-        className="mt-1 h-10 w-full rounded border bg-white px-2 text-sm"
+        className="mt-1 h-10 w-full rounded border bg-card px-2 text-sm"
       />
     </div>
   );

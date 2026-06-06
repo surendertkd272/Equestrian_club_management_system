@@ -26,12 +26,12 @@ export default async function TicketPage({ params }: { params: { id: string } })
   const pendingPayment = !ticket.paidAt && ticket.tier.priceInr > 0;
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-muted/40">
       <section className="container mx-auto max-w-md px-6 py-10">
-        <div className="rounded-2xl border bg-white p-6 text-center shadow-sm">
-          <div className="text-xs uppercase tracking-widest text-slate-500">Spectator Pass</div>
+        <div className="rounded-2xl border bg-card p-6 text-center shadow-sm">
+          <div className="text-xs uppercase tracking-widest text-muted-foreground">Spectator Pass</div>
           <h1 className="mt-2 text-xl font-bold">{ticket.competition.name}</h1>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-muted-foreground">
             {new Date(ticket.competition.startDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}
             {ticket.competition.venue && <> · {ticket.competition.venue}</>}
           </p>
@@ -45,9 +45,9 @@ export default async function TicketPage({ params }: { params: { id: string } })
               Payment is still processing. The ticket activates within a minute of payment success. Refresh this page.
             </div>
           ) : checkedIn ? (
-            <div className="my-6 rounded-md border border-slate-300 bg-slate-50 p-4 text-sm">
+            <div className="my-6 rounded-md border border-border bg-muted/40 p-4 text-sm">
               <div className="font-semibold">Checked in</div>
-              <div className="mt-1 text-xs text-slate-500">
+              <div className="mt-1 text-xs text-muted-foreground">
                 Scanned {new Date(ticket.checkedInAt!).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
               </div>
             </div>
@@ -55,7 +55,7 @@ export default async function TicketPage({ params }: { params: { id: string } })
             <div className="my-6">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={qrSrc} alt="Ticket QR" width={320} height={320} className="mx-auto" />
-              <p className="mt-3 text-xs text-slate-500">Show this at the gate</p>
+              <p className="mt-3 text-xs text-muted-foreground">Show this at the gate</p>
             </div>
           )}
 
@@ -67,7 +67,7 @@ export default async function TicketPage({ params }: { params: { id: string } })
           </div>
         </div>
 
-        <Link href={`/compete/${ticket.competition.slug}`} className="mt-4 block text-center text-xs text-slate-500 hover:underline">
+        <Link href={`/compete/${ticket.competition.slug}`} className="mt-4 block text-center text-xs text-muted-foreground hover:underline">
           ← event home
         </Link>
       </section>
@@ -78,7 +78,7 @@ export default async function TicketPage({ params }: { params: { id: string } })
 function Row({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex justify-between py-1.5 text-xs">
-      <span className="uppercase tracking-wider text-slate-500">{label}</span>
+      <span className="uppercase tracking-wider text-muted-foreground">{label}</span>
       <span className={mono ? "font-mono" : ""}>{value}</span>
     </div>
   );

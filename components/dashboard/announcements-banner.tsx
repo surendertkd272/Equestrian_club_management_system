@@ -12,10 +12,10 @@ type Row = {
 };
 
 const TONE: Record<Row["severity"], string> = {
-  info: "border-sky-300 bg-sky-50 text-sky-900",
-  success: "border-emerald-300 bg-emerald-50 text-emerald-900",
-  warning: "border-amber-300 bg-amber-50 text-amber-900",
-  maintenance: "border-violet-300 bg-violet-50 text-violet-900",
+  info: "border-sky-300 bg-sky-50 text-sky-900 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-100",
+  success: "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100",
+  warning: "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100",
+  maintenance: "border-violet-300 bg-violet-50 text-violet-900 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-100",
 };
 
 // In-app announcements banner. Fetches active announcements for the
@@ -60,7 +60,7 @@ export function AnnouncementsBanner() {
                 href={a.ctaHref}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-2 inline-block rounded-md bg-white/60 px-2.5 py-1 text-xs font-medium hover:bg-white"
+                className="mt-2 inline-block rounded-md bg-foreground/10 px-2.5 py-1 text-xs font-medium hover:bg-foreground/20"
               >
                 {a.ctaLabel} →
               </a>
@@ -69,7 +69,7 @@ export function AnnouncementsBanner() {
           <button
             type="button"
             onClick={() => dismiss(a.id)}
-            className="rounded px-2 py-0.5 text-xs font-medium hover:bg-white/40"
+            className="rounded px-2 py-0.5 text-xs font-medium hover:bg-foreground/10"
             aria-label="Dismiss"
           >
             ✕

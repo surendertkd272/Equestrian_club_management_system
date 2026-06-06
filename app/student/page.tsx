@@ -246,7 +246,7 @@ export default async function StudentHome() {
                         : a.status === "late"
                           ? "bg-amber-500 text-white"
                           : a.status === "excused"
-                            ? "bg-slate-300"
+                            ? "bg-muted text-muted-foreground"
                             : "bg-rose-500 text-white";
                     return (
                       <span
@@ -294,7 +294,7 @@ export default async function StudentHome() {
               {detail.exams.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No exams yet.</p>
               ) : (
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto"><table className="w-full text-sm">
                   <thead className="text-left text-xs uppercase text-muted-foreground">
                     <tr>
                       <th className="pb-2">Date</th>
@@ -321,7 +321,7 @@ export default async function StudentHome() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               )}
             </CardContent>
           </Card>

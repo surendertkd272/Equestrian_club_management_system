@@ -25,14 +25,14 @@ export default async function VerifyEntryPage({ params }: { params: { slug: stri
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
+    <main className="min-h-screen bg-muted/40">
       <section className="container mx-auto max-w-md px-6 py-16">
-        <div className="rounded-lg border bg-white p-6 text-center">
+        <div className="rounded-lg border bg-card p-6 text-center">
           {status === "ok" ? (
             <>
               <div className="text-3xl">✓</div>
               <h1 className="mt-3 text-xl font-bold">Entry confirmed</h1>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm text-muted-foreground">
                 Thanks{entry ? `, ${entry.firstName}` : ""}. The organiser will review and approve.
                 You'll get a second email when you're on the start list.
               </p>
@@ -41,7 +41,7 @@ export default async function VerifyEntryPage({ params }: { params: { slug: stri
             <>
               <div className="text-3xl">⏱</div>
               <h1 className="mt-3 text-xl font-bold">Link expired</h1>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm text-muted-foreground">
                 Verification links last 48 hours. Submit your entry again to receive a fresh link.
               </p>
             </>
@@ -49,7 +49,7 @@ export default async function VerifyEntryPage({ params }: { params: { slug: stri
             <>
               <div className="text-3xl">✗</div>
               <h1 className="mt-3 text-xl font-bold">Link invalid</h1>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm text-muted-foreground">
                 This link is unrecognised. It may have been used already or copied incorrectly.
               </p>
             </>
