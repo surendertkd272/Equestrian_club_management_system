@@ -56,6 +56,17 @@ export default async function CompetitionDetail({ params }: { params: { id: stri
   const classes = parseClasses(comp.classesJson);
   const canManage = can(session.role, "competition.manage");
 
+  // Dressage test catalog — for the per-round settings picker (dressage +
+  // eventing only; jumping/gymkhana don't use a dressage test).
+  const dressageTests =
+    comp.discipline === "dressage" || comp.discipline === "eventing"
+      ? await prisma.dressageTest.findMany({
+          where: { active: true },
+          select: { id: true, name: true, level: true, body: true },
+          orderBy: [{ body: "asc" }, { name: "asc" }],
+        })
+      : [];
+
   // Riders + horses available for entry + staff for officials assignment.
   const [riders, horses, teams, officialsStaff] = await Promise.all([
     prisma.rider.findMany({
@@ -108,6 +119,11 @@ export default async function CompetitionDetail({ params }: { params: { id: stri
             </Button>
           )}
           <Badge variant={STATUS_VARIANT[comp.status] ?? "outline"}>{comp.status.replaceAll("_", " ")}</Badge>
+          {canManage && (
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/competitions/${comp.id}/edit`}>Edit</Link>
+            </Button>
+          )}
           {canManage && <StatusControl id={comp.id} currentStatus={comp.status} />}
           {canManage && comp.status !== "live" && comp.status !== "completed" && (
             <DeleteEntityButton
@@ -216,12 +232,16 @@ export default async function CompetitionDetail({ params }: { params: { id: stri
         canManage={canManage}
         classNames={classes.map((c) => c.name)}
         discipline={discipline}
+        dressageTests={dressageTests}
         rounds={comp.rounds.map((r) => ({
           id: r.id,
           className: r.className,
           roundNumber: r.roundNumber,
           name: r.name,
           phase: r.phase,
+          judgingMode: r.judgingMode,
+          dressageTestId: r.dressageTestId,
+          dressagePenaltyFactor: r.dressagePenaltyFactor,
         }))}
       />
 
