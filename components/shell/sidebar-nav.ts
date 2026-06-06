@@ -67,7 +67,7 @@ export const NAV: NavGroup[] = [
     ],
   },
   {
-    group: "Centre Operations",
+    group: "Staff & Operations",
     items: [
       { href: "/staff", label: "Staff", iconName: "Users2", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
       { href: "/staff/onboarding", label: "Employee Onboarding", iconName: "UserCheck", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
@@ -100,6 +100,11 @@ export const NAV: NavGroup[] = [
       // Monthly payroll — records salary + auto-deducts outstanding advances.
       { href: "/salary", label: "Salary & Payroll", iconName: "Receipt", perm: ["SUPER_ADMIN", "ADMIN", "ACCOUNTANT"] },
       { href: "/facility-bookings", label: "Facility Bookings", iconName: "Building", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH"], feature: "facility-bookings" },
+    ],
+  },
+  {
+    group: "Stable & Veterinary",
+    items: [
       // Inventory: quantity-based catalog (EquipmentStock against EquipmentCatalog).
       // Per-item Asset tracking was removed in the consolidation — clubs found
       // the parallel system confusing, and the bulk view answers the
@@ -116,6 +121,11 @@ export const NAV: NavGroup[] = [
       // Grooms + farriers are routinely first to spot injuries; coach roles
       // and the vet need to see them too.
       { href: "/injuries", label: "Injury Log", iconName: "BandageIcon", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "VET", "STABLE_MANAGER", "GROOM", "FARRIER"], feature: "injuries" },
+    ],
+  },
+  {
+    group: "Events & Teams",
+    items: [
       { href: "/events", label: "Events", iconName: "CalendarRange", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH"], feature: "events" },
       { href: "/teams", label: "Teams / Squads", iconName: "Flag", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH"], feature: "teams" },
       // Event transport — horses + equipment manifest with check-out / check-in.

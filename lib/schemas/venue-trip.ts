@@ -8,7 +8,6 @@ export const CAN_MANAGE_TRIPS = new Set([
   "CENTRE_MANAGER",
   "HEAD_COACH",
   "STABLE_MANAGER",
-  "COMPETITION_MANAGER",
 ]);
 
 // Transport of horses + equipment to an event venue, with an inventory check

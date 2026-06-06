@@ -45,7 +45,7 @@ export function JudgesPanel({
 
   useEffect(() => {
     // JURY role listed first — they're the primary judging-panel members.
-    fetch("/api/users/lookup?role=JURY,EXAMINER,HEAD_COACH,SUPER_ADMIN,CENTRE_MANAGER")
+    fetch("/api/users/lookup?role=EXAMINER,HEAD_COACH,SUPER_ADMIN,CENTRE_MANAGER")
       .then((r) => r.json())
       .then((d) => {
         if (Array.isArray(d.users)) {

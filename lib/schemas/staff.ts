@@ -6,7 +6,7 @@ import { ROLES } from "@/lib/roles";
 // module, not staff hiring. SUPER_ADMIN + ADMIN sit above the centre tier
 // entirely. RIDER obviously can't be a staff role.
 const STAFF_ROLES = ROLES.filter(
-  (r) => !["SUPER_ADMIN", "ADMIN", "RIDER", "PARENT", "EXAMINER", "JURY"].includes(r),
+  (r) => !["SUPER_ADMIN", "ADMIN", "RIDER", "PARENT", "EXAMINER"].includes(r),
 ) as readonly string[];
 
 export const createStaffSchema = z.object({
