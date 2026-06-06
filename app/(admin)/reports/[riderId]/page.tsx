@@ -47,7 +47,7 @@ export default async function ReportCard({
     ? await prisma.user.findUnique({ where: { id: rider.batch.coachId }, select: { name: true } })
     : null;
 
-  const [attendances, exams, invoices, payments, certificates, skillsMastered, totalSkills, skillStatusesRecent] =
+  const [attendances, exams, invoices, payments, certificates, skillStatusesRecent] =
     await Promise.all([
       prisma.attendance.findMany({
         where: { riderId: rider.id, date: { gte: from, lte: to } },
@@ -75,8 +75,6 @@ export default async function ReportCard({
         where: { riderId: rider.id, issuedAt: { gte: from, lte: to } },
         orderBy: { issuedAt: "desc" },
       }),
-      prisma.riderSkillStatus.count({ where: { riderId: rider.id, status: "mastered" } }),
-      prisma.skill.count({ where: { level: { centreId: rider.centreId } } }),
       prisma.riderSkillStatus.findMany({
         where: { riderId: rider.id, status: "mastered", updatedAt: { gte: from, lte: to } },
         include: { skill: { select: { name: true, discipline: true } } },
@@ -92,7 +90,6 @@ export default async function ReportCard({
   const aTotal = attendances.length;
   const attendancePct = aTotal > 0 ? Math.round(((aPresent + aLate) / aTotal) * 100) : null;
 
-  const masteryPct = totalSkills > 0 ? Math.round((skillsMastered / totalSkills) * 100) : 0;
   const invoicedTotal = invoices.reduce((s, inv) => s + inv.amount, 0);
   const paidInPeriod = payments._sum.amount ?? 0;
   const dueInvoices = invoices.filter((inv) => inv.status === "due");
@@ -156,8 +153,8 @@ export default async function ReportCard({
           />
           <Tile
             label="Skills mastered"
-            value={`${skillsMastered}/${totalSkills}`}
-            sub={`${masteryPct}% overall`}
+            value={String(skillStatusesRecent.length)}
+            sub="this period"
           />
           <Tile
             label="Exams this period"
