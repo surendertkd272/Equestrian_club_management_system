@@ -46,16 +46,16 @@ export default async function DashboardPage() {
   // Role-specific dashboards. The generic KPI grid below stays for roles that
   // benefit from org-wide visibility (admin / centre_manager / head_coach /
   // coach), since their work crosses every module.
-  if (session.role === "FARRIER") return <FarrierDashboard centreId={centreId} />;
-  if (session.role === "VET") return <VetDashboard centreId={centreId} />;
-  if (session.role === "STABLE_MANAGER") return <StableManagerDashboard centreId={centreId} />;
-  if (session.role === "GROOM") return <GroomDashboard centreId={centreId} userId={session.userId} />;
-  if (session.role === "EXAMINER") return <ExaminerDashboard centreId={centreId} userId={session.userId} />;
-  if (session.role === "COMPETITION_MANAGER") return <CompetitionManagerDashboard centreId={centreId} />;
-  if (session.role === "ACCOUNTANT") return <AccountantDashboard centreId={centreId} />;
-  if (session.role === "INVENTORY_MANAGER") return <StableManagerDashboard centreId={centreId} />;
-  if (session.role === "HEAD_COACH") return <HeadCoachDashboard centreId={centreId} />;
-  if (session.role === "COACH") return <CoachDashboard centreId={centreId} userId={session.userId} />;
+  if (session.role === "FARRIER") return <FarrierDashboard centreId={centreId} features={features} />;
+  if (session.role === "VET") return <VetDashboard centreId={centreId} features={features} />;
+  if (session.role === "STABLE_MANAGER") return <StableManagerDashboard centreId={centreId} features={features} />;
+  if (session.role === "GROOM") return <GroomDashboard centreId={centreId} userId={session.userId} features={features} />;
+  if (session.role === "EXAMINER") return <ExaminerDashboard centreId={centreId} userId={session.userId} features={features} />;
+  if (session.role === "COMPETITION_MANAGER") return <CompetitionManagerDashboard centreId={centreId} features={features} />;
+  if (session.role === "ACCOUNTANT") return <AccountantDashboard centreId={centreId} features={features} />;
+  if (session.role === "INVENTORY_MANAGER") return <StableManagerDashboard centreId={centreId} features={features} />;
+  if (session.role === "HEAD_COACH") return <HeadCoachDashboard centreId={centreId} features={features} />;
+  if (session.role === "COACH") return <CoachDashboard centreId={centreId} userId={session.userId} features={features} />;
   // External auditor — their only job is the inspection sheet; send them there.
   if (session.role === "INSPECTION_OFFICER") redirect("/inspections");
 

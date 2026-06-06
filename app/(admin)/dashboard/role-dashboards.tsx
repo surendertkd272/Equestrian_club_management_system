@@ -38,8 +38,9 @@ function Kpi({ label, value, tone, link }: { label: string; value: number | stri
 // ─────────────────────────────────────────────────────────────────────────────
 // FARRIER
 
-export async function FarrierDashboard({ centreId }: { centreId: string | null }) {
+export async function FarrierDashboard({ centreId, features }: { centreId: string | null; features: ReadonlySet<string> }) {
   const where = centreWhere(centreId);
+  const fFarriery = features.has("farriery");
   const now = new Date();
   const sevenDays = new Date(now.getTime() + 7 * 86400000);
 
@@ -79,13 +80,13 @@ export async function FarrierDashboard({ centreId }: { centreId: string | null }
               { label: "Overdue", value: overdue.length },
               { label: "Done", value: recentlyCompleted.length },
             ]}
-            href="/farriery"
-            cta="Open farriery"
+            href={fFarriery ? "/farriery" : undefined}
+            cta={fFarriery ? "Open farriery" : undefined}
           />
         }
       >
-        <Kpi label="Upcoming (7d)" value={upcoming.length} link="/farriery" />
-        <Kpi label="Overdue" value={overdue.length} tone={overdue.length > 0 ? "amber" : undefined} link="/farriery" />
+        <Kpi label="Upcoming (7d)" value={upcoming.length} link={fFarriery ? "/farriery" : undefined} />
+        <Kpi label="Overdue" value={overdue.length} tone={overdue.length > 0 ? "amber" : undefined} link={fFarriery ? "/farriery" : undefined} />
         <Kpi label="Completed (recent)" value={recentlyCompleted.length} />
       </HeroRow>
 
@@ -135,8 +136,10 @@ export async function FarrierDashboard({ centreId }: { centreId: string | null }
 // ─────────────────────────────────────────────────────────────────────────────
 // VET
 
-export async function VetDashboard({ centreId }: { centreId: string | null }) {
+export async function VetDashboard({ centreId, features }: { centreId: string | null; features: ReadonlySet<string> }) {
   const where = centreWhere(centreId);
+  const fVet = features.has("vet-records");
+  const fInjuries = features.has("injuries");
   const now = new Date();
   const thirty = new Date(now.getTime() + 30 * 86400000);
   const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
@@ -181,15 +184,15 @@ export async function VetDashboard({ centreId }: { centreId: string | null }) {
               { label: "Injuries", value: recentInjuries.length },
               { label: "Meds exp.", value: expiringMeds.length },
             ]}
-            href="/vaccinations"
-            cta="Open vaccinations"
+            href={fVet ? "/vaccinations" : undefined}
+            cta={fVet ? "Open vaccinations" : undefined}
           />
         }
       >
-        <Kpi label="Vaccinations due (30d)" value={vaccDueSoon.length} tone={vaccDueSoon.length > 0 ? "amber" : undefined} link="/vaccinations" />
-        <Kpi label="Active injuries" value={recentInjuries.length} tone={recentInjuries.length > 0 ? "amber" : undefined} link="/injuries" />
-        <Kpi label="Medicines expiring (30d)" value={expiringMeds.length} tone={expiringMeds.length > 0 ? "amber" : undefined} link="/medicines" />
-        <Kpi label="Low-stock meds" value={lowStockMeds} link="/medicines" />
+        <Kpi label="Vaccinations due (30d)" value={vaccDueSoon.length} tone={vaccDueSoon.length > 0 ? "amber" : undefined} link={fVet ? "/vaccinations" : undefined} />
+        <Kpi label="Active injuries" value={recentInjuries.length} tone={recentInjuries.length > 0 ? "amber" : undefined} link={fInjuries ? "/injuries" : undefined} />
+        <Kpi label="Medicines expiring (30d)" value={expiringMeds.length} tone={expiringMeds.length > 0 ? "amber" : undefined} link={fVet ? "/medicines" : undefined} />
+        <Kpi label="Low-stock meds" value={lowStockMeds} link={fVet ? "/medicines" : undefined} />
       </HeroRow>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -246,8 +249,12 @@ export async function VetDashboard({ centreId }: { centreId: string | null }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // STABLE_MANAGER
 
-export async function StableManagerDashboard({ centreId }: { centreId: string | null }) {
+export async function StableManagerDashboard({ centreId, features }: { centreId: string | null; features: ReadonlySet<string> }) {
   const where = centreWhere(centreId);
+  const fHorses = features.has("horse-management");
+  const fTasks = features.has("tasks");
+  const fConsumables = features.has("consumables");
+  const fInjuries = features.has("injuries");
   const now = new Date();
 
   const [horses, todayAllocs, openTasks, lowConsumables, recentInjuries] = await Promise.all([
@@ -278,16 +285,16 @@ export async function StableManagerDashboard({ centreId }: { centreId: string | 
               { label: "Open tasks", value: openTasks },
               { label: "Injuries", value: recentInjuries },
             ]}
-            href="/horses"
-            cta="Open stable"
+            href={fHorses ? "/horses" : undefined}
+            cta={fHorses ? "Open stable" : undefined}
           />
         }
       >
-        <Kpi label="Active horses" value={horses} link="/horses" />
+        <Kpi label="Active horses" value={horses} link={fHorses ? "/horses" : undefined} />
         <Kpi label="Allocations today" value={todayAllocs} />
-        <Kpi label="Open tasks" value={openTasks} link="/tasks" />
-        <Kpi label="Low-stock consumables" value={lowConsumables} tone={lowConsumables > 0 ? "amber" : undefined} link="/consumables" />
-        <Kpi label="Open injuries" value={recentInjuries} tone={recentInjuries > 0 ? "amber" : undefined} link="/injuries" />
+        <Kpi label="Open tasks" value={openTasks} link={fTasks ? "/tasks" : undefined} />
+        <Kpi label="Low-stock consumables" value={lowConsumables} tone={lowConsumables > 0 ? "amber" : undefined} link={fConsumables ? "/consumables" : undefined} />
+        <Kpi label="Open injuries" value={recentInjuries} tone={recentInjuries > 0 ? "amber" : undefined} link={fInjuries ? "/injuries" : undefined} />
       </HeroRow>
     </div>
   );
@@ -296,8 +303,10 @@ export async function StableManagerDashboard({ centreId }: { centreId: string | 
 // ─────────────────────────────────────────────────────────────────────────────
 // GROOM
 
-export async function GroomDashboard({ centreId, userId }: { centreId: string | null; userId: string }) {
+export async function GroomDashboard({ centreId, userId, features }: { centreId: string | null; userId: string; features: ReadonlySet<string> }) {
   const where = centreWhere(centreId);
+  const fTasks = features.has("tasks");
+  const fHorses = features.has("horse-management");
   const now = new Date();
   const dayStart = new Date(now.setHours(0, 0, 0, 0));
   const dayEnd = new Date(new Date().setHours(23, 59, 59, 999));
@@ -339,14 +348,14 @@ export async function GroomDashboard({ centreId, userId }: { centreId: string | 
               { label: "Allocations", value: todayAllocs.length },
               { label: "Horses", value: horses },
             ]}
-            href="/tasks"
-            cta="Open my tasks"
+            href={fTasks ? "/tasks" : undefined}
+            cta={fTasks ? "Open my tasks" : undefined}
           />
         }
       >
-        <Kpi label="My open tasks" value={myTasks.length} link="/tasks" />
+        <Kpi label="My open tasks" value={myTasks.length} link={fTasks ? "/tasks" : undefined} />
         <Kpi label="Allocations today" value={todayAllocs.length} />
-        <Kpi label="Horses on roster" value={horses} link="/horses" />
+        <Kpi label="Horses on roster" value={horses} link={fHorses ? "/horses" : undefined} />
       </HeroRow>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -406,8 +415,10 @@ export async function GroomDashboard({ centreId, userId }: { centreId: string | 
 // ─────────────────────────────────────────────────────────────────────────────
 // EXAMINER
 
-export async function ExaminerDashboard({ centreId, userId }: { centreId: string | null; userId: string }) {
+export async function ExaminerDashboard({ centreId, userId, features }: { centreId: string | null; userId: string; features: ReadonlySet<string> }) {
   const where = centreWhere(centreId);
+  const fExams = features.has("external-exams");
+  const fCerts = features.has("certificates");
   const now = new Date();
 
   const [upcoming, completedRecent, certsIssued] = await Promise.all([
@@ -443,21 +454,21 @@ export async function ExaminerDashboard({ centreId, userId }: { centreId: string
               { label: "Completed", value: completedRecent.length },
               { label: "Certs 30d", value: certsIssued },
             ]}
-            href="/exams"
-            cta="Open exams"
+            href={fExams ? "/exams" : undefined}
+            cta={fExams ? "Open exams" : undefined}
           />
         }
       >
-        <Kpi label="Upcoming exams" value={upcoming.length} link="/exams" />
+        <Kpi label="Upcoming exams" value={upcoming.length} link={fExams ? "/exams" : undefined} />
         <Kpi label="Completed (recent)" value={completedRecent.length} />
-        <Kpi label="Certs signed (30d)" value={certsIssued} link="/certificates" />
+        <Kpi label="Certs signed (30d)" value={certsIssued} link={fCerts ? "/certificates" : undefined} />
       </HeroRow>
 
       <Card>
         <CardHeader><CardTitle>My upcoming exams</CardTitle></CardHeader>
         <CardContent>
           {upcoming.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No exams scheduled. Add one from <Link href="/exams" className="underline">/exams</Link>.</p>
+            <p className="text-sm text-muted-foreground">No exams scheduled.{fExams ? <> Add one from <Link href="/exams" className="underline">/exams</Link>.</> : null}</p>
           ) : (
             <ul className="space-y-1 text-sm">
               {upcoming.map((e) => (
@@ -480,8 +491,10 @@ export async function ExaminerDashboard({ centreId, userId }: { centreId: string
 // ─────────────────────────────────────────────────────────────────────────────
 // COMPETITION_MANAGER
 
-export async function CompetitionManagerDashboard({ centreId }: { centreId: string | null }) {
+export async function CompetitionManagerDashboard({ centreId, features }: { centreId: string | null; features: ReadonlySet<string> }) {
   const where = centreWhere(centreId);
+  const fComps = features.has("competitions");
+  const fTeams = features.has("teams");
 
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
@@ -524,15 +537,15 @@ export async function CompetitionManagerDashboard({ centreId }: { centreId: stri
               { label: "Days to go", value: compDaysToGo ?? "—" },
               { label: "Active", value: active },
             ]}
-            href="/competitions"
-            cta="Open competitions"
+            href={fComps ? "/competitions" : undefined}
+            cta={fComps ? "Open competitions" : undefined}
           />
         }
       >
-        <Kpi label="Active competitions" value={active} link="/competitions" />
-        <Kpi label="Drafts" value={drafts} link="/competitions" />
+        <Kpi label="Active competitions" value={active} link={fComps ? "/competitions" : undefined} />
+        <Kpi label="Drafts" value={drafts} link={fComps ? "/competitions" : undefined} />
         <Kpi label="Total entries" value={upcomingEntries} />
-        <Kpi label="Top-3 placements" value={recentResults} link="/teams" />
+        <Kpi label="Top-3 placements" value={recentResults} link={fTeams ? "/teams" : undefined} />
       </HeroRow>
     </div>
   );
@@ -541,7 +554,7 @@ export async function CompetitionManagerDashboard({ centreId }: { centreId: stri
 // ─────────────────────────────────────────────────────────────────────────────
 // ACCOUNTANT
 
-export async function AccountantDashboard({ centreId }: { centreId: string | null }) {
+export async function AccountantDashboard({ centreId }: { centreId: string | null; features: ReadonlySet<string> }) {
   const where = centreWhere(centreId);
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
@@ -595,8 +608,10 @@ export async function AccountantDashboard({ centreId }: { centreId: string | nul
 // (which batches haven't been marked today?), upcoming exams, and recent
 // scoring drafts to nudge along.
 
-export async function HeadCoachDashboard({ centreId }: { centreId: string | null }) {
+export async function HeadCoachDashboard({ centreId, features }: { centreId: string | null; features: ReadonlySet<string> }) {
   const where = centreWhere(centreId);
+  const fAttendance = features.has("attendance");
+  const fExams = features.has("external-exams");
   const todayStart = new Date();
   todayStart.setUTCHours(0, 0, 0, 0);
   const todayEnd = new Date(todayStart.getTime() + 86400000);
@@ -646,8 +661,8 @@ export async function HeadCoachDashboard({ centreId }: { centreId: string | null
               { label: "Drafts", value: draftExams.length },
               { label: "Updates", value: `${updatesToday}/${coachCount}` },
             ]}
-            href="/attendance"
-            cta="Open attendance"
+            href={fAttendance ? "/attendance" : undefined}
+            cta={fAttendance ? "Open attendance" : undefined}
           />
         }
       >
@@ -656,10 +671,10 @@ export async function HeadCoachDashboard({ centreId }: { centreId: string | null
           label="Batches without attendance (today)"
           value={unmarked.length}
           tone={unmarked.length > 0 ? "amber" : "green"}
-          link="/attendance"
+          link={fAttendance ? "/attendance" : undefined}
         />
-        <Kpi label="Upcoming exams (7d)" value={upcomingExams} link="/exams" />
-        <Kpi label="Score drafts to finalise" value={draftExams.length} tone={draftExams.length > 0 ? "amber" : undefined} link="/exams" />
+        <Kpi label="Upcoming exams (7d)" value={upcomingExams} link={fExams ? "/exams" : undefined} />
+        <Kpi label="Score drafts to finalise" value={draftExams.length} tone={draftExams.length > 0 ? "amber" : undefined} link={fExams ? "/exams" : undefined} />
         <Kpi
           label="Coach updates filed (today)"
           value={`${updatesToday}/${coachCount}`}
@@ -668,7 +683,7 @@ export async function HeadCoachDashboard({ centreId }: { centreId: string | null
         />
       </HeroRow>
 
-      {unmarked.length > 0 && (
+      {fAttendance && unmarked.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Batches still unmarked today</CardTitle>
@@ -697,8 +712,11 @@ export async function HeadCoachDashboard({ centreId }: { centreId: string | null
 // shouldn't see); this focuses them on their own roster, attendance, tasks,
 // daily checklist, and monthly-skill marking.
 
-export async function CoachDashboard({ centreId, userId }: { centreId: string | null; userId: string }) {
+export async function CoachDashboard({ centreId, userId, features }: { centreId: string | null; userId: string; features: ReadonlySet<string> }) {
   const where = centreWhere(centreId);
+  const fAttendance = features.has("attendance");
+  const fTasks = features.has("tasks");
+  const fInjuries = features.has("injuries");
   const todayStart = new Date();
   todayStart.setUTCHours(0, 0, 0, 0);
   const todayEnd = new Date(todayStart.getTime() + 86400000);
@@ -740,8 +758,8 @@ export async function CoachDashboard({ centreId, userId }: { centreId: string | 
               { label: "Checklist", value: checklistsToday > 0 ? "✓" : "—" },
               { label: "Riders", value: totalRiders },
             ]}
-            href="/attendance"
-            cta="Mark attendance"
+            href={fAttendance ? "/attendance" : undefined}
+            cta={fAttendance ? "Mark attendance" : undefined}
           />
         }
       >
@@ -750,9 +768,9 @@ export async function CoachDashboard({ centreId, userId }: { centreId: string | 
           label="My batches unmarked (today)"
           value={unmarked.length}
           tone={unmarked.length > 0 ? "amber" : "green"}
-          link="/attendance"
+          link={fAttendance ? "/attendance" : undefined}
         />
-        <Kpi label="My open tasks" value={myOpenTasks} tone={myOpenTasks > 0 ? "amber" : undefined} link="/tasks?mine=1" />
+        <Kpi label="My open tasks" value={myOpenTasks} tone={myOpenTasks > 0 ? "amber" : undefined} link={fTasks ? "/tasks?mine=1" : undefined} />
         <Kpi
           label="Daily checklist filed today"
           value={checklistsToday > 0 ? "Yes" : "No"}
@@ -762,7 +780,7 @@ export async function CoachDashboard({ centreId, userId }: { centreId: string | 
       </HeroRow>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {unmarked.length > 0 && (
+        {fAttendance && unmarked.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">My batches still unmarked today</CardTitle>
@@ -797,10 +815,12 @@ export async function CoachDashboard({ centreId, userId }: { centreId: string | 
                 <span>Mark monthly skills</span>
                 <Link href="/monthly-skills" className="text-xs text-primary hover:underline">Open →</Link>
               </li>
-              <li className="flex justify-between border-b py-1">
-                <span>Log a horse injury</span>
-                <Link href="/injuries" className="text-xs text-primary hover:underline">Open →</Link>
-              </li>
+              {fInjuries && (
+                <li className="flex justify-between border-b py-1">
+                  <span>Log a horse injury</span>
+                  <Link href="/injuries" className="text-xs text-primary hover:underline">Open →</Link>
+                </li>
+              )}
               <li className="flex justify-between py-1">
                 <span>Active riders at centre</span>
                 <span className="text-xs text-muted-foreground">{totalRiders}</span>
