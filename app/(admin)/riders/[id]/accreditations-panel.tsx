@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, ExternalLink } from "lucide-react";
+import { Plus, Trash2, ExternalLink, Pencil } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
 
 type Accred = {
@@ -46,6 +46,27 @@ export function AccreditationsPanel({
     fileUrl: "",
   });
   const [busy, setBusy] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const blank = { body: "", title: "", discipline: "", level: "", serialNo: "", issuedAt: today, expiresAt: "", fileUrl: "" };
+  function startEdit(a: Accred) {
+    setEditingId(a.id);
+    setForm({
+      body: a.body,
+      title: a.title,
+      discipline: a.discipline ?? "",
+      level: a.level ?? "",
+      serialNo: a.serialNo ?? "",
+      issuedAt: a.issuedAt.slice(0, 10),
+      expiresAt: a.expiresAt ? a.expiresAt.slice(0, 10) : "",
+      fileUrl: a.fileUrl ?? "",
+    });
+    if (typeof window !== "undefined") window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  }
+  function cancelEdit() {
+    setEditingId(null);
+    setForm(blank);
+  }
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
@@ -55,19 +76,29 @@ export function AccreditationsPanel({
     }
     setBusy(true);
     try {
-      const payload: any = {
-        riderId,
-        body: form.body,
-        title: form.title,
-        issuedAt: form.issuedAt,
-      };
-      if (form.discipline) payload.discipline = form.discipline;
-      if (form.level) payload.level = form.level;
-      if (form.serialNo) payload.serialNo = form.serialNo;
-      if (form.expiresAt) payload.expiresAt = form.expiresAt;
-      if (form.fileUrl) payload.fileUrl = form.fileUrl;
-      const res = await fetch("/api/accreditations", {
-        method: "POST",
+      // On edit, send every field (null for cleared optionals) so the PATCH
+      // reflects exactly what's on screen; on add, omit blanks.
+      const payload: any = editingId
+        ? {
+            body: form.body,
+            title: form.title,
+            issuedAt: form.issuedAt,
+            discipline: form.discipline || null,
+            level: form.level || null,
+            serialNo: form.serialNo || null,
+            expiresAt: form.expiresAt || null,
+            fileUrl: form.fileUrl || null,
+          }
+        : { riderId, body: form.body, title: form.title, issuedAt: form.issuedAt };
+      if (!editingId) {
+        if (form.discipline) payload.discipline = form.discipline;
+        if (form.level) payload.level = form.level;
+        if (form.serialNo) payload.serialNo = form.serialNo;
+        if (form.expiresAt) payload.expiresAt = form.expiresAt;
+        if (form.fileUrl) payload.fileUrl = form.fileUrl;
+      }
+      const res = await fetch(editingId ? `/api/accreditations/${editingId}` : "/api/accreditations", {
+        method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -76,8 +107,9 @@ export function AccreditationsPanel({
         toast.error(d.error ?? "Failed");
         return;
       }
-      toast.success("Added");
-      setForm({ ...form, body: "", title: "", level: "", serialNo: "", fileUrl: "" });
+      toast.success(editingId ? "Updated" : "Added");
+      setEditingId(null);
+      setForm(blank);
       router.refresh();
     } finally {
       setBusy(false);
@@ -142,6 +174,16 @@ export function AccreditationsPanel({
                     >
                       Scan <ExternalLink className="inline h-3 w-3" />
                     </a>
+                  )}
+                  {canManage && (
+                    <button
+                      type="button"
+                      onClick={() => startEdit(a)}
+                      className="text-muted-foreground hover:text-primary"
+                      aria-label="edit"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
                   )}
                   {canManage && (
                     <button
@@ -224,9 +266,14 @@ export function AccreditationsPanel({
                 placeholder="https://… (optional)"
               />
             </div>
-            <Button type="submit" disabled={busy} className="md:col-span-6">
-              <Plus className="h-4 w-4" /> Add accreditation
-            </Button>
+            <div className="flex gap-2 md:col-span-6">
+              <Button type="submit" disabled={busy}>
+                {editingId ? <><Pencil className="h-4 w-4" /> Save changes</> : <><Plus className="h-4 w-4" /> Add accreditation</>}
+              </Button>
+              {editingId && (
+                <Button type="button" variant="outline" onClick={cancelEdit}>Cancel</Button>
+              )}
+            </div>
           </form>
         )}
       </CardContent>

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { openConfirm } from "@/components/ui/confirm-dialog";
 import { TRIP_ITEM_CATEGORIES } from "@/lib/schemas/venue-trip";
 
 type Item = {
@@ -91,6 +92,13 @@ export function TripManifest({
   }
 
   async function removeItem(itemId: string) {
+    const ok = await openConfirm({
+      title: "Remove this item?",
+      body: "It will be removed from the trip manifest.",
+      destructive: true,
+      confirmLabel: "Remove",
+    });
+    if (!ok) return;
     setBusy(itemId + "del");
     try {
       const res = await fetch(`/api/venue-trips/${tripId}/items/${itemId}`, { method: "DELETE" });
