@@ -23,7 +23,6 @@ export async function riderActivity(riderId: string): Promise<ActivityItem[]> {
     attendances,
     exams,
     certs,
-    compEntries,
     skills,
     parents,
     injuries,
@@ -45,12 +44,6 @@ export async function riderActivity(riderId: string): Promise<ActivityItem[]> {
       orderBy: { issuedAt: "desc" },
       take: 10,
       select: { id: true, issuedAt: true, serialNo: true, type: true, levelName: true },
-    }),
-    prisma.competitionEntry.findMany({
-      where: { riderId },
-      orderBy: { updatedAt: "desc" },
-      take: 10,
-      select: { id: true, updatedAt: true, className: true, status: true, placement: true, competition: { select: { name: true } } },
     }),
     prisma.riderSkillStatus.findMany({
       where: { riderId, status: "mastered" },
@@ -99,14 +92,6 @@ export async function riderActivity(riderId: string): Promise<ActivityItem[]> {
       title: `Certificate issued — ${c.levelName ?? c.type}`,
       detail: c.serialNo,
       link: `/certificates/${c.id}`,
-    })),
-    ...compEntries.map((e) => ({
-      id: `comp-${e.id}`,
-      at: e.updatedAt,
-      kind: e.placement ? `competition.placed.${e.placement}` : "competition.entered",
-      title: e.placement
-        ? `🏆 ${ordinal(e.placement)} at ${e.competition.name} (${e.className})`
-        : `Entered ${e.competition.name} (${e.className})`,
     })),
     ...skills.map((s) => ({
       id: `skill-${s.skillId}-${s.riderId}`,

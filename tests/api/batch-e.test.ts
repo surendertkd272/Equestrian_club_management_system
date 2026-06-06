@@ -6,7 +6,6 @@ import { resetDb } from "../helpers/db";
 import { mkCentre, mkUser, mkRider } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession, type SessionPayload } from "@/lib/auth";
-import { medalsForRider, medalsForTeam } from "@/lib/medals";
 import { mockReq } from "../helpers/request";
 
 const cookieJar = new Map<string, { value: string }>();
@@ -175,74 +174,6 @@ describe("Teams + members", () => {
     );
     expect(r.status).toBe(400);
     expect((await r.json()).error).toBe("RIDER_CROSS_CENTRE");
-  });
-});
-
-describe("Medal rollup (lib/medals)", () => {
-  it("counts gold / silver / bronze + total placements per rider", async () => {
-    const centre = await mkCentre();
-    const rider = await mkRider({ centreId: centre.id });
-    const comp = await prisma.competition.create({
-      data: {
-        centreId: centre.id,
-        name: "Test",
-        slug: `t-${Date.now()}`,
-        scope: "internal",
-        startDate: new Date(),
-        endDate: new Date(),
-        classesJson: JSON.stringify([{ name: "Open", fee: 0 }]),
-      },
-    });
-    // 1×gold, 1×silver, 1×bronze, 1×placed-4th
-    for (const placement of [1, 2, 3, 4]) {
-      await prisma.competitionEntry.create({
-        data: {
-          competitionId: comp.id,
-          riderId: rider.id,
-          className: `C${placement}`,
-          placement,
-        },
-      });
-    }
-    // One un-placed entry
-    await prisma.competitionEntry.create({
-      data: { competitionId: comp.id, riderId: rider.id, className: "C5" },
-    });
-
-    const t = await medalsForRider(rider.id);
-    expect(t.gold).toBe(1);
-    expect(t.silver).toBe(1);
-    expect(t.bronze).toBe(1);
-    expect(t.placed).toBe(4); // includes the 4th-place finish
-    expect(t.entries).toBe(5); // all entered (incl. unplaced)
-  });
-
-  it("rolls medals up across a team", async () => {
-    const centre = await mkCentre();
-    const r1 = await mkRider({ centreId: centre.id });
-    const r2 = await mkRider({ centreId: centre.id });
-    const team = await prisma.team.create({ data: { centreId: centre.id, name: "T" } });
-    await prisma.teamMember.create({ data: { teamId: team.id, riderId: r1.id } });
-    await prisma.teamMember.create({ data: { teamId: team.id, riderId: r2.id } });
-
-    const comp = await prisma.competition.create({
-      data: {
-        centreId: centre.id,
-        name: "X",
-        slug: `x-${Date.now()}`,
-        scope: "internal",
-        startDate: new Date(),
-        endDate: new Date(),
-        classesJson: JSON.stringify([{ name: "Open", fee: 0 }]),
-      },
-    });
-    await prisma.competitionEntry.create({ data: { competitionId: comp.id, riderId: r1.id, className: "Open", placement: 1 } });
-    await prisma.competitionEntry.create({ data: { competitionId: comp.id, riderId: r2.id, className: "Open", placement: 3 } });
-
-    const t = await medalsForTeam(team.id);
-    expect(t.gold).toBe(1);
-    expect(t.bronze).toBe(1);
-    expect(t.entries).toBe(2);
   });
 });
 

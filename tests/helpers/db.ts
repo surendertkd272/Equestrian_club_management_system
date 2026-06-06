@@ -28,12 +28,9 @@ export async function resetDb(): Promise<void> {
   await prisma.horseHealthLog.deleteMany();
   await prisma.injuryLog.deleteMany();
   await prisma.vaccinationSchedule.deleteMany();
-  // Batch C: consumables + competition operations.
+  // Batch C: consumables.
   await prisma.consumableMovement.deleteMany();
   await prisma.consumable.deleteMany();
-  await prisma.startListEntry.deleteMany();
-  await prisma.prizeAward.deleteMany();
-  await prisma.sponsor.deleteMany();
   // Batch D: courses + facility bookings + approvals.
   await prisma.staffCertification.deleteMany();
   await prisma.courseEnrolment.deleteMany();
@@ -53,22 +50,6 @@ export async function resetDb(): Promise<void> {
   await prisma.payment.deleteMany();
   await prisma.invoice.deleteMany();
   await prisma.feePlan.deleteMany();
-  await prisma.jumpEffort.deleteMany();
-  await prisma.dressageScoresheet.deleteMany();
-  await prisma.competitionOfficial.deleteMany();
-  await prisma.gymkhanaResult.deleteMany();
-  await prisma.gymkhanaGame.deleteMany();
-  await prisma.courseFence.deleteMany();
-  await prisma.vetCheck.deleteMany();
-  await prisma.stableAllocation.deleteMany();
-  await prisma.drugTest.deleteMany();
-  await prisma.protest.deleteMany();
-  await prisma.externalEntry.deleteMany();
-  await prisma.ticket.deleteMany();
-  await prisma.ticketTier.deleteMany();
-  await prisma.competitionEntry.deleteMany();
-  await prisma.competition.deleteMany();
-  await prisma.dressageTest.deleteMany();
   await prisma.task.deleteMany();
   await prisma.medicineUsage.deleteMany();
   await prisma.medicine.deleteMany();

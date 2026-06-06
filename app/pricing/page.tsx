@@ -31,7 +31,6 @@ const COMPARISON_KEYS: FeatureKey[] = [
   "analytics",
   "whatsapp-notifications",
   "events",
-  "competitions",
   "external-exams",
   "accreditations",
   "hq-dashboard",

@@ -12,13 +12,11 @@ const ALL_STAFF: Role[] = [
   "COACH",
   "STABLE_MANAGER",
   "INVENTORY_MANAGER",
-  "COMPETITION_MANAGER",
   "GROOM",
   "FARRIER",
   "VET",
   "ACCOUNTANT",
   "EXAMINER",
-  "JURY",
 ];
 
 // Icons are looked up by name in the React render layer; we keep just the
@@ -52,7 +50,7 @@ export const NAV: NavGroup[] = [
   {
     group: "Riders & Training",
     items: [
-      { href: "/riders", label: "Riders", iconName: "Users", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER", "COMPETITION_MANAGER", "SCHOOL_ADMINISTRATOR"] },
+      { href: "/riders", label: "Riders", iconName: "Users", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER", "SCHOOL_ADMINISTRATOR"] },
       // Self-enrolment approval queue — School Admin / Centre Manager vet
       // public sign-ups before they become billable registrations.
       { href: "/enrolments", label: "Enrolment Approvals", iconName: "UserCheck", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "SCHOOL_ADMINISTRATOR"] },
@@ -65,8 +63,7 @@ export const NAV: NavGroup[] = [
       // Sprint 4: month-by-month skill ratings curated per centre. Distinct from
       // /progress (which is the catalog of canonical skills per discipline).
       { href: "/monthly-skills", label: "Monthly Skills", iconName: "TrendingUp", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "SCHOOL_ADMINISTRATOR"] },
-      { href: "/exams", label: "Exams", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "EXAMINER", "JURY", "SCHOOL_ADMINISTRATOR"], feature: "external-exams" },
-      { href: "/competitions", label: "Competitions", iconName: "Trophy", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "COMPETITION_MANAGER", "JURY"], feature: "competitions" },
+      { href: "/exams", label: "Exams", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "EXAMINER", "SCHOOL_ADMINISTRATOR"], feature: "external-exams" },
     ],
   },
   {
@@ -119,10 +116,10 @@ export const NAV: NavGroup[] = [
       // Grooms + farriers are routinely first to spot injuries; coach roles
       // and the vet need to see them too.
       { href: "/injuries", label: "Injury Log", iconName: "BandageIcon", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "VET", "STABLE_MANAGER", "GROOM", "FARRIER"], feature: "injuries" },
-      { href: "/events", label: "Events", iconName: "CalendarRange", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COMPETITION_MANAGER"], feature: "events" },
-      { href: "/teams", label: "Teams / Squads", iconName: "Flag", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COMPETITION_MANAGER"], feature: "teams" },
+      { href: "/events", label: "Events", iconName: "CalendarRange", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH"], feature: "events" },
+      { href: "/teams", label: "Teams / Squads", iconName: "Flag", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH"], feature: "teams" },
       // Event transport — horses + equipment manifest with check-out / check-in.
-      { href: "/transport", label: "Event Transport", iconName: "CalendarRange", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER", "COMPETITION_MANAGER"] },
+      { href: "/transport", label: "Event Transport", iconName: "CalendarRange", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER"] },
     ],
   },
   {
@@ -132,12 +129,12 @@ export const NAV: NavGroup[] = [
       // Staff-side invoice submission. Distinct from the admin finance page —
       // visible to coaches/grooms/vet/etc so they can drop in bills for things
       // they purchased on behalf of the club.
-      { href: "/expenses/submit", label: "Submit Invoice", iconName: "Receipt", perm: ["HEAD_COACH", "COACH", "STABLE_MANAGER", "INVENTORY_MANAGER", "COMPETITION_MANAGER", "GROOM", "FARRIER", "VET"] },
+      { href: "/expenses/submit", label: "Submit Invoice", iconName: "Receipt", perm: ["HEAD_COACH", "COACH", "STABLE_MANAGER", "INVENTORY_MANAGER", "GROOM", "FARRIER", "VET"] },
       { href: "/reports", label: "Reports", iconName: "FileText", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER", "SCHOOL_ADMINISTRATOR"], feature: "reports" },
       // Club-wise procurement snapshot (Farrier/Fodder/Hay/Vet medicines).
       { href: "/reports/procurement", label: "Procurement Report", iconName: "FileText", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "ACCOUNTANT"], feature: "expenses" },
-      { href: "/certificates", label: "Certificates", iconName: "Award", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "EXAMINER", "COMPETITION_MANAGER", "SCHOOL_ADMINISTRATOR"], feature: "certificates" },
-      { href: "/accreditations", label: "Accreditations", iconName: "Shield", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COMPETITION_MANAGER"], feature: "accreditations" },
+      { href: "/certificates", label: "Certificates", iconName: "Award", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "EXAMINER", "SCHOOL_ADMINISTRATOR"], feature: "certificates" },
+      { href: "/accreditations", label: "Accreditations", iconName: "Shield", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH"], feature: "accreditations" },
       { href: "/notifications", label: "Notifications", iconName: "Bell", perm: ALL_STAFF },
       { href: "/audit", label: "Audit Log", iconName: "Shield", perm: ["SUPER_ADMIN"] },
       // Manual inspections / SOP audits — run by the external Inspection Officer
@@ -204,8 +201,6 @@ const ROLE_PINS: Partial<Record<Role, string[]>> = {
   SCHOOL_ADMINISTRATOR: ["/riders", "/attendance", "/progress", "/exams"],
   // Examiner runs exam days.
   EXAMINER: ["/exams", "/certificates", "/riders"],
-  JURY: ["/competitions", "/exams"],
-  COMPETITION_MANAGER: ["/competitions", "/events", "/teams", "/transport"],
   // Inspection officer's whole job is the inspections + audit pair.
   INSPECTION_OFFICER: ["/inspections", "/audit"],
 };

@@ -15,7 +15,6 @@ export type FeatureKey =
   | "internal-exams"
   | "external-exams"
   | "certificates"
-  | "competitions"
   | "events"
   // People
   | "staff-attendance"
@@ -79,7 +78,6 @@ export const FEATURES: readonly FeatureDef[] = [
   { key: "internal-exams",         label: "Internal Exams",         description: "Schedule and score in-house promotion exams.",                   group: "operations",   enforcement: "ui-only" },
   { key: "external-exams",         label: "External Examinations",  description: "Formal exam workflow with external examiners (EFI-style).",     group: "operations",   enforcement: "wired" },
   { key: "certificates",           label: "Certificates",           description: "Issue QR-verified certificates for promotions + events.",         group: "operations",   enforcement: "wired", selfToggle: true },
-  { key: "competitions",           label: "Competitions",           description: "Run inter-club / state / national competitions with scoring.",   group: "operations",   enforcement: "wired" },
   { key: "events",                 label: "Events",                 description: "Clinics, schooling days, fundraisers, external shows.",          group: "operations",   enforcement: "wired" },
 
   // ── People

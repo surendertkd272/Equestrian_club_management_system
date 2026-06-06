@@ -21,7 +21,6 @@ export type Permission =
   | "medicine.manage"
   | "medicine.prescribe"
   | "horse.manage"
-  | "competition.manage"
   | "event.manage"
   | "expense.manage"
   | "expense.submit"
@@ -29,6 +28,7 @@ export type Permission =
   | "requisition.approve_manager"
   | "requisition.approve_accountant"
   | "accreditation.manage"
+  | "team.manage"
   | "finance.read"
   | "finance.write"
   | "certificate.issue"
@@ -45,8 +45,7 @@ const matrix: Record<Role, Permission[]> = {
     "progress.write", "assessment.score", "exam.schedule", "exam.score", "exam.template_edit",
     "staff.manage", "staff.attendance", "leave.request", "leave.approve",
     "task.assign", "task.complete", "asset.manage",
-    "medicine.manage", "medicine.prescribe", "horse.manage", "competition.manage",
-    "event.manage", "expense.manage", "expense.submit", "accreditation.manage",
+    "medicine.manage", "medicine.prescribe", "horse.manage",     "event.manage", "expense.manage", "expense.submit", "accreditation.manage", "team.manage",
     "finance.read", "finance.write", "certificate.issue", "certificate.bulk", "audit.read",
     "requisition.submit", "requisition.approve_manager", "requisition.approve_accountant",
     "lesson.write",
@@ -55,8 +54,7 @@ const matrix: Record<Role, Permission[]> = {
     "rider.read", "rider.write", "rider.onboard", "attendance.mark", "progress.write",
     "exam.schedule", "exam.score",
     "staff.manage", "staff.attendance", "leave.request", "leave.approve",
-    "task.assign", "task.complete", "asset.manage", "medicine.manage", "horse.manage", "competition.manage",
-    "event.manage", "expense.manage", "expense.submit", "accreditation.manage",
+    "task.assign", "task.complete", "asset.manage", "medicine.manage", "horse.manage",     "event.manage", "expense.manage", "expense.submit", "accreditation.manage", "team.manage",
     "finance.read", "finance.write", "certificate.issue", "certificate.bulk",
     "requisition.submit", "requisition.approve_manager", "requisition.approve_accountant",
     "lesson.write",
@@ -67,7 +65,7 @@ const matrix: Record<Role, Permission[]> = {
     "rider.read", "rider.write", "attendance.mark", "progress.write",
     "exam.schedule", "exam.score", "assessment.score",
     "staff.attendance", "leave.request", "leave.approve",
-    "task.assign", "task.complete", "horse.manage", "expense.submit",
+    "task.assign", "task.complete", "horse.manage", "expense.submit", "team.manage",
     "requisition.submit", "requisition.approve_manager",
     "lesson.write",
   ],
@@ -83,11 +81,6 @@ const matrix: Record<Role, Permission[]> = {
     "asset.manage", "medicine.manage", "task.complete", "leave.request", "expense.submit",
     "requisition.submit",
   ],
-  COMPETITION_MANAGER: [
-    // Tournament planning. Needs rider read for entries; can issue participation certs.
-    "competition.manage", "event.manage", "rider.read", "task.assign", "task.complete",
-    "certificate.issue", "certificate.bulk", "leave.request", "expense.submit", "requisition.submit",
-  ],
   GROOM: ["task.assign", "task.complete", "asset.manage", "leave.request", "expense.submit", "requisition.submit"],
   FARRIER: [
     // Specialist labour — logs shoeing tasks against horses; otherwise read-only.
@@ -99,10 +92,6 @@ const matrix: Record<Role, Permission[]> = {
     "requisition.submit", "requisition.approve_accountant",
   ],
   EXAMINER: ["rider.read", "assessment.score", "exam.score", "certificate.issue", "leave.request"],
-  // Jury members score from a panel but don't schedule exams. They can
-  // submit on their own ExamJudge row + score competition entries they're
-  // assigned to. Issuing certificates remains with the lead examiner.
-  JURY: ["rider.read", "exam.score", "competition.manage", "leave.request"],
   // ADMIN — HQ-wide delegate of SUPER_ADMIN. Same operational perms minus
   // the HQ-only powers (managing other HQ users, suspending tenants,
   // writing audit). The page-level guards on /audit and /centres/[id]/
@@ -113,8 +102,7 @@ const matrix: Record<Role, Permission[]> = {
     "progress.write", "assessment.score", "exam.schedule", "exam.score", "exam.template_edit",
     "staff.manage", "staff.attendance", "leave.request", "leave.approve",
     "task.assign", "task.complete", "asset.manage",
-    "medicine.manage", "medicine.prescribe", "horse.manage", "competition.manage",
-    "event.manage", "expense.manage", "expense.submit", "accreditation.manage",
+    "medicine.manage", "medicine.prescribe", "horse.manage",     "event.manage", "expense.manage", "expense.submit", "accreditation.manage", "team.manage",
     "finance.read", "finance.write", "certificate.issue", "certificate.bulk",
     "requisition.submit", "requisition.approve_manager", "requisition.approve_accountant",
     "lesson.write",

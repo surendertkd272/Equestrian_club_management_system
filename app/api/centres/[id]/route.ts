@@ -77,7 +77,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
           horses: true,
           batches: true,
           medicines: true,
-          competitions: true,
           invoices: true,
           certificates: true,
         },
@@ -88,7 +87,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
   const c = existing._count;
   const total =
-    c.users + c.riders + c.horses + c.batches + c.medicines + c.competitions + c.invoices + c.certificates;
+    c.users + c.riders + c.horses + c.batches + c.medicines + c.invoices + c.certificates;
   if (total > 0) {
     return NextResponse.json(
       {

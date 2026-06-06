@@ -23,7 +23,7 @@ import { audit } from "@/lib/audit";
 // Returns: { issued, alreadyHad, batchTag }
 
 const schema = z.object({
-  source: z.enum(["event", "exam_sitting", "competition"]),
+  source: z.enum(["event", "exam_sitting"]),
   sourceId: z.string().min(1),
   // Optional override of the auto-generated batchTag (handy for HR runs
   // like "march_2026_certs").
@@ -137,46 +137,6 @@ export async function POST(req: NextRequest) {
           examId: ex.id,
           type: "promotion",
           levelName: levelName.get(String(ex.level)) ?? `Level ${ex.level}`,
-          serialNo: serial,
-          qrCode: verifyUrl(serial),
-          signedBy: session.userId,
-          batchTag,
-        },
-      });
-      issued++;
-    }
-  } else {
-    // competition
-    const comp = await prisma.competition.findUnique({
-      where: { id: sourceId },
-      include: { entries: true },
-    });
-    if (!comp) return NextResponse.json({ error: "COMPETITION_NOT_FOUND" }, { status: 404 });
-    if (session.role !== "SUPER_ADMIN" && comp.centreId !== session.centreId) {
-      return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
-    }
-    centreId = comp.centreId;
-
-    const eligible = comp.entries.filter((e) => e.status !== "withdrawn");
-    const existing = await prisma.certificate.findMany({
-      where: { competitionId: comp.id, riderId: { in: eligible.map((e) => e.riderId) } },
-      select: { riderId: true },
-    });
-    const already = new Set(existing.map((c) => c.riderId));
-
-    for (const e of eligible) {
-      if (already.has(e.riderId)) {
-        alreadyHad++;
-        continue;
-      }
-      const serial = await generateUniqueSerial(20_000 + issued);
-      await prisma.certificate.create({
-        data: {
-          centreId,
-          riderId: e.riderId,
-          competitionId: comp.id,
-          type: "participation",
-          levelName: `Participation · ${comp.name}`,
           serialNo: serial,
           qrCode: verifyUrl(serial),
           signedBy: session.userId,

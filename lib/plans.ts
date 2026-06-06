@@ -60,7 +60,6 @@ const PRO_FEATURES = [
 // cross-centre HQ rollup.
 const ENTERPRISE_FEATURES = [
   ...PRO_FEATURES,
-  "competitions",
   "external-exams",
   "teams",
   "farriery",

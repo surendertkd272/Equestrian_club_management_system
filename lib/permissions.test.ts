@@ -57,15 +57,6 @@ describe("can", () => {
     expect(can("INVENTORY_MANAGER", "task.assign")).toBe(false);
   });
 
-  it("COMPETITION_MANAGER plans tournaments and issues participation certs", () => {
-    expect(can("COMPETITION_MANAGER", "competition.manage")).toBe(true);
-    expect(can("COMPETITION_MANAGER", "certificate.issue")).toBe(true);
-    expect(can("COMPETITION_MANAGER", "rider.read")).toBe(true);
-    expect(can("COMPETITION_MANAGER", "task.assign")).toBe(true);
-    expect(can("COMPETITION_MANAGER", "rider.write")).toBe(false);
-    expect(can("COMPETITION_MANAGER", "finance.read")).toBe(false);
-  });
-
   it("FARRIER is specialist labour — task complete + horse read, nothing else", () => {
     expect(can("FARRIER", "horse.manage")).toBe(true);
     expect(can("FARRIER", "task.complete")).toBe(true);

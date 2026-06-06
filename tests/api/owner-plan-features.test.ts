@@ -110,7 +110,7 @@ describe("POST /api/owner/tenants/[id]/plan", () => {
       expect(set.has(key)).toBe(true);
     }
     // Features NOT in Pro should be off:
-    expect(await hasFeature(org.id, "competitions")).toBe(false);
+    expect(await hasFeature(org.id, "farriery")).toBe(false);
     expect(await hasFeature(org.id, "external-exams")).toBe(false);
   });
 
@@ -160,7 +160,7 @@ describe("POST /api/owner/tenants/[id]/features", () => {
     const r = await toggleFeature(
       mockReq("http://localhost", {
         method: "POST",
-        body: JSON.stringify({ featureKey: "competitions", enabled: true }),
+        body: JSON.stringify({ featureKey: "farriery", enabled: true }),
       }),
       { params: { id: "x" } },
     );
@@ -189,7 +189,7 @@ describe("POST /api/owner/tenants/[id]/features", () => {
     const r = await toggleFeature(
       mockReq("http://localhost", {
         method: "POST",
-        body: JSON.stringify({ featureKey: "competitions", enabled: true }),
+        body: JSON.stringify({ featureKey: "farriery", enabled: true }),
       }),
       { params: { id: "nope" } },
     );
@@ -205,7 +205,7 @@ describe("POST /api/owner/tenants/[id]/features", () => {
     const r = await toggleFeature(
       mockReq("http://localhost", {
         method: "POST",
-        body: JSON.stringify({ featureKey: "competitions", enabled: true }),
+        body: JSON.stringify({ featureKey: "farriery", enabled: true }),
       }),
       { params: { id: org.id } },
     );
@@ -224,12 +224,12 @@ describe("POST /api/owner/tenants/[id]/features", () => {
     const r = await toggleFeature(
       mockReq("http://localhost", {
         method: "POST",
-        body: JSON.stringify({ featureKey: "competitions", enabled: true }),
+        body: JSON.stringify({ featureKey: "farriery", enabled: true }),
       }),
       { params: { id: org.id } },
     );
     expect(r.status).toBe(200);
-    expect(await hasFeature(org.id, "competitions")).toBe(true);
+    expect(await hasFeature(org.id, "farriery")).toBe(true);
 
     const logs = await prisma.platformAuditLog.findMany({ where: { orgId: org.id } });
     expect(logs).toHaveLength(1);
