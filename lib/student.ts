@@ -4,6 +4,15 @@
 
 import { prisma } from "./prisma";
 
+// Canonical month key for the monthly-skill catalog ("YYYY-MM"), in IST so it
+// matches what /monthly-skills writes (UTC + 5h30m). The dashboard tracks the
+// coach's monthly skill snapshot — distinct from the exam/level components in
+// RiderSkillStatus.
+export function currentYearMonth(): string {
+  const ist = new Date(Date.now() + 330 * 60_000);
+  return `${ist.getUTCFullYear()}-${String(ist.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
 // Returns the rider tied to this signed-in user (or null if their portal access
 // hasn't been wired up by a manager yet).
 export async function getRiderForUser(userId: string) {
@@ -25,16 +34,13 @@ export async function getStudentSummary(userId: string) {
   const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
   const now = new Date();
 
-  // Skills are organised per ProgressLevel; the rider's currentLevel links to
-  // ProgressLevel.name. When the rider is ranked we scope the skill counts to
-  // their level (a motivating "progress at my rank" view); when Unranked there
-  // is no level catalogue to measure against, so these resolve to 0 and the UI
-  // hides the level progress bar.
-  const levelFilter = rider.currentLevel
-    ? { centreId: rider.centreId, name: rider.currentLevel }
-    : null;
+  // Monthly skills: the coach's per-month snapshot against an admin-curated
+  // list for THIS month (MonthlySkillCatalog/Mark), not the exam/level
+  // components. "Mastered" = rating 3 (0 not-yet · 1 needs-work · 2 confident).
+  const yearMonth = currentYearMonth();
+  const monthlyCatalogWhere = { centreId: rider.centreId, yearMonth, active: true };
 
-  const [attendance, upcomingExam, latestCert, unpaidInvoices, skillsMastered, levelSkillsTotal, levelSkillsMastered] = await Promise.all([
+  const [attendance, upcomingExam, latestCert, unpaidInvoices, monthlySkillsTotal, monthlySkillsMastered] = await Promise.all([
     prisma.attendance.findMany({
       where: { riderId: rider.id, date: { gte: since } },
       select: { status: true },
@@ -50,15 +56,10 @@ export async function getStudentSummary(userId: string) {
       select: { serialNo: true, levelName: true, issuedAt: true },
     }),
     prisma.invoice.count({ where: { riderId: rider.id, status: "due" } }),
-    // Catalog-wide mastered count — used for the headline "Skills" stat.
-    prisma.riderSkillStatus.count({ where: { riderId: rider.id, status: "mastered" } }),
-    // Skills defined at the rider's current level, and how many they've mastered.
-    levelFilter ? prisma.skill.count({ where: { level: levelFilter } }) : Promise.resolve(0),
-    levelFilter
-      ? prisma.riderSkillStatus.count({
-          where: { riderId: rider.id, status: "mastered", skill: { level: levelFilter } },
-        })
-      : Promise.resolve(0),
+    prisma.monthlySkillCatalog.count({ where: monthlyCatalogWhere }),
+    prisma.monthlySkillMark.count({
+      where: { riderId: rider.id, rating: 3, catalog: monthlyCatalogWhere },
+    }),
   ]);
 
   const present = attendance.filter((a) => a.status === "present" || a.status === "late").length;
@@ -72,9 +73,9 @@ export async function getStudentSummary(userId: string) {
     upcomingExam,
     latestCert,
     unpaidInvoices,
-    skillsMastered,
-    levelSkillsTotal,
-    levelSkillsMastered,
+    monthlySkillsTotal,
+    monthlySkillsMastered,
+    skillsMonth: yearMonth,
   };
 }
 
@@ -87,18 +88,20 @@ export async function getStudentDetail(userId: string) {
   const since = new Date(Date.now() - 120 * 24 * 60 * 60 * 1000);
   const now = new Date();
   const twoWeeks = new Date(now.getTime() + 14 * 86400000);
+  const yearMonth = currentYearMonth();
 
-  const [attendance, skills, exams, certificates, notifications, upcomingLessons] = await Promise.all([
+  const [attendance, monthlySkills, exams, certificates, notifications, upcomingLessons] = await Promise.all([
     prisma.attendance.findMany({
       where: { riderId: rider.id, date: { gte: since } },
       orderBy: { date: "desc" },
       take: 30,
       select: { date: true, status: true, reason: true },
     }),
-    prisma.riderSkillStatus.findMany({
-      where: { riderId: rider.id },
-      include: { skill: { select: { name: true, level: { select: { name: true } } } } },
-      orderBy: { updatedAt: "desc" },
+    // This month's monthly-skill catalog with this rider's rating per skill.
+    prisma.monthlySkillCatalog.findMany({
+      where: { centreId: rider.centreId, yearMonth, active: true },
+      orderBy: { orderIndex: "asc" },
+      include: { marks: { where: { riderId: rider.id }, select: { rating: true, coachNotes: true } } },
     }),
     prisma.exam.findMany({
       where: { riderId: rider.id },
@@ -135,5 +138,13 @@ export async function getStudentDetail(userId: string) {
     }),
   ]);
 
-  return { rider, attendance, skills, exams, certificates, notifications, upcomingLessons };
+  // Flatten each catalog row to { label, rating, coachNotes } using the
+  // rider's mark (default rating 0 = "not yet" when unmarked).
+  const skills = monthlySkills.map((c) => ({
+    label: c.skillLabel,
+    rating: c.marks[0]?.rating ?? 0,
+    coachNotes: c.marks[0]?.coachNotes ?? null,
+  }));
+
+  return { rider, attendance, skills, skillsMonth: yearMonth, exams, certificates, notifications, upcomingLessons };
 }

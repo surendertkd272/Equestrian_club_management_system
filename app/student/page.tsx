@@ -16,6 +16,15 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+// Monthly-skill rating scale (MonthlySkillMark.rating): 0 not-yet · 1 needs-work
+// · 2 confident · 3 mastered. Drives the badge on each "this month's skills" row.
+const RATING: Record<number, { label: string; variant: "success" | "warning" | "secondary" | "outline" }> = {
+  0: { label: "not yet", variant: "outline" },
+  1: { label: "needs work", variant: "warning" },
+  2: { label: "confident", variant: "secondary" },
+  3: { label: "mastered", variant: "success" },
+};
+
 export default async function StudentHome() {
   const session = (await getSession())!;
   const summary = await getStudentSummary(session.userId);
@@ -35,7 +44,9 @@ export default async function StudentHome() {
   }
 
   const detail = await getStudentDetail(session.userId);
-  const { rider, attendancePct, attendedSessions, totalSessions, upcomingExam, latestCert, unpaidInvoices, skillsMastered, levelSkillsTotal, levelSkillsMastered } = summary;
+  const { rider, attendancePct, attendedSessions, totalSessions, upcomingExam, latestCert, unpaidInvoices, monthlySkillsTotal, monthlySkillsMastered, skillsMonth } = summary;
+  // "2026-06" → "June 2026" for display.
+  const monthLabel = new Date(`${skillsMonth}-01T00:00:00`).toLocaleString("en-IN", { month: "long", year: "numeric" });
 
   // student-payment-visible defaults OFF — the parent handles payment
   // via the email link, not the student. Owner toggles it on per-tenant
@@ -116,8 +127,8 @@ export default async function StudentHome() {
           subtitle={`${rider.currentLevel ?? "Unranked"}${rider.batch ? ` · ${rider.batch.name}` : ""}`}
           icon={<Trophy />}
           progress={
-            rider.currentLevel && levelSkillsTotal > 0
-              ? { value: levelSkillsMastered, max: levelSkillsTotal, label: `${levelSkillsMastered} of ${levelSkillsTotal} skills mastered at ${rider.currentLevel}` }
+            monthlySkillsTotal > 0
+              ? { value: monthlySkillsMastered, max: monthlySkillsTotal, label: `${monthlySkillsMastered} of ${monthlySkillsTotal} skills mastered — ${monthLabel}` }
               : undefined
           }
           stats={[
@@ -125,7 +136,7 @@ export default async function StudentHome() {
             { label: "Next exam", value: upcomingExam ? `L${upcomingExam.level}` : "—" },
             showPayment
               ? { label: "Unpaid fees", value: String(unpaidInvoices) }
-              : { label: "Skills", value: String(skillsMastered) },
+              : { label: "Skills this month", value: monthlySkillsTotal > 0 ? `${monthlySkillsMastered}/${monthlySkillsTotal}` : "—" },
           ]}
         />
         <div className="flex flex-col rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
@@ -254,32 +265,22 @@ export default async function StudentHome() {
 
           <Card>
             <CardHeader>
-              <CardTitle>My Skills</CardTitle>
+              <CardTitle>This month&apos;s skills · {detail.skillsMonth}</CardTitle>
             </CardHeader>
             <CardContent>
               {detail.skills.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No skills tracked yet — keep going!</p>
+                <p className="text-sm text-muted-foreground">No skills set for this month yet — your coach will add them.</p>
               ) : (
                 <div className="grid gap-2 sm:grid-cols-2">
-                  {detail.skills.map((s) => (
-                    <div key={s.skillId} className="flex items-center justify-between rounded-md border p-2">
-                      <span className="text-sm">
-                        {s.skill.name}
-                        <span className="ml-1 text-[10px] text-muted-foreground">{s.skill.level?.name ?? ""}</span>
-                      </span>
-                      <Badge
-                        variant={
-                          s.status === "mastered"
-                            ? "success"
-                            : s.status === "practicing"
-                              ? "warning"
-                              : "outline"
-                        }
-                      >
-                        {s.status}
-                      </Badge>
-                    </div>
-                  ))}
+                  {detail.skills.map((s) => {
+                    const r = RATING[s.rating] ?? RATING[0];
+                    return (
+                      <div key={s.label} className="flex items-center justify-between rounded-md border p-2">
+                        <span className="text-sm" title={s.coachNotes ?? undefined}>{s.label}</span>
+                        <Badge variant={r.variant}>{r.label}</Badge>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
