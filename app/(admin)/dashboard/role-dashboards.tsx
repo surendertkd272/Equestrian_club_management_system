@@ -489,69 +489,6 @@ export async function ExaminerDashboard({ centreId, userId, features }: { centre
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPETITION_MANAGER
-
-export async function CompetitionManagerDashboard({ centreId, features }: { centreId: string | null; features: ReadonlySet<string> }) {
-  const where = centreWhere(centreId);
-  const fComps = features.has("competitions");
-  const fTeams = features.has("teams");
-
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-
-  const [active, drafts, openLiveEntries, topThreeAllTime, nextComp] = await Promise.all([
-    prisma.competition.count({
-      where: { ...where, status: { in: ["open_for_entries", "live"] } },
-    }),
-    prisma.competition.count({ where: { ...where, status: "draft" } }),
-    prisma.competitionEntry.count({
-      where: {
-        competition: { ...where, status: { in: ["open_for_entries", "live"] } },
-      },
-    }),
-    prisma.competitionEntry.count({
-      where: { competition: where, placement: { in: [1, 2, 3] } },
-    }),
-    prisma.competition.findFirst({
-      where: { ...where, status: { notIn: ["cancelled", "completed"] }, startDate: { gte: todayStart } },
-      orderBy: { startDate: "asc" },
-      include: { _count: { select: { entries: true } } },
-    }),
-  ]);
-
-  const compDaysToGo = nextComp
-    ? Math.max(0, Math.ceil((nextComp.startDate.getTime() - Date.now()) / 86400000))
-    : null;
-
-  return (
-    <div className="space-y-6">
-      <HeroRow
-        hero={
-          <HeroCard
-            kicker="Next competition"
-            title={nextComp ? nextComp.name : "No event scheduled"}
-            subtitle={nextComp ? `${formatDateIndia(nextComp.startDate)}${nextComp.venue ? ` · ${nextComp.venue}` : ""}` : "Create one to open entries"}
-            icon={<Trophy />}
-            stats={[
-              { label: "Entries", value: nextComp ? nextComp._count.entries : 0 },
-              { label: "Days to go", value: compDaysToGo ?? "—" },
-              { label: "Active", value: active },
-            ]}
-            href={fComps ? "/competitions" : undefined}
-            cta={fComps ? "Open competitions" : undefined}
-          />
-        }
-      >
-        <Kpi label="Active competitions" value={active} link={fComps ? "/competitions" : undefined} />
-        <Kpi label="Drafts" value={drafts} link={fComps ? "/competitions" : undefined} />
-        <Kpi label="Entries (open/live)" value={openLiveEntries} />
-        <Kpi label="Top-3 placements" value={topThreeAllTime} link={fTeams ? "/teams" : undefined} />
-      </HeroRow>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // ACCOUNTANT
 
 export async function AccountantDashboard({ centreId }: { centreId: string | null; features: ReadonlySet<string> }) {

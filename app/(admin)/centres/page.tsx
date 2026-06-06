@@ -29,7 +29,6 @@ export default async function CentresPage() {
           horses: true,
           batches: true,
           medicines: true,
-          competitions: true,
           invoices: true,
           certificates: true,
         },
@@ -69,7 +68,6 @@ export default async function CentresPage() {
             c._count.horses === 0 &&
             c._count.batches === 0 &&
             c._count.medicines === 0 &&
-            c._count.competitions === 0 &&
             c._count.invoices === 0 &&
             c._count.certificates === 0;
           return (

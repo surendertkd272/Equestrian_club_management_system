@@ -10,22 +10,19 @@ import { Select } from "@/components/ui/select";
 export function BulkIssuePanel({
   events,
   sittings,
-  competitions,
 }: {
   events: { id: string; label: string }[];
   sittings: { id: string; label: string }[];
-  competitions: { id: string; label: string }[];
 }) {
   const router = useRouter();
-  const [source, setSource] = useState<"event" | "exam_sitting" | "competition">("exam_sitting");
+  const [source, setSource] = useState<"event" | "exam_sitting">("exam_sitting");
   const [sourceId, setSourceId] = useState("");
   const [includeRegistered, setIncludeRegistered] = useState(false);
   const [busy, setBusy] = useState(false);
 
   // Each source pulls its own dropdown list; the placeholders below shift
   // automatically when the user changes source.
-  const list =
-    source === "event" ? events : source === "exam_sitting" ? sittings : competitions;
+  const list = source === "event" ? events : sittings;
 
   async function run() {
     if (!sourceId) {
@@ -63,7 +60,7 @@ export function BulkIssuePanel({
       <CardHeader>
         <CardTitle className="text-base">Bulk issue certificates</CardTitle>
         <CardDescription>
-          Pick a source — event, exam sitting, or competition — and mint a cert per eligible
+          Pick a source — exam sitting or event — and mint a cert per eligible
           rider in one shot. Re-running on the same source is safe: already-issued certs are
           skipped, only the missing ones are created.
         </CardDescription>
@@ -81,7 +78,6 @@ export function BulkIssuePanel({
             >
               <option value="exam_sitting">Exam sitting (passed riders → promotion)</option>
               <option value="event">Event (attended riders → event_attendance)</option>
-              <option value="competition">Competition (non-withdrawn → participation)</option>
             </Select>
           </div>
           <div className="md:col-span-2">
@@ -94,7 +90,7 @@ export function BulkIssuePanel({
             </Select>
             {list.length === 0 && (
               <p className="mt-1 text-[11px] text-muted-foreground">
-                No items found. Run a sitting / event / competition first.
+                No items found. Run a sitting / event first.
               </p>
             )}
           </div>

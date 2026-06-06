@@ -18,7 +18,6 @@ export default async function CertificatePrintPage({ params }: { params: { id: s
     include: {
       centre: { select: { name: true, address: true, org: { select: { name: true } } } },
       rider: { select: { firstName: true, lastName: true, currentLevel: true } },
-      competition: { select: { name: true, startDate: true } },
       exam: { select: { date: true, level: true } },
     },
   });
@@ -38,11 +37,7 @@ export default async function CertificatePrintPage({ params }: { params: { id: s
   const occasion =
     cert.type === "promotion" && cert.exam
       ? `Level ${cert.exam.level} promotion · ${new Date(cert.exam.date).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}`
-      : cert.type === "winner" && cert.competition
-        ? `${cert.competition.name} · ${new Date(cert.competition.startDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}`
-        : cert.type === "participation" && cert.competition
-          ? `${cert.competition.name} · ${new Date(cert.competition.startDate).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}`
-          : null;
+      : null;
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
   const verifyUrl = `${baseUrl}/verify/${cert.serialNo}`;
@@ -96,12 +91,11 @@ export default async function CertificatePrintPage({ params }: { params: { id: s
             </>
           ) : cert.type === "winner" ? (
             <>
-              In recognition of placing <strong>{cert.levelName}</strong> at{" "}
-              {cert.competition?.name ?? "the competition"}.
+              In recognition of placing <strong>{cert.levelName ?? ""}</strong>.
             </>
           ) : cert.type === "participation" ? (
             <>
-              For participating in <strong>{cert.competition?.name ?? "the competition"}</strong>.
+              For participating{cert.levelName ? <> in <strong>{cert.levelName}</strong></> : null}.
             </>
           ) : (
             <>For attending the event.</>

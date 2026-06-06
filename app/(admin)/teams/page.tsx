@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
 import { can } from "@/lib/permissions";
-import { medalsForTeam } from "@/lib/medals";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TeamsClient, EditTeam } from "./teams-client";
@@ -13,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function TeamsPage() {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
-  const canManage = can(session.role, "competition.manage");
+  const canManage = can(session.role, "team.manage");
 
   const where: any = {};
   if (centreId) where.centreId = centreId;
@@ -45,26 +44,20 @@ export default async function TeamsPage() {
     : [];
   const riderById = new Map(memberRiders.map((r) => [r.id, r]));
 
-  const medalsByTeam = await Promise.all(teams.map((t) => medalsForTeam(t.id)));
-
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Teams & Squads</h1>
         <p className="text-sm text-muted-foreground">
           Named rider groups your club fields together — junior squad, senior show-jumping
-          team, gymkhana side. Medal counts roll up from every member's competition entries.
+          team, gymkhana side.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Kpi label="Teams" value={teams.length} />
         <Kpi label="Active" value={teams.filter((t) => t.active).length} />
         <Kpi label="Riders rostered" value={allMemberRiderIds.length} />
-        <Kpi
-          label="Team medals (all)"
-          value={medalsByTeam.reduce((s, m) => s + m.gold + m.silver + m.bronze, 0)}
-        />
       </div>
 
       <TeamsClient canManage={canManage} riders={riders} />
@@ -75,8 +68,7 @@ export default async function TeamsPage() {
             No teams yet. Create the first one above.
           </p>
         ) : (
-          teams.map((t, i) => {
-            const tally = medalsByTeam[i];
+          teams.map((t) => {
             return (
               <Card key={t.id}>
                 <CardHeader>
@@ -96,12 +88,6 @@ export default async function TeamsPage() {
                       {canManage && t.active && (
                         <DeactivateButton apiPath={`/api/teams/${t.id}`} itemName={t.name} label="Archive" />
                       )}
-                    </span>
-                    <span className="text-sm">
-                      🥇 {tally.gold} · 🥈 {tally.silver} · 🥉 {tally.bronze}
-                      <span className="ml-2 text-[10px] text-muted-foreground">
-                        ({tally.entries} entries)
-                      </span>
                     </span>
                   </CardTitle>
                 </CardHeader>

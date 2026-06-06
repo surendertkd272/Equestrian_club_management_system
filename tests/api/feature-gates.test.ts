@@ -16,7 +16,6 @@ vi.mock("next/headers", () => ({
   }),
 }));
 
-const { POST: createCompetition } = await import("@/app/api/competitions/route");
 const { POST: createHorse } = await import("@/app/api/horses/route");
 const { GET: parentChildren } = await import("@/app/api/parent/children/route");
 
@@ -43,18 +42,6 @@ beforeEach(async () => {
 });
 
 describe("filterSidebarNav (pure visibility helper)", () => {
-  it("hides Competitions when the feature is off, even for a competition_manager", () => {
-    const groups = filterSidebarNav("COMPETITION_MANAGER", new Set());
-    const allHrefs = groups.flatMap((g) => g.items.map((i) => i.href));
-    expect(allHrefs).not.toContain("/competitions");
-  });
-
-  it("shows Competitions when the feature is on", () => {
-    const groups = filterSidebarNav("COMPETITION_MANAGER", new Set(["competitions"]));
-    const allHrefs = groups.flatMap((g) => g.items.map((i) => i.href));
-    expect(allHrefs).toContain("/competitions");
-  });
-
   it("hides Horses + Medicines + Tack + Exams when their features are all off", () => {
     const groups = filterSidebarNav("CENTRE_MANAGER", new Set());
     const all = groups.flatMap((g) => g.items.map((i) => i.href));
@@ -113,53 +100,6 @@ describe("getOrgIdForSession", () => {
   });
 });
 
-describe("API gate: POST /api/competitions", () => {
-  it("403 FEATURE_DISABLED when competitions is off for the org", async () => {
-    const centre = await mkCentre();
-    await setOrgFeatures(centre.orgId, []); // everything off
-    const mgr = await mkUser({ role: "CENTRE_MANAGER", centreId: centre.id });
-    await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
-
-    const r = await createCompetition(
-      mockReq("http://localhost", {
-        method: "POST",
-        body: JSON.stringify({
-          name: "C1",
-          slug: "c1",
-          scope: "internal",
-          startDate: "2026-06-01",
-          endDate: "2026-06-02",
-          classes: [{ name: "Open", fee: 0 }],
-        }),
-      }),
-    );
-    expect(r.status).toBe(403);
-    expect(await r.json()).toMatchObject({ error: "FEATURE_DISABLED", featureKey: "competitions" });
-  });
-
-  it("passes through to the existing handler when competitions is on", async () => {
-    const centre = await mkCentre();
-    await setOrgFeatures(centre.orgId, ["competitions"]);
-    const mgr = await mkUser({ role: "CENTRE_MANAGER", centreId: centre.id });
-    await loginAs({ userId: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, name: mgr.name });
-
-    const r = await createCompetition(
-      mockReq("http://localhost", {
-        method: "POST",
-        body: JSON.stringify({
-          name: "C1",
-          slug: "c1-on",
-          scope: "internal",
-          startDate: "2026-06-01",
-          endDate: "2026-06-02",
-          classes: [{ name: "Open", fee: 0 }],
-        }),
-      }),
-    );
-    expect(r.status).toBe(200);
-  });
-});
-
 describe("API gate: POST /api/horses", () => {
   it("403 FEATURE_DISABLED when horse-management is off", async () => {
     const centre = await mkCentre();
@@ -212,7 +152,7 @@ describe("API gate: GET /api/parent/children", () => {
 describe("getFeaturesForSession", () => {
   it("returns the enabled set for a tenant", async () => {
     const centre = await mkCentre();
-    await setOrgFeatures(centre.orgId, ["parent-portal", "competitions"]);
+    await setOrgFeatures(centre.orgId, ["parent-portal", "attendance"]);
     const set = await getFeaturesForSession({
       userId: "u",
       role: "COACH",
@@ -220,7 +160,7 @@ describe("getFeaturesForSession", () => {
       name: "C",
     });
     expect(set.has("parent-portal")).toBe(true);
-    expect(set.has("competitions")).toBe(true);
+    expect(set.has("attendance")).toBe(true);
     expect(set.has("inventory")).toBe(false);
   });
 });

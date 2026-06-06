@@ -22,7 +22,6 @@ export type SearchHit = {
     | "centre"
     | "certificate"
     | "exam"
-    | "competition"
     | "batch"
     | "medicine";
   id: string;
@@ -45,7 +44,7 @@ export async function GET(req: NextRequest) {
   const horsesWhere = centreId ? { ...centreFilter } : {};
   const certsWhere = centreId ? { ...centreFilter } : {};
 
-  const [riders, horses, users, centres, certs, exams, comps, batches, meds] = await Promise.all([
+  const [riders, horses, users, centres, certs, exams, batches, meds] = await Promise.all([
     prisma.rider.findMany({
       where: {
         ...ridersWhere,
@@ -134,15 +133,6 @@ export async function GET(req: NextRequest) {
       take: 5,
       orderBy: { date: "desc" },
     }),
-    prisma.competition.findMany({
-      where: {
-        ...(centreId ? centreFilter : {}),
-        OR: [{ name: { contains: q } }, { slug: { contains: q.toLowerCase() } }, { venue: { contains: q } }],
-      },
-      select: { id: true, name: true, slug: true, startDate: true, scope: true },
-      take: 5,
-      orderBy: { startDate: "desc" },
-    }),
     prisma.batch.findMany({
       where: {
         ...(centreId ? centreFilter : {}),
@@ -205,13 +195,6 @@ export async function GET(req: NextRequest) {
       href: `/exams/${e.id}`,
       primary: `Level ${e.level} · ${e.rider.firstName} ${e.rider.lastName}`,
       secondary: `${e.date.toISOString().slice(0, 10)} · ${e.examinerName ?? "Unassigned"} · ${e.status}`,
-    })),
-    ...comps.map((c) => ({
-      kind: "competition" as const,
-      id: c.id,
-      href: `/competitions/${c.id}`,
-      primary: c.name,
-      secondary: `${c.startDate.toISOString().slice(0, 10)} · ${c.scope}`,
     })),
     ...batches.map((b) => ({
       kind: "batch" as const,

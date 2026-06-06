@@ -582,7 +582,6 @@ model Centre {
   medicines        Medicine[]
   tasks            Task[]
   facilities       Facility[]
-  competitions     Competition[]
   feePlans         FeePlan[]
   invoices         Invoice[]
   certificates     Certificate[]
@@ -869,7 +868,6 @@ model Rider {
   skillStatus RiderSkillStatus[]
   monthlySkillMarks MonthlySkillMark[]
   certificates Certificate[]
-  competitionEntries CompetitionEntry[]
   horseAllocations HorseAllocation[]
   exams       Exam[]
   parentLinks ParentLink[]
@@ -1159,7 +1157,6 @@ model Horse {
   injuries           InjuryLog[]
   vaccinationSchedules VaccinationSchedule[]
   feedPlan             FeedPlan?
-  vetChecks            VetCheck[]
   vetVisits            VetVisit[]
   tests              HorseTest[]
   dewormingSchedules DewormingSchedule[]
@@ -1360,57 +1357,8 @@ model ConsumableMovement {
 // "Draw of lots" is handled inline: a single Competition-level boolean
 // (`drawCompleted`) plus per-entry `drawOrder`. No separate table needed.
 
-model StartListEntry {
-  id            String   @id @default(cuid())
-  competitionId String
-  className     String   // matches a class in classesJson
-  entryId       String   // FK into CompetitionEntry
-  order         Int      // 1, 2, 3, ... within (competitionId, className)
-  drawnAt       DateTime @default(now())
 
-  competition Competition      @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  entry       CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
 
-  @@unique([competitionId, className, order])
-  @@unique([competitionId, className, entryId])
-  @@index([competitionId, className])
-}
-
-model PrizeAward {
-  id            String   @id @default(cuid())
-  competitionId String
-  className     String
-  placement     Int      // 1 = gold, 2 = silver, 3 = bronze
-  title         String   // "Winner", "Runner-up", "Best Junior", etc.
-  cashAmount    Float?   // INR
-  trophyLabel   String?
-  sponsoredById String?  // optional — points at a Sponsor row
-  notes         String?
-
-  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  sponsor     Sponsor?    @relation(fields: [sponsoredById], references: [id], onDelete: SetNull)
-
-  @@unique([competitionId, className, placement])
-  @@index([competitionId])
-}
-
-model Sponsor {
-  id            String   @id @default(cuid())
-  competitionId String
-  name          String
-  tier          String   // title | platinum | gold | silver | bronze | partner
-  contactName   String?
-  contactPhone  String?
-  contactEmail  String?
-  contribution  Float?   // INR
-  notes         String?
-  logoUrl       String?
-
-  competition Competition  @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  prizes      PrizeAward[]
-
-  @@index([competitionId, tier])
-}
 
 // PDF §4 — Farrier Schedule. One row per visit (past or planned). Combined
 // with the FARRIER role + farriery feature flag this completes the spec.
@@ -1720,143 +1668,12 @@ model Task {
 // COMPETITIONS (§4.14)
 // ──────────────────────────────────────────────────────────────────────────
 
-model Competition {
-  id            String   @id @default(cuid())
-  centreId      String
-  name          String
-  slug          String   @unique // for public scoreboard URL
-  scope         String   @default("internal") // internal | inter_school | state | national (PRD §4 Module 6)
-  // Discipline drives scoring + tie-break rules in lib/discipline.ts. Each
-  // discipline interprets CompetitionEntry.score / faults / time / breakdown
-  // differently — dressage averages judge %, jumping ranks by faults then
-  // time, eventing combines dressage+xc+sj, gymkhana ranks fastest time.
-  discipline    String   @default("generic") // generic | dressage | jumping | eventing | gymkhana
-  startDate     DateTime
-  endDate       DateTime
-  venue         String?
-  status        String   @default("draft") // draft | open_for_entries | live | completed | cancelled
-  classesJson   Json   // JSON: [{ name, fee, ageGroup?, maxEntries? }]
-  entryDeadline DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
 
-  // Phase-1 spec lifted; flags wired up by the competition-ops layer:
-  // drawCompleted flips to true once the draw of lots has been finalised.
-  // Once true, the start-list table is treated as immutable by the UI.
-  drawCompleted Boolean @default(false)
-
-  centre       Centre             @relation(fields: [centreId], references: [id])
-  entries      CompetitionEntry[]
-  startList    StartListEntry[]
-  prizes       PrizeAward[]
-  sponsors     Sponsor[]
-  rounds       CompetitionRound[]
-  certificates Certificate[]
-  officials    CompetitionOfficial[]
-  gymkhanaGames    GymkhanaGame[]
-  vetChecks        VetCheck[]
-  stableAllocations StableAllocation[]
-  drugTests        DrugTest[]
-  protests         Protest[]
-  externalEntries  ExternalEntry[]
-  ticketTiers      TicketTier[]
-  tickets          Ticket[]
-
-  @@index([centreId, status])
-}
-
-model CompetitionEntry {
-  id            String   @id @default(cuid())
-  competitionId String
-  riderId       String
-  className     String
-  horseId       String?  // optional, some classes are tack-bound
-  teamId        String?  // optional — entry contributes to this team's score
-  status        String   @default("entered") // entered | withdrawn | scratched
-  paid          Boolean  @default(false)
-  placement     Int?     // 1, 2, 3, ... null = not placed
-  // Numeric score interpretation depends on Competition.discipline:
-  //   generic, dressage  → higher is better
-  //   jumping, gymkhana  → ranking falls back to (faults asc, time asc)
-  //   eventing           → aggregate; per-phase data in roundsJson
-  score         Float?
-  faults        Float?
-  time          Float?   // seconds
-  // Per-round / per-phase results (eventing dressage+xc+sj; multi-heat
-  // jumping). Array of { roundNumber, name, faults?, time?, score? }.
-  roundsJson    Json?
-  // Refund tracking for withdrawn entries that had paid invoices.
-  refundedAt    DateTime?
-  refundInvoiceId String?
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  rider       Rider       @relation(fields: [riderId], references: [id])
-  team        Team?       @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  startList   StartListEntry[]
-  roundScores CompetitionRoundScore[]
-  gymkhanaResults GymkhanaResult[]
-
-  @@index([competitionId, className])
-  @@index([teamId])
-  @@unique([competitionId, riderId, className])
-}
 
 // One round / heat / phase within a class. Examples:
 //   • Jumping: round 1 + jump-off → two rows per class
 //   • Eventing: dressage / cross-country / show-jumping → three rows
 //   • Dressage: single round most of the time
-model CompetitionRound {
-  id            String   @id @default(cuid())
-  competitionId String
-  className     String
-  roundNumber   Int
-  name          String   // "Round 1", "Jump-off", "Cross-country"
-  // Optional discipline override per round (eventing has phase-specific rules).
-  phase         String?  // dressage | cross_country | show_jumping | jump_off
-  // Jumping-specific timing. timeAllowed in seconds drives time-fault
-  // calculation (1 fault per 4s over allowed, ceiled). timeLimit > allowed
-  // is the elimination threshold. Both null for non-timed rounds.
-  timeAllowedSec Float?
-  timeLimitSec   Float?
-  // Cross-country specific. optimumTimeSec is the target finish; courses
-  // are scored as 0.4 penalty/sec over optimum, with separate fast-finish
-  // rules (no benefit for going under in most rule sets). Speed is for
-  // documentation + course-program rendering.
-  optimumTimeSec Float?
-  speedMpm       Int?
-  courseLengthM  Int?
-  // Dressage-specific: which test template the round uses (DressageTest).
-  // Lets judges open the right scoresheet without a free-text lookup.
-  dressageTestId String?
-  // CDI dressage averaging mode. Controls how multiple judges' results
-  // combine into one round score:
-  //   "simple"        → average judge percentages (default, used at most levels).
-  //   "trimmed_mean"  → drop highest + lowest, average the rest. Used on
-  //                     5-judge FEI panels to dampen outliers.
-  //   "per_movement"  → per-movement marks averaged across judges, then
-  //                     one combined percentage computed. Mathematically
-  //                     distinct from averaging percentages.
-  judgingMode    String?
-  // CCI eventing dressage→penalty conversion. The factor multiplies
-  // (100 - percentage) to produce penalty points. FEI 2020+ uses 0.4;
-  // older rule sets used 0.6; some lower-tier events use 1.0. When null,
-  // the round stays as a percentage score (non-eventing dressage rounds).
-  dressagePenaltyFactor Float?
-  createdAt     DateTime @default(now())
-
-  competition  Competition             @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  scores       CompetitionRoundScore[]
-  jumpEfforts  JumpEffort[]
-  dressageSheets DressageScoresheet[]
-  dressageTest DressageTest?           @relation(fields: [dressageTestId], references: [id], onDelete: SetNull)
-  fences       CourseFence[]
-
-  @@unique([competitionId, className, roundNumber])
-  @@index([competitionId])
-}
 
 // One row per (round, entry, fence number, effort). Captures fence-by-fence
 // detail for show-jumping rounds. The aggregate `faults` on
@@ -1874,23 +1691,6 @@ model CompetitionRound {
 //
 // We don't enforce eliminations programmatically — the judge marks it,
 // and the API recomputes the aggregate `faults` on the round score.
-model JumpEffort {
-  id        String   @id @default(cuid())
-  roundId   String
-  entryId   String
-  fenceNo   String   // "1", "4a", "4b" — string to support combinations
-  knockdown Boolean  @default(false)
-  refusal   Int      @default(0)   // count at this specific fence
-  eliminated Boolean @default(false)
-  fall      Boolean  @default(false)
-  notes     String?
-  createdAt DateTime @default(now())
-
-  round CompetitionRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
-
-  @@index([roundId, entryId])
-  @@index([entryId])
-}
 
 // Dressage test catalog — SUPER_ADMIN curated. One row per official test
 // (Prelim 14, Novice 27, Elementary 43...). Federation `body` tracks
@@ -1906,194 +1706,30 @@ model JumpEffort {
 //    { name: "Submission", coefficient: 1 },
 //    { name: "Rider position", coefficient: 1 }]
 // maxScore = (sum of movement coefficients × 10) + (sum of collective coefficients × 10).
-model DressageTest {
-  id                  String   @id @default(cuid())
-  code                String   @unique
-  name                String
-  level               String   // preliminary | novice | elementary | medium | advanced
-  body                String   @default("EFI") // EFI | BHS | FEI | custom
-  movementsJson       Json
-  collectiveMarksJson Json?
-  maxScore            Float
-  active              Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  rounds        CompetitionRound[]
-  scoresheets   DressageScoresheet[]
-}
 
 // One scoresheet per (round, entry, judge). Captures one judge's marks
 // for one ride. marksJson is [{ no: 1, mark: 7.5, comment: "..." }, ...],
 // collectiveMarksJson [{ name: "Paces", mark: 7, comment: "..." }, ...].
 // `percentage` is server-computed at submit time.
-model DressageScoresheet {
-  id           String   @id @default(cuid())
-  roundId      String
-  entryId      String
-  testId       String
-  judgeUserId  String
-  judgePosition String? // C | E | B | M | H — judge's seat around the arena
-  marksJson    Json
-  collectiveMarksJson Json?
-  percentage   Float?
-  submittedAt  DateTime?
-  notes        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  round CompetitionRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
-  test  DressageTest     @relation(fields: [testId], references: [id])
-
-  @@unique([roundId, entryId, judgeUserId])
-  @@index([entryId])
-  @@index([judgeUserId])
-}
 
 // Gymkhana game template. A gymkhana day = N games per class. Riders
 // play every game; combined ranking = sum of per-game positions.
 // scoringType "time" → fastest wins (faults add penaltyPerFault seconds);
 // scoringType "points" → highest points wins (judge-assigned).
-model GymkhanaGame {
-  id              String   @id @default(cuid())
-  competitionId   String
-  className       String
-  name            String
-  orderIndex      Int      @default(0)
-  scoringType     String   @default("time")
-  penaltyPerFault Float    @default(5)
-  notes           String?
-  createdAt       DateTime @default(now())
 
-  competition Competition       @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  results     GymkhanaResult[]
-
-  @@unique([competitionId, className, name])
-  @@index([competitionId, className])
-}
-
-model GymkhanaResult {
-  id         String   @id @default(cuid())
-  gameId     String
-  entryId    String
-  time       Float?
-  faults     Int      @default(0)
-  points     Float?
-  position   Int?
-  eliminated Boolean  @default(false)
-  notes      String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  game  GymkhanaGame     @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  entry CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-
-  @@unique([gameId, entryId])
-  @@index([entryId])
-}
 
 // Course design — fence-by-fence layout. Renders as a strip chart on the
 // round detail page + appears on the printed course program.
-model CourseFence {
-  id         String  @id @default(cuid())
-  roundId    String
-  fenceNo    String  // "1", "4a", "4b"
-  orderIndex Int     @default(0)
-  heightCm   Int?
-  spreadCm   Int?
-  type       String? // vertical | oxer | triple_bar | water | ditch | bank | combination | open
-  notes      String?
-
-  round CompetitionRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
-
-  @@unique([roundId, fenceNo])
-  @@index([roundId, orderIndex])
-}
 
 // Vet checks — pre/post-event horse soundness inspections.
-model VetCheck {
-  id            String   @id @default(cuid())
-  competitionId String
-  horseId       String?
-  horseName     String
-  riderName     String?
-  phase         String   // pre_event | first_horse_inspection | hold_reinspect | second_horse_inspection | post_event | trot_up
-  status        String   @default("pass") // pass | hold | fail | not_presented
-  vetUserId     String?
-  notes         String?
-  performedAt   DateTime @default(now())
-
-  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  horse       Horse?      @relation(fields: [horseId], references: [id], onDelete: SetNull)
-
-  @@index([competitionId, phase])
-}
 
 // Stable allocation for visiting horses. Free-text horse/rider names
 // because cross-tenant visitors don't have rows in Horse/Rider.
-model StableAllocation {
-  id            String   @id @default(cuid())
-  competitionId String
-  boxNo         String
-  horseId       String?
-  horseName     String
-  riderName     String
-  arrivalAt     DateTime?
-  departureAt   DateTime?
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-
-  @@unique([competitionId, boxNo])
-  @@index([competitionId])
-}
 
 // Drug test (medication control) — chain-of-custody record. The lab
 // result is stored as a status only; detailed reports stay with the lab.
-model DrugTest {
-  id               String   @id @default(cuid())
-  competitionId    String
-  horseId          String?
-  horseName        String
-  riderName        String
-  sampleType       String   // urine | blood | hair
-  sampleId         String   // barcode
-  collectedAt      DateTime @default(now())
-  collectedBy      String?
-  submittedToLabAt DateTime?
-  labRef           String?
-  resultStatus     String   @default("pending") // pending | negative | positive | inconclusive
-  resultAt         DateTime?
-  notes            String?
-
-  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-
-  @@unique([competitionId, sampleId])
-  @@index([competitionId, resultStatus])
-}
 
 // Protest / appeal record.
-model Protest {
-  id            String   @id @default(cuid())
-  competitionId String
-  filedByUserId String?
-  filedByName   String
-  subject       String
-  body          String
-  feePaid       Boolean  @default(false)
-  feeAmount     Float?
-  status        String   @default("filed") // filed | upheld | dismissed | withdrawn
-  ruling        String?
-  ruledByUserId String?
-  ruledAt       DateTime?
-  filedAt       DateTime @default(now())
-
-  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-
-  @@index([competitionId, status])
-}
 
 // External rider entry — submitted via the public competition page by
 // visiting competitors who aren't users of the host academy. We hold them
@@ -2104,142 +1740,24 @@ model Protest {
 //
 // Two-step verification: the entrant gets a magic-link email; clicking it
 // flips `verifiedAt`. Unverified entries get auto-purged after 7 days.
-model ExternalEntry {
-  id            String   @id @default(cuid())
-  competitionId String
-  className     String
-  // Rider details — captured at entry time, replicated to the synthetic
-  // Rider row on approval. We don't deduplicate; if the same email enters
-  // twice we treat them as two distinct submissions.
-  firstName       String
-  lastName        String
-  email           String
-  mobile          String
-  dob             DateTime?
-  parentName      String?
-  parentRelation  String?
-  parentPhone     String?
-  // Federation accreditation, optional but required for state+/national scope.
-  accreditationBody   String?  // EFI | BHS | FEI | ...
-  accreditationNumber String?
-  accreditationExpiry DateTime?
-  // Horse details — free-text for now; visitor's own horse rarely matches a Horse row.
-  horseName       String?
-  horseBreed      String?
-  horseHeightHh   Float?
-  // Lifecycle
-  status        String   @default("pending") // pending | approved | rejected | cancelled
-  verifiedAt    DateTime?
-  approvedAt    DateTime?
-  approvedBy    String?
-  approvedEntryId String?  // FK to the CompetitionEntry created on approval
-  rejectionReason String?
-  // Magic-link verification — hashed token + expiry, mirroring PasswordResetToken pattern.
-  verifyTokenHash String?  @unique
-  verifyExpiresAt DateTime?
-  filedAt       DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-
-  @@index([competitionId, status])
-  @@index([email])
-}
 
 // Ticket tier for spectator sales. Owner-defined: name, price, capacity.
 // Capacity null = unlimited. Public ticket-buy uses the tier's price to
 // mint Razorpay orders; tickets without a price are "free" tickets that
 // just need an email + a head-count.
-model TicketTier {
-  id            String   @id @default(cuid())
-  competitionId String
-  name          String   // "Day pass", "VIP stand", "Family of 4"
-  priceInr      Int      @default(0)
-  capacity      Int?     // null = unlimited
-  description   String?
-  active        Boolean  @default(true)
-  sortOrder     Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  tickets     Ticket[]
-
-  @@unique([competitionId, name])
-  @@index([competitionId])
-}
 
 // Issued ticket. One row per quantity (so "Family of 4 × 1" = 4 rows).
 // QR code is just the ticket id — the scanner posts the id to /check-in
 // and we flip checkedInAt + record the user who scanned.
-model Ticket {
-  id            String   @id @default(cuid())
-  competitionId String
-  tierId        String
-  buyerName     String
-  buyerEmail    String
-  buyerPhone    String?
-  // Razorpay payment ref when paid; null for free tickets.
-  paymentRef    String?
-  paidAt        DateTime?
-  // Each row = one head. The buyer might purchase 4 tickets in one flow;
-  // they get 4 rows that share the same `groupId` (UUID).
-  groupId       String
-  // Check-in tracking.
-  checkedInAt   DateTime?
-  checkedInBy   String?
-  // Status: issued = active, voided = cancelled by organiser.
-  status        String   @default("issued") // issued | voided
-  createdAt     DateTime @default(now())
-
-  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-  tier        TicketTier  @relation(fields: [tierId], references: [id], onDelete: Cascade)
-
-  @@index([competitionId, status])
-  @@index([groupId])
-  @@index([buyerEmail])
-}
 
 // Competition officials — judges, TDs, course designers, stewards. Distinct
 // from the per-ride judging mechanics above; this table records who was
 // in which role at the show, for the official record + the printed program.
 // One row per (competition, user, role). User can hold multiple roles in
 // the same comp (e.g., judge in two classes + TD overall).
-model CompetitionOfficial {
-  id            String   @id @default(cuid())
-  competitionId String
-  userId        String
-  role          String   // ground_jury_president | ground_jury | td | course_designer | steward | judge_c | judge_e | judge_b | judge_m | judge_h | technical_delegate | veterinarian
-  // CSV of class names this role covers; null = all classes in the comp.
-  classNames    String?
-  appointedBy   String?
-  appointedAt   DateTime @default(now())
-
-  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
-
-  @@unique([competitionId, userId, role])
-  @@index([competitionId, role])
-}
 
 // Score for one (entry, round) pair. The aggregate that drives placement
 // lives on CompetitionEntry; per-round detail lives here.
-model CompetitionRoundScore {
-  id        String   @id @default(cuid())
-  roundId   String
-  entryId   String
-  score     Float?
-  faults    Float?
-  time      Float?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  round CompetitionRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
-  entry CompetitionEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-
-  @@unique([roundId, entryId])
-  @@index([entryId])
-}
 
 // ──────────────────────────────────────────────────────────────────────────
 // FINANCE (§4.20)
@@ -2304,7 +1822,6 @@ model Certificate {
   // Source competition for winner / participation certificates. Issued
   // automatically when an entry is placed (1st/2nd/3rd) or when a comp is
   // marked complete (all non-withdrawn entries get participation certs).
-  competitionId String?
   type      String   // promotion | participation | winner | event_attendance
   levelName String?
   serialNo  String   @unique
@@ -2331,10 +1848,8 @@ model Certificate {
   centre      Centre       @relation(fields: [centreId], references: [id])
   rider       Rider        @relation(fields: [riderId], references: [id])
   exam        Exam?        @relation(fields: [examId], references: [id], onDelete: SetNull)
-  competition Competition? @relation(fields: [competitionId], references: [id], onDelete: SetNull)
 
   @@index([examId])
-  @@index([competitionId])
   @@index([centreId, revokedAt])
   @@index([batchTag])
 }
@@ -2561,7 +2076,6 @@ model Team {
   updatedAt DateTime @updatedAt
 
   members          TeamMember[]
-  competitionEntries CompetitionEntry[]
 
   @@index([centreId, active])
 }

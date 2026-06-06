@@ -52,65 +52,6 @@ export async function POST(req: NextRequest) {
   const paymentId = payment?.id as string | undefined;
   const orderId = payment?.order_id as string | undefined;
 
-  // Ticket purchase branch: the order's `notes.kind === "ticket"` tells
-  // us this is a spectator ticket payment, not a rider invoice. Mark
-  // every Ticket row in the group paid and email the QR links.
-  if (payment?.notes?.kind === "ticket") {
-    const groupId = payment.notes.groupId as string | undefined;
-    if (!groupId || !paymentId) {
-      return NextResponse.json({ error: "MISSING_TICKET_NOTES" }, { status: 400 });
-    }
-    // Idempotency — second delivery doesn't re-mark.
-    const existingPaid = await prisma.ticket.findFirst({
-      where: { groupId, paymentRef: paymentId },
-      select: { id: true },
-    });
-    if (existingPaid) {
-      return NextResponse.json({ ok: true, alreadyApplied: true });
-    }
-    const tickets = await prisma.ticket.findMany({ where: { groupId } });
-    if (tickets.length === 0) {
-      return NextResponse.json({ error: "TICKETS_NOT_FOUND" }, { status: 404 });
-    }
-    await prisma.ticket.updateMany({
-      where: { groupId },
-      data: { paymentRef: paymentId, paidAt: new Date() },
-    });
-    // Compose the email from the first ticket's metadata.
-    const first = tickets[0]!;
-    const tier = await prisma.ticketTier.findUnique({
-      where: { id: first.tierId },
-      include: { competition: { select: { name: true, slug: true } } },
-    });
-    if (tier) {
-      const { sendEmail, renderEmail } = await import("@/lib/email");
-      const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-      const links = tickets
-        .map((t) => `<li><a href="${base}/tickets/${t.id}">View ticket (open on phone at gate)</a></li>`)
-        .join("");
-      await sendEmail({
-        to: first.buyerEmail,
-        subject: `Tickets confirmed · ${tier.competition.name}`,
-        html: renderEmail({
-          centreName: "Equiwings",
-          heading: "Payment received · tickets active",
-          body: `<p>Hi ${first.buyerName},</p>
-<p>Your <strong>${tickets.length}</strong> × <strong>${tier.name}</strong> tickets for <strong>${tier.competition.name}</strong> are active.</p>
-<ul style="line-height:1.8">${links}</ul>
-<p style="font-size:12px;color:#666">Reference: ${paymentId}</p>`,
-        }),
-        ref: { type: "tickets.paid", rowId: groupId, payload: { paymentId } },
-      });
-    }
-    await audit({
-      action: "razorpay.webhook.ticket_paid",
-      tableName: "ticket",
-      rowId: groupId,
-      after: { paymentId, count: tickets.length },
-    });
-    return NextResponse.json({ ok: true, ticketsActivated: tickets.length });
-  }
-
   if (!invoiceId || !paymentId) {
     return NextResponse.json({ error: "MISSING_NOTES" }, { status: 400 });
   }

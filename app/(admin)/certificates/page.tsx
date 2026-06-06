@@ -39,7 +39,7 @@ export default async function CertificatesPage({
   else if (searchParams.revoked === "no") where.revokedAt = null;
 
   const canSendResult = SEND_RESULT_ROLES.has(session.role);
-  const [certs, events, sittings, comps] = await Promise.all([
+  const [certs, events, sittings] = await Promise.all([
     prisma.certificate.findMany({
       where,
       include: {
@@ -65,14 +65,6 @@ export default async function CertificatesPage({
           take: 50,
         })
       : Promise.resolve([]),
-    canBulk
-      ? prisma.competition.findMany({
-          where: { ...centreWhere(centreId), status: { in: ["live", "completed"] as any } },
-          select: { id: true, name: true, startDate: true },
-          orderBy: { startDate: "desc" },
-          take: 50,
-        })
-      : Promise.resolve([]),
   ]);
 
   return (
@@ -80,8 +72,8 @@ export default async function CertificatesPage({
       <div>
         <h1 className="text-2xl font-bold">Certificates</h1>
         <p className="text-sm text-muted-foreground">
-          Auto-issued on exam pass + competition placement. Bulk-issue for events / sittings /
-          competitions; revoke a cert without losing the audit trail.
+          Auto-issued on exam pass. Bulk-issue for exam sittings / events;
+          revoke a cert without losing the audit trail.
         </p>
       </div>
 
@@ -91,10 +83,6 @@ export default async function CertificatesPage({
           sittings={sittings.map((s) => ({
             id: s.id,
             label: `L${s.level} · ${s.date.toISOString().slice(0, 10)}`,
-          }))}
-          competitions={comps.map((c) => ({
-            id: c.id,
-            label: `${c.name} · ${c.startDate.toISOString().slice(0, 10)}`,
           }))}
         />
       )}
@@ -111,7 +99,6 @@ export default async function CertificatesPage({
               >
                 <option value="">All</option>
                 <option value="promotion">Promotion (exam)</option>
-                <option value="winner">Winner (competition)</option>
                 <option value="participation">Participation</option>
                 <option value="event_attendance">Event attendance</option>
               </select>

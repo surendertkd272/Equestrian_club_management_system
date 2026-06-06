@@ -23,7 +23,6 @@ import {
   StableManagerDashboard,
   GroomDashboard,
   ExaminerDashboard,
-  CompetitionManagerDashboard,
   AccountantDashboard,
   HeadCoachDashboard,
   CoachDashboard,
@@ -38,9 +37,8 @@ export default async function DashboardPage() {
   // The competition hero links to /competitions, which 404s when the org has
   // the feature off (assertSessionFeature). Gate the hero + its link on it.
   const features = await getFeaturesForSession(session);
-  const hasComps = features.has("competitions");
-  // /exams is gated on "external-exams" too — only show the exams timeline +
-  // its link when the org has it on.
+  // /exams is gated on "external-exams" — only show the exams timeline + its
+  // link when the org has it on.
   const hasExams = features.has("external-exams");
 
   // Role-specific dashboards. The generic KPI grid below stays for roles that
@@ -51,7 +49,6 @@ export default async function DashboardPage() {
   if (session.role === "STABLE_MANAGER") return <StableManagerDashboard centreId={centreId} features={features} />;
   if (session.role === "GROOM") return <GroomDashboard centreId={centreId} userId={session.userId} features={features} />;
   if (session.role === "EXAMINER") return <ExaminerDashboard centreId={centreId} userId={session.userId} features={features} />;
-  if (session.role === "COMPETITION_MANAGER") return <CompetitionManagerDashboard centreId={centreId} features={features} />;
   if (session.role === "ACCOUNTANT") return <AccountantDashboard centreId={centreId} features={features} />;
   if (session.role === "INVENTORY_MANAGER") return <StableManagerDashboard centreId={centreId} features={features} />;
   if (session.role === "HEAD_COACH") return <HeadCoachDashboard centreId={centreId} features={features} />;
@@ -156,7 +153,7 @@ export default async function DashboardPage() {
     const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
     return { start, end, label: start.toLocaleString("en-IN", { month: "short" }) };
   });
-  const [revenue6, newRiders6, ridersBeforeWindow, nextCompetition, upcomingExams] = await Promise.all([
+  const [revenue6, newRiders6, ridersBeforeWindow, upcomingExams] = await Promise.all([
     Promise.all(
       months.map((m) =>
         prisma.payment.aggregate({
@@ -167,13 +164,6 @@ export default async function DashboardPage() {
     ),
     Promise.all(months.map((m) => prisma.rider.count({ where: { ...where, createdAt: { gte: m.start, lt: m.end } } }))),
     prisma.rider.count({ where: { ...where, createdAt: { lt: months[0].start }, status: { notIn: ["cancelled", "rejected"] } } }),
-    hasComps
-      ? prisma.competition.findFirst({
-          where: { ...where, status: { notIn: ["cancelled", "completed"] }, startDate: { gte: todayStart } },
-          orderBy: { startDate: "asc" },
-          include: { _count: { select: { entries: true } } },
-        })
-      : Promise.resolve(null),
     hasExams
       ? prisma.exam.findMany({
           where: { ...where, status: "scheduled", date: { gte: todayStart, lte: sevenDays } },
@@ -251,15 +241,6 @@ export default async function DashboardPage() {
     revLast > 0
       ? { value: `${Math.abs(Math.round(((revThis - revLast) / revLast) * 100))}%`, dir: revThis >= revLast ? "up" : "down" }
       : undefined;
-
-  // Hero card — the next competition if one is on the calendar, otherwise a
-  // roster-at-a-glance fallback so the slot is never empty.
-  const compDaysToGo = nextCompetition
-    ? Math.max(0, Math.ceil((nextCompetition.startDate.getTime() - now.getTime()) / 86400000))
-    : null;
-  const compClasses = nextCompetition && Array.isArray(nextCompetition.classesJson)
-    ? (nextCompetition.classesJson as unknown[]).length
-    : 0;
 
   // "Exams this week" timeline — nearest one is the current step.
   const examItems = upcomingExams.map((e, i) => ({
@@ -377,35 +358,19 @@ export default async function DashboardPage() {
 
       {/* Feature row — hero, attendance dial, this-week timeline. */}
       <div className={`grid gap-4 ${hasExams ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}>
-        {hasComps && nextCompetition ? (
-          <HeroCard
-            kicker="Next competition"
-            title={nextCompetition.name}
-            subtitle={`${formatDateIndia(nextCompetition.startDate)}${nextCompetition.venue ? ` · ${nextCompetition.venue}` : ""}`}
-            icon={<Trophy />}
-            stats={[
-              { label: "Entries", value: nextCompetition._count.entries },
-              { label: "Classes", value: compClasses },
-              { label: "Days to go", value: compDaysToGo ?? "—" },
-            ]}
-            href="/competitions"
-            cta="View event"
-          />
-        ) : (
-          <HeroCard
-            kicker="At a glance"
-            title={`${activeRiders} active riders`}
-            subtitle={hasComps ? "No competition on the calendar yet" : "Your roster snapshot"}
-            icon={<Trophy />}
-            stats={[
-              { label: "Horses", value: horses },
-              { label: "Batches", value: batches },
-              { label: "Attendance", value: todayPct === null ? "—" : `${todayPct}%` },
-            ]}
-            href={hasComps ? "/competitions" : "/riders"}
-            cta={hasComps ? "Plan a competition" : "View roster"}
-          />
-        )}
+        <HeroCard
+          kicker="At a glance"
+          title={`${activeRiders} active riders`}
+          subtitle="Your roster snapshot"
+          icon={<Trophy />}
+          stats={[
+            { label: "Horses", value: horses },
+            { label: "Batches", value: batches },
+            { label: "Attendance", value: todayPct === null ? "—" : `${todayPct}%` },
+          ]}
+          href="/riders"
+          cta="View roster"
+        />
 
         <div className="flex flex-col rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
           <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">

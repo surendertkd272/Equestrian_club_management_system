@@ -366,16 +366,14 @@ async function seedClub(spec: ClubSpec, orgId: string, pwd: string) {
     { roleKey: "examiner",            role: "EXAMINER",            name: spec.examinerName },
     { roleKey: "stablemanager",       role: "STABLE_MANAGER",      name: spec.stableManagerName },
     { roleKey: "inventorymanager",    role: "INVENTORY_MANAGER",   name: spec.inventoryManagerName },
-    { roleKey: "competitionmanager",  role: "COMPETITION_MANAGER", name: spec.competitionManagerName },
     { roleKey: "groom",               role: "GROOM",               name: spec.groomName },
     { roleKey: "farrier",             role: "FARRIER",             name: spec.farrierName },
     { roleKey: "accountant",          role: "ACCOUNTANT",          name: spec.accountantName },
     // External / oversight logins the client (Ahmed) asked to see:
-    // School Administrator (read-only club view), Inspection Officer
-    // (external auditor), and a Jury member (panel scoring). All centre-scoped.
+    // School Administrator (read-only club view) + Inspection Officer
+    // (external auditor). All centre-scoped.
     { roleKey: "schooladmin",         role: "SCHOOL_ADMINISTRATOR", name: `${spec.name} School Admin` },
     { roleKey: "inspector",           role: "INSPECTION_OFFICER",   name: `${spec.name} Inspection Officer` },
-    { roleKey: "jury",                role: "JURY",                 name: `${spec.name} Jury Member` },
   ];
 
   const userByKey: Record<string, { id: string }> = {};
@@ -684,7 +682,6 @@ async function main() {
     console.log(`  examiner.${c.slug}@equiwings.in             ${c.examinerName}`);
     console.log(`  stablemanager.${c.slug}@equiwings.in        ${c.stableManagerName}`);
     console.log(`  inventorymanager.${c.slug}@equiwings.in     ${c.inventoryManagerName}`);
-    console.log(`  competitionmanager.${c.slug}@equiwings.in   ${c.competitionManagerName}`);
     console.log(`  groom.${c.slug}@equiwings.in                ${c.groomName}`);
     console.log(`  farrier.${c.slug}@equiwings.in              ${c.farrierName}`);
     console.log(`  accountant.${c.slug}@equiwings.in           ${c.accountantName}`);

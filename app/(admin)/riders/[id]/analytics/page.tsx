@@ -24,18 +24,11 @@ export default async function RiderAnalytics({ params }: { params: { id: string 
   if (!rider) notFound();
   if (centreId && rider.centreId !== centreId) notFound();
 
-  const [exams, entries, certificates, skillStatus, attendance, totalSkillsAtCentre] = await Promise.all([
+  const [exams, certificates, skillStatus, attendance, totalSkillsAtCentre] = await Promise.all([
     prisma.exam.findMany({
       where: { riderId: rider.id, status: "completed" },
       orderBy: { date: "asc" },
       select: { id: true, level: true, date: true, totalScore: true, passed: true },
-    }),
-    prisma.competitionEntry.findMany({
-      where: { riderId: rider.id },
-      include: {
-        competition: { select: { name: true, startDate: true } },
-      },
-      orderBy: { createdAt: "desc" },
     }),
     prisma.certificate.findMany({
       where: { riderId: rider.id },
@@ -57,11 +50,6 @@ export default async function RiderAnalytics({ params }: { params: { id: string 
   const examScores = exams.map((e) => e.totalScore ?? 0);
   const examPassRate =
     exams.length > 0 ? Math.round((exams.filter((e) => e.passed === true).length / exams.length) * 100) : null;
-
-  // Medal tally
-  const gold = entries.filter((e) => e.placement === 1).length;
-  const silver = entries.filter((e) => e.placement === 2).length;
-  const bronze = entries.filter((e) => e.placement === 3).length;
 
   // Skill mastery by discipline
   const masteredByDiscipline = new Map<string, number>();
@@ -127,16 +115,14 @@ export default async function RiderAnalytics({ params }: { params: { id: string 
           Analytics · {rider.firstName} {rider.lastName}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Joined {formatDate(rider.joiningDate)} · {exams.length} exams · {entries.length} competition entries ·{" "}
-          {certificates.length} certificates
+          Joined {formatDate(rider.joiningDate)} · {exams.length} exams · {certificates.length} certificates
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         <KPI label="Exam pass rate" value={examPassRate === null ? "—" : `${examPassRate}%`} sub={`${exams.length} taken`} />
         <KPI label="Skill mastery" value={`${masteryPct}%`} sub={`${mastered}/${totalSkillsAtCentre}`} />
         <KPI label="Attendance" value={attendancePct === null ? "—" : `${attendancePct}%`} sub={`${attendance.length} sessions`} />
-        <KPI label="Medals" value={String(gold + silver + bronze)} sub={`🥇 ${gold} · 🥈 ${silver} · 🥉 ${bronze}`} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -214,37 +200,6 @@ export default async function RiderAnalytics({ params }: { params: { id: string 
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Competition record</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {entries.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">No competition entries yet.</p>
-            ) : (
-              <ul className="space-y-1 text-sm">
-                {entries.slice(0, 10).map((e) => (
-                  <li key={e.id} className="flex items-center justify-between border-b border-dashed py-1">
-                    <div>
-                      <div className="font-medium">{e.competition.name}</div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {formatDate(e.competition.startDate)} · {e.className}
-                      </div>
-                    </div>
-                    <div className="text-right text-xs">
-                      {e.placement && (
-                        <Badge variant={e.placement === 1 ? "success" : e.placement <= 3 ? "warning" : "outline"}>
-                          {e.placement === 1 ? "🥇 1st" : e.placement === 2 ? "🥈 2nd" : e.placement === 3 ? "🥉 3rd" : `${e.placement}th`}
-                        </Badge>
-                      )}
-                      {e.score !== null && <div className="font-mono text-[10px]">score {e.score}</div>}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
       </div>
 
       {certificates.length > 0 && (

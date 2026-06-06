@@ -37,13 +37,10 @@ export default async function AnalyticsPage() {
     activeRiders,
     examsAll,
     examsThisYear,
-    competitions,
-    placements,
     certificates,
     ridersByLevel,
     revenueByMonth,
     attendanceByMonth,
-    medalsByRider,
   ] = await Promise.all([
     prisma.rider.count({ where }),
     prisma.rider.count({ where: { ...where, status: "active" } }),
@@ -54,11 +51,6 @@ export default async function AnalyticsPage() {
     prisma.exam.findMany({
       where: { ...where, status: "completed", date: { gte: sixMonthsAgo } },
       select: { passed: true, date: true },
-    }),
-    prisma.competition.count({ where }),
-    prisma.competitionEntry.findMany({
-      where: { competition: centreId ? { centreId } : undefined, placement: { not: null } },
-      select: { riderId: true, placement: true, rider: { select: { firstName: true, lastName: true } } },
     }),
     prisma.certificate.count({ where }),
     prisma.rider.groupBy({
@@ -89,13 +81,6 @@ export default async function AnalyticsPage() {
         }),
       ),
     ),
-    prisma.competitionEntry.findMany({
-      where: {
-        competition: centreId ? { centreId } : undefined,
-        placement: { in: [1, 2, 3] },
-      },
-      select: { riderId: true, placement: true, rider: { select: { firstName: true, lastName: true } } },
-    }),
   ]);
 
   // ───── Aggregations ─────
@@ -114,26 +99,6 @@ export default async function AnalyticsPage() {
     const inMonth = examsThisYear.filter((e) => e.date >= m.start && e.date <= m.end);
     return inMonth.length > 0 ? Math.round((inMonth.filter((e) => e.passed === true).length / inMonth.length) * 100) : 0;
   });
-
-  // Medal counts per rider (gold/silver/bronze)
-  const medalAgg = new Map<string, { name: string; gold: number; silver: number; bronze: number; total: number }>();
-  for (const m of medalsByRider) {
-    const name = `${m.rider.firstName} ${m.rider.lastName}`;
-    const cur = medalAgg.get(m.riderId) ?? { name, gold: 0, silver: 0, bronze: 0, total: 0 };
-    if (m.placement === 1) cur.gold += 1;
-    if (m.placement === 2) cur.silver += 1;
-    if (m.placement === 3) cur.bronze += 1;
-    cur.total = cur.gold + cur.silver + cur.bronze;
-    medalAgg.set(m.riderId, cur);
-  }
-  const topMedalists = Array.from(medalAgg.values())
-    .sort((a, b) => b.gold * 3 + b.silver * 2 + b.bronze - (a.gold * 3 + a.silver * 2 + a.bronze))
-    .slice(0, 8);
-
-  // Total medal counts overall
-  const goldTotal = placements.filter((p) => p.placement === 1).length;
-  const silverTotal = placements.filter((p) => p.placement === 2).length;
-  const bronzeTotal = placements.filter((p) => p.placement === 3).length;
 
   // Level distribution
   const levelData = ridersByLevel
@@ -181,14 +146,9 @@ export default async function AnalyticsPage() {
           sub={`${passCount} pass · ${failCount} fail`}
         />
         <Tile
-          label="Medals awarded"
-          value={String(goldTotal + silverTotal + bronzeTotal)}
-          sub={`🥇 ${goldTotal} · 🥈 ${silverTotal} · 🥉 ${bronzeTotal}`}
-        />
-        <Tile
           label="Certificates issued"
           value={String(certificates)}
-          sub={`${competitions} competitions held`}
+          sub="all-time"
         />
       </div>
 
@@ -239,33 +199,6 @@ export default async function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Top medalists</CardTitle>
-              <Badge variant="outline">weighted 3·2·1</Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {topMedalists.length === 0 ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">No medals yet.</p>
-            ) : (
-              <ul className="space-y-1.5 text-sm">
-                {topMedalists.map((m, i) => (
-                  <li key={m.name} className="flex items-center justify-between border-b border-dashed py-1">
-                    <span>
-                      <span className="mr-2 inline-block w-5 text-right text-xs text-muted-foreground">#{i + 1}</span>
-                      <span className="font-medium">{m.name}</span>
-                    </span>
-                    <span className="font-mono text-xs">
-                      🥇 {m.gold} · 🥈 {m.silver} · 🥉 {m.bronze}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </div>
   );

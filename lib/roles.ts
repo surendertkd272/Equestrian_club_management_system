@@ -14,17 +14,11 @@ export const ROLES = [
   "COACH",
   "STABLE_MANAGER",
   "INVENTORY_MANAGER",
-  "COMPETITION_MANAGER",
   "GROOM",
   "FARRIER",
   "VET",
   "ACCOUNTANT",
   "EXAMINER",
-  // Sits on a panel for exams AND competitions. Distinct from EXAMINER:
-  // - EXAMINER schedules + leads exams (can be a panel of one)
-  // - JURY scores from the panel but doesn't schedule. Usually invited per
-  //   event from another centre to keep judging independent.
-  "JURY",
   // External / read-only roles.
   // SCHOOL_ADMINISTRATOR sees one club's riders' attendance, exams, skills —
   // designed for schools partnered with a club that want oversight of
