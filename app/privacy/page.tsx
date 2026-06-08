@@ -40,7 +40,7 @@ export default function PrivacyPage() {
           a company incorporated in India with its registered office at{" "}
           <strong>[Registered office address]</strong>. We provide a
           software-as-a-service platform that equestrian academies and clubs use
-          to manage riders, horses, exams, competitions, fees, and certificates.
+          to manage riders, horses, exams, fees, and certificates.
         </p>
         <p>
           Under the DPDP Act, "personal data" is any data about an individual who
@@ -74,7 +74,7 @@ export default function PrivacyPage() {
           <li><strong>Account &amp; identity:</strong> name, email address, phone number, role, login credentials (passwords are stored only as salted hashes), and two-factor settings.</li>
           <li><strong>Rider profile:</strong> name, date of birth, age, gender, address, photograph, school, and parent/guardian contact details.</li>
           <li><strong>Government identifiers (only when you choose to provide them):</strong> Aadhaar, PAN, and bank/UPI details for payouts or KYC. We collect these only where needed and treat them as sensitive.</li>
-          <li><strong>Training records:</strong> attendance, batch/lesson schedules, skill progression, exam score cards, certificate serial numbers, and competition placements.</li>
+          <li><strong>Training records:</strong> attendance, batch/lesson schedules, skill progression, exam score cards, certificate serial numbers.</li>
           <li><strong>Health &amp; safety records:</strong> rider injury logs and, for horses, veterinary, medication, and care records.</li>
           <li><strong>Horse records:</strong> ownership, allocations, vaccination/deworming/farriery logs, feed plans, and insurance details.</li>
           <li><strong>Financial data:</strong> invoices, fee plans, payment references, GSTIN, and billing address. Card and bank details for payments are handled by our payment processors — we do not store full card numbers.</li>
@@ -101,7 +101,7 @@ export default function PrivacyPage() {
 
         <h2 className="mt-8 text-xl font-semibold">4. Why we process your data</h2>
         <ul className="list-disc pl-6">
-          <li>To run the academy's training, attendance, exam, competition, and certificate workflows.</li>
+          <li>To run the academy's training, attendance, exam, and certificate workflows.</li>
           <li>To raise and reconcile fees and to process payments.</li>
           <li>To send operational notifications — class reminders, fee-due alerts, exam results, and certificates.</li>
           <li>To provide parent and rider portals with read access to the relevant rider's own records.</li>

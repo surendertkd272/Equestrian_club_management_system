@@ -39,7 +39,7 @@ export default function Home() {
             The operating system for your equestrian academy.
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-slate-600">
-            Riders, horses, exams, competitions, fees, certificates — every register, log book,
+            Riders, horses, exams, fees, certificates — every register, log book,
             and ledger your club runs on, all in one panel. Replaces six paper systems and
             three WhatsApp groups.
           </p>
@@ -124,7 +124,6 @@ const FEATURES = [
   { group: "Athletes", title: "Rider register + skill tracking", body: "EFI-style level progression, per-discipline skill heatmaps, attendance auto-rolled across batches." },
   { group: "Horses", title: "Stable management", body: "Allocations, vaccinations, deworming, dental, farriery, feed plans, insurance expiry alerts." },
   { group: "Exams", title: "Multi-judge exams", body: "Rubric templates, per-judge score cards, auto-issued QR-verified certificates on pass." },
-  { group: "Competitions", title: "Live scoreboards", body: "Dressage %, jumping faults+time, eventing combined, gymkhana — public scoreboards your spectators can refresh." },
   { group: "Money", title: "Fees, payments, GST", body: "Registration + monthly invoices, GST tracking, cash/Razorpay/Stripe collection, expense P&L." },
   { group: "Parents", title: "Parent + student portals", body: "Parents see attendance %, exam results, lesson schedule. Students see their own progress." },
   { group: "Staff", title: "Coach + vet + groom", body: "Role-based access, staff attendance, leave, training records — 17 distinct roles supported." },
@@ -135,7 +134,6 @@ const FEATURES = [
 const REASONS = [
   "Built for the Indian regulator — DPDPA-ready, GST on every invoice, DLT-template-aware SMS.",
   "WhatsApp + SMS + email out of the box for class reminders, fee dues, and exam results.",
-  "Real equestrian scoring — dressage %, jumping faults, eventing combined, gymkhana time.",
   "QR-verified certificates that parents and federations can scan to confirm.",
   "One panel for HQ + every centre — never juggle four Excel sheets again.",
   "Designed for spotty rural connectivity — service worker caches the basics offline.",

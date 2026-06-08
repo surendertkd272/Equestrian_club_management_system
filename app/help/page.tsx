@@ -29,10 +29,8 @@ const SECTIONS = [
     ],
   },
   {
-    title: "Competitions & events",
+    title: "Accreditations",
     articles: [
-      { slug: "host-competition", title: "Host a competition end-to-end", summary: "Classes, entries, scoring, live scoreboard, certificates." },
-      { slug: "discipline-scoring", title: "Dressage / Jumping / Eventing / Gymkhana scoring", summary: "Discipline-specific math and tie-breaks." },
       { slug: "accreditations", title: "Track EFI / BHS / FEI memberships", summary: "Federation credentials per rider with expiry alerts." },
     ],
   },

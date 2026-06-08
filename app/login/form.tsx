@@ -26,7 +26,6 @@ const QUICK_PICK: { label: string; email: string }[] = [
   { label: "Accountant (Bangalore)", email: "accountant.bangalore@equiwings.in" },
   { label: "School Administrator (Bangalore)", email: "schooladmin.bangalore@equiwings.in" },
   { label: "Inspection Officer (Bangalore)", email: "inspector.bangalore@equiwings.in" },
-  { label: "Jury (Bangalore)", email: "jury.bangalore@equiwings.in" },
   { label: "Parent (Bangalore)", email: "parent.bangalore@equiwings.in" },
   { label: "Student / Rider (Bangalore)", email: "student.bangalore@equiwings.in" },
 ];

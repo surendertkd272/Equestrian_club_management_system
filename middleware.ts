@@ -52,16 +52,11 @@ const PUBLIC_PREFIXES = [
   // booking details from URL params; the underlying FacilityBooking row
   // still requires auth to mutate.
   "/booking-confirmation",
-  // Public scoreboard (competition results, no auth required).
-  "/scoreboard",
-  "/compete",                      // public competition portal: entries, tickets
-  "/tickets",                      // public ticket QR view (URL is the bearer)
   "/uploads",                      // public — dev local-fs uploads served from /public/uploads
   "/api/auth",
   "/api/auth/verify-email",
   "/api/captcha",
   "/api/onboarding",
-  "/api/public",                   // public competition + ticket APIs
   "/_next",
   "/favicon",
   // PWA assets

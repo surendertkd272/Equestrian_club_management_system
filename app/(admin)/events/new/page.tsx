@@ -17,7 +17,6 @@ export default async function NewEventPage() {
           <CardTitle>New event</CardTitle>
           <CardDescription>
             Set up a clinic, schooling day, parent day, fundraiser, or off-site external show.
-            Use a competition instead if the event has classes, placements and prizes.
           </CardDescription>
         </CardHeader>
         <CardContent>

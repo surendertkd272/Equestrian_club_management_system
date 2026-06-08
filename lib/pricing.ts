@@ -42,7 +42,7 @@ const DEFAULTS: Array<{
   {
     key: "enterprise",
     label: "Enterprise",
-    tagline: "Federation-level chains running competitions + HQ rollup.",
+    tagline: "Federation-level chains multi-centre HQ rollup.",
     monthlyInr: 11999,
     annualInrPerMonth: 9999,
     highlight: false,
