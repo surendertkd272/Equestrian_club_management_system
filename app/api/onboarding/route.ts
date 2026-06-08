@@ -10,6 +10,7 @@ import {
   INJURY_NOC_VERSION,
 } from "@/lib/schemas/rider-onboarding";
 import { calcBmi } from "@/lib/utils";
+import { encryptPII, last4 } from "@/lib/pii";
 import { audit } from "@/lib/audit";
 import { notifyCentreManager } from "@/lib/notify";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
@@ -94,7 +95,8 @@ export async function POST(req: NextRequest) {
       maritalStatus: d.maritalStatus || null,
       mobile: d.mobile,
       email: d.email || null,
-      aadhaarNo: d.aadhaarNo || null,
+      aadhaarNo: encryptPII(d.aadhaarNo || null),
+      aadhaarLast4: last4(d.aadhaarNo || null),
       aadhaarDocUrl: d.aadhaarDocUrl || null,
       photoUrl: d.photoUrl || null,
       school: d.school || null,

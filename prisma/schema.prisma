@@ -783,8 +783,13 @@ model Rider {
   nationality    String?
   gender         String?   // male | female | other
   maritalStatus  String?
-  // ID
-  aadhaarNo      String?   // store last4 in UI; encrypt full at rest in prod
+  // ID. aadhaarNo holds the full number encrypted at rest (lib/pii.ts,
+  // AES-256-GCM, "v1." prefix) once PII_ENCRYPTION_KEY is provisioned; legacy
+  // rows stay plaintext until the backfill runs. The UI never reads aadhaarNo
+  // directly — it shows aadhaarLast4 (masked) and only decrypts for the edit
+  // form. aadhaarDocUrl is a storage path to the scan, not the number.
+  aadhaarNo      String?
+  aadhaarLast4   String?   // last 4 digits, for masked display without decrypting
   aadhaarDocUrl  String?
   // Contact
   mobile         String

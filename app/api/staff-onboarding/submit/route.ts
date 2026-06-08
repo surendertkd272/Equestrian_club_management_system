@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { notifyCentreManager } from "@/lib/notify";
 import { submitOnboardingSchema } from "@/lib/schemas/onboarding-staff";
 import { hashOnboardingToken } from "@/lib/onboarding-token";
+import { encryptPII } from "@/lib/pii";
 
 export const runtime = "nodejs";
 
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
       permanentAddress: d.permanentAddress ?? null,
       email: d.email,
       maritalStatus: d.maritalStatus ?? null,
-      aadhaarNumber: d.aadhaarNumber ?? null,
+      aadhaarNumber: encryptPII(d.aadhaarNumber ?? null), // encrypted at rest (lib/pii.ts)
       panNumber: d.panNumber ?? null,
       bankAccountName: d.bankAccountName ?? null,
       bankAccountNumber: d.bankAccountNumber ?? null,
