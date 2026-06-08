@@ -76,28 +76,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "FEATURE_DISABLED" }, { status: 503 });
   }
 
-  // Idempotent: if the webhook beat us here, just return ok.
-  if (invoice.status === "paid") {
-    const existing = await prisma.payment.findFirst({ where: { invoiceId: invoice.id, txnRef: d.razorpay_payment_id } });
-    if (existing) return NextResponse.json({ ok: true, alreadyApplied: true });
-  }
+  // Idempotent fast-path: if the webhook beat us here, just return ok.
+  const existing = await prisma.payment.findFirst({ where: { txnRef: d.razorpay_payment_id } });
+  if (existing) return NextResponse.json({ ok: true, alreadyApplied: true });
 
-  await prisma.$transaction([
-    prisma.payment.create({
-      data: {
-        invoiceId: invoice.id,
-        amount: invoice.amount + invoice.gstAmount,
-        method: "razorpay",
-        txnRef: d.razorpay_payment_id,
-        clearedAt: new Date(),
-      },
-    }),
-    prisma.invoice.update({ where: { id: invoice.id }, data: { status: "paid" } }),
-    prisma.rider.update({
-      where: { id: invoice.riderId },
-      data: invoice.kind === "registration" ? { registrationPaid: true, status: "active" } : {},
-    }),
-  ]);
+  try {
+    await prisma.$transaction([
+      prisma.payment.create({
+        data: {
+          invoiceId: invoice.id,
+          amount: invoice.amount + invoice.gstAmount,
+          method: "razorpay",
+          txnRef: d.razorpay_payment_id,
+          clearedAt: new Date(),
+        },
+      }),
+      prisma.invoice.update({ where: { id: invoice.id }, data: { status: "paid" } }),
+      prisma.rider.update({
+        where: { id: invoice.riderId },
+        data: invoice.kind === "registration" ? { registrationPaid: true, status: "active" } : {},
+      }),
+    ]);
+  } catch (e: any) {
+    // Race: the webhook inserted the same txnRef first → unique violation (P2002).
+    if (e?.code === "P2002") return NextResponse.json({ ok: true, alreadyApplied: true });
+    throw e;
+  }
 
   await audit({
     action: "razorpay.payment_verified",

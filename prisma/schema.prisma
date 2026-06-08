@@ -1803,7 +1803,11 @@ model Payment {
   invoiceId String
   amount    Float
   method    String   // razorpay | cash | cheque | upi
-  txnRef    String?
+  // Gateway/transaction reference. UNIQUE so a re-delivered webhook (or the
+  // verify redirect racing the webhook) can't double-apply a payment — the
+  // second insert hits P2002 and is treated as already-applied. Postgres
+  // allows multiple NULLs, so cash payments without a ref are unaffected.
+  txnRef    String?  @unique
   paidAt    DateTime @default(now())
   clearedAt DateTime?
 
