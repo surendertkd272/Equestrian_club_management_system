@@ -5,8 +5,8 @@ import { scopeCentre } from "@/lib/tenancy";
 
 // GET /api/search?q=… — backing for the Cmd+K palette.
 //
-// Queries nine domains in parallel: riders, horses, users, centres,
-// certificates, exams, competitions, batches, medicines. Each returns at
+// Queries eight domains in parallel: riders, horses, users, centres,
+// certificates, exams, batches, medicines. Each returns at
 // most 5 results so the palette stays tight. Centre-scoping is enforced for
 // non-SUPER_ADMIN sessions; HQ sees platform-wide.
 //

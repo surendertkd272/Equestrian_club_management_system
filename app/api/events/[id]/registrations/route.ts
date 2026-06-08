@@ -8,7 +8,7 @@ import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 
 // POST — register a rider for an event. Auto-creates an invoice when
 // Event.fee > 0 so the finance module picks up event income alongside
-// monthly fees and competition entries.
+// monthly fees and other registration income.
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });

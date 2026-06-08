@@ -1,5 +1,5 @@
 // Create a venue transport trip. Permission: roles that run event logistics
-// — admins, centre manager, head coach, stable manager, competition manager.
+// — admins, centre manager, head coach, stable manager (see CAN_MANAGE_TRIPS).
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";

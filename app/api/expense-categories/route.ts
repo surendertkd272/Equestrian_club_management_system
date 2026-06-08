@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { createExpenseCategorySchema } from "@/lib/schemas/finance";
 import { audit } from "@/lib/audit";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 // GET — list categories (platform-wide chart of accounts).
 export async function GET() {
@@ -21,6 +22,8 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const body = await req.json().catch(() => null);
   const parsed = createExpenseCategorySchema.safeParse(body);

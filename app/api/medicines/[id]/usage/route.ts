@@ -5,11 +5,14 @@ import { can } from "@/lib/permissions";
 import { createUsageSchema, daysUntil } from "@/lib/schemas/medicine";
 import { audit } from "@/lib/audit";
 import { notifyCentreManager } from "@/lib/notify";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (!can(session.role, "medicine.prescribe")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const body = await req.json().catch(() => null);
   const parsed = createUsageSchema.safeParse(body);

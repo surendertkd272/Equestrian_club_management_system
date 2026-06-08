@@ -1,4 +1,4 @@
-// Edit / soft-delete a team / squad. Permission: competition.manage.
+// Edit / soft-delete a team / squad. Permission: team.manage.
 // DELETE is soft (active=false) so membership history is preserved.
 
 import { NextRequest, NextResponse } from "next/server";

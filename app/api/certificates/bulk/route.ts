@@ -7,18 +7,15 @@ import { blockIfFeatureOff } from "@/lib/features-gate";
 import { generateUniqueSerial, verifyUrl } from "@/lib/cert";
 import { audit } from "@/lib/audit";
 
-// Bulk certificate issuance. Three modes:
+// Bulk certificate issuance. Two modes:
 //   • event           — issue an "event_attendance" cert per attended rider
 //   • exam_sitting    — issue "promotion" certs per PASSED exam in a sitting
-//   • competition     — issue "participation" certs per non-withdrawn rider
-//                       (already auto-issued via the comp.completed handler,
-//                       but this endpoint lets HQ re-trigger if needed)
 //
 // Every cert in a batch shares a `batchTag` so the UI can show the
 // grouping and the bulk PDF zip can re-find them.
 //
 // Payload shape:
-//   { source: "event" | "exam_sitting" | "competition", sourceId: "..." }
+//   { source: "event" | "exam_sitting", sourceId: "..." }
 //
 // Returns: { issued, alreadyHad, batchTag }
 
