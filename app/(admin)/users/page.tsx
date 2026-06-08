@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
@@ -18,7 +19,10 @@ type SearchParams = {
   role?: string;
   centreId?: string;
   status?: string;
+  page?: string;
 };
+
+const PAGE_SIZE = 100;
 
 export default async function UsersPage({ searchParams }: { searchParams: SearchParams }) {
   const session = (await getSession())!;
@@ -52,11 +56,15 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
     ];
   }
 
-  const [users, centres, totalAll, pendingApprovals] = await Promise.all([
+  const page = Math.max(1, Number.parseInt(searchParams.page ?? "1", 10) || 1);
+
+  const [users, centres, totalAll, filteredTotal, pendingApprovals] = await Promise.all([
     prisma.user.findMany({
       where,
-      orderBy: [{ status: "asc" }, { name: "asc" }],
-      take: 200,
+      // id tiebreaker keeps ordering stable across pages (name isn't unique).
+      orderBy: [{ status: "asc" }, { name: "asc" }, { id: "asc" }],
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
       select: {
         id: true,
         name: true,
@@ -71,6 +79,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
     }),
     prisma.centre.findMany({ select: { id: true, name: true, slug: true }, orderBy: { name: "asc" } }),
     prisma.user.count(),
+    prisma.user.count({ where }),
     // Spotlight: pending-approval users (staff hiring invites that have
     // been redeemed). Shown above the main list so admins don't have to
     // remember to filter for them.
@@ -90,12 +99,27 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
     }),
   ]);
 
+  const canResetPassword = session.role === "SUPER_ADMIN";
+  const totalPages = Math.max(1, Math.ceil(filteredTotal / PAGE_SIZE));
+  const pageHref = (p: number) => {
+    const sp = new URLSearchParams();
+    if (searchParams.q) sp.set("q", searchParams.q);
+    if (searchParams.role) sp.set("role", searchParams.role);
+    if (searchParams.centreId) sp.set("centreId", searchParams.centreId);
+    if (searchParams.status) sp.set("status", searchParams.status);
+    sp.set("page", String(p));
+    return `/users?${sp.toString()}`;
+  };
+  const rangeStart = filteredTotal === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const rangeEnd = (page - 1) * PAGE_SIZE + users.length;
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Users</h1>
         <p className="text-sm text-muted-foreground">
-          HQ control · {totalAll} total · showing {users.length}. Edit role/centre/status, reset
+          HQ control · {totalAll} total · {filteredTotal} match · showing {rangeStart}–{rangeEnd}
+          {totalPages > 1 ? ` (page ${page} of ${totalPages})` : ""}. Edit role/centre/status, reset
           passwords, suspend accounts. Self-demotion and last-super-admin removal are blocked.
         </p>
       </div>
@@ -134,7 +158,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
 
       <Card>
         <CardHeader>
-          <CardTitle>Results ({users.length})</CardTitle>
+          <CardTitle>Results ({filteredTotal})</CardTitle>
         </CardHeader>
         <CardContent>
           {users.length === 0 ? (
@@ -201,12 +225,47 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
                           centres={centres}
                           roles={ROLES as readonly string[]}
                           isSelf={u.id === session.userId}
+                          canResetPassword={canResetPassword}
                         />
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="mt-4 flex items-center justify-between border-t pt-3 text-sm">
+              <span className="text-muted-foreground">
+                Page {page} of {totalPages}
+              </span>
+              <div className="flex gap-2">
+                {page > 1 ? (
+                  <Link
+                    href={pageHref(page - 1)}
+                    className="rounded-md border px-3 py-1.5 hover:bg-muted"
+                  >
+                    ← Previous
+                  </Link>
+                ) : (
+                  <span className="rounded-md border px-3 py-1.5 text-muted-foreground opacity-50">
+                    ← Previous
+                  </span>
+                )}
+                {page < totalPages ? (
+                  <Link
+                    href={pageHref(page + 1)}
+                    className="rounded-md border px-3 py-1.5 hover:bg-muted"
+                  >
+                    Next →
+                  </Link>
+                ) : (
+                  <span className="rounded-md border px-3 py-1.5 text-muted-foreground opacity-50">
+                    Next →
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
