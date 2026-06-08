@@ -33,9 +33,13 @@ export async function sweepTrialEnd(): Promise<SweepResult> {
   });
   scanned += expired.length;
   for (const o of expired) {
+   // Per-org isolation — one failed update/email must not block the rest.
+   try {
     await prisma.organisation.update({
       where: { id: o.id },
-      data: { status: "past_due" },
+      // Stamp pastDueSince so dunning + the suspend countdown anchor on the
+      // real transition time, immune to later unrelated updatedAt bumps.
+      data: { status: "past_due", pastDueSince: now },
     });
     await logTransition("owner.tenant_past_due", o.id);
     if (o.billingEmail) {
@@ -55,18 +59,32 @@ export async function sweepTrialEnd(): Promise<SweepResult> {
       skipped++;
     }
     transitions.push(`trial→past_due: ${o.name}`);
+   } catch (err) {
+     console.error("[trial_end] trial→past_due failed", { orgId: o.id, err });
+   }
   }
 
-  // Step 2: past_due > 7 days → suspended
+  // Step 2: past_due > 7 days → suspended. Anchor on pastDueSince (the real
+  // transition time); fall back to updatedAt only for legacy rows whose
+  // pastDueSince is null (pre-column / backfill gaps).
   const stalePastDue = await prisma.organisation.findMany({
-    where: { status: "past_due", updatedAt: { lt: sevenDaysAgo } },
+    where: {
+      status: "past_due",
+      OR: [
+        { pastDueSince: { lt: sevenDaysAgo } },
+        { pastDueSince: null, updatedAt: { lt: sevenDaysAgo } },
+      ],
+    },
     select: { id: true, name: true, billingEmail: true },
   });
   scanned += stalePastDue.length;
   for (const o of stalePastDue) {
+   // Per-org isolation — one failed suspend must not block the rest.
+   try {
     await prisma.organisation.update({
       where: { id: o.id },
-      data: { status: "suspended" },
+      // No longer past_due → clear the clock.
+      data: { status: "suspended", pastDueSince: null },
     });
     await logTransition("owner.tenant_suspended", o.id);
     if (o.billingEmail) {
@@ -86,6 +104,9 @@ export async function sweepTrialEnd(): Promise<SweepResult> {
       skipped++;
     }
     transitions.push(`past_due→suspended: ${o.name}`);
+   } catch (err) {
+     console.error("[trial_end] past_due→suspended failed", { orgId: o.id, err });
+   }
   }
 
   return { job: "trial_end", scanned, notified, skipped, details: { transitions } };

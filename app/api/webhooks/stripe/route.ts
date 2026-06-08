@@ -89,6 +89,14 @@ async function handleEvent(event: { type: string; data: { object: any } }) {
           // says we should; keeps the owner's manual "trial" tag intact when
           // Stripe reports "active" early.
           status: newOrgStatus,
+          // Keep the overdue clock in sync: start it on first entry to past_due
+          // (preserve it if already past_due), clear it when leaving past_due.
+          pastDueSince:
+            newOrgStatus === "past_due"
+              ? org.status === "past_due"
+                ? undefined
+                : new Date()
+              : null,
         },
       });
       await auditOwner({
@@ -104,7 +112,13 @@ async function handleEvent(event: { type: string; data: { object: any } }) {
     case "invoice.payment_failed": {
       await prisma.organisation.update({
         where: { id: org.id },
-        data: { status: "past_due", subscriptionStatus: "past_due" },
+        data: {
+          status: "past_due",
+          subscriptionStatus: "past_due",
+          // Start the clock only on first entry to past_due; a re-delivered
+          // payment_failed must not reset it.
+          ...(org.status === "past_due" ? {} : { pastDueSince: new Date() }),
+        },
       });
       await auditOwner({
         actorId: null,
@@ -163,7 +177,7 @@ async function handleEvent(event: { type: string; data: { object: any } }) {
       if (org.status === "past_due") {
         await prisma.organisation.update({
           where: { id: org.id },
-          data: { status: "active", subscriptionStatus: "active" },
+          data: { status: "active", subscriptionStatus: "active", pastDueSince: null },
         });
         await auditOwner({
           actorId: null,
