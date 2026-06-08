@@ -131,11 +131,16 @@ export function UserActions({
   centres,
   roles,
   isSelf,
+  canResetPassword,
 }: {
   user: UserShape;
   centres: Centre[];
   roles: readonly string[];
   isSelf: boolean;
+  // Password reset is SUPER_ADMIN-only on the API. Hide the button for other
+  // roles (e.g. ADMIN, who can edit/suspend/create but not reset) so we don't
+  // show an action that just fails.
+  canResetPassword: boolean;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -282,9 +287,11 @@ export function UserActions({
         <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
           Edit
         </Button>
-        <Button size="sm" variant="outline" disabled={busy} onClick={resetPwd}>
-          Reset password
-        </Button>
+        {canResetPassword && (
+          <Button size="sm" variant="outline" disabled={busy} onClick={resetPwd}>
+            Reset password
+          </Button>
+        )}
         {!isSelf && (
           <Button
             size="sm"
