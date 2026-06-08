@@ -68,15 +68,15 @@ export function EditHorseForm({ horseId, initial }: { horseId: string; initial: 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-1.5">
           <Label>Name *</Label>
-          <Input required value={form.name} onChange={(e) => set("name", e.target.value)} />
+          <Input aria-label="Name" required value={form.name} onChange={(e) => set("name", e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label>Breed</Label>
-          <Input value={form.breed} onChange={(e) => set("breed", e.target.value)} placeholder="Marwari, Sindhi…" />
+          <Input aria-label="Breed" value={form.breed} onChange={(e) => set("breed", e.target.value)} placeholder="Marwari, Sindhi…" />
         </div>
         <div className="space-y-1.5">
           <Label>Sex</Label>
-          <Select value={form.sex} onChange={(e) => set("sex", e.target.value)}>
+          <Select aria-label="Sex" value={form.sex} onChange={(e) => set("sex", e.target.value)}>
             <option value="mare">Mare</option>
             <option value="gelding">Gelding</option>
             <option value="stallion">Stallion</option>
@@ -84,7 +84,7 @@ export function EditHorseForm({ horseId, initial }: { horseId: string; initial: 
         </div>
         <div className="space-y-1.5">
           <Label>Status</Label>
-          <Select value={form.status} onChange={(e) => set("status", e.target.value)}>
+          <Select aria-label="Status" value={form.status} onChange={(e) => set("status", e.target.value)}>
             <option value="active">Active</option>
             <option value="rest">Rest</option>
             <option value="retired">Retired</option>
@@ -92,31 +92,31 @@ export function EditHorseForm({ horseId, initial }: { horseId: string; initial: 
         </div>
         <div className="space-y-1.5">
           <Label>Age (years)</Label>
-          <Input type="number" min={0} max={50} value={form.ageYears} onChange={(e) => set("ageYears", e.target.value)} />
+          <Input aria-label="Age (years)" type="number" min={0} max={50} value={form.ageYears} onChange={(e) => set("ageYears", e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label>Height (hh)</Label>
-          <Input type="number" step="0.1" min={8} max={20} value={form.heightHh} onChange={(e) => set("heightHh", e.target.value)} placeholder="15.1" />
+          <Input aria-label="Height (hh)" type="number" step="0.1" min={8} max={20} value={form.heightHh} onChange={(e) => set("heightHh", e.target.value)} placeholder="15.1" />
         </div>
         <div className="space-y-1.5">
           <Label>Ownership</Label>
-          <Select value={form.ownership} onChange={(e) => set("ownership", e.target.value)}>
+          <Select aria-label="Ownership" value={form.ownership} onChange={(e) => set("ownership", e.target.value)}>
             <option value="club">Club</option>
             <option value="private">Private</option>
           </Select>
         </div>
         <div className="space-y-1.5">
           <Label>Stable #</Label>
-          <Input value={form.stableNo} onChange={(e) => set("stableNo", e.target.value)} placeholder="A1" />
+          <Input aria-label="Stable #" value={form.stableNo} onChange={(e) => set("stableNo", e.target.value)} placeholder="A1" />
         </div>
         <div className="space-y-1.5">
           <Label>Microchip</Label>
-          <Input value={form.microchip} onChange={(e) => set("microchip", e.target.value)} />
+          <Input aria-label="Microchip" value={form.microchip} onChange={(e) => set("microchip", e.target.value)} />
         </div>
       </div>
       <div className="space-y-1.5">
         <Label>Dietary notes</Label>
-        <Textarea value={form.diet} onChange={(e) => set("diet", e.target.value)} placeholder="2 kg pellets twice daily, no oats…" />
+        <Textarea aria-label="Dietary notes" value={form.diet} onChange={(e) => set("diet", e.target.value)} placeholder="2 kg pellets twice daily, no oats…" />
       </div>
 
       <fieldset className="rounded-md border p-3">
@@ -124,24 +124,24 @@ export function EditHorseForm({ horseId, initial }: { horseId: string; initial: 
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Insurer</Label>
-            <Input value={form.insurerName} onChange={(e) => set("insurerName", e.target.value)} placeholder="Bajaj Allianz" />
+            <Input aria-label="Insurer" value={form.insurerName} onChange={(e) => set("insurerName", e.target.value)} placeholder="Bajaj Allianz" />
           </div>
           <div className="space-y-1.5">
             <Label>Policy #</Label>
-            <Input value={form.insurancePolicyNo} onChange={(e) => set("insurancePolicyNo", e.target.value)} />
+            <Input aria-label="Policy #" value={form.insurancePolicyNo} onChange={(e) => set("insurancePolicyNo", e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label>Annual premium (₹)</Label>
-            <Input type="number" min={0} value={form.insurancePremium} onChange={(e) => set("insurancePremium", e.target.value)} />
+            <Input aria-label="Annual premium (₹)" type="number" min={0} value={form.insurancePremium} onChange={(e) => set("insurancePremium", e.target.value)} />
           </div>
           <div />
           <div className="space-y-1.5">
             <Label>Valid from</Label>
-            <Input type="date" value={form.insuranceValidFrom} onChange={(e) => set("insuranceValidFrom", e.target.value)} />
+            <Input aria-label="Valid from" type="date" value={form.insuranceValidFrom} onChange={(e) => set("insuranceValidFrom", e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label>Valid to</Label>
-            <Input type="date" value={form.insuranceValidTo} onChange={(e) => set("insuranceValidTo", e.target.value)} />
+            <Input aria-label="Valid to" type="date" value={form.insuranceValidTo} onChange={(e) => set("insuranceValidTo", e.target.value)} />
           </div>
         </div>
       </fieldset>

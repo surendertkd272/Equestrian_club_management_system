@@ -86,7 +86,7 @@ export function HealthLogPanel({
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div>
           <Label className="text-xs">Temp (°C)</Label>
-          <Input
+          <Input aria-label="Temp (°C)"
             type="number"
             step="0.1"
             value={form.tempC}
@@ -96,7 +96,7 @@ export function HealthLogPanel({
         </div>
         <div>
           <Label className="text-xs">Heart rate (bpm)</Label>
-          <Input
+          <Input aria-label="Heart rate (bpm)"
             type="number"
             value={form.heartRateBpm}
             onChange={(e) => set("heartRateBpm", e.target.value)}
@@ -105,7 +105,7 @@ export function HealthLogPanel({
         </div>
         <div>
           <Label className="text-xs">Respiration (rpm)</Label>
-          <Input
+          <Input aria-label="Respiration (rpm)"
             type="number"
             value={form.respirationRpm}
             onChange={(e) => set("respirationRpm", e.target.value)}
@@ -114,7 +114,7 @@ export function HealthLogPanel({
         </div>
         <div>
           <Label className="text-xs">Weight (kg)</Label>
-          <Input
+          <Input aria-label="Weight (kg)"
             type="number"
             value={form.weightKg}
             onChange={(e) => set("weightKg", e.target.value)}
@@ -123,7 +123,7 @@ export function HealthLogPanel({
         </div>
         <div>
           <Label className="text-xs">Appetite</Label>
-          <Select value={form.appetite} onChange={(e) => set("appetite", e.target.value)}>
+          <Select aria-label="Appetite" value={form.appetite} onChange={(e) => set("appetite", e.target.value)}>
             <option value="">—</option>
             <option value="good">Good</option>
             <option value="reduced">Reduced</option>
@@ -132,7 +132,7 @@ export function HealthLogPanel({
         </div>
         <div>
           <Label className="text-xs">Manure</Label>
-          <Select value={form.manure} onChange={(e) => set("manure", e.target.value)}>
+          <Select aria-label="Manure" value={form.manure} onChange={(e) => set("manure", e.target.value)}>
             <option value="">—</option>
             <option value="normal">Normal</option>
             <option value="dry">Dry</option>
@@ -143,7 +143,7 @@ export function HealthLogPanel({
         </div>
         <div className="col-span-2">
           <Label className="text-xs">Notes</Label>
-          <Input value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="lethargic this morning" />
+          <Input aria-label="Notes" value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="lethargic this morning" />
         </div>
       </div>
 

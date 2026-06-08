@@ -59,7 +59,7 @@ export function NewAllocationForm({
     <form onSubmit={onSubmit} className="grid gap-3 md:grid-cols-5 md:items-end">
       <div className="space-y-1.5">
         <Label>Purpose</Label>
-        <Select value={form.purpose} onChange={(e) => set("purpose", e.target.value)}>
+        <Select aria-label="Purpose" value={form.purpose} onChange={(e) => set("purpose", e.target.value)}>
           <option value="lesson">Lesson</option>
           <option value="exam">Exam</option>
           <option value="competition">Competition</option>
@@ -69,7 +69,7 @@ export function NewAllocationForm({
       </div>
       <div className="space-y-1.5">
         <Label>Rider</Label>
-        <Select value={form.riderId} onChange={(e) => set("riderId", e.target.value)}>
+        <Select aria-label="Rider" value={form.riderId} onChange={(e) => set("riderId", e.target.value)}>
           <option value="">(none)</option>
           {riders.map((r) => (
             <option key={r.id} value={r.id}>
@@ -80,15 +80,15 @@ export function NewAllocationForm({
       </div>
       <div className="space-y-1.5">
         <Label>Date</Label>
-        <Input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} required />
+        <Input aria-label="Date" type="date" value={form.date} onChange={(e) => set("date", e.target.value)} required />
       </div>
       <div className="space-y-1.5">
         <Label>Start</Label>
-        <Input type="time" value={form.startTime} onChange={(e) => set("startTime", e.target.value)} required />
+        <Input aria-label="Start" type="time" value={form.startTime} onChange={(e) => set("startTime", e.target.value)} required />
       </div>
       <div className="space-y-1.5">
         <Label>End</Label>
-        <Input type="time" value={form.endTime} onChange={(e) => set("endTime", e.target.value)} required />
+        <Input aria-label="End" type="time" value={form.endTime} onChange={(e) => set("endTime", e.target.value)} required />
       </div>
       <div className="md:col-span-5">
         <Button type="submit" disabled={saving} className="w-full md:w-auto">

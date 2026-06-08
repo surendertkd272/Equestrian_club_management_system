@@ -163,11 +163,11 @@ export function NewVendorForm({
     <form onSubmit={submit} className="grid gap-3 md:grid-cols-2">
       <div className="space-y-1.5">
         <Label>Name *</Label>
-        <Input required value={form.name} onChange={(e) => set("name", e.target.value)} />
+        <Input aria-label="Name" required value={form.name} onChange={(e) => set("name", e.target.value)} />
       </div>
       <div className="space-y-1.5">
         <Label>Category *</Label>
-        <Select value={form.category} onChange={(e) => set("category", e.target.value as typeof form.category)}>
+        <Select aria-label="Category" value={form.category} onChange={(e) => set("category", e.target.value as typeof form.category)}>
           {VENDOR_CATEGORIES.map((c) => (
             <option key={c} value={c}>{VENDOR_CATEGORY_LABEL[c]}</option>
           ))}
@@ -175,7 +175,7 @@ export function NewVendorForm({
       </div>
       <div className="space-y-1.5 md:col-span-2">
         <Label>Delivery coverage *</Label>
-        <Select value={form.deliveryScope} onChange={(e) => set("deliveryScope", e.target.value as "centre" | "national")}>
+        <Select aria-label="Delivery coverage" value={form.deliveryScope} onChange={(e) => set("deliveryScope", e.target.value as "centre" | "national")}>
           <option value="centre">Centre-specific — only this club uses it</option>
           <option value="national">All-India — delivers to every club</option>
         </Select>
@@ -186,7 +186,7 @@ export function NewVendorForm({
       {!pinnedCentreId && centres.length > 1 && (
         <div className="space-y-1.5 md:col-span-2">
           <Label>Centre *</Label>
-          <Select value={form.centreId} onChange={(e) => set("centreId", e.target.value)}>
+          <Select aria-label="Centre" value={form.centreId} onChange={(e) => set("centreId", e.target.value)}>
             {centres.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
@@ -195,23 +195,23 @@ export function NewVendorForm({
       )}
       <div className="space-y-1.5">
         <Label>Contact person</Label>
-        <Input value={form.contactName} onChange={(e) => set("contactName", e.target.value)} />
+        <Input aria-label="Contact person" value={form.contactName} onChange={(e) => set("contactName", e.target.value)} />
       </div>
       <div className="space-y-1.5">
         <Label>Phone</Label>
-        <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="10-digit" />
+        <Input aria-label="Phone" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="10-digit" />
       </div>
       <div className="space-y-1.5">
         <Label>Email</Label>
-        <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} />
+        <Input aria-label="Email" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} />
       </div>
       <div className="space-y-1.5">
         <Label>GSTIN</Label>
-        <Input value={form.gstin} onChange={(e) => set("gstin", e.target.value)} />
+        <Input aria-label="GSTIN" value={form.gstin} onChange={(e) => set("gstin", e.target.value)} />
       </div>
       <div className="space-y-1.5 md:col-span-2">
         <Label>Address</Label>
-        <Input value={form.address} onChange={(e) => set("address", e.target.value)} />
+        <Input aria-label="Address" value={form.address} onChange={(e) => set("address", e.target.value)} />
       </div>
 
       {/* Bank details — optional, all four collapsed to one row to keep
@@ -223,19 +223,19 @@ export function NewVendorForm({
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label className="text-xs">Account holder name</Label>
-            <Input value={form.bankAccountName} onChange={(e) => set("bankAccountName", e.target.value)} placeholder="As on bank record" />
+            <Input aria-label="Account holder name" value={form.bankAccountName} onChange={(e) => set("bankAccountName", e.target.value)} placeholder="As on bank record" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Bank name</Label>
-            <Input value={form.bankName} onChange={(e) => set("bankName", e.target.value)} placeholder="SBI / HDFC / ICICI / …" />
+            <Input aria-label="Bank name" value={form.bankName} onChange={(e) => set("bankName", e.target.value)} placeholder="SBI / HDFC / ICICI / …" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Account number</Label>
-            <Input value={form.bankAccountNumber} onChange={(e) => set("bankAccountNumber", e.target.value)} placeholder="123456789012" />
+            <Input aria-label="Account number" value={form.bankAccountNumber} onChange={(e) => set("bankAccountNumber", e.target.value)} placeholder="123456789012" />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">IFSC code</Label>
-            <Input
+            <Input aria-label="IFSC code"
               value={form.bankIfsc}
               onChange={(e) => set("bankIfsc", e.target.value.toUpperCase())}
               placeholder="HDFC0000123"
@@ -244,7 +244,7 @@ export function NewVendorForm({
           </div>
           <div className="space-y-1.5 md:col-span-2">
             <Label className="text-xs">UPI ID</Label>
-            <Input
+            <Input aria-label="UPI ID"
               value={form.upiId}
               onChange={(e) => set("upiId", e.target.value)}
               placeholder="vendor@okhdfcbank"
@@ -263,7 +263,7 @@ export function NewVendorForm({
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-1.5">
               <Label>VCI / Council reg # *</Label>
-              <Input
+              <Input aria-label="VCI / Council reg #"
                 value={vet.vciNumber}
                 onChange={(e) => setVet({ ...vet, vciNumber: e.target.value })}
                 placeholder="State veterinary council registration"
@@ -271,7 +271,7 @@ export function NewVendorForm({
             </div>
             <div className="space-y-1.5">
               <Label>Qualification *</Label>
-              <Select value={vet.qualification} onChange={(e) => setVet({ ...vet, qualification: e.target.value })}>
+              <Select aria-label="Qualification" value={vet.qualification} onChange={(e) => setVet({ ...vet, qualification: e.target.value })}>
                 <option value="">— pick —</option>
                 {VET_QUALIFICATIONS.map((q) => (
                   <option key={q} value={q}>{q}</option>
@@ -280,7 +280,7 @@ export function NewVendorForm({
             </div>
             <div className="space-y-1.5">
               <Label>Specialty</Label>
-              <Select value={vet.specialty} onChange={(e) => setVet({ ...vet, specialty: e.target.value })}>
+              <Select aria-label="Specialty" value={vet.specialty} onChange={(e) => setVet({ ...vet, specialty: e.target.value })}>
                 <option value="">— (none) —</option>
                 {VET_SPECIALTIES.map((s) => (
                   <option key={s} value={s}>{s.replaceAll("_", " ")}</option>
@@ -289,7 +289,7 @@ export function NewVendorForm({
             </div>
             <div className="space-y-1.5">
               <Label>Years of practice</Label>
-              <Input
+              <Input aria-label="Years of practice"
                 type="number"
                 min={0}
                 max={80}
@@ -309,7 +309,7 @@ export function NewVendorForm({
             </div>
             <div className="space-y-1.5 md:col-span-2">
               <Label>Clinic / hospital affiliation</Label>
-              <Input
+              <Input aria-label="Clinic / hospital affiliation"
                 value={vet.clinicAffiliation}
                 onChange={(e) => setVet({ ...vet, clinicAffiliation: e.target.value })}
                 placeholder="e.g. Equine Veterinary Hospital, Hauz Khas"
@@ -327,7 +327,7 @@ export function NewVendorForm({
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Years of experience *</Label>
-              <Input
+              <Input aria-label="Years of experience"
                 type="number"
                 min={0}
                 max={80}
@@ -337,7 +337,7 @@ export function NewVendorForm({
             </div>
             <div className="space-y-1.5">
               <Label>Hourly / per-horse rate (₹)</Label>
-              <Input
+              <Input aria-label="Hourly / per-horse rate (₹)"
                 type="number"
                 min={0}
                 value={farrier.hourlyRate}
@@ -390,7 +390,7 @@ export function NewVendorForm({
 
       <div className="space-y-1.5 md:col-span-2">
         <Label>Notes</Label>
-        <Input value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="On-call hours, preferred contact, etc." />
+        <Input aria-label="Notes" value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="On-call hours, preferred contact, etc." />
       </div>
       <Button type="submit" disabled={busy} className="md:col-span-2 w-full">
         {busy ? "Adding…" : "Add vendor"}

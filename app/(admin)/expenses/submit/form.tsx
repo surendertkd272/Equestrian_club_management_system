@@ -142,7 +142,7 @@ export function SubmitExpenseForm({
       <div className="grid gap-3 md:grid-cols-2">
         <div>
           <Label>Amount (₹) *</Label>
-          <Input
+          <Input aria-label="Amount (₹)"
             required
             type="number"
             min={0}
@@ -153,7 +153,7 @@ export function SubmitExpenseForm({
         </div>
         <div>
           <Label>GST (₹)</Label>
-          <Input
+          <Input aria-label="GST (₹)"
             type="number"
             min={0}
             step="0.01"
@@ -163,7 +163,7 @@ export function SubmitExpenseForm({
         </div>
         <div>
           <Label>Date of purchase *</Label>
-          <Input
+          <Input aria-label="Date of purchase"
             required
             type="date"
             value={form.spentAt}
@@ -172,7 +172,7 @@ export function SubmitExpenseForm({
         </div>
         <div>
           <Label>Vendor / shop name</Label>
-          <Input
+          <Input aria-label="Vendor / shop name"
             value={form.vendorName}
             onChange={(e) => set("vendorName", e.target.value)}
             placeholder="e.g. Krishna Feeds, Apollo Pharmacy"
@@ -180,7 +180,7 @@ export function SubmitExpenseForm({
         </div>
         <div>
           <Label>Invoice number</Label>
-          <Input
+          <Input aria-label="Invoice number"
             value={form.invoiceRef}
             onChange={(e) => set("invoiceRef", e.target.value)}
             placeholder="optional"
@@ -188,7 +188,7 @@ export function SubmitExpenseForm({
         </div>
         <div>
           <Label>Category</Label>
-          <Select value={form.categoryId} onChange={(e) => set("categoryId", e.target.value)}>
+          <Select aria-label="Category" value={form.categoryId} onChange={(e) => set("categoryId", e.target.value)}>
             <option value="">— pick if you know —</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
@@ -199,7 +199,7 @@ export function SubmitExpenseForm({
         </div>
         <div className="md:col-span-2">
           <Label>What did you buy? *</Label>
-          <Textarea
+          <Textarea aria-label="What did you buy?"
             required
             value={form.description}
             onChange={(e) => set("description", e.target.value)}

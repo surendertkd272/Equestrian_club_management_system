@@ -88,7 +88,7 @@ export function AdvancesPanel({
             <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Recipient *</Label>
-                <Select value={issuingFor} onChange={(e) => setIssuingFor(e.target.value)}>
+                <Select aria-label="Recipient" value={issuingFor} onChange={(e) => setIssuingFor(e.target.value)}>
                   <option value="">— pick —</option>
                   {eligibleUsers.map((u) => (
                     <option key={u.id} value={u.id}>
@@ -113,7 +113,7 @@ export function AdvancesPanel({
               </div>
               <div className="space-y-1.5 md:col-span-2">
                 <Label>Reason *</Label>
-                <Input
+                <Input aria-label="Reason"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   required
@@ -122,7 +122,7 @@ export function AdvancesPanel({
               </div>
               <div className="space-y-1.5 md:col-span-2">
                 <Label>Notes</Label>
-                <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+                <Input aria-label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
               </div>
             </div>
             <div className="flex justify-end gap-2">
@@ -235,7 +235,7 @@ function AdvanceRowDisplay({ row }: { row: AdvanceRow }) {
           </div>
           <div className="flex-1 space-y-1">
             <Label className="text-xs">Notes</Label>
-            <Input
+            <Input aria-label="Notes"
               value={repayNotes}
               onChange={(e) => setRepayNotes(e.target.value)}
               placeholder="Apr salary"

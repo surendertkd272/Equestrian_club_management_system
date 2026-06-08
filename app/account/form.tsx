@@ -171,16 +171,16 @@ export function AccountForm({
             </div>
             <div>
               <Label>Email</Label>
-              <Input value={initial.email} disabled />
+              <Input aria-label="Email" value={initial.email} disabled />
             </div>
             <div>
               <Label>Role</Label>
-              <Input value={initial.role} disabled />
+              <Input aria-label="Role" value={initial.role} disabled />
             </div>
             {initial.centreName && (
               <div className="sm:col-span-2">
                 <Label>Centre</Label>
-                <Input value={initial.centreName} disabled />
+                <Input aria-label="Centre" value={initial.centreName} disabled />
               </div>
             )}
           </div>

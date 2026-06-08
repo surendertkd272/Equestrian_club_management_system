@@ -50,19 +50,19 @@ export function NewTripForm() {
         <div className="grid gap-3 md:grid-cols-4">
           <div>
             <Label>Event</Label>
-            <Input value={form.eventName} onChange={(e) => set("eventName", e.target.value)} placeholder="EFI Nationals" />
+            <Input aria-label="Event" value={form.eventName} onChange={(e) => set("eventName", e.target.value)} placeholder="EFI Nationals" />
           </div>
           <div>
             <Label>Venue</Label>
-            <Input value={form.venue} onChange={(e) => set("venue", e.target.value)} placeholder="Delhi Riding Club" />
+            <Input aria-label="Venue" value={form.venue} onChange={(e) => set("venue", e.target.value)} placeholder="Delhi Riding Club" />
           </div>
           <div>
             <Label>Departure</Label>
-            <Input type="datetime-local" value={form.departureAt} onChange={(e) => set("departureAt", e.target.value)} />
+            <Input aria-label="Departure" type="datetime-local" value={form.departureAt} onChange={(e) => set("departureAt", e.target.value)} />
           </div>
           <div>
             <Label>Notes</Label>
-            <Input value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="optional" />
+            <Input aria-label="Notes" value={form.notes} onChange={(e) => set("notes", e.target.value)} placeholder="optional" />
           </div>
         </div>
         <div className="mt-3 flex justify-end">

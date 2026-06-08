@@ -80,7 +80,7 @@ export function NewSittingForm({
       <div className="grid gap-3 sm:grid-cols-3">
         <div>
           <Label>Level</Label>
-          <Select value={level} onChange={(e) => setLevel(e.target.value)}>
+          <Select aria-label="Level" value={level} onChange={(e) => setLevel(e.target.value)}>
             {levels.map((l) => (
               <option key={l.key} value={l.key}>
                 {l.key} · {l.name}
@@ -90,11 +90,11 @@ export function NewSittingForm({
         </div>
         <div>
           <Label>Date</Label>
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          <Input aria-label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
         </div>
         <div>
           <Label>Time</Label>
-          <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
+          <Input aria-label="Time" type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
         </div>
       </div>
 
@@ -141,7 +141,7 @@ export function NewSittingForm({
 
       <div>
         <Label>Notes (optional)</Label>
-        <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+        <Textarea aria-label="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
       </div>
 
       <Button type="submit" disabled={busy || picked.size === 0 || pool.size === 0}>

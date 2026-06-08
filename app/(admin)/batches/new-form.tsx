@@ -61,7 +61,7 @@ export function NewBatchForm({
     <form onSubmit={onSubmit} className="space-y-3">
       <div className="space-y-1.5">
         <Label>Name</Label>
-        <Input
+        <Input aria-label="Name"
           required
           value={form.name}
           onChange={(e) => set("name", e.target.value)}
@@ -71,7 +71,7 @@ export function NewBatchForm({
       </div>
       <div className="space-y-1.5">
         <Label>Days (CSV)</Label>
-        <Input
+        <Input aria-label="Days (CSV)"
           required
           value={form.dayOfWeek}
           onChange={(e) => set("dayOfWeek", e.target.value)}
@@ -82,7 +82,7 @@ export function NewBatchForm({
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1.5">
           <Label>Start</Label>
-          <Input
+          <Input aria-label="Start"
             required
             type="time"
             value={form.startTime}
@@ -92,7 +92,7 @@ export function NewBatchForm({
         </div>
         <div className="space-y-1.5">
           <Label>End</Label>
-          <Input
+          <Input aria-label="End"
             required
             type="time"
             value={form.endTime}
@@ -103,7 +103,7 @@ export function NewBatchForm({
       </div>
       <div className="space-y-1.5">
         <Label>Level</Label>
-        <Select value={form.level} onChange={(e) => set("level", e.target.value)} disabled={disabled}>
+        <Select aria-label="Level" value={form.level} onChange={(e) => set("level", e.target.value)} disabled={disabled}>
           <option>Beginner</option>
           <option>Intermediate</option>
           <option>Advanced</option>
@@ -112,7 +112,7 @@ export function NewBatchForm({
       </div>
       <div className="space-y-1.5">
         <Label>Coach</Label>
-        <Select value={form.coachId} onChange={(e) => set("coachId", e.target.value)} disabled={disabled}>
+        <Select aria-label="Coach" value={form.coachId} onChange={(e) => set("coachId", e.target.value)} disabled={disabled}>
           <option value="">(none)</option>
           {coaches.map((c) => (
             <option key={c.id} value={c.id}>

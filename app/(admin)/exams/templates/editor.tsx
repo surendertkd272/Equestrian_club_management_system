@@ -109,7 +109,7 @@ export function TemplateEditor({ existing }: { existing: ExistingTemplate[] }) {
       <div className="grid gap-3 md:grid-cols-3">
         <div className="space-y-1.5">
           <Label>Level key</Label>
-          <Select value={levelKey} onChange={(e) => loadExisting(e.target.value)}>
+          <Select aria-label="Level key" value={levelKey} onChange={(e) => loadExisting(e.target.value)}>
             {["1", "2", "3", "4"].map((k) => (
               <option key={k} value={k}>
                 {k} {existingMap.has(k) ? "(exists)" : ""}
@@ -119,11 +119,11 @@ export function TemplateEditor({ existing }: { existing: ExistingTemplate[] }) {
         </div>
         <div className="space-y-1.5">
           <Label>Level name</Label>
-          <Input value={levelName} onChange={(e) => setLevelName(e.target.value)} required />
+          <Input aria-label="Level name" value={levelName} onChange={(e) => setLevelName(e.target.value)} required />
         </div>
         <div className="space-y-1.5">
           <Label>Pass threshold (%)</Label>
-          <Input
+          <Input aria-label="Pass threshold (%)"
             type="number"
             min={0}
             max={100}
@@ -135,7 +135,7 @@ export function TemplateEditor({ existing }: { existing: ExistingTemplate[] }) {
       </div>
       <div className="space-y-1.5">
         <Label>Rubric JSON</Label>
-        <Textarea
+        <Textarea aria-label="Rubric JSON"
           value={json}
           onChange={(e) => setJson(e.target.value)}
           rows={18}

@@ -60,7 +60,7 @@ export function PrescribeForm({
     <form onSubmit={onSubmit} className="grid gap-3 md:grid-cols-3">
       <div className="space-y-1.5">
         <Label>Horse *</Label>
-        <Select value={form.horseId} onChange={(e) => set("horseId", e.target.value)} required>
+        <Select aria-label="Horse" value={form.horseId} onChange={(e) => set("horseId", e.target.value)} required>
           {horses.map((h) => (
             <option key={h.id} value={h.id}>
               {h.name}
@@ -70,7 +70,7 @@ export function PrescribeForm({
       </div>
       <div className="space-y-1.5">
         <Label>Dose *</Label>
-        <Input
+        <Input aria-label="Dose"
           required
           value={form.dose}
           onChange={(e) => set("dose", e.target.value)}
@@ -79,7 +79,7 @@ export function PrescribeForm({
       </div>
       <div className="space-y-1.5">
         <Label>Route *</Label>
-        <Select value={form.route} onChange={(e) => set("route", e.target.value)}>
+        <Select aria-label="Route" value={form.route} onChange={(e) => set("route", e.target.value)}>
           <option value="oral">Oral</option>
           <option value="im">Intramuscular</option>
           <option value="iv">Intravenous</option>
@@ -89,7 +89,7 @@ export function PrescribeForm({
       </div>
       <div className="space-y-1.5">
         <Label>Withdrawal (days)</Label>
-        <Input
+        <Input aria-label="Withdrawal (days)"
           type="number"
           min={0}
           max={120}
@@ -102,7 +102,7 @@ export function PrescribeForm({
       </div>
       <div className="space-y-1.5">
         <Label>Qty consumed</Label>
-        <Input
+        <Input aria-label="Qty consumed"
           type="number"
           min={1}
           max={maxQty}
@@ -114,7 +114,7 @@ export function PrescribeForm({
       <div className="md:col-span-1" />
       <div className="md:col-span-3 space-y-1.5">
         <Label>Reason / notes</Label>
-        <Textarea
+        <Textarea aria-label="Reason / notes"
           rows={2}
           value={form.reason}
           onChange={(e) => set("reason", e.target.value)}

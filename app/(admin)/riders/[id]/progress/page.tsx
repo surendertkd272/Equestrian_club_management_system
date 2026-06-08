@@ -81,7 +81,7 @@ export default async function RiderProgressPage({
           <label htmlFor="level-filter" className="text-xs text-muted-foreground">
             Show
           </label>
-          <select
+          <select aria-label="Filter by level"
             id="level-filter"
             name="level"
             defaultValue={selectedLevel ?? "all"}

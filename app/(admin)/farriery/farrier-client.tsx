@@ -67,7 +67,7 @@ export function FarrierClient({ horses }: { horses: Horse[] }) {
         <div className="grid gap-3 md:grid-cols-3">
           <div>
             <Label>Horse</Label>
-            <Select value={form.horseId} onChange={(e) => set("horseId", e.target.value)}>
+            <Select aria-label="Horse" value={form.horseId} onChange={(e) => set("horseId", e.target.value)}>
               {horses.map((h) => (
                 <option key={h.id} value={h.id}>
                   {h.name}{h.stableNo ? ` (${h.stableNo})` : ""}
@@ -77,15 +77,15 @@ export function FarrierClient({ horses }: { horses: Horse[] }) {
           </div>
           <div>
             <Label>Farrier name</Label>
-            <Input value={form.farrierName} onChange={(e) => set("farrierName", e.target.value)} />
+            <Input aria-label="Farrier name" value={form.farrierName} onChange={(e) => set("farrierName", e.target.value)} />
           </div>
           <div>
             <Label>Date</Label>
-            <Input type="date" value={form.scheduledAt} onChange={(e) => set("scheduledAt", e.target.value)} />
+            <Input aria-label="Date" type="date" value={form.scheduledAt} onChange={(e) => set("scheduledAt", e.target.value)} />
           </div>
           <div>
             <Label>Work</Label>
-            <Select value={form.workType} onChange={(e) => set("workType", e.target.value)}>
+            <Select aria-label="Work" value={form.workType} onChange={(e) => set("workType", e.target.value)}>
               <option value="trim">Trim only</option>
               <option value="hoofing">Hoofing</option>
               <option value="new_horse_shoe">New horse shoe</option>
@@ -97,11 +97,11 @@ export function FarrierClient({ horses }: { horses: Horse[] }) {
           </div>
           <div>
             <Label>Cost (₹, optional)</Label>
-            <Input type="number" value={form.cost} onChange={(e) => set("cost", e.target.value)} />
+            <Input aria-label="Cost (₹, optional)" type="number" value={form.cost} onChange={(e) => set("cost", e.target.value)} />
           </div>
           <div>
             <Label>Notes</Label>
-            <Input value={form.hoofNotes} onChange={(e) => set("hoofNotes", e.target.value)} placeholder="left fore — slight crack" />
+            <Input aria-label="Notes" value={form.hoofNotes} onChange={(e) => set("hoofNotes", e.target.value)} placeholder="left fore — slight crack" />
           </div>
         </div>
         <div className="mt-3">

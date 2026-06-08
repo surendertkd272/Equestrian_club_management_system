@@ -49,7 +49,7 @@ export function StartInspection() {
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-[240px]">
             <Label>Scope</Label>
-            <Select value={scope} onChange={(e) => setScope(e.target.value)}>
+            <Select aria-label="Scope" value={scope} onChange={(e) => setScope(e.target.value)}>
               {AUDIT_SCOPES.map((s) => (
                 <option key={s} value={s}>{SCOPE_LABEL[s] ?? s}</option>
               ))}

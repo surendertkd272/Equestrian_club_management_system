@@ -204,7 +204,7 @@ function CertsPanel({
         <div className="grid gap-2 sm:grid-cols-2">
           <div>
             <Label className="text-xs">Staff member</Label>
-            <Select value={form.userId} onChange={(e) => set("userId", e.target.value)}>
+            <Select aria-label="Staff member" value={form.userId} onChange={(e) => set("userId", e.target.value)}>
               {staff.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name} ({s.role})
@@ -214,7 +214,7 @@ function CertsPanel({
           </div>
           <div>
             <Label className="text-xs">Linked course (optional)</Label>
-            <Select value={form.courseId} onChange={(e) => set("courseId", e.target.value)}>
+            <Select aria-label="Linked course (optional)" value={form.courseId} onChange={(e) => set("courseId", e.target.value)}>
               <option value="">External / standalone</option>
               {courses.filter((c) => c.active).map((c) => (
                 <option key={c.id} value={c.id}>{c.title}</option>
@@ -223,7 +223,7 @@ function CertsPanel({
           </div>
           <div>
             <Label className="text-xs">Title *</Label>
-            <Input
+            <Input aria-label="Title"
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
               placeholder="BHS Stage 3 Coaching"
@@ -231,7 +231,7 @@ function CertsPanel({
           </div>
           <div>
             <Label className="text-xs">Issuer</Label>
-            <Input
+            <Input aria-label="Issuer"
               value={form.issuer}
               onChange={(e) => set("issuer", e.target.value)}
               placeholder="British Horse Society"
@@ -239,11 +239,11 @@ function CertsPanel({
           </div>
           <div>
             <Label className="text-xs">Serial #</Label>
-            <Input value={form.serialNo} onChange={(e) => set("serialNo", e.target.value)} />
+            <Input aria-label="Serial #" value={form.serialNo} onChange={(e) => set("serialNo", e.target.value)} />
           </div>
           <div>
             <Label className="text-xs">Valid until (optional)</Label>
-            <Input
+            <Input aria-label="Valid until (optional)"
               type="date"
               value={form.validUntil}
               onChange={(e) => set("validUntil", e.target.value)}

@@ -94,7 +94,7 @@ export function NewExpenseForm({
       <div className="grid gap-3 md:grid-cols-2">
         <div>
           <Label>Category *</Label>
-          <Select value={form.categoryId} onChange={(e) => set("categoryId", e.target.value)}>
+          <Select aria-label="Category" value={form.categoryId} onChange={(e) => set("categoryId", e.target.value)}>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 [{c.group}] {c.name}
@@ -104,7 +104,7 @@ export function NewExpenseForm({
         </div>
         <div>
           <Label>Vendor</Label>
-          <Select value={form.vendorId} onChange={(e) => set("vendorId", e.target.value)}>
+          <Select aria-label="Vendor" value={form.vendorId} onChange={(e) => set("vendorId", e.target.value)}>
             <option value="">— None —</option>
             {vendors.map((v) => (
               <option key={v.id} value={v.id}>{v.name}</option>
@@ -113,11 +113,11 @@ export function NewExpenseForm({
         </div>
         <div>
           <Label>Date of expense *</Label>
-          <Input required type="date" value={form.spentAt} onChange={(e) => set("spentAt", e.target.value)} />
+          <Input aria-label="Date of expense" required type="date" value={form.spentAt} onChange={(e) => set("spentAt", e.target.value)} />
         </div>
         <div>
           <Label>Qty</Label>
-          <Input
+          <Input aria-label="Qty"
             type="number"
             min={0}
             step="any"
@@ -128,7 +128,7 @@ export function NewExpenseForm({
         </div>
         <div>
           <Label>Unit rate (₹)</Label>
-          <Input
+          <Input aria-label="Unit rate (₹)"
             type="number"
             min={0}
             step="any"
@@ -139,7 +139,7 @@ export function NewExpenseForm({
         </div>
         <div>
           <Label>Amount (₹) *</Label>
-          <Input
+          <Input aria-label="Amount (₹)"
             required
             type="number"
             min={0}
@@ -153,7 +153,7 @@ export function NewExpenseForm({
         </div>
         <div>
           <Label>GST (₹)</Label>
-          <Input
+          <Input aria-label="GST (₹)"
             type="number"
             min={0}
             step="0.01"
@@ -163,11 +163,11 @@ export function NewExpenseForm({
         </div>
         <div>
           <Label>Vendor invoice ref</Label>
-          <Input value={form.invoiceRef} onChange={(e) => set("invoiceRef", e.target.value)} placeholder="optional" />
+          <Input aria-label="Vendor invoice ref" value={form.invoiceRef} onChange={(e) => set("invoiceRef", e.target.value)} placeholder="optional" />
         </div>
         <div className="md:col-span-2">
           <Label>Description *</Label>
-          <Textarea
+          <Textarea aria-label="Description"
             required
             value={form.description}
             onChange={(e) => set("description", e.target.value)}
@@ -189,11 +189,11 @@ export function NewExpenseForm({
             <>
               <div>
                 <Label className="!mb-1 !text-[10px]">Paid on</Label>
-                <Input type="date" value={form.paidAt} onChange={(e) => set("paidAt", e.target.value)} />
+                <Input aria-label="Paid on" type="date" value={form.paidAt} onChange={(e) => set("paidAt", e.target.value)} />
               </div>
               <div>
                 <Label className="!mb-1 !text-[10px]">Method</Label>
-                <Select value={form.method} onChange={(e) => set("method", e.target.value)}>
+                <Select aria-label="Method" value={form.method} onChange={(e) => set("method", e.target.value)}>
                   <option value="cash">Cash</option>
                   <option value="bank">Bank transfer</option>
                   <option value="upi">UPI</option>

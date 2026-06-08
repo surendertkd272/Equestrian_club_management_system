@@ -70,7 +70,7 @@ export function SeparationTrigger({
     <div className="space-y-2 rounded-md border bg-card p-3 text-sm">
       <div className="space-y-1.5">
         <Label>Kind</Label>
-        <Select value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
+        <Select aria-label="Kind" value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
           <option value="resignation_request">Ask for resignation</option>
           <option value="termination">Termination notice</option>
         </Select>
@@ -91,7 +91,7 @@ export function SeparationTrigger({
       </div>
       <div className="space-y-1.5">
         <Label>Effective date (defaults to 30 days)</Label>
-        <Input type="date" value={effectiveAt} onChange={(e) => setEffectiveAt(e.target.value)} />
+        <Input aria-label="Effective date (defaults to 30 days)" type="date" value={effectiveAt} onChange={(e) => setEffectiveAt(e.target.value)} />
       </div>
       <div className="flex justify-end gap-2 pt-1">
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)} disabled={busy}>

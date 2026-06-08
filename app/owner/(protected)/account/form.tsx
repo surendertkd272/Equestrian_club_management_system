@@ -89,11 +89,11 @@ export function OwnerAccountForm({
           </div>
           <div>
             <Label className="text-foreground">Email</Label>
-            <Input value={initial.email} disabled className="border-border bg-card text-muted-foreground" />
+            <Input aria-label="Email" value={initial.email} disabled className="border-border bg-card text-muted-foreground" />
           </div>
           <div>
             <Label className="text-foreground">Role</Label>
-            <Input value={initial.role} disabled className="border-border bg-card text-muted-foreground" />
+            <Input aria-label="Role" value={initial.role} disabled className="border-border bg-card text-muted-foreground" />
           </div>
         </div>
         <div className="mt-3">
