@@ -81,28 +81,43 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, skipped: "fees_off" });
   }
 
-  // Idempotent: if the verify endpoint already applied this payment, no-op.
+  // Idempotent: fast-path if this payment id was already applied.
   const existing = await prisma.payment.findFirst({ where: { txnRef: paymentId } });
   if (existing) {
     return NextResponse.json({ ok: true, alreadyApplied: true });
   }
 
-  await prisma.$transaction([
-    prisma.payment.create({
-      data: {
-        invoiceId: invoice.id,
-        amount: (payment.amount as number) / 100,
-        method: "razorpay",
-        txnRef: paymentId,
-        clearedAt: new Date(),
-      },
-    }),
-    prisma.invoice.update({ where: { id: invoice.id }, data: { status: "paid" } }),
-    prisma.rider.update({
-      where: { id: invoice.riderId },
-      data: invoice.kind === "registration" ? { registrationPaid: true, status: "active" } : {},
-    }),
-  ]);
+  // Use the ACTUAL captured amount (paise → rupees), and only mark the invoice
+  // paid when cumulative payments cover amount + GST — a partial/short capture
+  // must NOT flip an invoice to fully paid.
+  const captured = (payment.amount as number) / 100;
+  const target = invoice.amount + invoice.gstAmount;
+  const priorPaid = (await prisma.payment.aggregate({ where: { invoiceId: invoice.id }, _sum: { amount: true } }))._sum.amount ?? 0;
+  const fullyPaid = priorPaid + captured >= target - 0.001;
+
+  try {
+    await prisma.$transaction([
+      prisma.payment.create({
+        data: {
+          invoiceId: invoice.id,
+          amount: captured,
+          method: "razorpay",
+          txnRef: paymentId,
+          clearedAt: new Date(),
+        },
+      }),
+      prisma.invoice.update({ where: { id: invoice.id }, data: { status: fullyPaid ? "paid" : "due" } }),
+      // Activate the rider only once registration is FULLY paid.
+      ...(fullyPaid && invoice.kind === "registration"
+        ? [prisma.rider.update({ where: { id: invoice.riderId }, data: { registrationPaid: true, status: "active" } })]
+        : []),
+    ]);
+  } catch (e: any) {
+    // Race: the /verify redirect inserted the same txnRef first. The DB unique
+    // constraint (P2002) makes this safe — treat as already-applied.
+    if (e?.code === "P2002") return NextResponse.json({ ok: true, alreadyApplied: true });
+    throw e;
+  }
 
   await audit({
     action: "razorpay.webhook.payment_captured",
