@@ -21,8 +21,12 @@ export type OwnerSessionPayload = {
 };
 
 function getSecret() {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error("JWT_SECRET is not set");
+  // Prefer a dedicated owner secret so the platform-owner signing key can be
+  // rotated independently of the tenant JWT_SECRET; fall back to JWT_SECRET so
+  // existing deployments keep working unchanged. The OWNER_AUDIENCE claim still
+  // prevents cross-use of tokens even when both share the same key.
+  const secret = process.env.OWNER_JWT_SECRET ?? process.env.JWT_SECRET;
+  if (!secret) throw new Error("Neither OWNER_JWT_SECRET nor JWT_SECRET is set");
   return new TextEncoder().encode(secret);
 }
 

@@ -34,8 +34,8 @@ export default async function DashboardPage() {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
   const where = centreWhere(centreId);
-  // The competition hero links to /competitions, which 404s when the org has
-  // the feature off (assertSessionFeature). Gate the hero + its link on it.
+  // Load the org's enabled features so feature-gated surfaces below (the
+  // exams timeline, role-specific dashboards) only render what's turned on.
   const features = await getFeaturesForSession(session);
   // /exams is gated on "external-exams" — only show the exams timeline + its
   // link when the org has it on.

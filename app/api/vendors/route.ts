@@ -6,6 +6,7 @@ import { scopeCentre } from "@/lib/tenancy";
 import { createVendorSchema } from "@/lib/schemas/finance";
 import { vendorScopeWhere } from "@/lib/vendor-scope";
 import { audit } from "@/lib/audit";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -32,6 +33,8 @@ export async function POST(req: NextRequest) {
   if (!can(session.role, "expense.manage")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
   const body = await req.json().catch(() => null);
   const parsed = createVendorSchema.safeParse(body);
   if (!parsed.success) {
