@@ -22,7 +22,7 @@ export type PlanDef = {
 };
 
 // Starter — single-centre clubs running the basics. No public portals,
-// no competitions, no advanced reporting.
+// no advanced reporting.
 const STARTER_FEATURES = [
   "attendance",
   "skill-tracking",
@@ -56,7 +56,7 @@ const PRO_FEATURES = [
   "facility-bookings",
 ] as const satisfies readonly FeatureKey[];
 
-// Enterprise — everything. Competition platform, external examiners,
+// Enterprise — everything. External examiners,
 // cross-centre HQ rollup.
 const ENTERPRISE_FEATURES = [
   ...PRO_FEATURES,

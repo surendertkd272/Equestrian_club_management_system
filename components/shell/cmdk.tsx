@@ -15,7 +15,6 @@ import {
   Building2,
   Award,
   ClipboardList,
-  Trophy,
   CalendarClock,
   Pill,
 } from "lucide-react";
@@ -28,7 +27,6 @@ type Hit = {
     | "centre"
     | "certificate"
     | "exam"
-    | "competition"
     | "batch"
     | "medicine";
   id: string;
@@ -44,7 +42,6 @@ const ICONS: Record<Hit["kind"], React.ComponentType<{ className?: string }>> = 
   centre: Building2,
   certificate: Award,
   exam: ClipboardList,
-  competition: Trophy,
   batch: CalendarClock,
   medicine: Pill,
 };
@@ -56,7 +53,6 @@ const LABELS: Record<Hit["kind"], string> = {
   centre: "Centre",
   certificate: "Certificate",
   exam: "Exam",
-  competition: "Competition",
   batch: "Batch",
   medicine: "Medicine",
 };
@@ -187,7 +183,7 @@ export function CommandPalette() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Search riders, horses, exams, competitions, batches, meds…"
+            placeholder="Search riders, horses, exams, batches, meds…"
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
           <kbd className="rounded border bg-background px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">

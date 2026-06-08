@@ -86,7 +86,7 @@ export const FEATURES: readonly FeatureDef[] = [
   { key: "student-portal",         label: "Student / Rider Portal", description: "Riders log in to see their attendance, skills, and exams.",     group: "people",       enforcement: "wired" },
   { key: "leave-requests",         label: "Leave Requests",         description: "Staff request leave; managers approve.",                         group: "people",       enforcement: "wired", selfToggle: true },
   { key: "training-certs",         label: "Training & Certs",       description: "Staff courses + external certifications register.",              group: "people",       enforcement: "wired", selfToggle: true },
-  { key: "teams",                  label: "Teams / Squads",         description: "Group riders into named teams for competition entries.",         group: "people",       enforcement: "wired", selfToggle: true },
+  { key: "teams",                  label: "Teams / Squads",         description: "Group riders into named teams (squads).",         group: "people",       enforcement: "wired", selfToggle: true },
   { key: "accreditations",         label: "Rider Accreditations",   description: "Track external federation memberships per rider (EFI/BHS/FEI).", group: "people",       enforcement: "wired" },
 
   // ── Facility
@@ -99,14 +99,14 @@ export const FEATURES: readonly FeatureDef[] = [
   { key: "facility-bookings",      label: "Facility Bookings",      description: "Book arenas / wash bays / classroom slots.",                     group: "facility",     enforcement: "wired", selfToggle: true },
 
   // ── Finance
-  { key: "fee-collection",         label: "Parent / Rider Payments", description: "Switch for parent + rider-facing payment surfaces. When OFF: no invoices created on enrolment / competition / event entry, /pay page 404s, Razorpay endpoints return 503, fee-due reminders skipped, approved riders go straight to active, parent invoice tiles hide. Staff bookkeeping (the /finance dashboard, manual cash recording, exports, invoice print) is unaffected so the team can still log offline payments. Existing invoices preserved as audit history.", group: "finance", enforcement: "wired" },
+  { key: "fee-collection",         label: "Parent / Rider Payments", description: "Switch for parent + rider-facing payment surfaces. When OFF: no invoices created on enrolment / event entry, /pay page 404s, Razorpay endpoints return 503, fee-due reminders skipped, approved riders go straight to active, parent invoice tiles hide. Staff bookkeeping (the /finance dashboard, manual cash recording, exports, invoice print) is unaffected so the team can still log offline payments. Existing invoices preserved as audit history.", group: "finance", enforcement: "wired" },
   { key: "expenses",               label: "Expenses & P&L",         description: "Book outgoings against chart-of-accounts; expense P&L.",         group: "finance",      enforcement: "wired" },
 
   // ── Productivity
   { key: "tasks",                  label: "Tasks",                  description: "Kanban for daily centre tasks + assignments.",                   group: "productivity", enforcement: "wired", selfToggle: true },
   { key: "approvals",              label: "Approvals",              description: "Generic approval workflow (purchases, special requests).",       group: "productivity", enforcement: "wired", selfToggle: true },
   { key: "reports",                label: "Reports",                description: "Monthly parent report cards + analytical exports.",              group: "productivity", enforcement: "wired", selfToggle: true },
-  { key: "analytics",              label: "Analytics",              description: "Per-rider performance trends + medal leaderboards.",             group: "productivity", enforcement: "wired", selfToggle: true },
+  { key: "analytics",              label: "Analytics",              description: "Per-rider performance trends.",             group: "productivity", enforcement: "wired", selfToggle: true },
   { key: "whatsapp-notifications", label: "WhatsApp Notifications", description: "Send class reminders, dues, and certificates via WhatsApp.",    group: "productivity", enforcement: "wired", selfToggle: true },
 
   // ── Advanced / HQ-only

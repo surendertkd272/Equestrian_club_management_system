@@ -15,7 +15,6 @@ const KIND_EMOJI: Record<string, string> = {
   "certificate.winner": "🏆",
   "skill.mastered": "⭐",
   "parent.linked": "👪",
-  "competition.entered": "🏁",
   "injury.minor": "🩹",
   "injury.moderate": "🚑",
   "injury.severe": "🚨",
@@ -28,9 +27,6 @@ const KIND_EMOJI: Record<string, string> = {
 
 function emojiFor(kind: string): string {
   if (KIND_EMOJI[kind]) return KIND_EMOJI[kind];
-  if (kind.startsWith("competition.placed.1")) return "🥇";
-  if (kind.startsWith("competition.placed.2")) return "🥈";
-  if (kind.startsWith("competition.placed.3")) return "🥉";
   if (kind.startsWith("allocation.")) return "🐎";
   return "•";
 }
