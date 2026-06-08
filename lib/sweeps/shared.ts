@@ -11,6 +11,10 @@ export type SweepResult = {
   notified: number;
   skipped: number;
   details?: unknown;
+  // Set only when the job threw. runAllSweeps catches per-job failures
+  // (Promise.allSettled) so one bad job doesn't abort the nightly batch;
+  // the failure surfaces here instead of taking down the whole run.
+  error?: string;
 };
 
 export type SweepOpts = { force?: boolean };

@@ -39,7 +39,11 @@ export async function sweepFeeDue(): Promise<SweepResult> {
 
   let notified = 0;
   let skipped = 0;
+  let failed = 0;
   for (const inv of invoices) {
+   // Per-invoice isolation — a thrown DB lookup or channel send on ONE
+   // invoice must not abort the remaining reminders in the batch.
+   try {
     // Master fee-collection switch — silence reminders for orgs that opted out.
     if (!inv.centre.orgId || !feesOnOrgs.has(inv.centre.orgId)) {
       skipped += 1;
@@ -107,7 +111,11 @@ export async function sweepFeeDue(): Promise<SweepResult> {
       });
     }
     notified += 1;
+   } catch (err) {
+     console.error("[fee_due] reminder failed", { invoiceId: inv.id, err });
+     failed += 1;
+   }
   }
 
-  return { job: "fee_due", scanned: invoices.length, notified, skipped };
+  return { job: "fee_due", scanned: invoices.length, notified, skipped, details: { failed } };
 }

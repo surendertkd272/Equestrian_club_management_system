@@ -32,6 +32,13 @@ model Organisation {
 
   // Lifecycle / billing (plan drives the feature set via lib/plans.ts)
   status             String    @default("active") // active | trial | past_due | suspended
+  // When the org most recently entered past_due. Dunning reminders and the
+  // 7-day suspend countdown anchor on THIS, not updatedAt — updatedAt is bumped
+  // by any unrelated org write (settings change, logo upload…), which used to
+  // silently reset the overdue clock and skip dunning / delay suspension.
+  // Set on entering past_due (only if not already past_due, so the clock isn't
+  // reset by repeated webhooks); cleared (null) on returning to active/suspended.
+  pastDueSince       DateTime?
   plan               String    @default("starter") // starter | pro | enterprise (lib/plans.ts)
   contactName        String?
   billingEmail       String?

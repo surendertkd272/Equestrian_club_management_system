@@ -52,29 +52,22 @@ export {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Run all jobs (used by the /api/cron/sweep endpoint).
+// Run all jobs (used by the /api/cron/sweep endpoint). Iterates the SWEEP_JOBS
+// registry (single source of truth — defined below) under Promise.allSettled so
+// ONE failing job no longer aborts the whole nightly batch. Previously this was
+// Promise.all([...]): a single rejection rejected the entire run, silently
+// skipping every job after it (dunning, DPDPA deletions, trial-end…). Now a
+// thrown job becomes an error SweepResult and the rest still run.
 export async function runAllSweeps(): Promise<SweepResult[]> {
-  return Promise.all([
-    sweepFeeDue(),
-    sweepMedicineExpiry(),
-    sweepHorseInsuranceExpiry(),
-    sweepFarrierDigest(),
-    sweepVaccinationDue(),
-    sweepEquipmentLowStock(),
-    sweepAccreditationExpiry(),
-    sweepAbsenceEscalation(),
-    sweepBirthdays(),
-    sweepMonthlyReports(),
-    sweepTrialEnd(),
-    sweepAuditRetention(),
-    sweepDpdpaDeletions(),
-    sweepDunning(),
-    sweepTenantOffboarding(),
-    sweepBinPurge(),
-    sweepCoachUpdateReminder(),
-    sweepOnboardingDocsOverdue(),
-    sweepOnboardingLinkPurge(),
-  ]);
+  const entries = Object.entries(SWEEP_JOBS);
+  const settled = await Promise.allSettled(entries.map(([, fn]) => fn()));
+  return settled.map((r, i) => {
+    const job = entries[i][0];
+    if (r.status === "fulfilled") return r.value;
+    const error = r.reason instanceof Error ? r.reason.message : String(r.reason);
+    console.error(`[sweep] job "${job}" failed:`, r.reason);
+    return { job, scanned: 0, notified: 0, skipped: 0, error };
+  });
 }
 
 export const SWEEP_JOBS: Record<string, (opts?: SweepOpts) => Promise<SweepResult>> = {

@@ -30,27 +30,43 @@ export async function POST(req: NextRequest) {
 
   const job = req.nextUrl.searchParams.get("job");
   const force = req.nextUrl.searchParams.get("force") === "1";
-  let results: SweepResult[];
   const t0 = Date.now();
-  if (job) {
-    const fn = SWEEP_JOBS[job];
-    if (!fn) {
-      return NextResponse.json({ error: "UNKNOWN_JOB", available: Object.keys(SWEEP_JOBS) }, { status: 400 });
+
+  // runAllSweeps already isolates per-job failures (allSettled). This outer
+  // try/catch is the backstop for the single-job path (?job=, which calls fn
+  // directly) and for an infrastructure failure (DB down, audit write throwing)
+  // — so the cron caller always gets a structured response to log/alert on
+  // instead of an opaque 500 with no record of what ran.
+  try {
+    let results: SweepResult[];
+    if (job) {
+      const fn = SWEEP_JOBS[job];
+      if (!fn) {
+        return NextResponse.json({ error: "UNKNOWN_JOB", available: Object.keys(SWEEP_JOBS) }, { status: 400 });
+      }
+      results = [await fn({ force })];
+    } else {
+      results = await runAllSweeps();
     }
-    results = [await fn({ force })];
-  } else {
-    results = await runAllSweeps();
+    const elapsedMs = Date.now() - t0;
+
+    await audit({
+      action: "cron.sweep",
+      tableName: "cron",
+      rowId: job ?? "all",
+      after: { elapsedMs, results },
+    });
+
+    return NextResponse.json({ ok: true, elapsedMs, results });
+  } catch (e: any) {
+    const elapsedMs = Date.now() - t0;
+    const message = e instanceof Error ? e.message : String(e);
+    console.error("[cron/sweep] run failed:", e);
+    return NextResponse.json(
+      { ok: false, error: "SWEEP_FAILED", message, elapsedMs, job: job ?? "all" },
+      { status: 500 },
+    );
   }
-  const elapsedMs = Date.now() - t0;
-
-  await audit({
-    action: "cron.sweep",
-    tableName: "cron",
-    rowId: job ?? "all",
-    after: { elapsedMs, results },
-  });
-
-  return NextResponse.json({ ok: true, elapsedMs, results });
 }
 
 // GET is the dry-run / status check (for cron schedulers that probe before scheduling).

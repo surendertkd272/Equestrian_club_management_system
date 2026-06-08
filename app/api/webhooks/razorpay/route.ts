@@ -249,7 +249,7 @@ async function handleSubscriptionEvent(event: any) {
       if (org.status === "past_due") {
         await prisma.organisation.update({
           where: { id: org.id },
-          data: { status: "active", razorpaySubscriptionStatus: "active" },
+          data: { status: "active", razorpaySubscriptionStatus: "active", pastDueSince: null },
         });
         await auditOwner({
           actorId: null,
@@ -271,7 +271,13 @@ async function handleSubscriptionEvent(event: any) {
     case "subscription.pending": {
       await prisma.organisation.update({
         where: { id: org.id },
-        data: { status: "past_due", razorpaySubscriptionStatus: event.event === "subscription.halted" ? "halted" : "pending" },
+        data: {
+          status: "past_due",
+          razorpaySubscriptionStatus: event.event === "subscription.halted" ? "halted" : "pending",
+          // Start the overdue clock only on the first transition into past_due;
+          // a repeated halted/pending webhook must not reset it.
+          ...(org.status === "past_due" ? {} : { pastDueSince: new Date() }),
+        },
       });
       await auditOwner({
         actorId: null,
