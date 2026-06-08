@@ -28,62 +28,70 @@ export default async function HQDashboardPage() {
     select: { id: true, name: true, slug: true, address: true },
   });
 
-  // Per-centre metrics in parallel. Each query is small and indexed.
-  const rows = await Promise.all(
-    centres.map(async (c) => {
-      const [
-        activeRiders,
-        activeStaff,
-        horses,
-        attendance30,
-        unpaidInvoices,
-        exams90,
-        certs90,
-      ] = await Promise.all([
-        prisma.rider.count({ where: { centreId: c.id, status: "active" } }),
-        prisma.user.count({ where: { centreId: c.id, status: "active" } }),
-        prisma.horse.count({ where: { centreId: c.id, status: "active" } }),
-        prisma.attendance.findMany({
-          where: { batch: { centreId: c.id }, date: { gte: thirty } },
-          select: { status: true },
-        }),
-        prisma.invoice.count({ where: { centreId: c.id, status: "due" } }),
-        prisma.exam.findMany({
-          where: {
-            centreId: c.id,
-            status: "completed",
-            updatedAt: { gte: ninety },
-          },
-          select: { passed: true },
-        }),
-        prisma.certificate.count({ where: { centreId: c.id, issuedAt: { gte: ninety } } }),
-      ]);
-
-      const present = attendance30.filter((a) => a.status === "present" || a.status === "late").length;
-      const attendancePct = attendance30.length > 0
-        ? Math.round((present / attendance30.length) * 100)
-        : null;
-
-      const passed = exams90.filter((e) => e.passed === true).length;
-      const passRate = exams90.length > 0 ? Math.round((passed / exams90.length) * 100) : null;
-
-      return {
-        id: c.id,
-        name: c.name,
-        slug: c.slug,
-        address: c.address,
-        activeRiders,
-        activeStaff,
-        horses,
-        attendancePct,
-        attendanceSampleSize: attendance30.length,
-        unpaidInvoices,
-        passRate,
-        examsCompleted90: exams90.length,
-        certs90,
-      };
+  // Batched across ALL centres — ~7 queries total instead of 1 + 7×N (the old
+  // per-centre fan-out). groupBy gives per-centre counts in one trip; the two
+  // findMany pulls (attendance has no centreId column — it joins via batch —
+  // and exams need pass-rate) are bucketed in JS below.
+  const centreIds = centres.map((c) => c.id);
+  const [riderGroups, staffGroups, horseGroups, unpaidGroups, certGroups, attendanceRows, examRows] = await Promise.all([
+    prisma.rider.groupBy({ by: ["centreId"], where: { centreId: { in: centreIds }, status: "active" }, _count: true }),
+    prisma.user.groupBy({ by: ["centreId"], where: { centreId: { in: centreIds }, status: "active" }, _count: true }),
+    prisma.horse.groupBy({ by: ["centreId"], where: { centreId: { in: centreIds }, status: "active" }, _count: true }),
+    prisma.invoice.groupBy({ by: ["centreId"], where: { centreId: { in: centreIds }, status: "due" }, _count: true }),
+    prisma.certificate.groupBy({ by: ["centreId"], where: { centreId: { in: centreIds }, issuedAt: { gte: ninety } }, _count: true }),
+    prisma.attendance.findMany({
+      where: { batch: { centreId: { in: centreIds } }, date: { gte: thirty } },
+      select: { status: true, batch: { select: { centreId: true } } },
     }),
-  );
+    prisma.exam.findMany({
+      where: { centreId: { in: centreIds }, status: "completed", updatedAt: { gte: ninety } },
+      select: { centreId: true, passed: true },
+    }),
+  ]);
+
+  const countMap = (gs: { centreId: string | null; _count: number }[]) =>
+    new Map(gs.map((g) => [g.centreId, g._count]));
+  const riderCount = countMap(riderGroups);
+  const staffCount = countMap(staffGroups);
+  const horseCount = countMap(horseGroups);
+  const unpaidCount = countMap(unpaidGroups);
+  const certCount = countMap(certGroups);
+
+  const att = new Map<string, { present: number; total: number }>();
+  for (const a of attendanceRows) {
+    const cid = a.batch.centreId;
+    const cur = att.get(cid) ?? { present: 0, total: 0 };
+    cur.total += 1;
+    if (a.status === "present" || a.status === "late") cur.present += 1;
+    att.set(cid, cur);
+  }
+  const ex = new Map<string, { passed: number; total: number }>();
+  for (const e of examRows) {
+    const cur = ex.get(e.centreId) ?? { passed: 0, total: 0 };
+    cur.total += 1;
+    if (e.passed === true) cur.passed += 1;
+    ex.set(e.centreId, cur);
+  }
+
+  const rows = centres.map((c) => {
+    const a = att.get(c.id) ?? { present: 0, total: 0 };
+    const e = ex.get(c.id) ?? { passed: 0, total: 0 };
+    return {
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      address: c.address,
+      activeRiders: riderCount.get(c.id) ?? 0,
+      activeStaff: staffCount.get(c.id) ?? 0,
+      horses: horseCount.get(c.id) ?? 0,
+      attendancePct: a.total > 0 ? Math.round((a.present / a.total) * 100) : null,
+      attendanceSampleSize: a.total,
+      unpaidInvoices: unpaidCount.get(c.id) ?? 0,
+      passRate: e.total > 0 ? Math.round((e.passed / e.total) * 100) : null,
+      examsCompleted90: e.total,
+      certs90: certCount.get(c.id) ?? 0,
+    };
+  });
 
   // Roll-up totals across the org. Useful as a sanity check + headline KPIs.
   const totals = {

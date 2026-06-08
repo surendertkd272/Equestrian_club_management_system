@@ -255,15 +255,17 @@ export async function StableManagerDashboard({ centreId, features }: { centreId:
   const fTasks = features.has("tasks");
   const fConsumables = features.has("consumables");
   const fInjuries = features.has("injuries");
-  const now = new Date();
+  const dayStart = new Date(new Date().setHours(0, 0, 0, 0));
+  const dayEnd = new Date(new Date().setHours(23, 59, 59, 999));
 
   const [horses, todayAllocs, openTasks, lowConsumables, recentInjuries] = await Promise.all([
     prisma.horse.count({ where: { ...where, status: "active" } }),
+    // Allocations that START today (matches GroomDashboard). Bounding endAt too
+    // would drop multi-day / past-midnight allocations.
     prisma.horseAllocation.count({
       where: {
         horse: where,
-        startAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
-        endAt: { lte: new Date(new Date().setHours(23, 59, 59, 999)) },
+        startAt: { gte: dayStart, lte: dayEnd },
       },
     }),
     prisma.task.count({ where: { ...where, status: { in: ["open", "in_progress"] } } }),

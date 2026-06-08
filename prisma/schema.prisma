@@ -1791,9 +1791,11 @@ model Invoice {
   payments Payment[]
 
   // fee-due sweep filters by (status, dueDate); without this index the query
-  // does a full table scan on Invoice. Centre + rider lookups (admin views)
-  // use the FK indexes Prisma generates automatically.
+  // does a full table scan on Invoice.
   @@index([status, dueDate])
+  // Admin/finance views filter heavily by centre (+ status); FK columns are
+  // NOT auto-indexed in Postgres, so index it explicitly.
+  @@index([centreId, status])
 }
 
 model Payment {
@@ -1806,6 +1808,9 @@ model Payment {
   clearedAt DateTime?
 
   invoice Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@index([invoiceId, paidAt])
+  @@index([paidAt])
 }
 
 // ──────────────────────────────────────────────────────────────────────────
