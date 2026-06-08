@@ -308,7 +308,7 @@ function PersonalStep({ initial, onNext }: { initial: WizardData; onNext: (d: Pe
             label="Aadhaar scan / PDF"
             kind="rider_aadhaar"
             accept="image/jpeg,image/png,application/pdf"
-            hint="JPG / PNG / PDF, up to 5 MB. Encrypted at rest in production."
+            hint="JPG / PNG / PDF, up to 5 MB. Stored privately on our managed cloud."
           />
         </div>
       </div>
