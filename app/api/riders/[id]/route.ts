@@ -19,6 +19,7 @@ import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { calcBmi } from "@/lib/utils";
+import { encryptPII, last4 } from "@/lib/pii";
 import { updateRiderSchema } from "@/lib/schemas/rider-update";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -67,6 +68,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   for (const k of editable) {
     if (k in d) data[k] = (d as Record<string, unknown>)[k];
   }
+  // Aadhaar is encrypted at rest (lib/pii.ts). The form sends the plaintext
+  // number (the edit page decrypts it for prefill); re-encrypt on write and
+  // keep aadhaarLast4 in sync for masked display. The schema already
+  // transforms "" → null, so d.aadhaarNo is a 12-digit string or null.
+  if ("aadhaarNo" in d) {
+    data.aadhaarNo = encryptPII(d.aadhaarNo ?? null);
+    data.aadhaarLast4 = last4(d.aadhaarNo ?? null);
+  }
   // dob is a Date column, but we ship YYYY-MM-DD on the wire.
   if ("dob" in d && d.dob) data.dob = new Date(d.dob);
 
@@ -97,6 +106,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const before: Record<string, unknown> = {};
   const after: Record<string, unknown> = {};
   for (const k of Object.keys(data)) {
+    // Never persist the Aadhaar number (encrypted or not) into the audit log;
+    // record only that it changed. aadhaarLast4 carries enough for review.
+    if (k === "aadhaarNo") {
+      before[k] = rider.aadhaarNo ? "[redacted]" : null;
+      after[k] = updated.aadhaarNo ? "[redacted]" : null;
+      continue;
+    }
     before[k] = (rider as Record<string, unknown>)[k] ?? null;
     after[k] = (updated as Record<string, unknown>)[k] ?? null;
   }

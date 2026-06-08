@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { completeOnboardingSchema } from "@/lib/schemas/onboarding-staff";
+import { encryptPII } from "@/lib/pii";
 
 function dateOnly(s?: string): Date | null {
   if (!s) return null;
@@ -34,6 +35,9 @@ export async function PATCH(req: NextRequest) {
   if (d.dob !== undefined) data.dob = dateOnly(d.dob);
   if (d.dateOfJoining !== undefined) data.dateOfJoining = dateOnly(d.dateOfJoining);
   for (const k of Object.keys(data)) if (data[k] === undefined) delete data[k];
+  // Encrypt the Aadhaar number at rest (lib/pii.ts) — it arrives plaintext in
+  // the {...d} spread above.
+  if ("aadhaarNumber" in data) data.aadhaarNumber = encryptPII(data.aadhaarNumber as string | null);
 
   await prisma.employeeOnboarding.update({ where: { id: ob.id }, data });
 

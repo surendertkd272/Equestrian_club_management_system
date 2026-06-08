@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
 import { can } from "@/lib/permissions";
+import { decryptPIISafe } from "@/lib/pii";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EditRiderForm } from "./edit-rider-form";
 
@@ -31,7 +32,7 @@ export default async function EditRiderPage({ params }: { params: { id: string }
     nationality: rider.nationality ?? "",
     gender: rider.gender ?? "",
     maritalStatus: rider.maritalStatus ?? "",
-    aadhaarNo: rider.aadhaarNo ?? "",
+    aadhaarNo: decryptPIISafe(rider.aadhaarNo) ?? "", // decrypt for editing; re-encrypted on save
     aadhaarDocUrl: rider.aadhaarDocUrl ?? "",
     mobile: rider.mobile,
     email: rider.email ?? "",

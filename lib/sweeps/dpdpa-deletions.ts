@@ -36,6 +36,7 @@ export async function sweepDpdpaDeletions(): Promise<SweepResult> {
             email: null,
             mobile: "",
             aadhaarNo: null,
+            aadhaarLast4: null,
             aadhaarDocUrl: null,
             photoUrl: null,
             fatherName: null,

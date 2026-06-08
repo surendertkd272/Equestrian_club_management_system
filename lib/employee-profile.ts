@@ -7,6 +7,7 @@ import { prisma } from "./prisma";
 import { centreWhere } from "./tenancy";
 import { ONBOARDING_ITEMS } from "./onboarding-items";
 import { formatDate } from "./utils";
+import { decryptPIISafe } from "./pii";
 
 export type EmployeeDoc = { key: string; label: string; url: string; isPdf: boolean };
 
@@ -60,7 +61,11 @@ export function employeeFormRows(rec: Record<string, unknown>): FormRow[] {
   ];
   for (const it of ONBOARDING_ITEMS) {
     if (it.type !== "detail") continue;
-    rows.push({ label: it.label, value: fmtValue(it.key, rec[it.key]) });
+    // Aadhaar number is encrypted at rest (lib/pii.ts) — decrypt for display.
+    // This funnel serves the pre-approval onboarding record, the approved
+    // staff record (via synthRecordFromStaff), and the print packet alike.
+    const raw = it.key === "aadhaarNumber" ? decryptPIISafe(rec[it.key] as string | null) : rec[it.key];
+    rows.push({ label: it.label, value: fmtValue(it.key, raw) });
   }
   return rows;
 }

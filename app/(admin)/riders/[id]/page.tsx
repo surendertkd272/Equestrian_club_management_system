@@ -139,7 +139,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
               <dd>{rider.email ?? "—"}</dd>
               <dt className="text-muted-foreground">Aadhaar</dt>
               <dd className="flex items-center gap-2">
-                <span className="font-mono">{maskAadhaar(rider.aadhaarNo)}</span>
+                <span className="font-mono">{maskAadhaar(rider.aadhaarLast4)}</span>
                 {rider.aadhaarDocUrl && (
                   <a
                     href={rider.aadhaarDocUrl}
