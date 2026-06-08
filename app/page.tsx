@@ -11,9 +11,9 @@ import { Check } from "lucide-react";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 to-white">
+    <main className="min-h-screen bg-gradient-to-br from-background to-background">
       {/* Nav */}
-      <header className="border-b bg-white/60 backdrop-blur">
+      <header className="border-b bg-card/60 backdrop-blur">
         <div className="container mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="text-lg font-bold tracking-tight">Equiwings</Link>
           <nav className="hidden gap-6 text-sm md:flex">
@@ -38,7 +38,7 @@ export default function Home() {
           <h1 className="mt-5 text-4xl font-bold tracking-tight md:text-6xl">
             The operating system for your equestrian academy.
           </h1>
-          <p className="mt-5 max-w-2xl text-lg text-slate-600">
+          <p className="mt-5 max-w-2xl text-lg text-muted-foreground">
             Riders, horses, exams, fees, certificates — every register, log book,
             and ledger your club runs on, all in one panel. Replaces six paper systems and
             three WhatsApp groups.
@@ -47,34 +47,34 @@ export default function Home() {
             <Button asChild size="lg"><Link href="/pricing">Start 14-day free trial</Link></Button>
             <Button asChild size="lg" variant="outline"><Link href="mailto:sales@equiwings.example?subject=Demo%20request">Book a demo</Link></Button>
           </div>
-          <p className="mt-4 text-xs text-slate-500">No credit card needed. Cancel any time.</p>
+          <p className="mt-4 text-xs text-muted-foreground">No credit card needed. Cancel any time.</p>
         </div>
       </section>
 
       {/* Feature grid */}
       <section id="features" className="container mx-auto max-w-6xl px-6 py-16">
         <h2 className="text-3xl font-bold">Everything an Indian academy needs.</h2>
-        <p className="mt-2 max-w-2xl text-slate-600">Not generic CRM — workflows built for our sport.</p>
+        <p className="mt-2 max-w-2xl text-muted-foreground">Not generic CRM — workflows built for our sport.</p>
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           {FEATURES.map((f) => (
-            <div key={f.title} className="rounded-xl border bg-white p-6 shadow-sm">
+            <div key={f.title} className="rounded-xl border bg-card p-6 shadow-sm">
               <div className="text-xs font-semibold uppercase tracking-wider text-amber-700">{f.group}</div>
               <div className="mt-2 text-lg font-semibold">{f.title}</div>
-              <p className="mt-2 text-sm text-slate-600">{f.body}</p>
+              <p className="mt-2 text-sm text-muted-foreground">{f.body}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* Why Equiwings */}
-      <section className="border-y bg-slate-50 py-16">
+      <section className="border-y bg-muted/40 py-16">
         <div className="container mx-auto max-w-6xl px-6">
           <h2 className="text-3xl font-bold">Why clubs switch.</h2>
           <ul className="mt-8 grid gap-4 md:grid-cols-2">
             {REASONS.map((r) => (
-              <li key={r} className="flex items-start gap-3 rounded-lg bg-white p-4 shadow-sm">
+              <li key={r} className="flex items-start gap-3 rounded-lg bg-card p-4 shadow-sm">
                 <Check className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-                <span className="text-sm text-slate-700">{r}</span>
+                <span className="text-sm text-foreground">{r}</span>
               </li>
             ))}
           </ul>
@@ -88,7 +88,7 @@ export default function Home() {
           {FAQ.map((q) => (
             <div key={q.q}>
               <dt className="font-semibold">{q.q}</dt>
-              <dd className="mt-1 text-sm text-slate-600">{q.a}</dd>
+              <dd className="mt-1 text-sm text-muted-foreground">{q.a}</dd>
             </div>
           ))}
         </dl>
@@ -106,13 +106,13 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="border-t bg-white">
-        <div className="container mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-6 text-xs text-slate-500">
+      <footer className="border-t bg-card">
+        <div className="container mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-6 text-xs text-muted-foreground">
           <div>© {new Date().getFullYear()} Equiwings · Made in India</div>
           <div className="flex gap-4">
-            <Link href="/privacy" className="hover:text-slate-700">Privacy</Link>
-            <Link href="/terms" className="hover:text-slate-700">Terms</Link>
-            <Link href="mailto:support@equiwings.example" className="hover:text-slate-700">Support</Link>
+            <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
+            <Link href="/terms" className="hover:text-foreground">Terms</Link>
+            <Link href="mailto:support@equiwings.example" className="hover:text-foreground">Support</Link>
           </div>
         </div>
       </footer>

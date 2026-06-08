@@ -144,7 +144,7 @@ export function NotificationsDropdown({ initialUnread }: { initialUnread: number
                     <button
                       onClick={() => markOne(n.id)}
                       className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                      title="Mark read"
+                      title="Mark read" aria-label="Mark read"
                     >
                       <Check className="h-3 w-3" />
                     </button>

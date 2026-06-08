@@ -148,7 +148,7 @@ export default async function ChecklistsPage() {
               No submissions yet.
             </div>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="pb-2">Submitted</th>
@@ -183,7 +183,7 @@ export default async function ChecklistsPage() {
                   );
                 })}
               </tbody>
-            </table>
+            </table></div>
           )}
         </CardContent>
       </Card>

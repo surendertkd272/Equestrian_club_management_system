@@ -89,7 +89,7 @@ export default async function OwnerInsightsPage() {
           {cohortRows.length === 0 ? (
             <p className="text-sm text-muted-foreground">No signups yet.</p>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="pb-2">Signup month</th>
@@ -112,7 +112,7 @@ export default async function OwnerInsightsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
         </CardContent>
       </Card>
@@ -129,7 +129,7 @@ export default async function OwnerInsightsPage() {
           {moduleRows.length === 0 ? (
             <p className="text-sm text-muted-foreground">No audit-log activity in the last 30 days.</p>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto"><table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="pb-2">Module</th>
@@ -148,7 +148,7 @@ export default async function OwnerInsightsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           )}
         </CardContent>
       </Card>

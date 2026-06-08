@@ -58,7 +58,7 @@ export default async function FarrieryPage() {
           <CardTitle>Visits</CardTitle>
         </CardHeader>
         <CardContent>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-2 py-2 text-left">Horse</th>
@@ -106,7 +106,7 @@ export default async function FarrieryPage() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         </CardContent>
       </Card>
     </div>

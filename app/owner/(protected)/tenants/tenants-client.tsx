@@ -48,12 +48,14 @@ export function TenantsClient({ initial }: { initial: Tenant[] }) {
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         <Input
+          aria-label="Search tenants by name or slug"
           placeholder="Search by name or slug…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           className="border-border bg-card text-foreground"
         />
         <select
+          aria-label="Filter tenants by status"
           value={status}
           onChange={(e) => setStatus(e.target.value)}
           className="h-10 rounded-md border border-border bg-card px-3 text-sm text-foreground"
@@ -65,6 +67,7 @@ export function TenantsClient({ initial }: { initial: Tenant[] }) {
           <option value="suspended">Suspended</option>
         </select>
         <select
+          aria-label="Filter tenants by plan"
           value={plan}
           onChange={(e) => setPlan(e.target.value)}
           className="h-10 rounded-md border border-border bg-card px-3 text-sm text-foreground"
@@ -77,7 +80,7 @@ export function TenantsClient({ initial }: { initial: Tenant[] }) {
       </div>
 
       <div className="rounded-lg border border-border">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-card/60 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <Th>Tenant</Th>
@@ -119,7 +122,7 @@ export function TenantsClient({ initial }: { initial: Tenant[] }) {
               </tr>
             )}
           </tbody>
-        </table>
+        </table></div>
       </div>
     </div>
   );

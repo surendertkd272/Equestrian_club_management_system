@@ -41,8 +41,8 @@ export default async function PricingPage() {
   const tiers = await getPublicPricing();
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      <header className="border-b bg-white/60 backdrop-blur">
+    <main className="min-h-screen bg-gradient-to-b from-background to-background">
+      <header className="border-b bg-card/60 backdrop-blur">
         <div className="container mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/" className="text-lg font-bold">Equiwings</Link>
           <div className="flex items-center gap-2">
@@ -55,7 +55,7 @@ export default async function PricingPage() {
       <section className="container mx-auto max-w-6xl px-6 py-16">
         <div className="mx-auto max-w-2xl text-center">
           <h1 className="text-4xl font-bold">Simple, club-scaled pricing.</h1>
-          <p className="mt-3 text-slate-600">
+          <p className="mt-3 text-muted-foreground">
             14-day free trial on every plan. No credit card required to start. GST charged extra at the prevailing 18%.
           </p>
         </div>
@@ -67,7 +67,7 @@ export default async function PricingPage() {
             return (
               <div
                 key={t.key}
-                className={`relative rounded-2xl border bg-white p-6 shadow-sm ${t.highlight ? "ring-2 ring-amber-400" : ""}`}
+                className={`relative rounded-2xl border bg-card p-6 shadow-sm ${t.highlight ? "ring-2 ring-amber-400" : ""}`}
               >
                 {t.highlight && (
                   <div className="absolute -top-3 left-6 rounded-full bg-amber-400 px-3 py-0.5 text-xs font-semibold text-amber-900">
@@ -77,13 +77,13 @@ export default async function PricingPage() {
                 <div className="text-sm font-semibold uppercase tracking-wider text-amber-700">{t.label || plan.label}</div>
                 <div className="mt-2 flex items-baseline gap-1">
                   <span className="text-4xl font-bold">₹{t.annualInrPerMonth.toLocaleString("en-IN")}</span>
-                  <span className="text-sm text-slate-500">/centre/month</span>
+                  <span className="text-sm text-muted-foreground">/centre/month</span>
                 </div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-muted-foreground">
                   Billed annually · ₹{t.monthlyInr.toLocaleString("en-IN")} if monthly
                 </div>
-                <p className="mt-3 text-sm text-slate-700">{t.tagline}</p>
-                <div className="mt-4 text-xs text-slate-500">
+                <p className="mt-3 text-sm text-foreground">{t.tagline}</p>
+                <div className="mt-4 text-xs text-muted-foreground">
                   Up to <strong>{Number.isFinite(plan.maxCentres) ? plan.maxCentres : "∞"}</strong> centres ·
                   {" "}<strong>{plan.features.length}</strong> modules
                 </div>
@@ -100,12 +100,12 @@ export default async function PricingPage() {
         {/* Comparison table */}
         <div className="mt-16">
           <h2 className="text-2xl font-bold">What's in each plan</h2>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             Need a specific module not in your plan? Enterprise allows per-feature overrides.
           </p>
           <div className="mt-6 overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wider text-slate-500">
+              <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="pb-3 pr-4">Feature</th>
                   <th className="pb-3 pr-4 text-center">Starter</th>
@@ -121,13 +121,13 @@ export default async function PricingPage() {
                     <tr key={key}>
                       <td className="py-3 pr-4">
                         <div className="font-medium">{def.label}</div>
-                        <div className="text-xs text-slate-500">{def.description}</div>
+                        <div className="text-xs text-muted-foreground">{def.description}</div>
                       </td>
                       {(["starter", "pro", "enterprise"] as PlanKey[]).map((p) => {
                         const has = (PLAN_REGISTRY[p].features as readonly FeatureKey[]).includes(key);
                         return (
                           <td key={p} className="py-3 pr-4 text-center">
-                            {has ? <Check className="mx-auto h-5 w-5 text-emerald-600" /> : <X className="mx-auto h-5 w-5 text-slate-300" />}
+                            {has ? <Check className="mx-auto h-5 w-5 text-emerald-600" /> : <X className="mx-auto h-5 w-5 text-muted-foreground/40" />}
                           </td>
                         );
                       })}
@@ -139,9 +139,9 @@ export default async function PricingPage() {
           </div>
         </div>
 
-        <div className="mt-16 rounded-2xl border bg-slate-50 p-8">
+        <div className="mt-16 rounded-2xl border bg-muted/40 p-8">
           <h3 className="text-xl font-bold">Need something custom?</h3>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-muted-foreground">
             Federation-level deployments, white-label branding, on-prem hosting, custom SLAs —
             we set them up case by case.
           </p>
@@ -151,12 +151,12 @@ export default async function PricingPage() {
         </div>
       </section>
 
-      <footer className="border-t bg-white">
-        <div className="container mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-6 text-xs text-slate-500">
+      <footer className="border-t bg-card">
+        <div className="container mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-6 py-6 text-xs text-muted-foreground">
           <div>© {new Date().getFullYear()} Equiwings</div>
           <div className="flex gap-4">
-            <Link href="/privacy" className="hover:text-slate-700">Privacy</Link>
-            <Link href="/terms" className="hover:text-slate-700">Terms</Link>
+            <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
+            <Link href="/terms" className="hover:text-foreground">Terms</Link>
           </div>
         </div>
       </footer>
