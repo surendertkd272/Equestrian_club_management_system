@@ -91,7 +91,7 @@ export function NewRequisitionForm({
       {centres.length > 0 && (
         <div className="space-y-1.5">
           <Label>Centre *</Label>
-          <Select value={centreId} onChange={(e) => setCentreId(e.target.value)}>
+          <Select aria-label="Centre" value={centreId} onChange={(e) => setCentreId(e.target.value)}>
             {centres.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}

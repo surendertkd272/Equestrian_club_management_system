@@ -66,7 +66,7 @@ export function DailyUpdateForm({ date, initial }: { date: string; initial: Init
     <div className="space-y-3">
       <div>
         <Label>What did you cover today?</Label>
-        <Textarea
+        <Textarea aria-label="What did you cover today?"
           rows={3}
           value={form.summary}
           onChange={(e) => set("summary", e.target.value)}
@@ -77,20 +77,20 @@ export function DailyUpdateForm({ date, initial }: { date: string; initial: Init
       <div className="grid gap-3 sm:grid-cols-3">
         <div>
           <Label>Horses worked</Label>
-          <Input type="number" value={form.horsesWorked} onChange={(e) => set("horsesWorked", e.target.value)} placeholder="6" />
+          <Input aria-label="Horses worked" type="number" value={form.horsesWorked} onChange={(e) => set("horsesWorked", e.target.value)} placeholder="6" />
         </div>
         <div>
           <Label>Riders taught</Label>
-          <Input type="number" value={form.ridersTaught} onChange={(e) => set("ridersTaught", e.target.value)} placeholder="12" />
+          <Input aria-label="Riders taught" type="number" value={form.ridersTaught} onChange={(e) => set("ridersTaught", e.target.value)} placeholder="12" />
         </div>
         <div>
           <Label>Minutes on the yard</Label>
-          <Input type="number" value={form.minutesSpent} onChange={(e) => set("minutesSpent", e.target.value)} placeholder="240" />
+          <Input aria-label="Minutes on the yard" type="number" value={form.minutesSpent} onChange={(e) => set("minutesSpent", e.target.value)} placeholder="240" />
         </div>
       </div>
       <div>
         <Label>Injuries / concerns to flag (optional)</Label>
-        <Textarea
+        <Textarea aria-label="Injuries / concerns to flag (optional)"
           rows={2}
           value={form.injuriesNoted}
           onChange={(e) => set("injuriesNoted", e.target.value)}

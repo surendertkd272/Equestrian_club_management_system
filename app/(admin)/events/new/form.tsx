@@ -88,7 +88,7 @@ export function NewEventForm() {
       <div className="grid gap-3 md:grid-cols-2">
         <div className="md:col-span-2">
           <Label>Title *</Label>
-          <Input
+          <Input aria-label="Title"
             required
             value={form.title}
             onChange={(e) => set("title", e.target.value)}
@@ -97,7 +97,7 @@ export function NewEventForm() {
         </div>
         <div>
           <Label>Type *</Label>
-          <Select value={form.type} onChange={(e) => set("type", e.target.value)}>
+          <Select aria-label="Type" value={form.type} onChange={(e) => set("type", e.target.value)}>
             {TYPES.map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}
@@ -105,19 +105,19 @@ export function NewEventForm() {
         </div>
         <div>
           <Label>Fee per rider (₹)</Label>
-          <Input type="number" min={0} value={form.fee} onChange={(e) => set("fee", e.target.value)} />
+          <Input aria-label="Fee per rider (₹)" type="number" min={0} value={form.fee} onChange={(e) => set("fee", e.target.value)} />
         </div>
         <div>
           <Label>Start date *</Label>
-          <Input required type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} />
+          <Input aria-label="Start date" required type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} />
         </div>
         <div>
           <Label>End date *</Label>
-          <Input required type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)} />
+          <Input aria-label="End date" required type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)} />
         </div>
         <div>
           <Label>Capacity</Label>
-          <Input
+          <Input aria-label="Capacity"
             type="number"
             min={1}
             value={form.capacity}
@@ -143,7 +143,7 @@ export function NewEventForm() {
           <>
             <div className="md:col-span-2">
               <Label>External venue</Label>
-              <Input
+              <Input aria-label="External venue"
                 value={form.externalVenue}
                 onChange={(e) => set("externalVenue", e.target.value)}
                 placeholder="Host club name + city"
@@ -151,7 +151,7 @@ export function NewEventForm() {
             </div>
             <div className="md:col-span-2">
               <Label>Hosting organisation</Label>
-              <Input
+              <Input aria-label="Hosting organisation"
                 value={form.externalHostOrg}
                 onChange={(e) => set("externalHostOrg", e.target.value)}
                 placeholder="e.g. Royal Riding Academy"
@@ -161,15 +161,15 @@ export function NewEventForm() {
         )}
         <div>
           <Label>Contact name</Label>
-          <Input value={form.contactName} onChange={(e) => set("contactName", e.target.value)} />
+          <Input aria-label="Contact name" value={form.contactName} onChange={(e) => set("contactName", e.target.value)} />
         </div>
         <div>
           <Label>Contact phone</Label>
-          <Input value={form.contactPhone} onChange={(e) => set("contactPhone", e.target.value)} />
+          <Input aria-label="Contact phone" value={form.contactPhone} onChange={(e) => set("contactPhone", e.target.value)} />
         </div>
         <div className="md:col-span-2">
           <Label>Description</Label>
-          <Textarea
+          <Textarea aria-label="Description"
             value={form.description}
             onChange={(e) => set("description", e.target.value)}
             rows={3}

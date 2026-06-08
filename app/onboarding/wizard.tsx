@@ -277,7 +277,7 @@ function PersonalStep({ initial, onNext }: { initial: WizardData; onNext: (d: Pe
         <Field methods={methods} name="dob" label="Date of birth" type="date" required />
         <div className="space-y-1.5">
           <Label>Gender *</Label>
-          <Select {...methods.register("gender")}>
+          <Select aria-label="Gender" {...methods.register("gender")}>
             <option value="male">Male</option>
             <option value="female">Female</option>
             <option value="other">Other</option>

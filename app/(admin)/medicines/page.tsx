@@ -73,7 +73,7 @@ export default async function MedicinesPage({
           <form className="flex flex-wrap items-end gap-2 text-sm" method="get">
             <div>
               <label className="mb-1 block text-xs uppercase text-muted-foreground">Category</label>
-              <select
+              <select aria-label="Filter by category"
                 name="category"
                 defaultValue={searchParams.category ?? ""}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -96,7 +96,7 @@ export default async function MedicinesPage({
             </div>
             <div>
               <label className="mb-1 block text-xs uppercase text-muted-foreground">Filter</label>
-              <select
+              <select aria-label="Filter by status"
                 name="status"
                 defaultValue={searchParams.status ?? ""}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"

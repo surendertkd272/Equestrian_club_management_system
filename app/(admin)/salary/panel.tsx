@@ -108,7 +108,7 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
         <div className="grid gap-3 md:grid-cols-3">
           <div>
             <Label>Staff member</Label>
-            <Select value={form.userId} onChange={(e) => set("userId", e.target.value)}>
+            <Select aria-label="Staff member" value={form.userId} onChange={(e) => set("userId", e.target.value)}>
               {staff.length === 0 && <option value="">(no staff)</option>}
               {staff.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -119,11 +119,11 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
           </div>
           <div>
             <Label>Month</Label>
-            <Input type="month" value={form.periodMonth} onChange={(e) => set("periodMonth", e.target.value)} />
+            <Input aria-label="Month" type="month" value={form.periodMonth} onChange={(e) => set("periodMonth", e.target.value)} />
           </div>
           <div>
             <Label>Gross override (₹, optional)</Label>
-            <Input
+            <Input aria-label="Gross override (₹, optional)"
               type="number"
               value={form.grossOverride}
               onChange={(e) => set("grossOverride", e.target.value)}
@@ -132,7 +132,7 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
           </div>
           <div>
             <Label>Advance to deduct (₹)</Label>
-            <Input
+            <Input aria-label="Advance to deduct (₹)"
               type="number"
               value={form.advanceDeduction}
               onChange={(e) => set("advanceDeduction", e.target.value)}
@@ -150,11 +150,11 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
           </div>
           <div>
             <Label>Other deductions (₹)</Label>
-            <Input type="number" value={form.otherDeductions} onChange={(e) => set("otherDeductions", e.target.value)} placeholder="0" />
+            <Input aria-label="Other deductions (₹)" type="number" value={form.otherDeductions} onChange={(e) => set("otherDeductions", e.target.value)} placeholder="0" />
           </div>
           <div>
             <Label>Method</Label>
-            <Select value={form.method} onChange={(e) => set("method", e.target.value)}>
+            <Select aria-label="Method" value={form.method} onChange={(e) => set("method", e.target.value)}>
               <option value="bank">Bank transfer</option>
               <option value="upi">UPI</option>
               <option value="cash">Cash</option>

@@ -112,7 +112,7 @@ export default async function ProgressPage({
           <form className="flex flex-wrap items-end gap-2 text-sm" method="get">
             <div>
               <label className="mb-1 block text-xs uppercase text-muted-foreground">Batch</label>
-              <select
+              <select aria-label="Filter by batch"
                 name="batch"
                 defaultValue={searchParams.batch ?? ""}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -127,7 +127,7 @@ export default async function ProgressPage({
             </div>
             <div>
               <label className="mb-1 block text-xs uppercase text-muted-foreground">Level</label>
-              <select
+              <select aria-label="Filter by level"
                 name="level"
                 defaultValue={searchParams.level ?? ""}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"

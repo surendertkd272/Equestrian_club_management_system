@@ -104,7 +104,7 @@ export function VaccinationsClient({ horses }: { horses: Horse[] }) {
         <div className="grid gap-3 md:grid-cols-3">
           <div>
             <Label>Horse</Label>
-            <Select value={form.horseId} onChange={(e) => set("horseId", e.target.value)}>
+            <Select aria-label="Horse" value={form.horseId} onChange={(e) => set("horseId", e.target.value)}>
               {horses.map((h) => (
                 <option key={h.id} value={h.id}>
                   {h.name}{h.stableNo ? ` (${h.stableNo})` : ""}
@@ -114,7 +114,7 @@ export function VaccinationsClient({ horses }: { horses: Horse[] }) {
           </div>
           <div>
             <Label>Type</Label>
-            <Select
+            <Select aria-label="Type"
               value={form.vaccineKey}
               onChange={(e) => {
                 applyPreset(e.target.value);
@@ -133,11 +133,11 @@ export function VaccinationsClient({ horses }: { horses: Horse[] }) {
           </div>
           <div>
             <Label>Label</Label>
-            <Input value={form.vaccineLabel} onChange={(e) => set("vaccineLabel", e.target.value)} />
+            <Input aria-label="Label" value={form.vaccineLabel} onChange={(e) => set("vaccineLabel", e.target.value)} />
           </div>
           <div>
             <Label>Interval (days)</Label>
-            <Input
+            <Input aria-label="Interval (days)"
               type="number"
               min={7}
               value={form.intervalDays}
@@ -146,11 +146,11 @@ export function VaccinationsClient({ horses }: { horses: Horse[] }) {
           </div>
           <div>
             <Label>Last given (optional)</Label>
-            <Input type="date" value={form.lastGivenAt} onChange={(e) => set("lastGivenAt", e.target.value)} />
+            <Input aria-label="Last given (optional)" type="date" value={form.lastGivenAt} onChange={(e) => set("lastGivenAt", e.target.value)} />
           </div>
           <div>
             <Label>Next due (auto if blank)</Label>
-            <Input type="date" value={form.nextDueAt} onChange={(e) => set("nextDueAt", e.target.value)} />
+            <Input aria-label="Next due (auto if blank)" type="date" value={form.nextDueAt} onChange={(e) => set("nextDueAt", e.target.value)} />
           </div>
         </div>
         <div className="mt-3">

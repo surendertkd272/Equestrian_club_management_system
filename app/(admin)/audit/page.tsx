@@ -68,7 +68,7 @@ export default async function AuditPage({
         <CardHeader>
           <CardTitle>Events</CardTitle>
           <form className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <select
+            <select aria-label="Filter by action"
               name="action"
               defaultValue={searchParams.action ?? ""}
               className="h-9 rounded-md border bg-background px-2 text-sm"
@@ -78,7 +78,7 @@ export default async function AuditPage({
                 <option key={a} value={a}>{a}</option>
               ))}
             </select>
-            <select
+            <select aria-label="Filter by table"
               name="table"
               defaultValue={searchParams.table ?? ""}
               className="h-9 rounded-md border bg-background px-2 text-sm"
@@ -88,7 +88,7 @@ export default async function AuditPage({
                 <option key={t.tableName} value={t.tableName}>{t.tableName} ({t._count})</option>
               ))}
             </select>
-            <input
+            <input aria-label="Search"
               type="search"
               name="q"
               defaultValue={searchParams.q ?? ""}

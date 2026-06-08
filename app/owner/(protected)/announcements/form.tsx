@@ -62,7 +62,7 @@ export function NewAnnouncementForm() {
     <div className="grid gap-3 md:grid-cols-2">
       <div className="md:col-span-2">
         <Label className="text-xs text-muted-foreground">Title</Label>
-        <Input value={form.title} onChange={(e) => set("title", e.target.value)} className="border-border bg-background text-foreground" />
+        <Input aria-label="Title" value={form.title} onChange={(e) => set("title", e.target.value)} className="border-border bg-background text-foreground" />
       </div>
       <div className="md:col-span-2">
         <Label className="text-xs text-muted-foreground">Body</Label>
@@ -85,23 +85,23 @@ export function NewAnnouncementForm() {
       </div>
       <div>
         <Label className="text-xs text-muted-foreground">Expires (optional)</Label>
-        <Input type="datetime-local" value={form.expiresAt} onChange={(e) => set("expiresAt", e.target.value)} className="border-border bg-background text-foreground" />
+        <Input aria-label="Expires (optional)" type="datetime-local" value={form.expiresAt} onChange={(e) => set("expiresAt", e.target.value)} className="border-border bg-background text-foreground" />
       </div>
       <div>
         <Label className="text-xs text-muted-foreground">CTA label</Label>
-        <Input value={form.ctaLabel} onChange={(e) => set("ctaLabel", e.target.value)} className="border-border bg-background text-foreground" />
+        <Input aria-label="CTA label" value={form.ctaLabel} onChange={(e) => set("ctaLabel", e.target.value)} className="border-border bg-background text-foreground" />
       </div>
       <div>
         <Label className="text-xs text-muted-foreground">CTA URL (https://…)</Label>
-        <Input value={form.ctaHref} onChange={(e) => set("ctaHref", e.target.value)} className="border-border bg-background text-foreground" />
+        <Input aria-label="CTA URL (https://…)" value={form.ctaHref} onChange={(e) => set("ctaHref", e.target.value)} className="border-border bg-background text-foreground" />
       </div>
       <div>
         <Label className="text-xs text-muted-foreground">Plan filter (CSV, e.g. "starter,pro")</Label>
-        <Input value={form.planFilter} onChange={(e) => set("planFilter", e.target.value)} className="border-border bg-background text-foreground" />
+        <Input aria-label="Plan filter (CSV, e.g. &quot;starter,pro&quot;)" value={form.planFilter} onChange={(e) => set("planFilter", e.target.value)} className="border-border bg-background text-foreground" />
       </div>
       <div>
         <Label className="text-xs text-muted-foreground">Role filter (CSV, e.g. "CENTRE_MANAGER,COACH")</Label>
-        <Input value={form.roleFilter} onChange={(e) => set("roleFilter", e.target.value)} className="border-border bg-background text-foreground" />
+        <Input aria-label="Role filter (CSV, e.g. &quot;CENTRE_MANAGER,COACH&quot;)" value={form.roleFilter} onChange={(e) => set("roleFilter", e.target.value)} className="border-border bg-background text-foreground" />
       </div>
       <div className="md:col-span-2 flex justify-end">
         <Button onClick={publish} disabled={busy}>{busy ? "Publishing…" : "Publish"}</Button>

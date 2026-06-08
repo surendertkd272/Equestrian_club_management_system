@@ -92,7 +92,7 @@ export default async function HorsesPage({
           <form className="flex flex-wrap items-end gap-2 text-sm" method="get">
             <div>
               <label className="mb-1 block text-xs uppercase text-muted-foreground">Status</label>
-              <select
+              <select aria-label="Filter by status"
                 name="status"
                 defaultValue={searchParams.status ?? ""}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -105,7 +105,7 @@ export default async function HorsesPage({
             </div>
             <div>
               <label className="mb-1 block text-xs uppercase text-muted-foreground">Ownership</label>
-              <select
+              <select aria-label="Filter by ownership"
                 name="ownership"
                 defaultValue={searchParams.ownership ?? ""}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"

@@ -83,7 +83,7 @@ export function NewShortLinkForm({ horses }: { horses: { id: string; name: strin
       <div className="grid gap-3 md:grid-cols-2">
         <div>
           <Label>Kind *</Label>
-          <Select value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
+          <Select aria-label="Kind" value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
             {KINDS.map((k) => (
               <option key={k.value} value={k.value}>
                 {k.label}
@@ -98,7 +98,7 @@ export function NewShortLinkForm({ horses }: { horses: { id: string; name: strin
         {kindMeta.needsHorse && (
           <div>
             <Label>Horse *</Label>
-            <Select value={horseId} onChange={(e) => setHorseId(e.target.value)}>
+            <Select aria-label="Horse" value={horseId} onChange={(e) => setHorseId(e.target.value)}>
               <option value="">— pick —</option>
               {horses.map((h) => (
                 <option key={h.id} value={h.id}>{h.name}</option>
@@ -110,7 +110,7 @@ export function NewShortLinkForm({ horses }: { horses: { id: string; name: strin
         {kind === "generic" && (
           <div className="md:col-span-2">
             <Label>Target path *</Label>
-            <Input
+            <Input aria-label="Target path"
               value={customPath}
               onChange={(e) => setCustomPath(e.target.value)}
               placeholder="/some/path"
@@ -123,7 +123,7 @@ export function NewShortLinkForm({ horses }: { horses: { id: string; name: strin
 
         <div>
           <Label>Display label (optional)</Label>
-          <Input
+          <Input aria-label="Display label (optional)"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder='e.g. "Injury report — Bijli"'
@@ -132,7 +132,7 @@ export function NewShortLinkForm({ horses }: { horses: { id: string; name: strin
 
         <div>
           <Label>Expires in (days)</Label>
-          <Input
+          <Input aria-label="Expires in (days)"
             type="number"
             min={1}
             max={90}

@@ -67,7 +67,7 @@ export function BillingConfigForm({ initial }: { initial: Config }) {
       <Field label="Invoice prefix" value={form.invoicePrefix} onChange={(v) => set("invoicePrefix", v)} placeholder="EW" />
       <div>
         <Label className="text-xs text-muted-foreground">Default GST rate (basis points)</Label>
-        <Input
+        <Input aria-label="Default GST rate (basis points)"
           type="number"
           value={form.defaultTaxBps}
           onChange={(e) => set("defaultTaxBps", Number(e.target.value))}

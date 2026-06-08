@@ -111,7 +111,7 @@ export function OffboardPanel({
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <Label className="text-xs text-muted-foreground">Grace days</Label>
-          <Input
+          <Input aria-label="Grace days"
             type="number"
             min={0}
             max={180}
@@ -123,7 +123,7 @@ export function OffboardPanel({
       </div>
       <div>
         <Label className="text-xs text-muted-foreground">Reason (internal notes)</Label>
-        <Input
+        <Input aria-label="Reason (internal notes)"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Customer cancelled · GDPR request · Payment defaulted 90d"

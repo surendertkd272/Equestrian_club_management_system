@@ -83,25 +83,25 @@ export function EditVendor({ vendor }: { vendor: EditableVendor }) {
   }
   return (
     <div className="mt-2 grid gap-2 rounded-md border bg-card p-3 text-left md:grid-cols-2">
-      <div><Label className="text-xs">Name</Label><Input value={form.name} onChange={(e) => set("name", e.target.value)} /></div>
+      <div><Label className="text-xs">Name</Label><Input aria-label="Name" value={form.name} onChange={(e) => set("name", e.target.value)} /></div>
       <div>
         <Label className="text-xs">Delivery coverage</Label>
-        <Select value={form.deliveryScope} onChange={(e) => set("deliveryScope", e.target.value)}>
+        <Select aria-label="Delivery coverage" value={form.deliveryScope} onChange={(e) => set("deliveryScope", e.target.value)}>
           <option value="centre">Centre-specific</option>
           <option value="national">All-India</option>
         </Select>
       </div>
-      <div><Label className="text-xs">Contact person</Label><Input value={form.contactName} onChange={(e) => set("contactName", e.target.value)} /></div>
-      <div><Label className="text-xs">Phone</Label><Input value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
-      <div><Label className="text-xs">Email</Label><Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
-      <div><Label className="text-xs">GSTIN</Label><Input value={form.gstin} onChange={(e) => set("gstin", e.target.value)} /></div>
-      <div className="md:col-span-2"><Label className="text-xs">Address</Label><Input value={form.address} onChange={(e) => set("address", e.target.value)} /></div>
-      <div><Label className="text-xs">Account holder</Label><Input value={form.bankAccountName} onChange={(e) => set("bankAccountName", e.target.value)} /></div>
-      <div><Label className="text-xs">Bank name</Label><Input value={form.bankName} onChange={(e) => set("bankName", e.target.value)} /></div>
-      <div><Label className="text-xs">Account number</Label><Input value={form.bankAccountNumber} onChange={(e) => set("bankAccountNumber", e.target.value)} /></div>
-      <div><Label className="text-xs">IFSC</Label><Input value={form.bankIfsc} onChange={(e) => set("bankIfsc", e.target.value.toUpperCase())} maxLength={11} /></div>
-      <div><Label className="text-xs">UPI ID</Label><Input value={form.upiId} onChange={(e) => set("upiId", e.target.value)} maxLength={60} /></div>
-      <div className="md:col-span-2"><Label className="text-xs">Notes</Label><Input value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
+      <div><Label className="text-xs">Contact person</Label><Input aria-label="Contact person" value={form.contactName} onChange={(e) => set("contactName", e.target.value)} /></div>
+      <div><Label className="text-xs">Phone</Label><Input aria-label="Phone" value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
+      <div><Label className="text-xs">Email</Label><Input aria-label="Email" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} /></div>
+      <div><Label className="text-xs">GSTIN</Label><Input aria-label="GSTIN" value={form.gstin} onChange={(e) => set("gstin", e.target.value)} /></div>
+      <div className="md:col-span-2"><Label className="text-xs">Address</Label><Input aria-label="Address" value={form.address} onChange={(e) => set("address", e.target.value)} /></div>
+      <div><Label className="text-xs">Account holder</Label><Input aria-label="Account holder" value={form.bankAccountName} onChange={(e) => set("bankAccountName", e.target.value)} /></div>
+      <div><Label className="text-xs">Bank name</Label><Input aria-label="Bank name" value={form.bankName} onChange={(e) => set("bankName", e.target.value)} /></div>
+      <div><Label className="text-xs">Account number</Label><Input aria-label="Account number" value={form.bankAccountNumber} onChange={(e) => set("bankAccountNumber", e.target.value)} /></div>
+      <div><Label className="text-xs">IFSC</Label><Input aria-label="IFSC" value={form.bankIfsc} onChange={(e) => set("bankIfsc", e.target.value.toUpperCase())} maxLength={11} /></div>
+      <div><Label className="text-xs">UPI ID</Label><Input aria-label="UPI ID" value={form.upiId} onChange={(e) => set("upiId", e.target.value)} maxLength={60} /></div>
+      <div className="md:col-span-2"><Label className="text-xs">Notes</Label><Input aria-label="Notes" value={form.notes} onChange={(e) => set("notes", e.target.value)} /></div>
       <div className="flex gap-2 md:col-span-2">
         <Button size="sm" disabled={busy} onClick={save}>{busy ? "Saving…" : "Save changes"}</Button>
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>

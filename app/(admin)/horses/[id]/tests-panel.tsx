@@ -117,7 +117,7 @@ export function HorseTestsPanel({
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Test type *</Label>
-              <Select value={testType} onChange={(e) => setTestType(e.target.value as HorseTestDTO["testType"])}>
+              <Select aria-label="Test type" value={testType} onChange={(e) => setTestType(e.target.value as HorseTestDTO["testType"])}>
                 <option value="coggins">Coggins (EIA)</option>
                 <option value="glanders">Glanders</option>
                 <option value="urination">Urination (urinalysis)</option>
@@ -125,7 +125,7 @@ export function HorseTestsPanel({
             </div>
             <div className="space-y-1.5">
               <Label>Result *</Label>
-              <Select value={result} onChange={(e) => setResult(e.target.value as HorseTestDTO["result"])}>
+              <Select aria-label="Result" value={result} onChange={(e) => setResult(e.target.value as HorseTestDTO["result"])}>
                 <option value="pending">Pending</option>
                 <option value="negative">Negative</option>
                 <option value="positive">Positive</option>
@@ -134,7 +134,7 @@ export function HorseTestsPanel({
             </div>
             <div className="space-y-1.5">
               <Label>Tested at</Label>
-              <Input
+              <Input aria-label="Tested at"
                 type="datetime-local"
                 value={testedAt}
                 onChange={(e) => setTestedAt(e.target.value)}
@@ -142,7 +142,7 @@ export function HorseTestsPanel({
             </div>
             <div className="space-y-1.5">
               <Label>Next due</Label>
-              <Input
+              <Input aria-label="Next due"
                 type="date"
                 value={nextDueAt}
                 onChange={(e) => setNextDueAt(e.target.value)}
@@ -150,16 +150,16 @@ export function HorseTestsPanel({
             </div>
             <div className="space-y-1.5">
               <Label>Lab name</Label>
-              <Input value={labName} onChange={(e) => setLabName(e.target.value)} />
+              <Input aria-label="Lab name" value={labName} onChange={(e) => setLabName(e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label>Report URL</Label>
-              <Input value={reportUrl} onChange={(e) => setReportUrl(e.target.value)} placeholder="https://..." />
+              <Input aria-label="Report URL" value={reportUrl} onChange={(e) => setReportUrl(e.target.value)} placeholder="https://..." />
             </div>
           </div>
           <div className="space-y-1.5">
             <Label>Notes</Label>
-            <Input value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <Input aria-label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
           </div>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => { resetForm(); setAdding(false); }}>

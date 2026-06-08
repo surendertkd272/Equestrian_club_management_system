@@ -79,19 +79,19 @@ export function NewLessonForm({
       </div>
       <div>
         <Label className="text-xs">Date</Label>
-        <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+        <Input aria-label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
       </div>
       <div>
         <Label className="text-xs">Start</Label>
-        <Input type="time" value={start} onChange={(e) => setStart(e.target.value)} required />
+        <Input aria-label="Start" type="time" value={start} onChange={(e) => setStart(e.target.value)} required />
       </div>
       <div>
         <Label className="text-xs">End</Label>
-        <Input type="time" value={end} onChange={(e) => setEnd(e.target.value)} required />
+        <Input aria-label="End" type="time" value={end} onChange={(e) => setEnd(e.target.value)} required />
       </div>
       <div className="md:col-span-4">
         <Label className="text-xs">Notes (optional)</Label>
-        <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Make-up class · special focus on dressage transitions" />
+        <Input aria-label="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Make-up class · special focus on dressage transitions" />
       </div>
       <div className="flex items-end">
         <Button type="submit" disabled={busy} className="w-full">

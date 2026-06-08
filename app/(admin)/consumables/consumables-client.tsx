@@ -63,11 +63,11 @@ export function ConsumablesClient() {
         <div className="grid gap-3 md:grid-cols-3">
           <div>
             <Label>Name</Label>
-            <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Sterile gauze pad — 10×10cm" />
+            <Input aria-label="Name" value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Sterile gauze pad — 10×10cm" />
           </div>
           <div>
             <Label>Category</Label>
-            <Select value={form.category} onChange={(e) => set("category", e.target.value)}>
+            <Select aria-label="Category" value={form.category} onChange={(e) => set("category", e.target.value)}>
               <option value="bandage">Bandage / wrap</option>
               <option value="dressing">Dressing</option>
               <option value="hygiene">Hygiene</option>
@@ -77,7 +77,7 @@ export function ConsumablesClient() {
           </div>
           <div>
             <Label>Unit</Label>
-            <Select value={form.unit} onChange={(e) => set("unit", e.target.value)}>
+            <Select aria-label="Unit" value={form.unit} onChange={(e) => set("unit", e.target.value)}>
               <option value="each">each</option>
               <option value="pad">pad</option>
               <option value="roll">roll</option>
@@ -90,19 +90,19 @@ export function ConsumablesClient() {
           </div>
           <div>
             <Label>Opening qty</Label>
-            <Input type="number" min={0} value={form.qty} onChange={(e) => set("qty", e.target.value)} />
+            <Input aria-label="Opening qty" type="number" min={0} value={form.qty} onChange={(e) => set("qty", e.target.value)} />
           </div>
           <div>
             <Label>Reorder at</Label>
-            <Input type="number" min={0} value={form.reorderThreshold} onChange={(e) => set("reorderThreshold", e.target.value)} />
+            <Input aria-label="Reorder at" type="number" min={0} value={form.reorderThreshold} onChange={(e) => set("reorderThreshold", e.target.value)} />
           </div>
           <div>
             <Label>Supplier (optional)</Label>
-            <Input value={form.supplier} onChange={(e) => set("supplier", e.target.value)} />
+            <Input aria-label="Supplier (optional)" value={form.supplier} onChange={(e) => set("supplier", e.target.value)} />
           </div>
           <div className="md:col-span-3">
             <Label>Storage location</Label>
-            <Input value={form.storageLocation} onChange={(e) => set("storageLocation", e.target.value)} placeholder="Cabinet A2, top shelf" />
+            <Input aria-label="Storage location" value={form.storageLocation} onChange={(e) => set("storageLocation", e.target.value)} placeholder="Cabinet A2, top shelf" />
           </div>
         </div>
         <div className="mt-3">
@@ -221,10 +221,10 @@ export function EditConsumable({ row }: { row: EditableConsumable }) {
   }
   return (
     <div className="mt-2 grid gap-2 rounded-md border bg-card p-3 text-left sm:grid-cols-3">
-      <div><Label className="text-xs">Name</Label><Input value={form.name} onChange={(e) => set("name", e.target.value)} /></div>
+      <div><Label className="text-xs">Name</Label><Input aria-label="Name" value={form.name} onChange={(e) => set("name", e.target.value)} /></div>
       <div>
         <Label className="text-xs">Category</Label>
-        <Select value={form.category} onChange={(e) => set("category", e.target.value)}>
+        <Select aria-label="Category" value={form.category} onChange={(e) => set("category", e.target.value)}>
           <option value="bandage">Bandage / wrap</option>
           <option value="dressing">Dressing</option>
           <option value="hygiene">Hygiene</option>
@@ -234,7 +234,7 @@ export function EditConsumable({ row }: { row: EditableConsumable }) {
       </div>
       <div>
         <Label className="text-xs">Unit</Label>
-        <Select value={form.unit} onChange={(e) => set("unit", e.target.value)}>
+        <Select aria-label="Unit" value={form.unit} onChange={(e) => set("unit", e.target.value)}>
           <option value="each">each</option>
           <option value="pad">pad</option>
           <option value="roll">roll</option>
@@ -245,10 +245,10 @@ export function EditConsumable({ row }: { row: EditableConsumable }) {
           <option value="g">g</option>
         </Select>
       </div>
-      <div><Label className="text-xs">Qty</Label><Input type="number" min={0} value={form.qty} onChange={(e) => set("qty", e.target.value)} /></div>
-      <div><Label className="text-xs">Reorder at</Label><Input type="number" min={0} value={form.reorderThreshold} onChange={(e) => set("reorderThreshold", e.target.value)} /></div>
-      <div><Label className="text-xs">Supplier</Label><Input value={form.supplier} onChange={(e) => set("supplier", e.target.value)} /></div>
-      <div className="sm:col-span-3"><Label className="text-xs">Storage location</Label><Input value={form.storageLocation} onChange={(e) => set("storageLocation", e.target.value)} /></div>
+      <div><Label className="text-xs">Qty</Label><Input aria-label="Qty" type="number" min={0} value={form.qty} onChange={(e) => set("qty", e.target.value)} /></div>
+      <div><Label className="text-xs">Reorder at</Label><Input aria-label="Reorder at" type="number" min={0} value={form.reorderThreshold} onChange={(e) => set("reorderThreshold", e.target.value)} /></div>
+      <div><Label className="text-xs">Supplier</Label><Input aria-label="Supplier" value={form.supplier} onChange={(e) => set("supplier", e.target.value)} /></div>
+      <div className="sm:col-span-3"><Label className="text-xs">Storage location</Label><Input aria-label="Storage location" value={form.storageLocation} onChange={(e) => set("storageLocation", e.target.value)} /></div>
       <div className="flex gap-2 sm:col-span-3">
         <Button size="sm" disabled={busy} onClick={save}>{busy ? "Saving…" : "Save changes"}</Button>
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>

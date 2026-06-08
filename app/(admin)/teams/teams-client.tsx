@@ -178,7 +178,7 @@ export function TeamRosterControls({
       <div className="grid gap-2 sm:grid-cols-4">
         <div className="sm:col-span-2">
           <Label className="text-xs">Add rider</Label>
-          <Select value={riderId} onChange={(e) => setRiderId(e.target.value)}>
+          <Select aria-label="Add rider" value={riderId} onChange={(e) => setRiderId(e.target.value)}>
             <option value="">— Pick a rider —</option>
             {available.map((r) => (
               <option key={r.id} value={r.id}>{r.firstName} {r.lastName}</option>
@@ -187,7 +187,7 @@ export function TeamRosterControls({
         </div>
         <div>
           <Label className="text-xs">Position (optional)</Label>
-          <Input value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Captain, Reserve…" />
+          <Input aria-label="Position (optional)" value={position} onChange={(e) => setPosition(e.target.value)} placeholder="Captain, Reserve…" />
         </div>
         <div className="self-end">
           <Button size="sm" disabled={busy || !riderId} onClick={add}>+ Add</Button>

@@ -96,14 +96,14 @@ export function BatchShiftCard({
             <div className="grid gap-3 md:grid-cols-2">
               <div>
                 <Label className="text-xs">Type *</Label>
-                <Select value={kind} onChange={(e) => setKind(e.target.value as "single_day" | "permanent")}>
+                <Select aria-label="Type" value={kind} onChange={(e) => setKind(e.target.value as "single_day" | "permanent")}>
                   <option value="single_day">Single day — one-time class swap</option>
                   <option value="permanent">Permanent — change my batch from now on</option>
                 </Select>
               </div>
               <div>
                 <Label className="text-xs">Target batch *</Label>
-                <Select value={toBatchId} onChange={(e) => setToBatchId(e.target.value)}>
+                <Select aria-label="Target batch" value={toBatchId} onChange={(e) => setToBatchId(e.target.value)}>
                   <option value="">— pick a batch —</option>
                   {eligibleBatches.map((b) => (
                     <option key={b.id} value={b.id}>
@@ -115,7 +115,7 @@ export function BatchShiftCard({
               {kind === "single_day" && (
                 <div className="md:col-span-2">
                   <Label className="text-xs">Date you want to attend *</Label>
-                  <Input
+                  <Input aria-label="Date you want to attend"
                     type="date"
                     value={shiftDate}
                     onChange={(e) => setShiftDate(e.target.value)}
@@ -125,7 +125,7 @@ export function BatchShiftCard({
               )}
               <div className="md:col-span-2">
                 <Label className="text-xs">Reason (optional)</Label>
-                <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} maxLength={500} placeholder="School test, family event, …" />
+                <Textarea aria-label="Reason (optional)" value={reason} onChange={(e) => setReason(e.target.value)} rows={2} maxLength={500} placeholder="School test, family event, …" />
               </div>
             </div>
             <Button onClick={submit} disabled={busy} size="sm">

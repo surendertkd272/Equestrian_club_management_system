@@ -81,19 +81,19 @@ export function NewStaffForm() {
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-1.5">
           <Label>Name *</Label>
-          <Input required value={form.name} onChange={(e) => set("name", e.target.value)} />
+          <Input aria-label="Name" required value={form.name} onChange={(e) => set("name", e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label>Email *</Label>
-          <Input required type="email" value={form.email} onChange={(e) => set("email", e.target.value)} />
+          <Input aria-label="Email" required type="email" value={form.email} onChange={(e) => set("email", e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label>Phone</Label>
-          <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="10-digit" />
+          <Input aria-label="Phone" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="10-digit" />
         </div>
         <div className="space-y-1.5">
           <Label>Role *</Label>
-          <Select value={form.role} onChange={(e) => set("role", e.target.value)}>
+          <Select aria-label="Role" value={form.role} onChange={(e) => set("role", e.target.value)}>
             {ASSIGNABLE_STAFF_ROLES.map((r) => (
               <option key={r} value={r}>
                 {r.replaceAll("_", " ")}
@@ -103,11 +103,11 @@ export function NewStaffForm() {
         </div>
         <div className="space-y-1.5">
           <Label>Salary Band</Label>
-          <Input value={form.salaryBand} onChange={(e) => set("salaryBand", e.target.value)} placeholder="e.g. L3" />
+          <Input aria-label="Salary Band" value={form.salaryBand} onChange={(e) => set("salaryBand", e.target.value)} placeholder="e.g. L3" />
         </div>
         <div className="space-y-1.5">
           <Label>Initial Password</Label>
-          <Input value={form.password} onChange={(e) => set("password", e.target.value)} />
+          <Input aria-label="Initial Password" value={form.password} onChange={(e) => set("password", e.target.value)} />
         </div>
       </div>
 

@@ -74,7 +74,7 @@ export function NewMedicineForm({
       {isSuperAdmin && (
         <div className="rounded-md border bg-muted/30 p-3">
           <Label>Centre *</Label>
-          <Select value={form.centreId} onChange={(e) => set("centreId", e.target.value)} required>
+          <Select aria-label="Centre" value={form.centreId} onChange={(e) => set("centreId", e.target.value)} required>
             <option value="">— Pick which club this batch goes to —</option>
             {centres.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
@@ -88,15 +88,15 @@ export function NewMedicineForm({
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-1.5">
           <Label>Name *</Label>
-          <Input required value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Flunixin Meglumine" />
+          <Input aria-label="Name" required value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Flunixin Meglumine" />
         </div>
         <div className="space-y-1.5">
           <Label>Generic</Label>
-          <Input value={form.generic} onChange={(e) => set("generic", e.target.value)} placeholder="Flunixin" />
+          <Input aria-label="Generic" value={form.generic} onChange={(e) => set("generic", e.target.value)} placeholder="Flunixin" />
         </div>
         <div className="space-y-1.5">
           <Label>Category *</Label>
-          <Select value={form.category} onChange={(e) => set("category", e.target.value)}>
+          <Select aria-label="Category" value={form.category} onChange={(e) => set("category", e.target.value)}>
             <option value="nsaid">NSAID — pain/inflammation (Flunixin, Bute, Firocoxib)</option>
             <option value="antibiotic">Antibiotic (incl. eye antibiotic)</option>
             <option value="antihistamine">Antihistamine</option>
@@ -114,7 +114,7 @@ export function NewMedicineForm({
         </div>
         <div className="space-y-1.5">
           <Label>Schedule</Label>
-          <Select value={form.schedule} onChange={(e) => set("schedule", e.target.value)}>
+          <Select aria-label="Schedule" value={form.schedule} onChange={(e) => set("schedule", e.target.value)}>
             <option value="none">—</option>
             <option value="schedule_h">Schedule H</option>
             <option value="schedule_x">Schedule X</option>
@@ -122,27 +122,27 @@ export function NewMedicineForm({
         </div>
         <div className="space-y-1.5">
           <Label>Batch # *</Label>
-          <Input required value={form.batchNo} onChange={(e) => set("batchNo", e.target.value)} />
+          <Input aria-label="Batch #" required value={form.batchNo} onChange={(e) => set("batchNo", e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label>Supplier</Label>
-          <Input value={form.supplier} onChange={(e) => set("supplier", e.target.value)} />
+          <Input aria-label="Supplier" value={form.supplier} onChange={(e) => set("supplier", e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label>Mfg date</Label>
-          <Input type="date" value={form.mfgDate} onChange={(e) => set("mfgDate", e.target.value)} />
+          <Input aria-label="Mfg date" type="date" value={form.mfgDate} onChange={(e) => set("mfgDate", e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label>Expiry date *</Label>
-          <Input required type="date" value={form.expDate} onChange={(e) => set("expDate", e.target.value)} />
+          <Input aria-label="Expiry date" required type="date" value={form.expDate} onChange={(e) => set("expDate", e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label>Qty in stock *</Label>
-          <Input required type="number" min={0} value={form.qty} onChange={(e) => set("qty", e.target.value)} />
+          <Input aria-label="Qty in stock" required type="number" min={0} value={form.qty} onChange={(e) => set("qty", e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label>Reorder threshold *</Label>
-          <Input
+          <Input aria-label="Reorder threshold"
             required
             type="number"
             min={0}
@@ -152,7 +152,7 @@ export function NewMedicineForm({
         </div>
         <div className="space-y-1.5">
           <Label>Storage location</Label>
-          <Input
+          <Input aria-label="Storage location"
             value={form.storageLocation}
             onChange={(e) => set("storageLocation", e.target.value)}
             placeholder="Vet cabinet A / Cold storage"

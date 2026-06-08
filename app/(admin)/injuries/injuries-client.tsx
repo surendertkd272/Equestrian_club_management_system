@@ -80,7 +80,7 @@ export function InjuriesClient({ horses, riders }: { horses: Horse[]; riders: Ri
         <div className="grid gap-3 md:grid-cols-3">
           <div>
             <Label>Subject type</Label>
-            <Select value={form.subjectType} onChange={(e) => changeSubjectType(e.target.value as any)}>
+            <Select aria-label="Subject type" value={form.subjectType} onChange={(e) => changeSubjectType(e.target.value as any)}>
               <option value="horse">Horse</option>
               <option value="rider">Rider</option>
             </Select>
@@ -103,15 +103,15 @@ export function InjuriesClient({ horses, riders }: { horses: Horse[]; riders: Ri
           </div>
           <div>
             <Label>Occurred</Label>
-            <Input type="date" value={form.occurredAt} onChange={(e) => set("occurredAt", e.target.value)} />
+            <Input aria-label="Occurred" type="date" value={form.occurredAt} onChange={(e) => set("occurredAt", e.target.value)} />
           </div>
           <div>
             <Label>Location on body</Label>
-            <Input value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="left fore fetlock" />
+            <Input aria-label="Location on body" value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="left fore fetlock" />
           </div>
           <div>
             <Label>Severity</Label>
-            <Select value={form.severity} onChange={(e) => set("severity", e.target.value)}>
+            <Select aria-label="Severity" value={form.severity} onChange={(e) => set("severity", e.target.value)}>
               <option value="minor">Minor</option>
               <option value="moderate">Moderate</option>
               <option value="severe">Severe</option>
@@ -119,11 +119,11 @@ export function InjuriesClient({ horses, riders }: { horses: Horse[]; riders: Ri
           </div>
           <div>
             <Label>Cause</Label>
-            <Input value={form.cause} onChange={(e) => set("cause", e.target.value)} placeholder="slipped on wet arena" />
+            <Input aria-label="Cause" value={form.cause} onChange={(e) => set("cause", e.target.value)} placeholder="slipped on wet arena" />
           </div>
           <div className="md:col-span-3">
             <Label>Initial notes *</Label>
-            <Textarea
+            <Textarea aria-label="Initial notes"
               value={form.initialNotes}
               onChange={(e) => set("initialNotes", e.target.value)}
               placeholder="Visible swelling, slight lameness at walk. Cold-hosed 15 min, bute administered."

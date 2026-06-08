@@ -92,7 +92,7 @@ export function RecordPaymentButton({
             </div>
             <div>
               <Label>Amount (₹) *</Label>
-              <Input
+              <Input aria-label="Amount (₹)"
                 type="number"
                 min={0.01}
                 step="0.01"
@@ -104,7 +104,7 @@ export function RecordPaymentButton({
             </div>
             <div>
               <Label>Method</Label>
-              <Select value={method} onChange={(e) => setMethod(e.target.value as any)}>
+              <Select aria-label="Method" value={method} onChange={(e) => setMethod(e.target.value as any)}>
                 <option value="cash">Cash</option>
                 <option value="upi">UPI</option>
                 <option value="bank">Bank transfer</option>
@@ -114,7 +114,7 @@ export function RecordPaymentButton({
             </div>
             <div>
               <Label>Reference (optional)</Label>
-              <Input
+              <Input aria-label="Reference (optional)"
                 value={txnRef}
                 onChange={(e) => setTxnRef(e.target.value)}
                 placeholder="UPI ref / cheque no / receipt no"

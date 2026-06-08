@@ -68,15 +68,15 @@ export function NewHorseForm() {
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-1.5">
           <Label>Name *</Label>
-          <Input required value={form.name} onChange={(e) => set("name", e.target.value)} />
+          <Input aria-label="Name" required value={form.name} onChange={(e) => set("name", e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label>Breed</Label>
-          <Input value={form.breed} onChange={(e) => set("breed", e.target.value)} placeholder="Marwari, Sindhi…" />
+          <Input aria-label="Breed" value={form.breed} onChange={(e) => set("breed", e.target.value)} placeholder="Marwari, Sindhi…" />
         </div>
         <div className="space-y-1.5">
           <Label>Sex</Label>
-          <Select value={form.sex} onChange={(e) => set("sex", e.target.value)}>
+          <Select aria-label="Sex" value={form.sex} onChange={(e) => set("sex", e.target.value)}>
             <option value="mare">Mare</option>
             <option value="gelding">Gelding</option>
             <option value="stallion">Stallion</option>
@@ -84,7 +84,7 @@ export function NewHorseForm() {
         </div>
         <div className="space-y-1.5">
           <Label>Age (years)</Label>
-          <Input
+          <Input aria-label="Age (years)"
             type="number"
             min={0}
             max={50}
@@ -94,7 +94,7 @@ export function NewHorseForm() {
         </div>
         <div className="space-y-1.5">
           <Label>Height (hh)</Label>
-          <Input
+          <Input aria-label="Height (hh)"
             type="number"
             step="0.1"
             min={8}
@@ -106,22 +106,22 @@ export function NewHorseForm() {
         </div>
         <div className="space-y-1.5">
           <Label>Ownership</Label>
-          <Select value={form.ownership} onChange={(e) => set("ownership", e.target.value)}>
+          <Select aria-label="Ownership" value={form.ownership} onChange={(e) => set("ownership", e.target.value)}>
             <option value="club">Club</option>
             <option value="private">Private</option>
           </Select>
         </div>
         <div className="space-y-1.5">
           <Label>Stable #</Label>
-          <Input value={form.stableNo} onChange={(e) => set("stableNo", e.target.value)} placeholder="A1" />
+          <Input aria-label="Stable #" value={form.stableNo} onChange={(e) => set("stableNo", e.target.value)} placeholder="A1" />
         </div>
         <div className="space-y-1.5">
           <Label>Microchip</Label>
-          <Input value={form.microchip} onChange={(e) => set("microchip", e.target.value)} />
+          <Input aria-label="Microchip" value={form.microchip} onChange={(e) => set("microchip", e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label>EFI Horse ID</Label>
-          <Input
+          <Input aria-label="EFI Horse ID"
             value={form.efiHorseId}
             onChange={(e) => set("efiHorseId", e.target.value)}
             placeholder="National registration #"
@@ -129,7 +129,7 @@ export function NewHorseForm() {
         </div>
         <div className="space-y-1.5">
           <Label>Home club</Label>
-          <Input
+          <Input aria-label="Home club"
             value={form.homeClub}
             onChange={(e) => set("homeClub", e.target.value)}
             placeholder="If different from this centre"
@@ -138,7 +138,7 @@ export function NewHorseForm() {
       </div>
       <div className="space-y-1.5">
         <Label>Dietary notes</Label>
-        <Textarea
+        <Textarea aria-label="Dietary notes"
           value={form.diet}
           onChange={(e) => set("diet", e.target.value)}
           placeholder="2 kg pellets twice daily, no oats…"
@@ -152,15 +152,15 @@ export function NewHorseForm() {
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Insurer</Label>
-            <Input value={form.insurerName} onChange={(e) => set("insurerName", e.target.value)} placeholder="Bajaj Allianz" />
+            <Input aria-label="Insurer" value={form.insurerName} onChange={(e) => set("insurerName", e.target.value)} placeholder="Bajaj Allianz" />
           </div>
           <div className="space-y-1.5">
             <Label>Policy #</Label>
-            <Input value={form.insurancePolicyNo} onChange={(e) => set("insurancePolicyNo", e.target.value)} />
+            <Input aria-label="Policy #" value={form.insurancePolicyNo} onChange={(e) => set("insurancePolicyNo", e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label>Annual premium (₹)</Label>
-            <Input
+            <Input aria-label="Annual premium (₹)"
               type="number"
               min={0}
               value={form.insurancePremium}
@@ -170,11 +170,11 @@ export function NewHorseForm() {
           <div /> {/* spacer */}
           <div className="space-y-1.5">
             <Label>Valid from</Label>
-            <Input type="date" value={form.insuranceValidFrom} onChange={(e) => set("insuranceValidFrom", e.target.value)} />
+            <Input aria-label="Valid from" type="date" value={form.insuranceValidFrom} onChange={(e) => set("insuranceValidFrom", e.target.value)} />
           </div>
           <div className="space-y-1.5">
             <Label>Valid to</Label>
-            <Input type="date" value={form.insuranceValidTo} onChange={(e) => set("insuranceValidTo", e.target.value)} />
+            <Input aria-label="Valid to" type="date" value={form.insuranceValidTo} onChange={(e) => set("insuranceValidTo", e.target.value)} />
           </div>
         </div>
       </fieldset>

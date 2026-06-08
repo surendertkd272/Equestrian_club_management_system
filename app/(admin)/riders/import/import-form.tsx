@@ -91,7 +91,7 @@ export function ImportForm({
         </div>
         <div>
           <Label>Schedule exam at level (optional)</Label>
-          <Select value={examinerId} onChange={(e) => setExaminerId(e.target.value)}>
+          <Select aria-label="Schedule exam at level (optional)" value={examinerId} onChange={(e) => setExaminerId(e.target.value)}>
             <option value="">— Don&apos;t schedule exams —</option>
             {examiners.map((u) => (
               <option key={u.id} value={u.id}>

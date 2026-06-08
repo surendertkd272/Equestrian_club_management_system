@@ -117,7 +117,7 @@ export default async function ExpensesPage({
           <form method="get" className="flex flex-wrap items-end gap-2 text-sm">
             <div>
               <label className="mb-1 block text-xs uppercase text-muted-foreground">Group</label>
-              <select
+              <select aria-label="Filter by group"
                 name="group"
                 defaultValue={searchParams.group ?? ""}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
@@ -135,7 +135,7 @@ export default async function ExpensesPage({
             </div>
             <div>
               <label className="mb-1 block text-xs uppercase text-muted-foreground">Paid</label>
-              <select
+              <select aria-label="Filter by paid"
                 name="paid"
                 defaultValue={searchParams.paid ?? ""}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"

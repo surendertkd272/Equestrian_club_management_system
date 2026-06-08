@@ -140,7 +140,7 @@ export function FeedPlanPanel({
         <div key={ri} className="rounded-md border p-3">
           <div className="mb-2 flex items-center gap-2">
             <Label className="text-xs">Time slot</Label>
-            <Input
+            <Input aria-label="Time slot"
               value={r.time}
               onChange={(e) => setRation(ri, { time: e.target.value })}
               className="h-8 max-w-[180px]"
@@ -197,7 +197,7 @@ export function FeedPlanPanel({
       </Button>
       <div>
         <Label className="text-xs">Notes</Label>
-        <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Allergic to lucerne · prefers warm mash on cold mornings" />
+        <Input aria-label="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Allergic to lucerne · prefers warm mash on cold mornings" />
       </div>
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={() => setEditing(false)} disabled={busy}>Cancel</Button>

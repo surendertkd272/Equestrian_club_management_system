@@ -205,7 +205,7 @@ export function AccreditationsPanel({
           <form onSubmit={add} className="grid gap-2 border-t pt-3 md:grid-cols-6">
             <div className="md:col-span-2">
               <Label>Body *</Label>
-              <Input
+              <Input aria-label="Body"
                 value={form.body}
                 onChange={(e) => setForm({ ...form, body: e.target.value })}
                 placeholder="EFI / BHS / FEI / state federation"
@@ -213,7 +213,7 @@ export function AccreditationsPanel({
             </div>
             <div className="md:col-span-2">
               <Label>Title *</Label>
-              <Input
+              <Input aria-label="Title"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 placeholder='e.g. "Junior Membership"'
@@ -221,7 +221,7 @@ export function AccreditationsPanel({
             </div>
             <div>
               <Label>Discipline</Label>
-              <Input
+              <Input aria-label="Discipline"
                 value={form.discipline}
                 onChange={(e) => setForm({ ...form, discipline: e.target.value })}
                 placeholder="dressage / jumping / …"
@@ -229,7 +229,7 @@ export function AccreditationsPanel({
             </div>
             <div>
               <Label>Level</Label>
-              <Input
+              <Input aria-label="Level"
                 value={form.level}
                 onChange={(e) => setForm({ ...form, level: e.target.value })}
                 placeholder="Stage 2 / Cat B"
@@ -237,14 +237,14 @@ export function AccreditationsPanel({
             </div>
             <div>
               <Label>Serial no</Label>
-              <Input
+              <Input aria-label="Serial no"
                 value={form.serialNo}
                 onChange={(e) => setForm({ ...form, serialNo: e.target.value })}
               />
             </div>
             <div>
               <Label>Issued on</Label>
-              <Input
+              <Input aria-label="Issued on"
                 type="date"
                 value={form.issuedAt}
                 onChange={(e) => setForm({ ...form, issuedAt: e.target.value })}
@@ -252,7 +252,7 @@ export function AccreditationsPanel({
             </div>
             <div>
               <Label>Expires</Label>
-              <Input
+              <Input aria-label="Expires"
                 type="date"
                 value={form.expiresAt}
                 onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
@@ -260,7 +260,7 @@ export function AccreditationsPanel({
             </div>
             <div className="md:col-span-3">
               <Label>Scan URL</Label>
-              <Input
+              <Input aria-label="Scan URL"
                 value={form.fileUrl}
                 onChange={(e) => setForm({ ...form, fileUrl: e.target.value })}
                 placeholder="https://… (optional)"

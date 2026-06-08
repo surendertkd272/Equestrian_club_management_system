@@ -112,7 +112,7 @@ export function NewTaskForm({
       {centres.length > 0 && (
         <div className="space-y-1.5">
           <Label>Centre *</Label>
-          <Select value={form.centreId} onChange={(e) => set("centreId", e.target.value)}>
+          <Select aria-label="Centre" value={form.centreId} onChange={(e) => set("centreId", e.target.value)}>
             {centres.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -127,16 +127,16 @@ export function NewTaskForm({
 
       <div className="space-y-1.5">
         <Label>Title *</Label>
-        <Input required value={form.title} onChange={(e) => set("title", e.target.value)} />
+        <Input aria-label="Title" required value={form.title} onChange={(e) => set("title", e.target.value)} />
       </div>
       <div className="space-y-1.5">
         <Label>Description</Label>
-        <Textarea value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} />
+        <Textarea aria-label="Description" value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} />
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         <div className="space-y-1.5">
           <Label>Assignee</Label>
-          <Select value={form.assigneeId} onChange={(e) => set("assigneeId", e.target.value)}>
+          <Select aria-label="Assignee" value={form.assigneeId} onChange={(e) => set("assigneeId", e.target.value)}>
             <option value="">(unassigned)</option>
             {users
               // Filter to the picked centre's roster when a centre picker is
@@ -153,7 +153,7 @@ export function NewTaskForm({
         </div>
         <div className="space-y-1.5">
           <Label>Recurrence</Label>
-          <Select value={form.recurrence} onChange={(e) => set("recurrence", e.target.value)}>
+          <Select aria-label="Recurrence" value={form.recurrence} onChange={(e) => set("recurrence", e.target.value)}>
             <option value="once">Once</option>
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
@@ -162,11 +162,11 @@ export function NewTaskForm({
         </div>
         <div className="space-y-1.5">
           <Label>Due date</Label>
-          <Input type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
+          <Input aria-label="Due date" type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label>Due time</Label>
-          <Input type="time" value={form.time} onChange={(e) => set("time", e.target.value)} />
+          <Input aria-label="Due time" type="time" value={form.time} onChange={(e) => set("time", e.target.value)} />
         </div>
       </div>
       <Button type="submit" disabled={saving} className="w-full">
