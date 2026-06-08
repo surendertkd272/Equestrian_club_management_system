@@ -88,7 +88,7 @@ export function TeamClient({
       )}
 
       <div className="rounded-lg border border-border">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm">
           <thead className="bg-card/60 text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th className="px-3 py-2 text-left">Name</th>
@@ -149,7 +149,7 @@ export function TeamClient({
               );
             })}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {!canManage && (

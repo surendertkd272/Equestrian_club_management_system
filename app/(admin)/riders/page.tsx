@@ -101,12 +101,14 @@ export default async function RidersPage({
             <input
               type="search"
               name="q"
+              aria-label="Search riders by name, mobile, or email"
               defaultValue={searchParams.q ?? ""}
               placeholder="Search name, mobile, email"
               className="flex h-9 w-full max-w-sm rounded-md border border-input bg-background px-3 text-sm"
             />
             <select
               name="status"
+              aria-label="Filter riders by status"
               defaultValue={searchParams.status ?? ""}
               className="h-9 rounded-md border border-input bg-background px-3 text-sm"
             >

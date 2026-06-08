@@ -55,8 +55,8 @@ const SECTIONS = [
 
 export default function HelpIndex() {
   return (
-    <main className="min-h-screen bg-slate-50">
-      <header className="border-b bg-white">
+    <main className="min-h-screen bg-muted/40">
+      <header className="border-b bg-card">
         <div className="container mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <Link href="/" className="text-lg font-bold">Equiwings</Link>
           <nav className="hidden gap-6 text-sm md:flex">
@@ -70,7 +70,7 @@ export default function HelpIndex() {
       <section className="container mx-auto max-w-5xl px-6 py-16">
         <div className="max-w-2xl">
           <h1 className="text-4xl font-bold">Help & guides</h1>
-          <p className="mt-3 text-slate-600">
+          <p className="mt-3 text-muted-foreground">
             Practical how-to articles for everyday Equiwings tasks. Can't find what you need?
             Email <a href="mailto:support@equiwings.example" className="text-primary underline">support@equiwings.example</a> —
             we read every message.
@@ -79,10 +79,10 @@ export default function HelpIndex() {
 
         <div className="mt-10 grid gap-6 md:grid-cols-2">
           {SECTIONS.map((section) => (
-            <Card key={section.title} className="border bg-white">
+            <Card key={section.title} className="border bg-card">
               <CardHeader>
                 <CardTitle className="text-base">{section.title}</CardTitle>
-                <CardDescription className="text-slate-500">
+                <CardDescription className="text-muted-foreground">
                   {section.articles.length} articles
                 </CardDescription>
               </CardHeader>
@@ -92,7 +92,7 @@ export default function HelpIndex() {
                     <li key={a.slug} className="py-2">
                       <Link href={`/help/${a.slug}`} className="block hover:text-primary">
                         <div className="font-medium">{a.title}</div>
-                        <div className="text-xs text-slate-500">{a.summary}</div>
+                        <div className="text-xs text-muted-foreground">{a.summary}</div>
                       </Link>
                     </li>
                   ))}
