@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createAllocationSchema, DEFAULT_WORKLOAD_CAP_MIN } from "@/lib/schemas/horse";
 import { audit } from "@/lib/audit";
+import { AllocConflict } from "@/lib/allocation-guard";
 
 function parseLocalDate(s: string): Date {
   // Accept "YYYY-MM-DDTHH:MM" (local) or full ISO; treat plain form as local time.
@@ -46,6 +47,24 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       { status: 409 },
     );
   }
+  // Drug-withdrawal hold (C4): refuse allocation while any administered
+  // medicine's withdrawal period is still active. This is the real compliance
+  // gate — horse.status is manually editable and can be flipped back to
+  // "active" before the withdrawal elapses, so we check withdrawalUntil directly.
+  const activeWithdrawal = await prisma.medicineUsage.findFirst({
+    where: { horseId: horse.id, withdrawalUntil: { gt: new Date() } },
+    select: { withdrawalUntil: true },
+    orderBy: { withdrawalUntil: "desc" },
+  });
+  if (activeWithdrawal) {
+    return NextResponse.json(
+      {
+        error: "WITHDRAWAL_ACTIVE",
+        message: `${horse.name} is under drug withdrawal until ${activeWithdrawal.withdrawalUntil!.toISOString().slice(0, 10)}; allocations not allowed.`,
+      },
+      { status: 409 },
+    );
+  }
 
   const startAt = parseLocalDate(d.startAt);
   const endAt = parseLocalDate(d.endAt);
@@ -61,54 +80,53 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
   }
 
-  // Overlap check: any existing allocation on this horse that intersects [startAt, endAt).
-  const overlap = await prisma.horseAllocation.findFirst({
-    where: {
-      horseId: horse.id,
-      startAt: { lt: endAt },
-      endAt: { gt: startAt },
-    },
-    select: { id: true, startAt: true, endAt: true, purpose: true },
-  });
-  if (overlap) {
-    return NextResponse.json(
-      {
-        error: "OVERLAP",
-        message: `Conflicts with existing ${overlap.purpose} from ${overlap.startAt.toISOString()} to ${overlap.endAt.toISOString()}`,
-      },
-      { status: 409 },
-    );
-  }
+  // Atomic check-and-insert (C2): lock the horse row FOR UPDATE so two
+  // concurrent allocations can't both read "no overlap / under cap" and then
+  // both insert (double-booking the horse or busting the daily cap). The
+  // overlap + cap reads and the create all run inside the locked transaction.
+  let allocation;
+  try {
+    allocation = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Horse" WHERE id = ${horse.id} FOR UPDATE`;
 
-  // Daily workload cap (active hours on the start-day).
-  const dayStart = startOfDay(startAt);
-  const dayEnd = endOfDay(startAt);
-  const sameDay = await prisma.horseAllocation.findMany({
-    where: { horseId: horse.id, startAt: { gte: dayStart, lte: dayEnd } },
-    select: { startAt: true, endAt: true },
-  });
-  const usedMin =
-    sameDay.reduce((s, a) => s + (a.endAt.getTime() - a.startAt.getTime()) / 60000, 0) +
-    (endAt.getTime() - startAt.getTime()) / 60000;
-  if (usedMin > DEFAULT_WORKLOAD_CAP_MIN) {
-    return NextResponse.json(
-      {
-        error: "WORKLOAD_EXCEEDED",
-        message: `This would push ${horse.name} past the daily ${DEFAULT_WORKLOAD_CAP_MIN}-minute work cap (${Math.round(usedMin)} min total).`,
-      },
-      { status: 409 },
-    );
-  }
+      const overlap = await tx.horseAllocation.findFirst({
+        where: { horseId: horse.id, startAt: { lt: endAt }, endAt: { gt: startAt } },
+        select: { id: true, startAt: true, endAt: true, purpose: true },
+      });
+      if (overlap) {
+        throw new AllocConflict(
+          "OVERLAP",
+          `Conflicts with existing ${overlap.purpose} from ${overlap.startAt.toISOString()} to ${overlap.endAt.toISOString()}`,
+        );
+      }
 
-  const allocation = await prisma.horseAllocation.create({
-    data: {
-      horseId: horse.id,
-      riderId: d.riderId ?? null,
-      purpose: d.purpose,
-      startAt,
-      endAt,
-    },
-  });
+      // Daily workload cap (active hours on the start-day).
+      const dayStart = startOfDay(startAt);
+      const dayEnd = endOfDay(startAt);
+      const sameDay = await tx.horseAllocation.findMany({
+        where: { horseId: horse.id, startAt: { gte: dayStart, lte: dayEnd } },
+        select: { startAt: true, endAt: true },
+      });
+      const usedMin =
+        sameDay.reduce((s, a) => s + (a.endAt.getTime() - a.startAt.getTime()) / 60000, 0) +
+        (endAt.getTime() - startAt.getTime()) / 60000;
+      if (usedMin > DEFAULT_WORKLOAD_CAP_MIN) {
+        throw new AllocConflict(
+          "WORKLOAD_EXCEEDED",
+          `This would push ${horse.name} past the daily ${DEFAULT_WORKLOAD_CAP_MIN}-minute work cap (${Math.round(usedMin)} min total).`,
+        );
+      }
+
+      return tx.horseAllocation.create({
+        data: { horseId: horse.id, riderId: d.riderId ?? null, purpose: d.purpose, startAt, endAt },
+      });
+    });
+  } catch (e) {
+    if (e instanceof AllocConflict) {
+      return NextResponse.json({ error: e.code, message: e.message }, { status: 409 });
+    }
+    throw e;
+  }
 
   await audit({
     userId: session.userId,
