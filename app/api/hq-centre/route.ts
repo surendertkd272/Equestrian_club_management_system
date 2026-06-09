@@ -5,6 +5,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { getOrgIdForSession } from "@/lib/features-gate";
 
 const schema = z.object({
   centreId: z.string().min(1).or(z.literal("all")),
@@ -21,6 +23,20 @@ export async function POST(req: NextRequest) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "VALIDATION" }, { status: 400 });
+  }
+
+  // A specific centre must belong to the caller's org — otherwise the cookie
+  // would scope every page to a foreign tenant's centre. "all" is unrestricted
+  // (it now means "all centres in my org" downstream via tenantWhere).
+  if (parsed.data.centreId !== "all") {
+    const orgId = await getOrgIdForSession(session);
+    const centre = await prisma.centre.findUnique({
+      where: { id: parsed.data.centreId },
+      select: { orgId: true },
+    });
+    if (!centre || !orgId || centre.orgId !== orgId) {
+      return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+    }
   }
 
   const res = NextResponse.json({ ok: true });

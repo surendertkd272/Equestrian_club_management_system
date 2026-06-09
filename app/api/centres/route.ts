@@ -5,6 +5,7 @@ import { createCentreSchema } from "@/lib/schemas/centre";
 import { bootstrapCentreCatalog } from "@/lib/centre-bootstrap";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { getOrgIdForSession } from "@/lib/features-gate";
 
 // POST /api/centres — create a new club. HQ-only.
 // Auto-bootstraps the centre's catalog (fee plans, progress levels, skill tree,
@@ -28,14 +29,14 @@ export async function POST(req: NextRequest) {
   const dupe = await prisma.centre.findUnique({ where: { slug: d.slug } });
   if (dupe) return NextResponse.json({ error: "SLUG_TAKEN" }, { status: 409 });
 
-  // We assume the single Equiwings organisation exists (seeded). If the deployment
-  // ever supports multiple orgs, this will need to be parameterised.
-  const org = await prisma.organisation.findFirst({ select: { id: true } });
-  if (!org) return NextResponse.json({ error: "NO_ORGANISATION" }, { status: 500 });
+  // Bind the new centre to the CALLER's org (not an arbitrary findFirst, which
+  // attached every tenant's new centre to whichever org sorted first).
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) return NextResponse.json({ error: "NO_ORGANISATION" }, { status: 500 });
 
   const centre = await prisma.centre.create({
     data: {
-      orgId: org.id,
+      orgId,
       slug: d.slug,
       name: d.name,
       address: d.address || null,

@@ -20,6 +20,7 @@ import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { calcBmi } from "@/lib/utils";
 import { encryptPII, last4 } from "@/lib/pii";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { updateRiderSchema } from "@/lib/schemas/rider-update";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -35,9 +36,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!rider) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
 
   // Cross-centre block — HQ roles (SUPER_ADMIN, ADMIN) edit any centre's
-  // rider; centre-scoped roles only edit their own.
+  // rider, but ONLY within their own org; centre-scoped roles only edit their
+  // own centre. (Previously HQ could edit any rider in any tenant.)
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && rider.centreId !== session.centreId) {
+  if (isHQ) {
+    const [callerOrg, rowOrg] = await Promise.all([
+      getOrgIdForSession(session),
+      getOrgIdForCentre(rider.centreId),
+    ]);
+    if (!callerOrg || callerOrg !== rowOrg) {
+      return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+    }
+  } else if (rider.centreId !== session.centreId) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
   }
 

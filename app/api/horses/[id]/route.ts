@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { updateHorseSchema } from "@/lib/schemas/horse";
 import { audit } from "@/lib/audit";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -18,7 +19,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const horse = await prisma.horse.findUnique({ where: { id: params.id } });
   if (!horse) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && horse.centreId !== session.centreId) {
+  if (session.role === "SUPER_ADMIN") {
+    // Platform/HQ super-admin may edit any centre's horse — but only within
+    // their own org, never another tenant's.
+    const [callerOrg, rowOrg] = await Promise.all([
+      getOrgIdForSession(session),
+      getOrgIdForCentre(horse.centreId),
+    ]);
+    if (!callerOrg || callerOrg !== rowOrg) {
+      return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+    }
+  } else if (horse.centreId !== session.centreId) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
   }
 
