@@ -7,6 +7,10 @@ import { audit } from "@/lib/audit";
 import { notifyCentreManager } from "@/lib/notify";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 
+// Thrown inside the usage transaction when the guarded decrement matches no
+// row (stock raced below the requested qty) so the whole tx rolls back.
+class MedicineOutOfStock extends Error {}
+
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
@@ -49,30 +53,48 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const withdrawalUntil =
     d.withdrawalDays > 0 ? new Date(Date.now() + d.withdrawalDays * 86400000) : null;
 
-  // Atomic: insert usage, decrement stock, optionally set horse to rest.
-  const txOps = [
-    prisma.medicineUsage.create({
-      data: {
-        medicineId: medicine.id,
-        horseId: horse.id,
-        vetUserId: session.userId,
-        dose: d.dose,
-        route: d.route,
-        reason: d.reason || null,
-        withdrawalUntil,
-      },
-    }),
-    prisma.medicine.update({
-      where: { id: medicine.id },
-      data: { qty: { decrement: d.qtyConsumed } },
-    }),
-  ];
-  if (withdrawalUntil) {
-    txOps.push(prisma.horse.update({ where: { id: horse.id }, data: { status: "rest" } }) as any);
+  // Atomic, guarded decrement (C5a): the decrement is conditional on
+  // qty >= qtyConsumed, so two concurrent uses of the last units can't both
+  // pass the stale pre-check above and drive stock negative — the loser's
+  // updateMany matches 0 rows and the whole transaction (usage insert + rest
+  // flip) rolls back. Replaces the previous unconditional { decrement }.
+  let usage: Awaited<ReturnType<typeof prisma.medicineUsage.create>>;
+  let newQty: number;
+  try {
+    const r = await prisma.$transaction(async (tx) => {
+      const dec = await tx.medicine.updateMany({
+        where: { id: medicine.id, qty: { gte: d.qtyConsumed } },
+        data: { qty: { decrement: d.qtyConsumed } },
+      });
+      if (dec.count === 0) throw new MedicineOutOfStock();
+      const u = await tx.medicineUsage.create({
+        data: {
+          medicineId: medicine.id,
+          horseId: horse.id,
+          vetUserId: session.userId,
+          dose: d.dose,
+          route: d.route,
+          reason: d.reason || null,
+          withdrawalUntil,
+        },
+      });
+      if (withdrawalUntil) {
+        await tx.horse.update({ where: { id: horse.id }, data: { status: "rest" } });
+      }
+      const after = await tx.medicine.findUnique({ where: { id: medicine.id }, select: { qty: true } });
+      return { usage: u, newQty: after!.qty };
+    });
+    usage = r.usage;
+    newQty = r.newQty;
+  } catch (e) {
+    if (e instanceof MedicineOutOfStock) {
+      return NextResponse.json(
+        { error: "OUT_OF_STOCK", message: `Insufficient stock for ${medicine.name}.` },
+        { status: 409 },
+      );
+    }
+    throw e;
   }
-  const results = await prisma.$transaction(txOps);
-  const usage = results[0] as Awaited<ReturnType<typeof prisma.medicineUsage.create>>;
-  const updatedMedicine = results[1] as Awaited<ReturnType<typeof prisma.medicine.update>>;
   const horseStatusAfter = withdrawalUntil ? "rest" : horse.status;
 
   await audit({
@@ -88,7 +110,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       dose: d.dose,
       route: d.route,
       withdrawalUntil,
-      newStockQty: updatedMedicine.qty,
+      newStockQty: newQty,
       horseStatusAfter,
     },
   });
@@ -104,21 +126,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       payload: { horseId: horse.id, medicineId: medicine.id, withdrawalUntil },
     });
   }
-  if (updatedMedicine.qty <= updatedMedicine.reorderThreshold && medicine.qty > medicine.reorderThreshold) {
+  if (newQty <= medicine.reorderThreshold && medicine.qty > medicine.reorderThreshold) {
     await notifyCentreManager(medicine.centreId, {
       type: "medicine.low_stock",
       title: `Low stock: ${medicine.name}`,
-      body: `Stock dropped to ${updatedMedicine.qty} (reorder at ${updatedMedicine.reorderThreshold}). Place a PO.`,
+      body: `Stock dropped to ${newQty} (reorder at ${medicine.reorderThreshold}). Place a PO.`,
       link: `/medicines/${medicine.id}`,
-      payload: { medicineId: medicine.id, qty: updatedMedicine.qty },
+      payload: { medicineId: medicine.id, qty: newQty },
     });
   }
 
   return NextResponse.json({
     id: usage.id,
-    newQty: updatedMedicine.qty,
+    newQty,
     horseStatus: horseStatusAfter,
     withdrawalUntil,
-    lowStock: updatedMedicine.qty <= updatedMedicine.reorderThreshold,
+    lowStock: newQty <= medicine.reorderThreshold,
   });
 }
