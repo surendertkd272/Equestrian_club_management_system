@@ -40,3 +40,22 @@ export function scopeCentre(session: SessionPayload, requestedCentreId?: string 
 export function centreWhere(centreId: string | null): { centreId?: string } {
   return centreId ? { centreId } : {};
 }
+
+// Org-aware scope for centre-owned tables (those with a `centre` relation).
+// Closes the cross-tenant gap where an HQ user's "all centres" (centreId=null)
+// produced an EMPTY filter and leaked every org's rows. Always binds the org,
+// so:
+//   - "all centres"      → { centre: { orgId } }                 (org-bounded, not global)
+//   - a specific centre  → { centreId, centre: { orgId } }       (a foreign centreId
+//                                                                  can never match → 0 rows)
+// Pass the caller's resolved orgId (getOrgIdForSession). orgId must be non-null
+// for HQ callers; callers should fail closed if it can't be resolved.
+export function tenantWhere(
+  centreId: string | null,
+  orgId: string | null,
+): { centreId?: string; centre?: { orgId: string } } {
+  const w: { centreId?: string; centre?: { orgId: string } } = {};
+  if (centreId) w.centreId = centreId;
+  if (orgId) w.centre = { orgId };
+  return w;
+}

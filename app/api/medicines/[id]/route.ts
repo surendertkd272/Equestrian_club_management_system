@@ -3,17 +3,27 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { getSession, type SessionPayload } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { updateMedicineSchema } from "@/lib/schemas/medicine";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 
-async function loadOwned(id: string, session: { role: string; centreId: string | null }) {
+async function loadOwned(id: string, session: SessionPayload) {
   const med = await prisma.medicine.findUnique({ where: { id } });
   if (!med) return { error: NextResponse.json({ error: "NOT_FOUND" }, { status: 404 }) };
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && med.centreId !== session.centreId) {
+  if (isHQ) {
+    // HQ may manage any centre's medicine — but only within their own org.
+    const [callerOrg, rowOrg] = await Promise.all([
+      getOrgIdForSession(session),
+      getOrgIdForCentre(med.centreId),
+    ]);
+    if (!callerOrg || callerOrg !== rowOrg) {
+      return { error: NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 }) };
+    }
+  } else if (med.centreId !== session.centreId) {
     return { error: NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 }) };
   }
   return { med };

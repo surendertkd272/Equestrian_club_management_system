@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { toCsv, csvResponse } from "@/lib/csv";
 
 // Single dispatcher for CSV exports — saves on boilerplate (auth + scoping +
@@ -26,8 +27,12 @@ export async function GET(req: Request, { params }: { params: { entity: string }
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (!ALLOWED.has(params.entity)) return NextResponse.json({ error: "UNKNOWN_ENTITY" }, { status: 404 });
 
+  // Org-scope everything: an HQ user's "all centres" must mean "all centres in
+  // MY org", never every tenant's data. Fail closed if the org can't resolve.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
   const centreId = scopeCentre(session);
-  const where = centreWhere(centreId);
+  const where = tenantWhere(centreId, orgId);
   const ts = new Date().toISOString().slice(0, 10);
 
   if (params.entity === "riders") {
@@ -92,7 +97,8 @@ export async function GET(req: Request, { params }: { params: { entity: string }
     const toDate = to ? new Date(to) : new Date();
     const attWhere = {
       date: { gte: fromDate, lte: toDate },
-      batch: centreId ? { centreId } : undefined,
+      // Org-bind via the batch's centre; narrow to one centre when scoped.
+      batch: { ...(centreId ? { centreId } : {}), centre: { orgId } },
     };
     const [total, rows] = await Promise.all([
       prisma.attendance.count({ where: attWhere as any }),
@@ -157,9 +163,14 @@ export async function GET(req: Request, { params }: { params: { entity: string }
     if (session.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
     }
+    // AuditLog has no org column — scope by the actor's org (HQ users carry
+    // orgId; centre staff resolve via centre.orgId). System rows (userId null)
+    // are platform-level and excluded from a per-org export.
+    const auditWhere = { user: { OR: [{ orgId }, { centre: { orgId } }] } };
     const [total, rows] = await Promise.all([
-      prisma.auditLog.count(),
+      prisma.auditLog.count({ where: auditWhere }),
       prisma.auditLog.findMany({
+        where: auditWhere,
         orderBy: { at: "desc" },
         take: ROW_CAP,
         include: { user: { select: { name: true, email: true } } },

@@ -6,6 +6,7 @@ import { isRole } from "@/lib/roles";
 import { USER_STATUSES, createUserSchema } from "@/lib/schemas/user-admin";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { getOrgIdForSession } from "@/lib/features-gate";
 
 // GET /api/users — HQ search/filter across every user in every club.
 // Query params:
@@ -29,14 +30,19 @@ export async function GET(req: NextRequest) {
   const skip = Math.max(0, Number(url.searchParams.get("skip") ?? 0));
   const take = Math.min(200, Math.max(1, Number(url.searchParams.get("take") ?? 50)));
 
-  const where: Record<string, unknown> = {};
-  if (role && isRole(role)) where.role = role;
-  if (centreParam === "null") where.centreId = null;
-  else if (centreParam) where.centreId = centreParam;
-  if (status && (USER_STATUSES as readonly string[]).includes(status)) where.status = status;
-  if (q) {
-    where.OR = [{ name: { contains: q } }, { email: { contains: q } }];
-  }
+  // Org-scope: an HQ user may only see users in THEIR org — HQ users carry
+  // orgId, centre staff resolve via centre.orgId. Without this the list leaked
+  // every tenant's staff. Fail closed if org can't resolve.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
+
+  const filters: Record<string, unknown>[] = [{ OR: [{ orgId }, { centre: { orgId } }] }];
+  if (role && isRole(role)) filters.push({ role });
+  if (centreParam === "null") filters.push({ centreId: null });
+  else if (centreParam) filters.push({ centreId: centreParam });
+  if (status && (USER_STATUSES as readonly string[]).includes(status)) filters.push({ status });
+  if (q) filters.push({ OR: [{ name: { contains: q } }, { email: { contains: q } }] });
+  const where = { AND: filters };
 
   const [rows, total] = await Promise.all([
     prisma.user.findMany({
@@ -88,14 +94,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "FORBIDDEN_SUPER_ADMIN" }, { status: 403 });
   }
 
+  // Resolve the caller's org; every created user is bound to it, and a
+  // supplied centreId must belong to it (prevents minting users into another
+  // tenant's centre, and HQ users from being created unscoped).
+  const callerOrgId = await getOrgIdForSession(session);
+  if (!callerOrgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
+
   // Email uniqueness — friendly 409 instead of raw Prisma error.
   const dupe = await prisma.user.findUnique({ where: { email: d.email }, select: { id: true } });
   if (dupe) return NextResponse.json({ error: "EMAIL_TAKEN" }, { status: 409 });
 
-  // Verify centre exists when supplied.
+  // Verify centre exists AND belongs to the caller's org when supplied.
   if (d.centreId) {
-    const centre = await prisma.centre.findUnique({ where: { id: d.centreId }, select: { id: true } });
+    const centre = await prisma.centre.findUnique({ where: { id: d.centreId }, select: { id: true, orgId: true } });
     if (!centre) return NextResponse.json({ error: "CENTRE_NOT_FOUND" }, { status: 404 });
+    if (centre.orgId !== callerOrgId) return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
   }
 
   // DEFERRED — email verification (#16): we trust the admin-supplied email
@@ -117,6 +130,8 @@ export async function POST(req: NextRequest) {
       phone: d.phone || null,
       role: d.role,
       centreId: d.centreId ?? null,
+      // Bind to the caller's org so HQ users (centreId=null) are never unscoped.
+      orgId: callerOrgId,
       passwordHash,
       status: "active",
       // Temp password → force them to rotate on first sign-in.

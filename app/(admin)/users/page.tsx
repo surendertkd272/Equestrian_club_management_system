@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { isRole } from "@/lib/roles";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -56,6 +57,14 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
     ];
   }
 
+  // Org-scope: never list/count another tenant's users or centres. HQ users
+  // carry orgId; centre staff resolve via centre.orgId. AND-combine so it
+  // composes with the q-OR above.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+  const orgClause = { OR: [{ orgId }, { centre: { orgId } }] };
+  where.AND = [orgClause];
+
   const page = Math.max(1, Number.parseInt(searchParams.page ?? "1", 10) || 1);
 
   const [users, centres, totalAll, filteredTotal, pendingApprovals] = await Promise.all([
@@ -77,14 +86,14 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
         centre: { select: { name: true, slug: true } },
       },
     }),
-    prisma.centre.findMany({ select: { id: true, name: true, slug: true }, orderBy: { name: "asc" } }),
-    prisma.user.count(),
+    prisma.centre.findMany({ where: { orgId }, select: { id: true, name: true, slug: true }, orderBy: { name: "asc" } }),
+    prisma.user.count({ where: orgClause }),
     prisma.user.count({ where }),
     // Spotlight: pending-approval users (staff hiring invites that have
     // been redeemed). Shown above the main list so admins don't have to
     // remember to filter for them.
     prisma.user.findMany({
-      where: { status: "pending_approval" },
+      where: { AND: [orgClause, { status: "pending_approval" }] },
       orderBy: { createdAt: "desc" },
       take: 50,
       select: {
