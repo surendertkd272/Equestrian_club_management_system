@@ -103,7 +103,12 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
   // user's org (via centre OR User.orgId for HQ users) is suspended, the
   // session is dead and the user is logged out platform-wide. Only legacy
   // SUPER_ADMINs with no orgId yet (pre-backfill) skip the org check.
-  if (typeof payload.tokenVersion === "number") {
+  // Run the DB re-check for normal sessions (which carry a tokenVersion) AND
+  // for impersonation sessions (which don't): otherwise an impersonated session
+  // bypassed the suspended-user / suspended-org / pending-deletion checks for
+  // its whole 30-min life. The tokenVersion EQUALITY check only applies when a
+  // version is present — impersonation tokens are minted without one.
+  if (typeof payload.tokenVersion === "number" || payload.impersonatedBy) {
     const { prisma } = await import("./prisma");
     const u = await prisma.user.findUnique({
       where: { id: payload.userId },
@@ -116,7 +121,7 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
       },
     });
     if (!u || u.status !== "active") return null;
-    if (u.tokenVersion !== payload.tokenVersion) return null;
+    if (typeof payload.tokenVersion === "number" && u.tokenVersion !== payload.tokenVersion) return null;
     // DPDPA: pending-deletion sessions are dead. The cancel endpoint uses
     // the raw cookie verification (not getSession) so a user can still
     // withdraw their own request during the grace window.
