@@ -7,7 +7,7 @@
 // Templates are inline HTML — no template engine to keep dep tree small.
 
 import { audit } from "./audit";
-import { logDispatchFailure } from "./notify-dispatch-log";
+import { logDispatchFailure, logDispatchSuccess, recentlySent } from "./notify-dispatch-log";
 
 export type SendEmailResult =
   | { ok: true; messageId?: string; skipped?: boolean }
@@ -76,6 +76,13 @@ export async function sendEmail(opts: {
     return { ok: true, skipped: true };
   }
 
+  // Per-channel idempotency (H5): skip a same-key delivery already sent within
+  // the dedupe window (crash-rerun guard). Only when a ref key is present.
+  if (opts.ref?.type && opts.ref?.rowId &&
+      (await recentlySent({ channel: "email", recipient: opts.to, refType: opts.ref.type, refRowId: opts.ref.rowId }))) {
+    return { ok: true, skipped: true };
+  }
+
   const fromEmail = process.env.SENDGRID_FROM_EMAIL!;
   const fromName = process.env.SENDGRID_FROM_NAME ?? "Equiwings";
   const body = {
@@ -128,6 +135,7 @@ export async function sendEmail(opts: {
       rowId: opts.ref?.rowId ?? "—",
       after: { to: opts.to, subject, messageId, type: opts.ref?.type },
     });
+    await logDispatchSuccess({ channel: "email", recipient: opts.to, refType: opts.ref?.type, refRowId: opts.ref?.rowId });
     return { ok: true, messageId };
   } catch (err) {
     await audit({
