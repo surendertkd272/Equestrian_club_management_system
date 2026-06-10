@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { createOrder, isConfigured, publicKeyId } from "@/lib/razorpay";
 import { audit } from "@/lib/audit";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 import { isFeatureEnabledForCentre } from "@/lib/features-gate";
+
+// Public, unauthenticated — validate shape strictly before anything touches
+// the DB. Invoice ids are Prisma cuid()s.
+const OrderBody = z.object({ invoiceId: z.string().cuid() });
 
 // Public endpoint — onboarding flow uses it without auth.
 // Safety: caller must hand in a valid invoice CUID; we look it up to derive amount + rider context.
@@ -26,8 +31,9 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null);
-  const invoiceId = body?.invoiceId as string | undefined;
-  if (!invoiceId) return NextResponse.json({ error: "invoiceId required" }, { status: 400 });
+  const parsed = OrderBody.safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: "invoiceId required" }, { status: 400 });
+  const { invoiceId } = parsed.data;
 
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
