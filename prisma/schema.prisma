@@ -1662,6 +1662,12 @@ model Task {
   // or system-generated tasks.
   assignedById String?
   dueAt       DateTime?
+  // Immutable overdue anchor (set to the first dueAt the task is given, never
+  // bumped by later dueAt edits). The board's overdue/escalated derivation
+  // reads this so nudging dueAt forward can't cosmetically erase a task's
+  // overdue history. Cleared if the due date is removed. Legacy rows are null
+  // and fall back to dueAt.
+  overdueSince DateTime?
   recurrence  String?
   status      String   @default("open") // open | in_progress | done | overdue | escalated
   proofUrl    String?

@@ -61,16 +61,21 @@ export const updateTaskSchema = z.object({
 export type CreateTaskInput = z.infer<typeof createTaskSchema>;
 export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
 
-// Spec §4.9: 2× overdue → escalated. We compute these dynamically rather than running a cron.
-export function deriveOverdue(dueAt: Date | null, status: string, now = new Date()): boolean {
+// Spec §4.9: 2× overdue → escalated. Computed dynamically (no cron yet).
+//
+// `anchor` is the IMMUTABLE overdue anchor — callers pass `overdueSince ?? dueAt`
+// (overdueSince is frozen at the first dueAt and never bumped by later edits),
+// so nudging a task's dueAt forward can't cosmetically clear its overdue /
+// escalated badge. Legacy rows with null overdueSince fall back to dueAt.
+export function deriveOverdue(anchor: Date | null, status: string, now = new Date()): boolean {
   if (status === "done") return false;
-  if (!dueAt) return false;
-  return dueAt < now;
+  if (!anchor) return false;
+  return anchor < now;
 }
 
-export function deriveEscalated(dueAt: Date | null, status: string, now = new Date()): boolean {
+export function deriveEscalated(anchor: Date | null, status: string, now = new Date()): boolean {
   if (status === "done") return false;
-  if (!dueAt) return false;
-  // 2× the original lead-time past due → escalated. If due was already past, count 24h since.
-  return now.getTime() - dueAt.getTime() > 24 * 60 * 60 * 1000;
+  if (!anchor) return false;
+  // >24h past the anchor → escalated.
+  return now.getTime() - anchor.getTime() > 24 * 60 * 60 * 1000;
 }

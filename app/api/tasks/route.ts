@@ -51,6 +51,8 @@ export async function POST(req: NextRequest) {
       // can show who handed this down.
       assignedById: session.userId,
       dueAt: d.dueAt ? parseLocalDate(d.dueAt) : null,
+      // Freeze the overdue anchor at the first due date (immune to later nudges).
+      overdueSince: d.dueAt ? parseLocalDate(d.dueAt) : null,
       recurrence: d.recurrence,
       status: "open",
     },
