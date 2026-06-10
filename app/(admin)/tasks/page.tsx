@@ -48,8 +48,8 @@ export default async function TasksPage({
   const now = new Date();
   const annotated = tasks.map((t) => ({
     ...t,
-    overdue: deriveOverdue(t.dueAt, t.status, now),
-    escalated: deriveEscalated(t.dueAt, t.status, now),
+    overdue: deriveOverdue(t.overdueSince ?? t.dueAt, t.status, now),
+    escalated: deriveEscalated(t.overdueSince ?? t.dueAt, t.status, now),
     assignee: t.assigneeId ? assigneeMap.get(t.assigneeId) ?? null : null,
   }));
 

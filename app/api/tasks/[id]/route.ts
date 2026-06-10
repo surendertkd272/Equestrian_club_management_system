@@ -62,6 +62,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(d.description !== undefined ? { description: d.description || null } : {}),
       ...(d.assigneeId !== undefined ? { assigneeId: d.assigneeId } : {}),
       ...(d.dueAt !== undefined ? { dueAt: d.dueAt ? new Date(d.dueAt) : null } : {}),
+      // Overdue anchor: set on FIRST due-date assignment, clear if the due date
+      // is removed, but NEVER overwrite an existing anchor on a dueAt nudge —
+      // that's what stops a forward nudge from erasing overdue/escalated state.
+      ...(d.dueAt !== undefined
+        ? d.dueAt === null
+          ? { overdueSince: null }
+          : task.overdueSince == null
+            ? { overdueSince: new Date(d.dueAt) }
+            : {}
+        : {}),
       ...(d.status !== undefined ? { status: d.status } : {}),
       ...(d.proofUrl !== undefined ? { proofUrl: d.proofUrl } : {}),
       // Stamp/clear completedAt as the task moves in and out of "done" so the
