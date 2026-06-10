@@ -49,12 +49,17 @@ export const createUsageSchema = z.object({
 export type CreateMedicineInput = z.infer<typeof createMedicineSchema>;
 export type CreateUsageInput = z.infer<typeof createUsageSchema>;
 
-// Days until expiry, negative if already expired.
+// Days until expiry, negative if already expired. Compares calendar dates in
+// UTC (the frame expDate is stored in), not server-local time — otherwise
+// whether an edge-of-day medicine reads as expired depended on the server's
+// timezone (e.g. dispensing a drug that expires "today" could succeed late in
+// the day on a behind-UTC server). UTC makes the legal expiry cutoff stable
+// across every environment.
 export function daysUntil(d: Date): number {
   const now = new Date();
-  now.setHours(0, 0, 0, 0);
+  now.setUTCHours(0, 0, 0, 0);
   const target = new Date(d);
-  target.setHours(0, 0, 0, 0);
+  target.setUTCHours(0, 0, 0, 0);
   return Math.round((target.getTime() - now.getTime()) / 86400000);
 }
 
