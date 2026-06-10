@@ -26,6 +26,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!isHQ && lesson.centreId !== session.centreId) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
   }
+  // H3 — the per-horse daily cap below buckets by start-day, so a lesson whose
+  // window spans more than one day would be mis-counted. A lesson is a single
+  // session; reject allocating to a multi-day window. (endAt exclusive so a
+  // session ending exactly at midnight still counts as same-day.)
+  const startDay = new Date(lesson.date); startDay.setHours(0, 0, 0, 0);
+  const endDay = new Date(lesson.endAt.getTime() - 1); endDay.setHours(0, 0, 0, 0);
+  if (startDay.getTime() !== endDay.getTime()) {
+    return NextResponse.json(
+      { error: "MULTI_DAY_LESSON", message: "Lesson window spans more than one day; allocations require a single-day session." },
+      { status: 400 },
+    );
+  }
 
   const body = await req.json().catch(() => null);
   const parsed = allocateLessonSchema.safeParse(body);

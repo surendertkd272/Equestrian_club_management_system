@@ -71,6 +71,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!(endAt > startAt)) {
     return NextResponse.json({ error: "INVALID_TIME", message: "endAt must be after startAt" }, { status: 400 });
   }
+  // H3 — the daily workload cap buckets by the start-day only, so a multi-day
+  // (or midnight-spanning) allocation would be mis-counted: its full duration
+  // lands on day 1 and days it actually occupies read as free. Reject it and
+  // make the caller split it into per-day allocations, which the daily cap can
+  // count correctly. (endAt is treated as exclusive so a session ending exactly
+  // at midnight still counts as same-day.)
+  const endDayRef = new Date(endAt.getTime() - 1);
+  if (startOfDay(startAt).getTime() !== startOfDay(endDayRef).getTime()) {
+    return NextResponse.json(
+      { error: "MULTI_DAY_ALLOCATION", message: "An allocation must fall within a single day; split multi-day bookings into one per day." },
+      { status: 400 },
+    );
+  }
 
   if (d.riderId) {
     const rider = await prisma.rider.findUnique({ where: { id: d.riderId } });
