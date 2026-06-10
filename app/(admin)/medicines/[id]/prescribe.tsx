@@ -20,6 +20,10 @@ export function PrescribeForm({
 }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  // Idempotency key for the CURRENT logical submit: a double-click or network
+  // retry re-sends the same key (server dedups); rotated only after success
+  // so the next prescription is a fresh request.
+  const [requestKey, setRequestKey] = useState(() => crypto.randomUUID());
   const [form, setForm] = useState({
     horseId: horses[0]?.id ?? "",
     dose: "",
@@ -39,7 +43,7 @@ export function PrescribeForm({
     const res = await fetch(`/api/medicines/${medicineId}/usage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, requestKey }),
     });
     setSaving(false);
     if (!res.ok) {
@@ -53,6 +57,7 @@ export function PrescribeForm({
     if (data.lowStock) parts.push("LOW STOCK — reorder");
     toast.success("Prescribed · " + parts.join(" · "));
     setForm((f) => ({ ...f, dose: "", reason: "" }));
+    setRequestKey(crypto.randomUUID()); // next prescription = new logical request
     router.refresh();
   }
 
