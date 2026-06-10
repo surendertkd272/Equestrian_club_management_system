@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre, centreWhere } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { canManageCatalog } from "@/lib/schemas/catalog";
 import { BIN_RETENTION_DAYS, BIN_LABEL } from "@/lib/bin";
@@ -16,14 +17,29 @@ export default async function BinPage() {
   if (!canManageCatalog(session.role)) redirect("/dashboard");
 
   const centreId = scopeCentre(session);
-  const where = { ...centreWhere(centreId), active: false } as any;
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard"); // fail closed — never run an unbounded query
   const sel = { id: true, name: true, deletedAt: true } as const;
+
+  // Vendor + Medicine carry a `centre` relation, so org scope binds through it.
+  const where = { ...tenantWhere(centreId, orgId), active: false } as any;
+
+  // Consumable + Team only have a scalar `centreId` (no `centre` relation to
+  // filter on), so bind them to the org's own centres explicitly. A specific
+  // HQ pick narrows to that centre; "all centres" stays inside the org.
+  const orgCentreIds = (
+    await prisma.centre.findMany({ where: { orgId }, select: { id: true } })
+  ).map((c) => c.id);
+  const scalarWhere = {
+    centreId: centreId ?? { in: orgCentreIds },
+    active: false,
+  } as any;
 
   const [vendors, medicines, consumables, teams] = await Promise.all([
     prisma.vendor.findMany({ where, select: sel, orderBy: { deletedAt: "desc" } }),
     prisma.medicine.findMany({ where, select: sel, orderBy: { deletedAt: "desc" } }),
-    prisma.consumable.findMany({ where, select: sel, orderBy: { deletedAt: "desc" } }),
-    prisma.team.findMany({ where, select: sel, orderBy: { deletedAt: "desc" } }),
+    prisma.consumable.findMany({ where: scalarWhere, select: sel, orderBy: { deletedAt: "desc" } }),
+    prisma.team.findMany({ where: scalarWhere, select: sel, orderBy: { deletedAt: "desc" } }),
   ]);
 
   const rows: BinRow[] = [

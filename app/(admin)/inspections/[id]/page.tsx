@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,12 +19,18 @@ export default async function InspectionDetailPage({ params }: { params: { id: s
   const session = (await getSession())!;
   if (!CAN_INSPECT.includes(session.role)) redirect("/dashboard");
 
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+
   const centreId = scopeCentre(session);
   const run = await prisma.auditRun.findUnique({
     where: { id: params.id },
-    include: { items: { orderBy: [{ area: "asc" }, { label: "asc" }] }, centre: { select: { name: true } } },
+    include: { items: { orderBy: [{ area: "asc" }, { label: "asc" }] }, centre: { select: { name: true, orgId: true } } },
   });
   if (!run) notFound();
+  // Org-bound ownership: HQ users (centreId=null) must not open another org's
+  // audit by id; non-HQ are additionally pinned to their own centre.
+  if (run.centre.orgId !== orgId) notFound();
   if (centreId && run.centreId !== centreId) notFound();
 
   return (

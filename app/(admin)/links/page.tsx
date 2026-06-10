@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre, centreWhere } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NewShortLinkForm } from "./form";
 import { LinkList } from "./link-list";
@@ -20,21 +21,21 @@ export default async function LinksPage() {
     || session.role === "STABLE_MANAGER";
   if (!canManage) redirect("/dashboard");
   const centreId = scopeCentre(session);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
 
   // Horses + recent riders feed the param picker (e.g. "report injury for X").
   const [links, horses] = await Promise.all([
     prisma.shortLink.findMany({
-      where: centreWhere(centreId),
+      where: tenantWhere(centreId, orgId),
       orderBy: { createdAt: "desc" },
       take: 50,
     }),
-    centreId
-      ? prisma.horse.findMany({
-          where: { centreId, status: "active" },
-          select: { id: true, name: true },
-          orderBy: { name: "asc" },
-        })
-      : Promise.resolve([]),
+    prisma.horse.findMany({
+      where: { ...tenantWhere(centreId, orgId), status: "active" },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   return (

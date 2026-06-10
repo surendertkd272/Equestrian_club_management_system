@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
-import { getFeaturesForSession } from "@/lib/features-gate";
+import { tenantWhere, scopeCentre } from "@/lib/tenancy";
+import { getFeaturesForSession, getOrgIdForSession } from "@/lib/features-gate";
 import { istTodayStr, coachUpdateDateKey, DAILY_UPDATE_ROLES } from "@/lib/coach-update";
 import { StatTile } from "@/components/ui/stat-tile";
 import { ChartCard, HeroCard, ActivityTimeline } from "@/components/dashboard/visuals";
@@ -33,7 +33,12 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
-  const where = centreWhere(centreId);
+  // Bind every centre-scoped query to the caller's org. For an HQ user on
+  // "all centres" (centreId=null) the old centreWhere produced an EMPTY
+  // filter and leaked every org's rows; tenantWhere keeps it org-bounded.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard"); // fail closed if the org can't be resolved
+  const where = tenantWhere(centreId, orgId);
   // Load the org's enabled features so feature-gated surfaces below (the
   // exams timeline, role-specific dashboards) only render what's turned on.
   const features = await getFeaturesForSession(session);
@@ -97,7 +102,7 @@ export default async function DashboardPage() {
       prisma.invoice.count({ where: { ...where, status: "due" } }),
       prisma.payment.aggregate({
         where: {
-          invoice: centreId ? { centreId } : undefined,
+          invoice: tenantWhere(centreId, orgId),
           paidAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
         },
         _sum: { amount: true },
@@ -105,7 +110,7 @@ export default async function DashboardPage() {
       // Last month's revenue — for an honest month-over-month delta on the tile.
       prisma.payment.aggregate({
         where: {
-          invoice: centreId ? { centreId } : undefined,
+          invoice: tenantWhere(centreId, orgId),
           paidAt: {
             gte: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
             lt: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -120,7 +125,7 @@ export default async function DashboardPage() {
       }),
       prisma.attendance.groupBy({
         by: ["status"],
-        where: { date: { gte: todayStart, lt: todayEnd }, batch: centreId ? { centreId } : undefined },
+        where: { date: { gte: todayStart, lt: todayEnd }, batch: tenantWhere(centreId, orgId) },
         _count: true,
       }),
       prisma.task.count({ where: { ...where, status: { in: ["open", "in_progress"] } } }),
@@ -157,7 +162,7 @@ export default async function DashboardPage() {
     Promise.all(
       months.map((m) =>
         prisma.payment.aggregate({
-          where: { invoice: centreId ? { centreId } : undefined, paidAt: { gte: m.start, lt: m.end } },
+          where: { invoice: tenantWhere(centreId, orgId), paidAt: { gte: m.start, lt: m.end } },
           _sum: { amount: true },
         }),
       ),
@@ -201,17 +206,15 @@ export default async function DashboardPage() {
   let staffCount = 0;
   let centreCount = 0;
   if (showChecklist) {
-    const orgId = session.centreId
-      ? (await prisma.centre.findUnique({ where: { id: session.centreId }, select: { orgId: true } }))?.orgId
-      : null;
     [staffCount, centreCount] = await Promise.all([
       prisma.user.count({
         where: {
-          ...(centreId ? { centreId } : {}),
+          ...tenantWhere(centreId, orgId),
           role: { notIn: ["SUPER_ADMIN", "CENTRE_MANAGER"] as any },
         },
       }),
-      prisma.centre.count({ where: orgId ? { orgId } : undefined }),
+      // Centre rollup stays bounded to the signed-in user's org.
+      prisma.centre.count({ where: { orgId } }),
     ]);
   }
   const checklist = showChecklist

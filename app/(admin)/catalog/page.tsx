@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { Card, CardContent } from "@/components/ui/card";
 import { canManageCatalog } from "@/lib/schemas/catalog";
 import { CatalogManager } from "./catalog-manager";
-import { assertSessionFeature } from "@/lib/features-gate";
+import { assertSessionFeature, getOrgIdForCentre, getOrgIdForSession } from "@/lib/features-gate";
 
 export const dynamic = "force-dynamic";
 
@@ -37,11 +37,16 @@ export default async function CatalogPage() {
     );
   }
 
+  // Org-bound the picked centre: an HQ user must not read another org's catalog
+  // by pointing the centre picker / ew_hq_centre cookie at a foreign centreId.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId || (await getOrgIdForCentre(centreId)) !== orgId) redirect("/dashboard");
+
   const [centre, feePlans, levels] = await Promise.all([
     prisma.centre.findUnique({ where: { id: centreId }, select: { name: true } }),
-    prisma.feePlan.findMany({ where: { centreId }, orderBy: { levelName: "asc" } }),
+    prisma.feePlan.findMany({ where: tenantWhere(centreId, orgId), orderBy: { levelName: "asc" } }),
     prisma.progressLevel.findMany({
-      where: { centreId },
+      where: tenantWhere(centreId, orgId),
       orderBy: { order: "asc" },
       include: { skills: { orderBy: [{ discipline: "asc" }, { name: "asc" }] } },
     }),

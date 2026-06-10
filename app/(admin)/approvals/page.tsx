@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,8 +18,22 @@ export default async function ApprovalsPage() {
   const centreId = scopeCentre(session);
   const canReview = can(session.role, "leave.approve");
 
-  const where: any = {};
-  if (centreId) where.centreId = centreId;
+  // ApprovalRequest has a scalar centreId but NO `centre` relation, so the
+  // tenantWhere() relation-filter can't be used here. Bound by org instead:
+  // resolve the org's centres and constrain to them, so an HQ user's "all
+  // centres" (centreId=null) can't fall through to an empty filter that leaks
+  // every org's approvals. Fail closed if the org can't be resolved.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+  const orgCentres = await prisma.centre.findMany({
+    where: { orgId },
+    select: { id: true },
+  });
+  const orgCentreIds = orgCentres.map((c) => c.id);
+
+  const where: any = {
+    centreId: centreId ? centreId : { in: orgCentreIds },
+  };
 
   const rows = await prisma.approvalRequest.findMany({
     where,

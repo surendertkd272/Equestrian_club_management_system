@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,8 @@ export default async function RiderProgressPage({
 }) {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) notFound();
 
   const rider = await prisma.rider.findUnique({
     where: { id: params.id },
@@ -28,6 +31,9 @@ export default async function RiderProgressPage({
   });
   if (!rider) notFound();
   if (centreId && rider.centreId !== centreId) notFound();
+  // HQ users (centreId=null) bypass the centre check above — bound them by org
+  // so they can't open another org's rider by id.
+  if ((await getOrgIdForCentre(rider.centreId)) !== orgId) notFound();
 
   const [levels, statuses] = await Promise.all([
     prisma.progressLevel.findMany({

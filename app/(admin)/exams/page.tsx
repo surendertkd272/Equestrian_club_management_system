@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,8 +26,10 @@ export default async function ExamsPage({
 }) {
   const session = await assertRoute("/exams");
   const centreId = scopeCentre(session);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
 
-  const where: any = { ...centreWhere(centreId) };
+  const where: any = { ...tenantWhere(centreId, orgId) };
   if (searchParams.status) where.status = searchParams.status;
   if (searchParams.level) where.level = Number(searchParams.level);
   if (session.role === "EXAMINER") where.examinerId = session.userId;
@@ -39,7 +42,7 @@ export default async function ExamsPage({
       take: 100,
     }),
     prisma.scoringTemplate.findMany({
-      where: centreWhere(centreId),
+      where: tenantWhere(centreId, orgId),
       select: { levelKey: true },
       distinct: ["levelKey"],
       orderBy: { levelKey: "asc" },

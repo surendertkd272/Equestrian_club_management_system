@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,9 +40,12 @@ export default async function ChecklistsPage() {
     );
   }
 
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+
   const [templates, horses, recent] = await Promise.all([
     prisma.checklistTemplate.findMany({
-      where: { centreId, active: true },
+      where: { ...tenantWhere(centreId, orgId), active: true },
       include: {
         items: {
           where: { active: true },
@@ -50,12 +54,12 @@ export default async function ChecklistsPage() {
       },
     }),
     prisma.horse.findMany({
-      where: { centreId, status: { not: "retired" } },
+      where: { ...tenantWhere(centreId, orgId), status: { not: "retired" } },
       select: { id: true, name: true, stableNo: true },
       orderBy: { name: "asc" },
     }),
     prisma.checklistSubmission.findMany({
-      where: { centreId },
+      where: tenantWhere(centreId, orgId),
       orderBy: { submittedAt: "desc" },
       take: 20,
       include: {

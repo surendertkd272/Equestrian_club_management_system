@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,17 +41,20 @@ export default async function TeamDailyUpdatesPage({
     );
   }
 
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+
   const dateStr = DATE_RE.test(searchParams.date ?? "") ? searchParams.date! : istTodayStr();
   const dateKey = coachUpdateDateKey(dateStr);
 
   const [updates, coaches] = await Promise.all([
     prisma.coachDailyUpdate.findMany({
-      where: { centreId, date: dateKey },
+      where: { ...tenantWhere(centreId, orgId), date: dateKey },
       include: { coach: { select: { name: true } } },
       orderBy: { coach: { name: "asc" } },
     }),
     prisma.user.findMany({
-      where: { centreId, status: "active", role: { in: [...DAILY_UPDATE_ROLES] } },
+      where: { ...tenantWhere(centreId, orgId), status: "active", role: { in: [...DAILY_UPDATE_ROLES] } },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),

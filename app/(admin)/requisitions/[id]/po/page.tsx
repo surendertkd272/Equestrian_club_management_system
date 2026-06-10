@@ -11,6 +11,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,8 @@ type Item = { name: string; qty: number; unit?: string; estimatedUnitCost: numbe
 export default async function RequisitionPOPage({ params }: { params: { id: string } }) {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
 
   const req = await prisma.requisition.findUnique({
     where: { id: params.id },
@@ -37,6 +40,9 @@ export default async function RequisitionPOPage({ params }: { params: { id: stri
   });
   if (!req) notFound();
   if (centreId && req.centreId !== centreId) notFound();
+  // Org ownership guard: an HQ user (centreId=null) could otherwise open any
+  // org's requisition by id. Bind the row's org to the session's org.
+  if ((await getOrgIdForCentre(req.centreId)) !== orgId) notFound();
   if (req.stage !== "approved") redirect(`/requisitions`);
 
   // itemsJson is a jsonb column — Prisma returns the parsed array directly.

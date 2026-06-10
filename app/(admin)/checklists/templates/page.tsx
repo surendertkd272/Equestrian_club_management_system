@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TemplateEditor } from "./template-editor";
 
@@ -30,10 +31,15 @@ export default async function ChecklistTemplatesPage() {
     );
   }
 
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+
   const [centre, templates] = await Promise.all([
-    prisma.centre.findUnique({ where: { id: centreId }, select: { name: true, slug: true } }),
+    // Bound the centre lookup to the caller's org so an HQ user can't read a
+    // foreign org's centre by passing its id via the picker/cookie.
+    prisma.centre.findFirst({ where: { id: centreId, orgId }, select: { name: true, slug: true } }),
     prisma.checklistTemplate.findMany({
-      where: { centreId },
+      where: tenantWhere(centreId, orgId),
       include: {
         items: { orderBy: { orderIndex: "asc" } },
       },

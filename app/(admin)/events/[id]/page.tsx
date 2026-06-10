@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,11 @@ export default async function EventDetailPage({ params }: { params: { id: string
   });
   if (!ev) notFound();
   if (centreId && ev.centreId !== centreId) notFound();
+  // Org-bound HQ users too: scopeCentre() returns null for "all centres", so the
+  // centre guard above is skipped for HQ and an Admin could open another org's
+  // event by id. Verify the event's centre belongs to the caller's org.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId || (await getOrgIdForCentre(ev.centreId)) !== orgId) notFound();
 
   const riders = await prisma.rider.findMany({
     where: { centreId: ev.centreId, status: "active" },

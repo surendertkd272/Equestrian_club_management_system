@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { isReadOnly } from "@/lib/roles";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MonthlySkillsClient } from "./monthly-skills-client";
 
@@ -44,22 +45,27 @@ export default async function MonthlySkillsPage({
     );
   }
 
+  // Org-bound the centre so an HQ user can't open another org's centre via
+  // ?centre= / the ew_hq_centre cookie — a foreign centreId then matches 0 rows.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+
   const yearMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(searchParams.month ?? "")
     ? searchParams.month!
     : currentYearMonth();
 
   const [skills, riders, marks] = await Promise.all([
     prisma.monthlySkillCatalog.findMany({
-      where: { centreId, yearMonth },
+      where: { ...tenantWhere(centreId, orgId), yearMonth },
       orderBy: { orderIndex: "asc" },
     }),
     prisma.rider.findMany({
-      where: { centreId, status: "active" },
+      where: { ...tenantWhere(centreId, orgId), status: "active" },
       select: { id: true, firstName: true, lastName: true },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
     prisma.monthlySkillMark.findMany({
-      where: { catalog: { centreId, yearMonth } },
+      where: { catalog: { ...tenantWhere(centreId, orgId), yearMonth } },
       select: { catalogId: true, riderId: true, rating: true, coachNotes: true },
     }),
   ]);

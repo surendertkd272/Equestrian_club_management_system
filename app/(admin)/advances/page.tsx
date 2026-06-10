@@ -5,7 +5,8 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre, centreWhere } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -22,9 +23,11 @@ export default async function AdvancesPage() {
   if (!canView(session.role)) redirect("/dashboard");
 
   const centreId = scopeCentre(session);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
   const [advances, eligibleUsers] = await Promise.all([
     prisma.employeeAdvance.findMany({
-      where: centreWhere(centreId),
+      where: tenantWhere(centreId, orgId),
       include: {
         user: { select: { id: true, name: true, role: true } },
         repayments: { orderBy: { deductedAt: "desc" } },
@@ -35,7 +38,7 @@ export default async function AdvancesPage() {
     // Issue-to list — active staff at the caller's scope.
     prisma.user.findMany({
       where: {
-        ...centreWhere(centreId),
+        ...tenantWhere(centreId, orgId),
         status: "active",
         role: { notIn: ["SUPER_ADMIN", "ADMIN", "RIDER", "PARENT"] as any },
       },

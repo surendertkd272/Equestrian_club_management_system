@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForCentre, getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EditEventForm } from "./edit-event-form";
@@ -18,6 +19,11 @@ export default async function EditEventPage({ params }: { params: { id: string }
   const ev = await prisma.event.findUnique({ where: { id: params.id } });
   if (!ev) notFound();
   if (centreId && ev.centreId !== centreId) notFound();
+  // HQ users (centreId=null) bypass the centre check above — bound them by org
+  // so they can't open another organisation's event by id.
+  const sessionOrgId = await getOrgIdForSession(session);
+  if (!sessionOrgId) redirect("/dashboard");
+  if ((await getOrgIdForCentre(ev.centreId)) !== sessionOrgId) notFound();
 
   const initial = {
     title: ev.title,

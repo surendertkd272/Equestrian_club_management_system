@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -14,8 +16,10 @@ export default async function ProgressPage({
 }) {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
 
-  const riderWhere: any = { ...centreWhere(centreId), status: "active" };
+  const riderWhere: any = { ...tenantWhere(centreId, orgId), status: "active" };
   if (searchParams.batch) riderWhere.batchId = searchParams.batch;
   // Level filter — narrows the rider list to those currently at the
   // picked level. Drives the mastery heatmap which gets harder to
@@ -23,7 +27,7 @@ export default async function ProgressPage({
   if (searchParams.level) riderWhere.currentLevel = searchParams.level;
 
   // For coaches, default to only their assigned batches' riders unless they pick "all".
-  const batchWhere: any = { ...centreWhere(centreId) };
+  const batchWhere: any = { ...tenantWhere(centreId, orgId) };
   if (session.role === "COACH") batchWhere.coachId = session.userId;
   const batches = await prisma.batch.findMany({
     where: batchWhere,
@@ -42,16 +46,16 @@ export default async function ProgressPage({
       take: 200,
     }),
     prisma.progressLevel.findMany({
-      where: centreWhere(centreId),
+      where: tenantWhere(centreId, orgId),
       include: { skills: { select: { id: true, discipline: true, levelId: true } } },
       orderBy: { order: "asc" },
     }),
     prisma.skill.findMany({
-      where: { level: centreId ? { centreId } : undefined },
+      where: { level: tenantWhere(centreId, orgId) },
       select: { id: true, discipline: true, levelId: true },
     }),
     prisma.riderSkillStatus.findMany({
-      where: { rider: centreId ? { centreId } : undefined },
+      where: { rider: tenantWhere(centreId, orgId) },
       select: { riderId: true, skillId: true, status: true },
     }),
   ]);

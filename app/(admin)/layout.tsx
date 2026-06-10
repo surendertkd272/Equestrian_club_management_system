@@ -11,7 +11,7 @@ import { ReadOnlyBanner } from "@/components/shell/read-only-banner";
 import { ImpersonationBanner } from "@/components/shell/impersonation-banner";
 import { ConfirmHost } from "@/components/ui/confirm-dialog";
 import { PwaInstallPrompt } from "@/components/shell/pwa-install-prompt";
-import { getFeaturesForSession } from "@/lib/features-gate";
+import { getFeaturesForSession, getOrgIdForSession } from "@/lib/features-gate";
 import { getStatusForSession } from "@/lib/readonly-gate";
 import { parseEmergencyContacts } from "@/lib/json-narrow";
 
@@ -28,6 +28,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // and skills for the riders attached to their club.
   if (session.role === "SCHOOL_ADMINISTRATOR") redirect("/school");
 
+  // The HQ centre-picker list must be bounded to the signed-in admin's own
+  // organisation — otherwise an HQ admin of one org sees every org's centres.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+
   // Pull centre + emergency contacts in one query. SUPER_ADMIN with no
   // centreId doesn't get a contacts strip (no single centre context).
   const [centreFull, orgCentres, unreadCount, features, orgStatus, userPhoto, myOnboarding] = await Promise.all([
@@ -38,7 +43,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         })
       : Promise.resolve(null),
     session.role === "SUPER_ADMIN" || session.role === "ADMIN"
-      ? prisma.centre.findMany({ select: { id: true, name: true, slug: true } })
+      ? prisma.centre.findMany({ where: { orgId }, select: { id: true, name: true, slug: true } })
       : Promise.resolve(null),
     prisma.notification.count({ where: { userId: session.userId, readAt: null } }),
     getFeaturesForSession(session),

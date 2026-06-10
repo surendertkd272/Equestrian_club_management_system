@@ -1,7 +1,9 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -14,8 +16,11 @@ export default async function LeaveRequestsPage() {
   const isApprover = can(session.role, "leave.approve");
   const canRequest = can(session.role, "leave.request");
 
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+
   const centreId = scopeCentre(session);
-  const baseWhere = centreWhere(centreId);
+  const baseWhere = tenantWhere(centreId, orgId);
   const where = isApprover ? baseWhere : { ...baseWhere, userId: session.userId };
 
   const rows = await prisma.leaveRequest.findMany({

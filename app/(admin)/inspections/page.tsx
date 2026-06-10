@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -33,8 +34,11 @@ export default async function InspectionsPage() {
     );
   }
 
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+
   const runs = await prisma.auditRun.findMany({
-    where: centreWhere(centreId),
+    where: tenantWhere(centreId, orgId),
     orderBy: { startedAt: "desc" },
     take: 60,
     include: { items: { select: { result: true } } },

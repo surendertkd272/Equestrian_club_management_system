@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,13 +21,16 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
     return <div className="p-6 text-sm text-muted-foreground">Pick a centre to see lessons.</div>;
   }
 
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+
   const date = searchParams.date ?? new Date().toISOString().slice(0, 10);
   const dayStart = new Date(`${date}T00:00:00`);
   const dayEnd = new Date(`${date}T23:59:59`);
 
   const [lessons, batches] = await Promise.all([
     prisma.lesson.findMany({
-      where: { centreId, date: { gte: dayStart, lte: dayEnd } },
+      where: { ...tenantWhere(centreId, orgId), date: { gte: dayStart, lte: dayEnd } },
       orderBy: { date: "asc" },
       include: {
         batch: { select: { name: true, level: true } },
@@ -37,7 +42,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
         },
       },
     }),
-    prisma.batch.findMany({ where: { centreId }, orderBy: { name: "asc" }, select: { id: true, name: true, startTime: true, endTime: true } }),
+    prisma.batch.findMany({ where: tenantWhere(centreId, orgId), orderBy: { name: "asc" }, select: { id: true, name: true, startTime: true, endTime: true } }),
   ]);
 
   // Compute prev/next day links so coaches can scrub through the week.

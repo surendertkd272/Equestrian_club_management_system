@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,14 +32,24 @@ export default async function EquipmentPage({
     isHQ && searchParams.centreId ? searchParams.centreId : scopeCentre(session);
   if (!centreId) redirect("/dashboard");
 
+  // Bind to the caller's org so an HQ user can't pass a foreign org's
+  // ?centreId= and read its centre/stock. tenantWhere() turns a foreign
+  // centreId into a 0-row match; the centre lookup is org-bounded too.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+
   const [centre, catalog, stocks] = await Promise.all([
-    prisma.centre.findUnique({ where: { id: centreId }, select: { id: true, name: true, slug: true } }),
+    prisma.centre.findFirst({ where: { id: centreId, orgId }, select: { id: true, name: true, slug: true } }),
     // Pull all rows sorted by name; reorder by EQUIPMENT_CATEGORY_ORDER
     // below in JS so the display sequence matches the canonical group
     // order (tack → grooming → stable → rider → …) rather than alphabetical.
+    // EquipmentCatalog is a platform-global catalog (no centre/org column) —
+    // shared across all centres, so it stays unscoped.
     prisma.equipmentCatalog.findMany({ where: { active: true }, orderBy: [{ name: "asc" }] }),
-    prisma.equipmentStock.findMany({ where: { centreId } }),
+    prisma.equipmentStock.findMany({ where: tenantWhere(centreId, orgId) }),
   ]);
+  // A foreign / unknown centreId resolves to no centre under this org → fail closed.
+  if (!centre) redirect("/dashboard");
   const stockByCatalog = new Map(stocks.map((s) => [s.catalogId, s]));
 
   const canEdit = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "INVENTORY_MANAGER", "STABLE_MANAGER", "HEAD_COACH"].includes(

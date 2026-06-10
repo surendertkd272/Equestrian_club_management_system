@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForCentre, getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, maskAadhaar } from "@/lib/utils";
@@ -52,6 +53,14 @@ export default async function RiderProfile({ params }: { params: { id: string } 
   });
   if (!rider) notFound();
   if (centreId && rider.centreId !== centreId) notFound();
+  // Org-ownership guard: HQ users (centreId=null) skip the centre check above,
+  // so without this an HQ user from one org could open another org's rider by
+  // id. Bound them to their own organisation.
+  const [riderOrgId, sessionOrgId] = await Promise.all([
+    getOrgIdForCentre(rider.centreId),
+    getOrgIdForSession(session),
+  ]);
+  if (!sessionOrgId || riderOrgId !== sessionOrgId) notFound();
 
   const batches = await prisma.batch.findMany({
     where: { centreId: rider.centreId },

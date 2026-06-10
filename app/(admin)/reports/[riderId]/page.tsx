@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft } from "lucide-react";
@@ -42,6 +43,11 @@ export default async function ReportCard({
   });
   if (!rider) notFound();
   if (centreId && rider.centreId !== centreId) notFound();
+  // HQ-tier users (centreId=null) bypass the centre check above — bind them to
+  // their own org so they can't open another org's rider report by id.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) notFound();
+  if ((await getOrgIdForCentre(rider.centreId)) !== orgId) notFound();
 
   const coach = rider.batch?.coachId
     ? await prisma.user.findUnique({ where: { id: rider.batch.coachId }, select: { name: true } })
