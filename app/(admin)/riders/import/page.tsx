@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
@@ -15,6 +16,8 @@ export default async function RidersImportPage() {
   if (!["SUPER_ADMIN", "CENTRE_MANAGER"].includes(session.role)) {
     redirect("/riders");
   }
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
   const centreId = scopeCentre(session);
 
   // Examiners are surfaced as a dropdown so the import can optionally
@@ -22,7 +25,7 @@ export default async function RidersImportPage() {
   // gets an exam with the chosen examiner).
   const examiners = await prisma.user.findMany({
     where: {
-      ...(centreId ? { centreId } : {}),
+      ...tenantWhere(centreId, orgId),
       role: { in: ["EXAMINER", "HEAD_COACH", "CENTRE_MANAGER", "SUPER_ADMIN"] as any },
       status: "active",
     },

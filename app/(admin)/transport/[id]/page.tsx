@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,10 @@ export default async function TripDetailPage({ params }: { params: { id: string 
   });
   if (!trip) notFound();
   if (centreId && trip.centreId !== centreId) notFound();
+  // HQ (centreId=null) skips the centre check — bind them to their own org so
+  // they can't open another organisation's trip by id.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId || (await getOrgIdForCentre(trip.centreId)) !== orgId) notFound();
 
   return (
     <div className="space-y-6">

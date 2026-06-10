@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { vendorScopeWhere } from "@/lib/vendor-scope";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,8 +24,11 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
   const session = (await getSession())!;
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/dashboard");
 
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
   const centreId = scopeCentre(session);
-  // Own-centre vendors + national (all-India) vendors in the same org.
+  // Own-centre vendors + national (all-India) vendors in the same org
+  // (vendorScopeWhere is org-bounded for HQ).
   const scopeWhere = await vendorScopeWhere(session);
   const where: any = { ...scopeWhere, active: true };
   if (searchParams.category) where.category = searchParams.category;
@@ -36,6 +40,7 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
       orderBy: [{ category: "asc" }, { name: "asc" }],
     }),
     prisma.centre.findMany({
+      where: { orgId },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),

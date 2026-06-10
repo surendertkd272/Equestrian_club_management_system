@@ -29,6 +29,9 @@ export default async function ReportsPage() {
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/dashboard");
+  // Notification has a nullable centreId and no `centre` relation, so the
+  // dispatch-history query below binds by the org's centre-id set.
+  const orgCentreIds = (await prisma.centre.findMany({ where: { orgId }, select: { id: true } })).map((c) => c.id);
 
   const [riders, recentDispatches] = await Promise.all([
     prisma.rider.findMany({
@@ -42,7 +45,7 @@ export default async function ReportsPage() {
     prisma.notification.findMany({
       where: {
         type: "report.monthly_email",
-        ...(centreId ? { centreId } : {}),
+        centreId: centreId ?? { in: orgCentreIds },
       },
       orderBy: { createdAt: "desc" },
       take: 30,

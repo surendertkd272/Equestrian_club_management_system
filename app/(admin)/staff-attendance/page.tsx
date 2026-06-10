@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { tenantWhere, scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,8 +15,10 @@ export default async function StaffAttendancePage() {
   const session = (await getSession())!;
   if (!can(session.role, "staff.attendance")) redirect("/dashboard");
 
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
   const centreId = scopeCentre(session);
-  const where = centreWhere(centreId);
+  const where = tenantWhere(centreId, orgId);
 
   const sinceDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 

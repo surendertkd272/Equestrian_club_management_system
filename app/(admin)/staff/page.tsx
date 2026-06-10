@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { tenantWhere, scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,8 +21,10 @@ function canViewProfile(role: string): boolean {
 
 export default async function StaffPage() {
   const session = (await getSession())!;
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
   const centreId = scopeCentre(session);
-  const where = centreWhere(centreId);
+  const where = tenantWhere(centreId, orgId);
   const showProfileLink = canViewProfile(session.role);
 
   const staff = await prisma.staff.findMany({

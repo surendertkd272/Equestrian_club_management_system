@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,11 +14,16 @@ export const dynamic = "force-dynamic";
 
 export default async function TrainingPage() {
   const session = await assertRoute("/training");
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
   const centreId = scopeCentre(session);
   const canManage = can(session.role, "staff.manage");
 
-  const where: any = {};
-  if (centreId) where.centreId = centreId;
+  // Course / StaffCertification carry centreId but have no `centre` relation,
+  // so tenantWhere ({centre:{orgId}}) doesn't apply — bind by the caller's
+  // org's centre-id set instead (a specific in-org centre when one is picked).
+  const orgCentreIds = (await prisma.centre.findMany({ where: { orgId }, select: { id: true } })).map((c) => c.id);
+  const where: any = { centreId: centreId ?? { in: orgCentreIds } };
 
   const [courses, certs, staff] = await Promise.all([
     prisma.course.findMany({
@@ -31,7 +37,7 @@ export default async function TrainingPage() {
       take: 100,
     }),
     prisma.user.findMany({
-      where: centreId ? { centreId, status: "active" } : { status: "active" },
+      where: { ...tenantWhere(centreId, orgId), status: "active" },
       select: { id: true, name: true, role: true },
       orderBy: { name: "asc" },
     }),

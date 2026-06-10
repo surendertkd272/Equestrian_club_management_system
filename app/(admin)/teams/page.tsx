@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,11 +13,12 @@ export const dynamic = "force-dynamic";
 
 export default async function TeamsPage() {
   const session = (await getSession())!;
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
   const centreId = scopeCentre(session);
   const canManage = can(session.role, "team.manage");
 
-  const where: any = {};
-  if (centreId) where.centreId = centreId;
+  const where: any = { ...tenantWhere(centreId, orgId) };
 
   const [teams, riders] = await Promise.all([
     prisma.team.findMany({
@@ -28,7 +31,7 @@ export default async function TeamsPage() {
       },
     }),
     prisma.rider.findMany({
-      where: centreId ? { centreId, status: "active" } : { status: "active" },
+      where: { ...tenantWhere(centreId, orgId), status: "active" },
       select: { id: true, firstName: true, lastName: true },
       orderBy: { firstName: "asc" },
     }),
