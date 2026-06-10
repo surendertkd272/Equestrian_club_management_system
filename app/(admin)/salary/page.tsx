@@ -9,7 +9,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre, centreWhere } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -27,12 +28,14 @@ export default async function SalaryPage() {
   const session = (await getSession())!;
   if (!canView(session.role)) redirect("/dashboard");
 
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
   const centreId = scopeCentre(session);
 
   const [staff, structures, recent] = await Promise.all([
     prisma.user.findMany({
       where: {
-        ...centreWhere(centreId),
+        ...tenantWhere(centreId, orgId),
         status: "active",
         role: { notIn: ["SUPER_ADMIN", "ADMIN", "RIDER", "PARENT"] as any },
       },
@@ -40,11 +43,11 @@ export default async function SalaryPage() {
       orderBy: { name: "asc" },
     }),
     prisma.salaryStructure.findMany({
-      where: centreWhere(centreId),
+      where: tenantWhere(centreId, orgId),
       orderBy: { effectiveFrom: "desc" },
     }),
     prisma.salaryPayment.findMany({
-      where: centreWhere(centreId),
+      where: tenantWhere(centreId, orgId),
       include: { user: { select: { name: true, role: true } } },
       orderBy: [{ periodMonth: "desc" }, { createdAt: "desc" }],
       take: 40,

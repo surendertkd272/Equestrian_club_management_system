@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NewTaskForm } from "./form";
 
@@ -20,6 +21,8 @@ export default async function NewTaskPage() {
   // form shows a centre picker AND needs every centre's staff — the
   // picker filters the roster client-side. For centre-scoped users we
   // narrow to their pinned centre.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
   const resolvedCentreId = scopeCentre(session);
   const isHQ = (session.role === "SUPER_ADMIN" || session.role === "ADMIN") && !session.centreId;
 
@@ -27,13 +30,15 @@ export default async function NewTaskPage() {
     prisma.user.findMany({
       where: {
         status: "active",
-        ...(isHQ ? {} : resolvedCentreId ? { centreId: resolvedCentreId } : {}),
+        // Org-bound: HQ ("all centres") still limited to its own org's staff.
+        ...tenantWhere(isHQ ? null : resolvedCentreId, orgId),
       },
       select: { id: true, name: true, role: true, centreId: true },
       orderBy: { name: "asc" },
     }),
     isHQ
       ? prisma.centre.findMany({
+          where: { orgId },
           select: { id: true, name: true },
           orderBy: { name: "asc" },
         })

@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { tenantWhere, scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,13 +25,15 @@ export default async function GivenTasksPage({
   const session = (await getSession())!;
   if (!can(session.role, "task.assign")) redirect("/tasks");
 
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
   const centreId = scopeCentre(session);
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
   // HQ users can flip to "all delegated at this centre"; everyone else only
   // sees what they personally assigned.
   const allScope = isHQ && searchParams.scope === "all";
 
-  const where: any = { ...centreWhere(centreId) };
+  const where: any = { ...tenantWhere(centreId, orgId) };
   if (!allScope) where.assignedById = session.userId;
   else where.assignedById = { not: null };
 

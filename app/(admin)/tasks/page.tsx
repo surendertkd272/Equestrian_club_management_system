@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { tenantWhere, scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { deriveOverdue, deriveEscalated } from "@/lib/schemas/task";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,10 +21,12 @@ export default async function TasksPage({
   searchParams: { mine?: string; assignee?: string };
 }) {
   const session = (await getSession())!;
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
   const centreId = scopeCentre(session);
   const canAssign = can(session.role, "task.assign");
 
-  const where: any = { ...centreWhere(centreId) };
+  const where: any = { ...tenantWhere(centreId, orgId) };
   if (searchParams.mine === "1") {
     where.assigneeId = session.userId;
   } else if (canAssign && searchParams.assignee) {

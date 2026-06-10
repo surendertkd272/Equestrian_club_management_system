@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -10,10 +12,14 @@ export const dynamic = "force-dynamic";
 
 export default async function VaccinationsPage() {
   const session = (await getSession())!;
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
   const centreId = scopeCentre(session);
 
-  const where: any = {};
-  if (centreId) where.centreId = centreId;
+  // VaccinationSchedule has centreId but no `centre` relation → bind by the
+  // caller's org's centre-id set (or the picked in-org centre).
+  const orgCentreIds = (await prisma.centre.findMany({ where: { orgId }, select: { id: true } })).map((c) => c.id);
+  const where: any = { centreId: centreId ?? { in: orgCentreIds } };
 
   const [rows, horses] = await Promise.all([
     prisma.vaccinationSchedule.findMany({
@@ -23,7 +29,7 @@ export default async function VaccinationsPage() {
       take: 300,
     }),
     prisma.horse.findMany({
-      where: centreId ? { centreId, status: { not: "retired" } } : { status: { not: "retired" } },
+      where: { ...tenantWhere(centreId, orgId), status: { not: "retired" } },
       select: { id: true, name: true, stableNo: true },
       orderBy: { name: "asc" },
     }),

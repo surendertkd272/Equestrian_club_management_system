@@ -8,7 +8,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre, centreWhere } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -22,6 +23,8 @@ export default async function VetFollowupsPage() {
   if (!can(session.role, "medicine.prescribe") && !can(session.role, "horse.manage")) {
     redirect("/dashboard");
   }
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
   const centreId = scopeCentre(session);
 
   const todayStart = new Date();
@@ -30,7 +33,7 @@ export default async function VetFollowupsPage() {
 
   const visits = await prisma.vetVisit.findMany({
     where: {
-      ...centreWhere(centreId),
+      ...tenantWhere(centreId, orgId),
       followUpAt: { not: null, lte: horizon },
     },
     include: {

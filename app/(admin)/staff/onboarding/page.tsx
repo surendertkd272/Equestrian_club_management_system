@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre, centreWhere } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { ROLES } from "@/lib/roles";
 import { FileText } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,12 +43,14 @@ export default async function StaffOnboardingPage() {
   const session = (await getSession())!;
   if (!CAN_MANAGE.includes(session.role)) redirect("/staff");
 
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/staff");
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  // HQ sees every centre's onboarding (never hidden behind the centre picker);
-  // centre-scoped managers see only their own centre.
+  // HQ sees every centre's onboarding IN THEIR ORG (never hidden behind the
+  // centre picker); centre-scoped managers see only their own centre.
   const scopeId = isHQ ? null : scopeCentre(session);
   const rows = await prisma.employeeOnboarding.findMany({
-    where: centreWhere(scopeId),
+    where: tenantWhere(scopeId, orgId),
     orderBy: { createdAt: "desc" },
     take: 100,
     include: { centre: { select: { name: true } } },
