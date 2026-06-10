@@ -3,10 +3,10 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { createExpenseSchema } from "@/lib/schemas/finance";
 import { audit } from "@/lib/audit";
-import { blockIfFeatureOff } from "@/lib/features-gate";
+import { blockIfFeatureOff, getOrgIdForSession } from "@/lib/features-gate";
 
 // GET — list expenses with optional date range. Used by the finance
 // dashboard and the expenses page.
@@ -16,12 +16,14 @@ export async function GET(req: NextRequest) {
   if (!can(session.role, "finance.read")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
   const centreId = scopeCentre(session);
   const url = new URL(req.url);
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
 
-  const where: Prisma.ExpenseWhereInput = { ...centreWhere(centreId) };
+  const where: Prisma.ExpenseWhereInput = { ...tenantWhere(centreId, orgId) };
   if (from || to) {
     where.spentAt = {
       ...(from ? { gte: new Date(from) } : {}),

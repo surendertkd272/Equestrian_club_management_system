@@ -6,7 +6,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre, centreWhere } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { createAdvanceSchema } from "@/lib/schemas/advance";
 import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
@@ -22,13 +23,14 @@ export async function GET(req: NextRequest) {
   if (!canManageAdvances(session.role)) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
-  const centreId = scopeCentre(session);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
   const url = new URL(req.url);
   const statusFilter = url.searchParams.get("status");
 
   const advances = await prisma.employeeAdvance.findMany({
     where: {
-      ...centreWhere(centreId),
+      ...tenantWhere(scopeCentre(session), orgId),
       ...(statusFilter ? { status: statusFilter } : {}),
     },
     include: {
@@ -69,12 +71,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "USER_HAS_NO_CENTRE" }, { status: 400 });
   }
   // ACCOUNTANT can only issue to their own centre's staff; HQ-tier can
-  // issue to any centre.
+  // issue to any centre — but only within their own org.
   if (
     session.role === "ACCOUNTANT" &&
     recipient.centreId !== session.centreId
   ) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  }
+  // HQ-tier can target any centre, so validate the recipient's centre is in
+  // the caller's org before writing (otherwise an HQ admin could issue an
+  // advance into another org's centre).
+  const callerOrgId = await getOrgIdForSession(session);
+  if (!callerOrgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
+  const recipientOrgId = await getOrgIdForCentre(recipient.centreId);
+  if (recipientOrgId !== callerOrgId) {
+    return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
   }
 
   const advance = await prisma.employeeAdvance.create({

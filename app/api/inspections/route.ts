@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { startAuditSchema, AUDIT_TEMPLATES, CAN_INSPECT } from "@/lib/schemas/audit-run";
 
@@ -23,6 +24,16 @@ export async function POST(req: NextRequest) {
   // pick via the centre filter.
   const centreId = scopeCentre(session);
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
+
+  // HQ picks the centre via the ew_hq_centre cookie (read inside scopeCentre).
+  // That centreId is HQ-controlled input we're about to write against, so
+  // validate it belongs to the caller's org before creating the run — a stale
+  // or forged cookie must not seed an audit run in another org's centre.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
+  if ((await getOrgIdForCentre(centreId)) !== orgId) {
+    return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+  }
 
   const body = await req.json().catch(() => null);
   const parsed = startAuditSchema.safeParse(body);

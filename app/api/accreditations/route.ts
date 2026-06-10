@@ -3,10 +3,10 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { createAccreditationSchema } from "@/lib/schemas/accreditation";
 import { audit } from "@/lib/audit";
-import { blockIfFeatureOff } from "@/lib/features-gate";
+import { blockIfFeatureOff, getOrgIdForSession } from "@/lib/features-gate";
 
 // GET — list accreditations. Filter by ?riderId= for a single rider, or
 // query the whole centre (SUPER_ADMIN sees platform-wide).
@@ -15,12 +15,16 @@ export async function GET(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   const url = new URL(req.url);
   const riderId = url.searchParams.get("riderId");
-  const centreId = scopeCentre(session);
+  // Resolve the caller's org so HQ ("all centres") stays org-bounded — an empty
+  // rider filter would otherwise leak every org's accreditations. Fail closed.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
 
   const where: Prisma.AccreditationWhereInput = {};
   if (riderId) where.riderId = riderId;
-  // Tenant scoping — rider must be in the caller's centre unless SUPER_ADMIN.
-  if (centreId) where.rider = { centreId };
+  // Tenant scoping via the rider relation: a specific centre for centre-scoped
+  // roles, org-bounded for HQ ("all centres"). A foreign centreId yields 0 rows.
+  where.rider = tenantWhere(scopeCentre(session), orgId);
 
   const rows = await prisma.accreditation.findMany({
     where,
