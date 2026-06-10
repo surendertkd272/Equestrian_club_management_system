@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,13 +28,18 @@ export default async function RiderStatement({ params }: { params: { riderId: st
     return notFound();
   }
   const centreId = scopeCentre(session);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) notFound();
 
   const rider = await prisma.rider.findUnique({
     where: { id: params.riderId },
     include: { centre: { select: { name: true } } },
   });
   if (!rider) notFound();
+  // Centre-scoped users are pinned to their own centre; HQ users (centreId=null)
+  // are still bounded to their own org so they can't open another org's rider by id.
   if (centreId && rider.centreId !== centreId) notFound();
+  if ((await getOrgIdForCentre(rider.centreId)) !== orgId) notFound();
 
   const [invoices, payments] = await Promise.all([
     prisma.invoice.findMany({

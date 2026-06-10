@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +29,9 @@ export default async function ExpensesPage({
     return <div className="p-4 text-sm text-muted-foreground">No access.</div>;
   }
   const centreId = scopeCentre(session);
-  const where: any = { ...centreWhere(centreId) };
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+  const where: any = { ...tenantWhere(centreId, orgId) };
   if (searchParams.paid === "paid") where.paid = true;
   if (searchParams.paid === "due") where.paid = false;
 
@@ -53,7 +57,7 @@ export default async function ExpensesPage({
     // group/paid filters) so the accountant can clear the backlog in one
     // pass without having to re-filter the page.
     prisma.expense.findMany({
-      where: { ...centreWhere(centreId), paid: false },
+      where: { ...tenantWhere(centreId, orgId), paid: false },
       select: {
         id: true,
         amount: true,

@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,8 +15,23 @@ export default async function FacilityBookingsPage() {
   const centreId = scopeCentre(session);
   const canBook = can(session.role, "staff.manage");
 
-  const where: any = { endAt: { gte: new Date(Date.now() - 7 * 86400000) } };
-  if (centreId) where.centreId = centreId;
+  // Org-bound so an HQ user's "all centres" (centreId=null) can't fall through
+  // to an empty filter that leaks every org's bookings. Fail closed if the org
+  // can't be resolved.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+
+  // FacilityBooking has a scalar centreId but NO `centre` relation, so the
+  // tenantWhere() relation-filter can't bind it — constrain to the org's own
+  // centres instead. A specific HQ pick narrows to that centre.
+  const orgCentreIds = (
+    await prisma.centre.findMany({ where: { orgId }, select: { id: true } })
+  ).map((c) => c.id);
+
+  const where: any = {
+    endAt: { gte: new Date(Date.now() - 7 * 86400000) },
+    centreId: centreId ?? { in: orgCentreIds },
+  };
 
   const [rows, facilities] = await Promise.all([
     prisma.facilityBooking.findMany({
@@ -22,8 +39,9 @@ export default async function FacilityBookingsPage() {
       orderBy: { startAt: "asc" },
       take: 200,
     }),
+    // Facility carries a `centre` relation, so org scope binds through it.
     prisma.facility.findMany({
-      where: centreId ? { centreId } : {},
+      where: tenantWhere(centreId, orgId),
       select: { id: true, name: true, type: true, capacity: true },
       orderBy: { name: "asc" },
     }),

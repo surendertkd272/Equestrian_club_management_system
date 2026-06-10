@@ -2,7 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EditHorseForm } from "./edit-horse-form";
@@ -17,9 +18,14 @@ export default async function EditHorsePage({ params }: { params: { id: string }
   if (!can(session.role, "horse.manage")) redirect(`/horses/${params.id}`);
 
   const centreId = scopeCentre(session);
-  const horse = await prisma.horse.findUnique({ where: { id: params.id } });
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+  // Org-bound the lookup so an HQ user (centreId=null) can't open another
+  // org's horse by id; a foreign centre/org simply matches 0 rows → notFound.
+  const horse = await prisma.horse.findFirst({
+    where: { id: params.id, ...tenantWhere(centreId, orgId) },
+  });
   if (!horse) notFound();
-  if (centreId && horse.centreId !== centreId) notFound();
 
   const initial = {
     name: horse.name,

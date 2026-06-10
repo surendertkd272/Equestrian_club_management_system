@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart } from "@/components/charts/bar-chart";
@@ -27,7 +28,9 @@ function lastNMonths(n: number): { key: string; label: string; start: Date; end:
 export default async function AnalyticsPage() {
   const session = await assertRoute("/analytics");
   const centreId = scopeCentre(session);
-  const where = centreWhere(centreId);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+  const where = tenantWhere(centreId, orgId);
 
   const months = lastNMonths(6);
   const sixMonthsAgo = months[0].start;
@@ -62,7 +65,7 @@ export default async function AnalyticsPage() {
       months.map((m) =>
         prisma.payment.aggregate({
           where: {
-            invoice: centreId ? { centreId } : undefined,
+            invoice: tenantWhere(centreId, orgId),
             paidAt: { gte: m.start, lte: m.end },
           },
           _sum: { amount: true },
@@ -74,7 +77,7 @@ export default async function AnalyticsPage() {
         prisma.attendance.groupBy({
           by: ["status"],
           where: {
-            batch: centreId ? { centreId } : undefined,
+            batch: tenantWhere(centreId, orgId),
             date: { gte: m.start, lte: m.end },
           },
           _count: true,

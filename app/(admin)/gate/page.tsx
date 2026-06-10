@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GatePanel } from "./gate-panel";
 
@@ -85,13 +86,20 @@ export default async function GatePage({
     if (!c || c.orgId !== orgId) redirect("/gate");
   }
 
+  // Org-bound every query so an HQ user (esp. ADMIN, which the SUPER_ADMIN-only
+  // guard above does NOT cover) can't aim ?centre=<foreign-centre> at another
+  // org's roster/events. tenantWhere() pairs the centreId with the caller's org,
+  // so a foreign centreId matches 0 rows. Fail closed if the org can't resolve.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+
   // Today's roster — anyone with role !== {SUPER_ADMIN, RIDER, PARENT}
   // attached to this centre, plus their recent gate events.
   const [centre, staff, recentEvents] = await Promise.all([
-    prisma.centre.findUnique({ where: { id: centreId }, select: { name: true } }),
+    prisma.centre.findFirst({ where: { id: centreId, orgId }, select: { name: true } }),
     prisma.user.findMany({
       where: {
-        centreId,
+        ...tenantWhere(centreId, orgId),
         status: "active",
         role: { notIn: ["SUPER_ADMIN", "RIDER", "PARENT"] },
       },
@@ -100,7 +108,7 @@ export default async function GatePage({
     }),
     prisma.staffGateEvent.findMany({
       where: {
-        centreId,
+        ...tenantWhere(centreId, orgId),
         occurredAt: { gte: new Date(Date.now() - 86400000) },
       },
       include: { staff: { select: { id: true, name: true, role: true } } },

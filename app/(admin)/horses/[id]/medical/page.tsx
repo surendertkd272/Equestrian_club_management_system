@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,11 @@ export default async function HorseMedicalPage({ params }: { params: { id: strin
   });
   if (!horse) notFound();
   if (centreId && horse.centreId !== centreId) notFound();
+  // Org ownership guard: HQ users (centreId=null) bypass the centre check above,
+  // so bound them to their own org — otherwise an HQ user could open another
+  // org's horse by id.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId || (await getOrgIdForCentre(horse.centreId)) !== orgId) notFound();
 
   const canWriteMedical =
     can(session.role, "medicine.manage") || can(session.role, "horse.manage");

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { expiryStatus, daysUntil } from "@/lib/schemas/medicine";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,13 @@ export default async function MedicineDetail({ params }: { params: { id: string 
   const med = await prisma.medicine.findUnique({ where: { id: params.id } });
   if (!med) notFound();
   if (centreId && med.centreId !== centreId) notFound();
+  // HQ users (centreId=null) bypass the centre check above — bound them by org
+  // so they can't open another organisation's medicine by id.
+  const [medOrgId, sessionOrgId] = await Promise.all([
+    getOrgIdForCentre(med.centreId),
+    getOrgIdForSession(session),
+  ]);
+  if (!sessionOrgId || medOrgId !== sessionOrgId) notFound();
 
   const [usages, horses] = await Promise.all([
     prisma.medicineUsage.findMany({

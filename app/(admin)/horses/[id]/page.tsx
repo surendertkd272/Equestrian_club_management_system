@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { DEFAULT_WORKLOAD_CAP_MIN } from "@/lib/schemas/horse";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,8 @@ const STATUS_VARIANT: Record<string, "success" | "warning" | "outline"> = {
 export default async function HorseProfile({ params }: { params: { id: string } }) {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) notFound();
 
   const horse = await prisma.horse.findUnique({
     where: { id: params.id },
@@ -40,6 +43,9 @@ export default async function HorseProfile({ params }: { params: { id: string } 
   });
   if (!horse) notFound();
   if (centreId && horse.centreId !== centreId) notFound();
+  // Org-ownership guard: HQ users (centreId=null) bypass the centre check
+  // above, so bound them by org — an HQ user can't open another org's horse.
+  if ((await getOrgIdForCentre(horse.centreId)) !== orgId) notFound();
 
   const canManage = can(session.role, "horse.manage");
 

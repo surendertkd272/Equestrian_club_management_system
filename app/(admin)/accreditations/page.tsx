@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -20,9 +21,11 @@ export default async function AccreditationsListPage({
 }) {
   const session = await assertRoute("/accreditations");
   const centreId = scopeCentre(session);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
 
   const where: any = {};
-  if (centreId) where.rider = { centreId };
+  where.rider = tenantWhere(centreId, orgId);
   if (searchParams.body) where.body = searchParams.body;
   if (searchParams.status) where.status = searchParams.status;
 
@@ -35,7 +38,7 @@ export default async function AccreditationsListPage({
     }),
     // Pulls the unique list of bodies in scope so the filter chips work.
     prisma.accreditation.findMany({
-      where: centreId ? { rider: { centreId } } : {},
+      where: { rider: tenantWhere(centreId, orgId) },
       select: { body: true },
       distinct: ["body"],
     }),

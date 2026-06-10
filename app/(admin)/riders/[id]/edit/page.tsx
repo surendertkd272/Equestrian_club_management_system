@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForCentre, getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { decryptPIISafe } from "@/lib/pii";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +22,11 @@ export default async function EditRiderPage({ params }: { params: { id: string }
   const rider = await prisma.rider.findUnique({ where: { id: params.id } });
   if (!rider) notFound();
   if (centreId && rider.centreId !== centreId) notFound();
+  // HQ tier has centreId=null, so the check above is skipped — bind them to
+  // their own org so an Admin can't open another organisation's rider by id.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+  if ((await getOrgIdForCentre(rider.centreId)) !== orgId) notFound();
 
   // Serialise dates to YYYY-MM-DD for the date inputs.
   const initial = {

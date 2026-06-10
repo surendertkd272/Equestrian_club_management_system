@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { tenantWhere, scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { expiryStatus, daysUntil } from "@/lib/schemas/medicine";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,8 +29,10 @@ export default async function MedicinesPage({
 }) {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
 
-  const where: any = { ...centreWhere(centreId), active: true };
+  const where: any = { ...tenantWhere(centreId, orgId), active: true };
   if (searchParams.category) where.category = searchParams.category;
   if (searchParams.status === "low") where.qty = { lte: 5 };
   if (searchParams.status === "expiring") where.expDate = { lte: new Date(Date.now() + 30 * 86400000) };

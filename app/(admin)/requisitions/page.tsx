@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre, centreWhere } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +26,9 @@ export default async function RequisitionsPage() {
   if (!can(session.role, "requisition.submit")) redirect("/dashboard");
 
   const centreId = scopeCentre(session);
-  const where = centreWhere(centreId);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+  const where = tenantWhere(centreId, orgId);
 
   const canApproveManager = can(session.role, "requisition.approve_manager");
   const canApproveAccountant = can(session.role, "requisition.approve_accountant");

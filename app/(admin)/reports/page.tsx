@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FileText } from "lucide-react";
@@ -26,10 +27,12 @@ function thisMonthRange(): { from: string; to: string; label: string } {
 export default async function ReportsPage() {
   const session = await assertRoute("/reports");
   const centreId = scopeCentre(session);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
 
   const [riders, recentDispatches] = await Promise.all([
     prisma.rider.findMany({
-      where: { ...centreWhere(centreId), status: "active" },
+      where: { ...tenantWhere(centreId, orgId), status: "active" },
       select: { id: true, firstName: true, lastName: true, currentLevel: true, batch: { select: { name: true } } },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),

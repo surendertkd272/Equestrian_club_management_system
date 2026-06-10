@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { tenantWhere, scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,7 +42,12 @@ export default async function FinancePage() {
   // existing invoices and lets staff record cash/cheque payments even
   // when the parent-side payment flow is disabled.
   const centreId = scopeCentre(session);
-  const where = centreWhere(centreId);
+  // HQ users (SUPER_ADMIN/ADMIN) have centreId=null → "all centres". Bind to
+  // their org so the "all" filter stays org-scoped instead of leaking every
+  // org's invoices/expenses. Fail closed if the org can't be resolved.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+  const where = tenantWhere(centreId, orgId);
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);

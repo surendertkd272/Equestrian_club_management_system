@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { tenantWhere, scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,11 @@ export default async function BatchesPage() {
   // centre the form POSTs against — for HQ admins it's the cookie pick,
   // not a missing session.centreId.
   const centreId = scopeCentre(session);
-  const where = centreWhere(centreId);
+  // Org-bound the scope: an HQ user's "all centres" (centreId=null) must still
+  // be fenced to their own Organisation, not leak every org's batches.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+  const where = tenantWhere(centreId, orgId);
 
   const batches = await prisma.batch.findMany({
     where,
@@ -34,7 +40,7 @@ export default async function BatchesPage() {
   // via the topbar). When HQ admin hasn't picked a centre, return [].
   const coaches = centreId
     ? await prisma.user.findMany({
-        where: { centreId, role: "COACH", status: "active" },
+        where: { ...tenantWhere(centreId, orgId), role: "COACH", status: "active" },
         select: { id: true, name: true },
       })
     : [];

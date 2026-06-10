@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -13,32 +15,34 @@ export const dynamic = "force-dynamic";
 export default async function InjuriesPage() {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
-
-  const where: any = {};
-  if (centreId) where.centreId = centreId;
+  // Bind to the caller's org so an HQ user's "all centres" (centreId=null)
+  // can't return every org's rows. Fail closed if the org can't be resolved.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
 
   const [rows, horses, riders, centre] = await Promise.all([
     prisma.injuryLog.findMany({
-      where,
+      where: tenantWhere(centreId, orgId),
       orderBy: [{ status: "asc" }, { occurredAt: "desc" }],
       take: 200,
     }),
     prisma.horse.findMany({
-      where: centreId ? { centreId } : {},
+      where: tenantWhere(centreId, orgId),
       select: { id: true, name: true, stableNo: true },
       orderBy: { name: "asc" },
     }),
     prisma.rider.findMany({
-      where: centreId ? { centreId, status: "active" } : { status: "active" },
+      where: { ...tenantWhere(centreId, orgId), status: "active" },
       select: { id: true, firstName: true, lastName: true },
       orderBy: { firstName: "asc" },
     }),
     // Pull the centre's emergency contacts so the "Call Doctor" button
     // dials the on-call vet directly. Falls back to a generic helper if
-    // no vet contact is configured.
+    // no vet contact is configured. Bind by org too so a cookie/picker
+    // pointing at a foreign org's centre resolves to null.
     centreId
-      ? prisma.centre.findUnique({
-          where: { id: centreId },
+      ? prisma.centre.findFirst({
+          where: { id: centreId, orgId },
           select: { emergencyContactsJson: true },
         })
       : Promise.resolve(null),

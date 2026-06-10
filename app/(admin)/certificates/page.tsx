@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,9 +31,11 @@ export default async function CertificatesPage({
 }) {
   const session = await assertRoute("/certificates");
   const centreId = scopeCentre(session);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
   const canBulk = can(session.role, "certificate.bulk");
 
-  const where: any = { ...centreWhere(centreId) };
+  const where: any = { ...tenantWhere(centreId, orgId) };
   if (searchParams.type) where.type = searchParams.type;
   if (searchParams.batch) where.batchTag = searchParams.batch;
   if (searchParams.revoked === "yes") where.revokedAt = { not: null };
@@ -51,7 +54,7 @@ export default async function CertificatesPage({
     }),
     canBulk
       ? prisma.event.findMany({
-          where: { ...centreWhere(centreId), status: { in: ["live", "completed"] as any } },
+          where: { ...tenantWhere(centreId, orgId), status: { in: ["live", "completed"] as any } },
           select: { id: true, title: true, startDate: true },
           orderBy: { startDate: "desc" },
           take: 50,
@@ -59,7 +62,7 @@ export default async function CertificatesPage({
       : Promise.resolve([]),
     canBulk
       ? prisma.examSitting.findMany({
-          where: { ...centreWhere(centreId) },
+          where: { ...tenantWhere(centreId, orgId) },
           select: { id: true, level: true, date: true },
           orderBy: { date: "desc" },
           take: 50,

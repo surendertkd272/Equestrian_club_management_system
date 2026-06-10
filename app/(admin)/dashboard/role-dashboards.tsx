@@ -6,8 +6,11 @@
 // the role's day-to-day workflow.
 
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { centreWhere } from "@/lib/tenancy";
+import { getSession } from "@/lib/auth";
+import { tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatTile } from "@/components/ui/stat-tile";
@@ -39,7 +42,17 @@ function Kpi({ label, value, tone, link }: { label: string; value: number | stri
 // FARRIER
 
 export async function FarrierDashboard({ centreId, features }: { centreId: string | null; features: ReadonlySet<string> }) {
-  const where = centreWhere(centreId);
+  // FarrierVisit has a scalar `centreId` but NO `centre` relation, so the
+  // tenantWhere() relation-filter can't be used. Bound by org instead: resolve
+  // the org's centres and constrain to them, so an HQ user's "all centres"
+  // (centreId=null) can't fall through to an empty filter that leaks every
+  // org's visits. Fail closed if the org can't be resolved.
+  const orgId = await getOrgIdForSession(await getSession());
+  if (!orgId) redirect("/dashboard");
+  const orgCentreIds = (
+    await prisma.centre.findMany({ where: { orgId }, select: { id: true } })
+  ).map((c) => c.id);
+  const where = { centreId: centreId ?? { in: orgCentreIds } };
   const fFarriery = features.has("farriery");
   const now = new Date();
   const sevenDays = new Date(now.getTime() + 7 * 86400000);
@@ -137,7 +150,17 @@ export async function FarrierDashboard({ centreId, features }: { centreId: strin
 // VET
 
 export async function VetDashboard({ centreId, features }: { centreId: string | null; features: ReadonlySet<string> }) {
-  const where = centreWhere(centreId);
+  // Medicine HAS a `centre` relation → tenantWhere(). VaccinationSchedule and
+  // InjuryLog carry only a scalar `centreId` (no relation), so they're bound
+  // by the org's centre ids instead. Either way an HQ user's "all centres"
+  // (centreId=null) is org-bounded, never an empty (leaking) filter.
+  const orgId = await getOrgIdForSession(await getSession());
+  if (!orgId) redirect("/dashboard");
+  const orgCentreIds = (
+    await prisma.centre.findMany({ where: { orgId }, select: { id: true } })
+  ).map((c) => c.id);
+  const where = tenantWhere(centreId, orgId);
+  const scalarWhere = { centreId: centreId ?? { in: orgCentreIds } };
   const fVet = features.has("vet-records");
   const fInjuries = features.has("injuries");
   const now = new Date();
@@ -146,7 +169,7 @@ export async function VetDashboard({ centreId, features }: { centreId: string | 
 
   const [vaccDueSoon, expiringMeds, recentInjuries, lowStockMeds] = await Promise.all([
     prisma.vaccinationSchedule.findMany({
-      where: { ...where, nextDueAt: { lte: thirty } },
+      where: { ...scalarWhere, nextDueAt: { lte: thirty } },
       include: { horse: { select: { name: true } } },
       orderBy: { nextDueAt: "asc" },
       take: 10,
@@ -157,7 +180,7 @@ export async function VetDashboard({ centreId, features }: { centreId: string | 
       take: 10,
     }),
     prisma.injuryLog.findMany({
-      where: { ...where, occurredAt: { gte: sevenDaysAgo }, status: { in: ["active", "recovering"] } },
+      where: { ...scalarWhere, occurredAt: { gte: sevenDaysAgo }, status: { in: ["active", "recovering"] } },
       orderBy: { occurredAt: "desc" },
       take: 10,
     }),
@@ -250,7 +273,17 @@ export async function VetDashboard({ centreId, features }: { centreId: string | 
 // STABLE_MANAGER
 
 export async function StableManagerDashboard({ centreId, features }: { centreId: string | null; features: ReadonlySet<string> }) {
-  const where = centreWhere(centreId);
+  // Horse/Task have a `centre` relation → tenantWhere(). HorseAllocation is
+  // bound through its `horse` relation. Consumable/InjuryLog carry only a
+  // scalar `centreId`, so they're bound by the org's centre ids. Every shape
+  // is org-bounded so an HQ user's "all centres" can't leak other orgs.
+  const orgId = await getOrgIdForSession(await getSession());
+  if (!orgId) redirect("/dashboard");
+  const orgCentreIds = (
+    await prisma.centre.findMany({ where: { orgId }, select: { id: true } })
+  ).map((c) => c.id);
+  const where = tenantWhere(centreId, orgId);
+  const scalarWhere = { centreId: centreId ?? { in: orgCentreIds } };
   const fHorses = features.has("horse-management");
   const fTasks = features.has("tasks");
   const fConsumables = features.has("consumables");
@@ -269,8 +302,8 @@ export async function StableManagerDashboard({ centreId, features }: { centreId:
       },
     }),
     prisma.task.count({ where: { ...where, status: { in: ["open", "in_progress"] } } }),
-    prisma.consumable.count({ where: { ...where, qty: { lte: 5 } } }),
-    prisma.injuryLog.count({ where: { ...where, status: { in: ["active", "recovering"] } } }),
+    prisma.consumable.count({ where: { ...scalarWhere, qty: { lte: 5 } } }),
+    prisma.injuryLog.count({ where: { ...scalarWhere, status: { in: ["active", "recovering"] } } }),
   ]);
 
   return (
@@ -306,7 +339,12 @@ export async function StableManagerDashboard({ centreId, features }: { centreId:
 // GROOM
 
 export async function GroomDashboard({ centreId, userId, features }: { centreId: string | null; userId: string; features: ReadonlySet<string> }) {
-  const where = centreWhere(centreId);
+  // Horse has a `centre` relation → tenantWhere(); HorseAllocation is bound
+  // through it. (myTasks is already scoped to assigneeId=userId, so it can't
+  // leak.) Org-bounded so an HQ user's "all centres" never empties the filter.
+  const orgId = await getOrgIdForSession(await getSession());
+  if (!orgId) redirect("/dashboard");
+  const where = tenantWhere(centreId, orgId);
   const fTasks = features.has("tasks");
   const fHorses = features.has("horse-management");
   const now = new Date();
@@ -418,7 +456,12 @@ export async function GroomDashboard({ centreId, userId, features }: { centreId:
 // EXAMINER
 
 export async function ExaminerDashboard({ centreId, userId, features }: { centreId: string | null; userId: string; features: ReadonlySet<string> }) {
-  const where = centreWhere(centreId);
+  // Exam/Certificate have a `centre` relation → tenantWhere(). These are also
+  // already scoped to this examiner (examinerId/signedBy=userId), but we keep
+  // the tenant bound so an HQ examiner's "all centres" stays org-bounded.
+  const orgId = await getOrgIdForSession(await getSession());
+  if (!orgId) redirect("/dashboard");
+  const where = tenantWhere(centreId, orgId);
   const fExams = features.has("external-exams");
   const fCerts = features.has("certificates");
   const now = new Date();
@@ -494,7 +537,12 @@ export async function ExaminerDashboard({ centreId, userId, features }: { centre
 // ACCOUNTANT
 
 export async function AccountantDashboard({ centreId }: { centreId: string | null; features: ReadonlySet<string> }) {
-  const where = centreWhere(centreId);
+  // Invoice has a `centre` relation → tenantWhere(); Payment is bound through
+  // its `invoice` relation. Previously `invoice: undefined` for an HQ user's
+  // "all centres" left payments globally unfiltered — now org-bounded.
+  const orgId = await getOrgIdForSession(await getSession());
+  if (!orgId) redirect("/dashboard");
+  const where = tenantWhere(centreId, orgId);
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
   const [openInvoices, overdue, paidThisMonth, totalCollected] = await Promise.all([
@@ -503,11 +551,11 @@ export async function AccountantDashboard({ centreId }: { centreId: string | nul
       where: { ...where, status: "due", dueDate: { lt: new Date() } },
     }),
     prisma.payment.aggregate({
-      where: { invoice: centreId ? { centreId } : undefined, paidAt: { gte: monthStart } },
+      where: { invoice: where, paidAt: { gte: monthStart } },
       _sum: { amount: true },
     }),
     prisma.payment.aggregate({
-      where: { invoice: centreId ? { centreId } : undefined },
+      where: { invoice: where },
       _sum: { amount: true },
     }),
   ]);
@@ -548,7 +596,12 @@ export async function AccountantDashboard({ centreId }: { centreId: string | nul
 // scoring drafts to nudge along.
 
 export async function HeadCoachDashboard({ centreId, features }: { centreId: string | null; features: ReadonlySet<string> }) {
-  const where = centreWhere(centreId);
+  // Batch/Exam/Rider/User/CoachDailyUpdate all have a `centre` relation →
+  // tenantWhere(); Attendance is bound through its `batch` relation. Each is
+  // org-bounded so an HQ head coach's "all centres" never empties the filter.
+  const orgId = await getOrgIdForSession(await getSession());
+  if (!orgId) redirect("/dashboard");
+  const where = tenantWhere(centreId, orgId);
   const fAttendance = features.has("attendance");
   const fExams = features.has("external-exams");
   const todayStart = new Date();
@@ -564,7 +617,7 @@ export async function HeadCoachDashboard({ centreId, features }: { centreId: str
       select: { id: true, name: true, coachId: true, _count: { select: { riders: true } } },
     }),
     prisma.attendance.findMany({
-      where: { date: { gte: todayStart, lt: todayEnd }, batch: centreId ? { centreId } : undefined },
+      where: { date: { gte: todayStart, lt: todayEnd }, batch: where },
       select: { batchId: true },
     }),
     prisma.exam.count({
@@ -652,7 +705,13 @@ export async function HeadCoachDashboard({ centreId, features }: { centreId: str
 // daily checklist, and monthly-skill marking.
 
 export async function CoachDashboard({ centreId, userId, features }: { centreId: string | null; userId: string; features: ReadonlySet<string> }) {
-  const where = centreWhere(centreId);
+  // Batch/Task/ChecklistSubmission/Rider have a `centre` relation →
+  // tenantWhere(). The rider count is the one query not already user-scoped,
+  // so the org bound closes it; the rest stay scoped to this coach's userId.
+  // (markedToday is filtered by batch.coachId=userId, so it can't leak.)
+  const orgId = await getOrgIdForSession(await getSession());
+  if (!orgId) redirect("/dashboard");
+  const where = tenantWhere(centreId, orgId);
   const fAttendance = features.has("attendance");
   const fTasks = features.has("tasks");
   const fInjuries = features.has("injuries");

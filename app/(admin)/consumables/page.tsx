@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -13,8 +15,21 @@ export default async function ConsumablesPage() {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
 
-  const where: any = { active: true };
-  if (centreId) where.centreId = centreId;
+  // Consumable has a scalar `centreId` but NO `centre` relation, so the
+  // tenantWhere() relation-filter can't be used. Bound by org instead: resolve
+  // the org's centres and constrain to them, so an HQ user's "all centres"
+  // (centreId=null) can't fall through to an empty filter that leaks every
+  // org's consumables. Fail closed if the org can't be resolved.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
+  const orgCentreIds = (
+    await prisma.centre.findMany({ where: { orgId }, select: { id: true } })
+  ).map((c) => c.id);
+
+  const where: any = {
+    active: true,
+    centreId: centreId ?? { in: orgCentreIds },
+  };
 
   const rows = await prisma.consumable.findMany({
     where,

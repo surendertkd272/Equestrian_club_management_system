@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { tenantWhere, scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { DEFAULT_WORKLOAD_CAP_MIN } from "@/lib/schemas/horse";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,8 +29,10 @@ export default async function HorsesPage({
 }) {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
 
-  const where: any = { ...centreWhere(centreId) };
+  const where: any = { ...tenantWhere(centreId, orgId) };
   if (searchParams.status) where.status = searchParams.status;
   if (searchParams.ownership) where.ownership = searchParams.ownership;
 
@@ -45,7 +49,7 @@ export default async function HorsesPage({
   dayEnd.setHours(23, 59, 59, 999);
 
   const todays = await prisma.horseAllocation.findMany({
-    where: { horse: centreId ? { centreId } : undefined, startAt: { gte: dayStart, lte: dayEnd } },
+    where: { horse: tenantWhere(centreId, orgId), startAt: { gte: dayStart, lte: dayEnd } },
     select: { horseId: true, startAt: true, endAt: true },
   });
   const usedByHorse = new Map<string, number>();

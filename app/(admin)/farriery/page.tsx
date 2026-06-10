@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -11,8 +13,12 @@ export const dynamic = "force-dynamic";
 export default async function FarrieryPage() {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/dashboard");
 
-  const where: any = {};
+  // FarrierVisit has a centreId column but no `centre` relation, so the org
+  // bound is enforced through its `horse` relation (Horse has `centre`).
+  const where: any = { horse: { centre: { orgId } } };
   if (centreId) where.centreId = centreId;
 
   const [visits, horses] = await Promise.all([
@@ -23,7 +29,7 @@ export default async function FarrieryPage() {
       take: 200,
     }),
     prisma.horse.findMany({
-      where: centreId ? { centreId, status: { not: "retired" } } : { status: { not: "retired" } },
+      where: { ...tenantWhere(centreId, orgId), status: { not: "retired" } },
       select: { id: true, name: true, stableNo: true },
       orderBy: { name: "asc" },
     }),
