@@ -54,29 +54,35 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const billable = feesOn && ev.fee > 0;
 
   try {
-    const reg = await prisma.eventRegistration.create({
-      data: {
-        eventId: ev.id,
-        riderId: rider.id,
-        notes: parsed.data.notes,
-        paid: !billable,
-      },
-    });
-
-    let invoiceId: string | null = null;
-    if (billable) {
-      const inv = await prisma.invoice.create({
+    // H6 — register + auto-invoice atomically. Previously these were two
+    // separate writes: a crash between them left a registered, UNPAID rider
+    // with no invoice (invisible to the fee-due sweep + the HQ "unpaid" tile →
+    // silent revenue loss). One transaction → both commit or neither does.
+    const { reg, invoiceId } = await prisma.$transaction(async (tx) => {
+      const reg = await tx.eventRegistration.create({
         data: {
-          centreId: ev.centreId,
+          eventId: ev.id,
           riderId: rider.id,
-          amount: ev.fee,
-          dueDate: ev.startDate,
-          kind: "event",
-          status: "due",
+          notes: parsed.data.notes,
+          paid: !billable,
         },
       });
-      invoiceId = inv.id;
-    }
+      let invoiceId: string | null = null;
+      if (billable) {
+        const inv = await tx.invoice.create({
+          data: {
+            centreId: ev.centreId,
+            riderId: rider.id,
+            amount: ev.fee,
+            dueDate: ev.startDate,
+            kind: "event",
+            status: "due",
+          },
+        });
+        invoiceId = inv.id;
+      }
+      return { reg, invoiceId };
+    });
 
     await audit({
       userId: session.userId,
