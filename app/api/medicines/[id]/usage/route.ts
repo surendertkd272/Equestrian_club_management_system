@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -10,6 +11,17 @@ import { blockIfReadOnly } from "@/lib/readonly-gate";
 // Thrown inside the usage transaction when the guarded decrement matches no
 // row (stock raced below the requested qty) so the whole tx rolls back.
 class MedicineOutOfStock extends Error {}
+
+// Duplicate submit (double-click / network retry) re-sending the same
+// requestKey: the unique index rejects the second insert, the tx (and its
+// decrement) rolls back, and we replay the first request's outcome.
+function isDuplicateRequestKey(e: unknown): boolean {
+  return (
+    e instanceof Prisma.PrismaClientKnownRequestError &&
+    e.code === "P2002" &&
+    (e.meta?.target as string[] | string | undefined)?.includes("requestKey") === true
+  );
+}
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -76,6 +88,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           route: d.route,
           reason: d.reason || null,
           withdrawalUntil,
+          requestKey: d.requestKey ?? null,
         },
       });
       if (withdrawalUntil) {
@@ -92,6 +105,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         { error: "OUT_OF_STOCK", message: `Insufficient stock for ${medicine.name}.` },
         { status: 409 },
       );
+    }
+    if (d.requestKey && isDuplicateRequestKey(e)) {
+      // Idempotent replay: the first request already decremented stock,
+      // logged the usage, audited, and notified. Return its outcome —
+      // current qty read fresh so the toast shows the real stock level.
+      const existing = await prisma.medicineUsage.findUnique({ where: { requestKey: d.requestKey } });
+      if (existing) {
+        const med = await prisma.medicine.findUnique({ where: { id: medicine.id }, select: { qty: true, reorderThreshold: true } });
+        return NextResponse.json({
+          id: existing.id,
+          newQty: med?.qty ?? medicine.qty,
+          horseStatus: existing.withdrawalUntil ? "rest" : horse.status,
+          withdrawalUntil: existing.withdrawalUntil,
+          lowStock: med ? med.qty <= med.reorderThreshold : false,
+          replayed: true,
+        });
+      }
     }
     throw e;
   }

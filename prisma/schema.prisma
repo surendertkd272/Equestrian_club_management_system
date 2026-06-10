@@ -1590,6 +1590,10 @@ model MedicineUsage {
   reason          String?
   usedAt          DateTime @default(now())
   withdrawalUntil DateTime?
+  // Client-generated idempotency key: a double-click / network retry of the
+  // same submit re-sends the same key; the unique index turns the duplicate
+  // into a replay instead of a second stock decrement.
+  requestKey      String?  @unique
 
   medicine Medicine @relation(fields: [medicineId], references: [id])
   horse    Horse    @relation(fields: [horseId], references: [id])
