@@ -2887,6 +2887,18 @@ model NotificationDispatchLog {
   @@index([createdAt])
 }
 
+// Single-flight lock for the nightly sweep batch (H5). One row (id="sweep").
+// The cron route claims it before runAllSweeps and releases it after, so an
+// overlapping run (manual POST during the scheduled run, or a Vercel retry of a
+// partially-completed batch) is skipped rather than re-firing every job. A
+// stale lock (holder crashed) auto-expires after the cron route's stale window,
+// so a crash can't wedge the batch permanently.
+model CronLock {
+  id        String    @id
+  lockedAt  DateTime?
+  updatedAt DateTime  @updatedAt
+}
+
 // Rider-initiated request to move to a different batch — either for a
 // single day (e.g. "I can't make Wednesday, can I attend Thursday's
 // batch this week?") or permanently (e.g. "I'm switching schools, my

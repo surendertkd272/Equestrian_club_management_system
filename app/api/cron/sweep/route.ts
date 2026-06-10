@@ -1,7 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runAllSweeps, SWEEP_JOBS, type SweepResult } from "@/lib/sweeps";
+import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import crypto from "node:crypto";
+
+// Single-flight lock (H5) for the full nightly batch. A stale lock (crashed
+// holder) auto-expires after STALE_MS so the batch can never wedge permanently.
+const SWEEP_LOCK_ID = "sweep";
+const SWEEP_LOCK_STALE_MS = 15 * 60 * 1000;
+
+async function acquireSweepLock(): Promise<boolean> {
+  // Ensure the row exists, then atomically claim it only if free or stale.
+  await prisma.cronLock.upsert({ where: { id: SWEEP_LOCK_ID }, create: { id: SWEEP_LOCK_ID }, update: {} });
+  const staleCutoff = new Date(Date.now() - SWEEP_LOCK_STALE_MS);
+  const claim = await prisma.cronLock.updateMany({
+    where: { id: SWEEP_LOCK_ID, OR: [{ lockedAt: null }, { lockedAt: { lt: staleCutoff } }] },
+    data: { lockedAt: new Date() },
+  });
+  return claim.count === 1;
+}
+
+async function releaseSweepLock(): Promise<void> {
+  await prisma.cronLock.updateMany({ where: { id: SWEEP_LOCK_ID }, data: { lockedAt: null } });
+}
 
 // Auth: shared secret. Caller can pass it via:
 //   - Authorization: Bearer <CRON_SECRET>           (curl, GitHub Actions)
@@ -31,6 +52,20 @@ export async function POST(req: NextRequest) {
   const job = req.nextUrl.searchParams.get("job");
   const force = req.nextUrl.searchParams.get("force") === "1";
   const t0 = Date.now();
+
+  // Single-flight (H5): the full nightly batch takes a lock so an overlapping
+  // run (manual POST during the scheduled run, or a Vercel retry of a
+  // partially-completed batch) is skipped rather than re-firing every job and
+  // amplifying duplicate notifications. Single-job (?job=) admin runs are not
+  // locked. Released in finally below.
+  let lockHeld = false;
+  if (!job) {
+    const acquired = await acquireSweepLock();
+    if (!acquired) {
+      return NextResponse.json({ ok: true, skipped: "ALREADY_RUNNING" });
+    }
+    lockHeld = true;
+  }
 
   // runAllSweeps already isolates per-job failures (allSettled). This outer
   // try/catch is the backstop for the single-job path (?job=, which calls fn
@@ -66,6 +101,8 @@ export async function POST(req: NextRequest) {
       { ok: false, error: "SWEEP_FAILED", message, elapsedMs, job: job ?? "all" },
       { status: 500 },
     );
+  } finally {
+    if (lockHeld) await releaseSweepLock();
   }
 }
 
