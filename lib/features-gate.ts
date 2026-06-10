@@ -10,6 +10,7 @@ import { NextResponse } from "next/server";
 import { notFound } from "next/navigation";
 import { prisma } from "./prisma";
 import { getSession } from "./auth";
+import { bindTenantOrg, runWithRlsBypass } from "./tenant-context";
 import type { FeatureKey } from "./features";
 import type { SessionPayload } from "./auth";
 
@@ -63,7 +64,7 @@ export const getOrgIdForCentre = cache(async (centreId: string | null | undefine
 // asking for the same session object hit dedup-by-identity here and
 // short-circuit straight to the cached orgId. Saves the 'find first
 // centre's org' fallback DB call from running N times per render.
-export const getOrgIdForSession = cache(async (session: SessionPayload | null): Promise<string | null> => {
+const resolveOrgIdForSession = cache(async (session: SessionPayload | null): Promise<string | null> => {
   if (!session) return null;
   if (session.centreId) return getOrgIdForCentre(session.centreId);
   // HQ-tier users (SUPER_ADMIN, ADMIN) have no centreId. Prefer the explicit
@@ -80,23 +81,40 @@ export const getOrgIdForSession = cache(async (session: SessionPayload | null): 
     return first?.orgId ?? null;
   }
   // PARENT has no centreId but is linked to riders via ParentLink → centre → org.
+  // Resolution reads RLS-guarded tables BEFORE any org is bound, so it runs
+  // under a scoped bypass — it's a by-session-key infrastructure lookup.
   if (session.role === "PARENT") {
-    const link = await prisma.parentLink.findFirst({
-      where: { parentUserId: session.userId },
-      select: { rider: { select: { centre: { select: { orgId: true } } } } },
-    });
+    const link = await runWithRlsBypass(() =>
+      prisma.parentLink.findFirst({
+        where: { parentUserId: session.userId },
+        select: { rider: { select: { centre: { select: { orgId: true } } } } },
+      }),
+    );
     return link?.rider.centre.orgId ?? null;
   }
   // RIDER has no centreId on the session, but Rider.userId points to them.
   if (session.role === "RIDER") {
-    const rider = await prisma.rider.findFirst({
-      where: { userId: session.userId },
-      select: { centre: { select: { orgId: true } } },
-    });
+    const rider = await runWithRlsBypass(() =>
+      prisma.rider.findFirst({
+        where: { userId: session.userId },
+        select: { centre: { select: { orgId: true } } },
+      }),
+    );
     return rider?.centre.orgId ?? null;
   }
   return null;
 });
+
+// Resolve AND bind. The resolver above is React-cached (one lookup per
+// request), but the RLS tenant-context bind must run on EVERY call — App
+// Router renders layouts/pages/components as sibling async branches, and a
+// bind made in one branch is invisible to the others. Each call site
+// re-binding into its own branch is what makes the backstop stick.
+export async function getOrgIdForSession(session: SessionPayload | null): Promise<string | null> {
+  const orgId = await resolveOrgIdForSession(session);
+  bindTenantOrg(orgId);
+  return orgId;
+}
 
 // Convenience for layouts/pages/components that need the active feature set.
 // Memoised too — the most common 'how slow is this' culprit was the sidebar

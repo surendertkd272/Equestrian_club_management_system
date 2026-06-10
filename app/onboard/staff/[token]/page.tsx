@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { hashOnboardingToken } from "@/lib/onboarding-token";
 import { ONBOARDING_AGREEMENT, ONBOARDING_DECLARATION } from "@/lib/schemas/onboarding-staff";
 import { OnboardingForm } from "./form";
+import { bindRlsBypass } from "@/lib/tenant-context";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,7 @@ function Notice({ title, body }: { title: string; body: string }) {
 }
 
 export default async function StaffOnboardPage({ params }: { params: { token: string } }) {
+  bindRlsBypass(); // public-by-unguessable-id flow (no session to bind an org from)
   const row = await prisma.employeeOnboarding.findUnique({
     where: { tokenHash: hashOnboardingToken(params.token) },
     include: { centre: { select: { name: true } } },

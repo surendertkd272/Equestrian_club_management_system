@@ -5,6 +5,7 @@ import { createOrder, isConfigured, publicKeyId } from "@/lib/razorpay";
 import { audit } from "@/lib/audit";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 import { isFeatureEnabledForCentre } from "@/lib/features-gate";
+import { bindRlsBypass } from "@/lib/tenant-context";
 
 // Public, unauthenticated — validate shape strictly before anything touches
 // the DB. Invoice ids are Prisma cuid()s.
@@ -17,6 +18,7 @@ const OrderBody = z.object({ invoiceId: z.string().cuid() });
 // onboarding flow needs at most a few calls per session; abusers hitting
 // thousands of guesses run into 429s long before they enumerate anything.
 export async function POST(req: NextRequest) {
+  bindRlsBypass(); // public-by-unguessable-id flow (no session to bind an org from)
   if (!isConfigured()) {
     return NextResponse.json({ error: "RAZORPAY_NOT_CONFIGURED" }, { status: 503 });
   }

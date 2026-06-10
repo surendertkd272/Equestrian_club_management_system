@@ -8,6 +8,7 @@ import {
 } from "@/lib/stripe";
 import { issueSaasInvoice } from "@/lib/saas-billing";
 import { isPlanKey } from "@/lib/plans";
+import { bindRlsBypass } from "@/lib/tenant-context";
 
 // POST /api/webhooks/stripe — server-to-server. Public route (no session),
 // authenticated by the Stripe-Signature header against STRIPE_WEBHOOK_SECRET.
@@ -22,6 +23,7 @@ import { isPlanKey } from "@/lib/plans";
 // Anything else: 200 OK, no-op (Stripe expects 2xx within seconds; replying
 // 400/500 makes them retry, which floods our logs).
 export async function POST(req: NextRequest) {
+  bindRlsBypass(); // signature-verified webhook, cross-org by design
   let payload: string;
   try {
     payload = await req.text();

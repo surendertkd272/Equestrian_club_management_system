@@ -4,6 +4,7 @@
 // session role alone, since access is gated on the explicit ParentLink row.
 
 import { prisma } from "./prisma";
+import { bindTenantOrg, runWithRlsBypass } from "./tenant-context";
 
 export type ChildSummary = {
   riderId: string;
@@ -24,18 +25,27 @@ export type ChildSummary = {
 
 // Resolve the parent's children list with a roll-up for the dashboard cards. Returns
 // [] when the user has no links, so callers can render an empty-state.
+//
+// This is the parent portal's session→tenant resolution: the link+rider lookup
+// runs under a scoped RLS bypass (it happens before any org is bound), then the
+// children's org is bound DETERMINISTICALLY before the roll-up queries below —
+// previously those only worked when a parallel getFeaturesForSession happened
+// to bind first (a race).
 export async function getParentChildren(parentUserId: string): Promise<ChildSummary[]> {
-  const links = await prisma.parentLink.findMany({
-    where: { parentUserId },
-    include: {
-      rider: {
-        select: {
-          id: true, firstName: true, lastName: true, currentLevel: true, status: true,
-          photoUrl: true, centre: { select: { name: true } },
+  const links = await runWithRlsBypass(() =>
+    prisma.parentLink.findMany({
+      where: { parentUserId },
+      include: {
+        rider: {
+          select: {
+            id: true, firstName: true, lastName: true, currentLevel: true, status: true,
+            photoUrl: true, centre: { select: { name: true, orgId: true } },
+          },
         },
       },
-    },
-  });
+    }),
+  );
+  bindTenantOrg(links[0]?.rider.centre.orgId ?? null);
   if (links.length === 0) return [];
 
   // Last-30-days attendance + soonest upcoming exam + latest cert + unpaid invoice
@@ -110,10 +120,15 @@ export async function getChildIfLinked(parentUserId: string, riderId: string) {
   });
   if (!link) return null;
 
-  const rider = await prisma.rider.findUnique({
-    where: { id: riderId },
-    include: { centre: { select: { name: true } }, batch: { select: { name: true, startTime: true, endTime: true } } },
-  });
+  // The link above IS the access gate; the rider fetch is session→tenant
+  // resolution (runs before any org bind), so: scoped bypass + bind after.
+  const rider = await runWithRlsBypass(() =>
+    prisma.rider.findUnique({
+      where: { id: riderId },
+      include: { centre: { select: { name: true, orgId: true } }, batch: { select: { name: true, startTime: true, endTime: true } } },
+    }),
+  );
+  bindTenantOrg(rider?.centre.orgId ?? null);
   return rider ? { rider, relationship: link.relationship } : null;
 }
 

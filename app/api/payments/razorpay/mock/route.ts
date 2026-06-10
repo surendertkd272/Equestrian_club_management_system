@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { isFeatureEnabledForCentre } from "@/lib/features-gate";
+import { bindRlsBypass } from "@/lib/tenant-context";
 
 const MockBody = z.object({ invoiceId: z.string().cuid() });
 
@@ -10,6 +11,7 @@ const MockBody = z.object({ invoiceId: z.string().cuid() });
 // Hard-gate on NODE_ENV here so a missed middleware change can't expose
 // it; replace with the verified Razorpay webhook in prod.
 export async function POST(req: NextRequest) {
+  bindRlsBypass(); // public-by-unguessable-id flow (no session to bind an org from)
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json({ error: "NOT_AVAILABLE" }, { status: 404 });
   }

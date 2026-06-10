@@ -8,6 +8,7 @@ import { notifyCentreManager } from "@/lib/notify";
 import { submitOnboardingSchema } from "@/lib/schemas/onboarding-staff";
 import { hashOnboardingToken } from "@/lib/onboarding-token";
 import { encryptPII } from "@/lib/pii";
+import { bindRlsBypass } from "@/lib/tenant-context";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,7 @@ function dateOnly(s?: string): Date | null {
 }
 
 export async function POST(req: NextRequest) {
+  bindRlsBypass(); // public-by-unguessable-id flow (no session to bind an org from)
   const body = await req.json().catch(() => null);
   const parsed = bodySchema.safeParse(body);
   if (!parsed.success) {

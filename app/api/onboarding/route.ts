@@ -15,10 +15,12 @@ import { audit } from "@/lib/audit";
 import { notifyCentreManager } from "@/lib/notify";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 import { isFeatureEnabledForCentre } from "@/lib/features-gate";
+import { bindRlsBypass } from "@/lib/tenant-context";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
+  bindRlsBypass(); // public-by-unguessable-id flow (no session to bind an org from)
   // Public self-enrolment endpoint — no auth gate. Rate-limit per IP to
   // keep an attacker (or a buggy script) from filling the approval queue
   // with junk riders. 10 successful onboarding posts per hour per IP is

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 import { CheckCircle2, XCircle, Ban } from "lucide-react";
+import { bindRlsBypass } from "@/lib/tenant-context";
 
 // Public certificate verification page — same content for every visitor.
 // Cache for 5 minutes; certificates rarely change after issue and
@@ -10,6 +11,7 @@ import { CheckCircle2, XCircle, Ban } from "lucide-react";
 export const revalidate = 300;
 
 export default async function VerifyPage({ params }: { params: { serial: string } }) {
+  bindRlsBypass(); // public-by-unguessable-id flow (no session to bind an org from)
   const cert = await prisma.certificate.findUnique({
     where: { serialNo: params.serial },
     include: {

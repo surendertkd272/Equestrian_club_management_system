@@ -16,10 +16,12 @@ import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PayButton } from "./pay-button";
+import { bindRlsBypass } from "@/lib/tenant-context";
 
 export const dynamic = "force-dynamic";
 
 export default async function PayPage({ params }: { params: { invoiceId: string } }) {
+  bindRlsBypass(); // public-by-unguessable-id flow (no session to bind an org from)
   const invoice = await prisma.invoice.findUnique({
     where: { id: params.invoiceId },
     include: {

@@ -12,6 +12,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -36,6 +37,10 @@ export default async function SchoolDashboardPage() {
       </Card>
     );
   }
+
+  // Bind the RLS tenant context before the roll-up queries below (the school
+  // admin is centre-scoped, so this resolves org via their centre).
+  await getOrgIdForSession(session);
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);

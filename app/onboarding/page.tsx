@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { OnboardingWizard } from "./wizard";
+import { bindRlsBypass } from "@/lib/tenant-context";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,7 @@ export default async function OnboardingPage({
 }: {
   searchParams: { centre?: string };
 }) {
+  bindRlsBypass(); // public-by-unguessable-id flow (no session to bind an org from)
   const slug = searchParams.centre;
   const centre = slug ? await prisma.centre.findUnique({ where: { slug } }) : null;
 
