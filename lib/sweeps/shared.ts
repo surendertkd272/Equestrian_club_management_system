@@ -22,6 +22,13 @@ export type SweepOpts = { force?: boolean };
 // ─────────────────────────────────────────────────────────────────────────────
 // Dedup helper — skip if any notif of (userId, type) referencing the same row
 // has been emitted in the last `windowMs` milliseconds.
+//
+// The rowKey is matched as a QUOTED JSON value (`"<id>"`), not a bare substring
+// (H5). The payload is JSON and ids are always stored quoted, so wrapping both
+// ends pins the match to the full id: previously `contains: rowKey` for a cuid
+// that is a prefix of another row's id (e.g. "clxAB" vs "clxABCD") matched the
+// longer id's payload and SUPPRESSED a legitimate, distinct escalation. cuids
+// contain no quotes, so `"<id>"` matches that exact id value and nothing else.
 export async function recentlyNotified(
   userId: string,
   type: string,
@@ -34,7 +41,7 @@ export async function recentlyNotified(
       userId,
       type,
       createdAt: { gte: since },
-      payload: { contains: rowKey },
+      payload: { contains: `"${rowKey}"` },
     },
     select: { id: true },
   });
