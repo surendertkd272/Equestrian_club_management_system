@@ -3,7 +3,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre, centreWhere } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { createRequisitionSchema } from "@/lib/schemas/requisition";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
@@ -19,12 +20,14 @@ export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
 
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
   const centreId = scopeCentre(session);
   const url = new URL(req.url);
   const mine = url.searchParams.get("mine") === "1";
   const queue = url.searchParams.get("queue");
 
-  const where: Prisma.RequisitionWhereInput = { ...centreWhere(centreId) };
+  const where: Prisma.RequisitionWhereInput = { ...tenantWhere(centreId, orgId) };
   if (mine) where.requestedByUserId = session.userId;
   if (queue === "manager") {
     if (!can(session.role, "requisition.approve_manager")) {
@@ -69,10 +72,16 @@ export async function POST(req: NextRequest) {
   if (!centreId && session.role === "SUPER_ADMIN" && parsed.data.centreId) {
     const c = await prisma.centre.findUnique({
       where: { id: parsed.data.centreId },
-      select: { id: true },
+      select: { id: true, orgId: true },
     });
     if (!c) {
       return NextResponse.json({ error: "INVALID_CENTRE" }, { status: 400 });
+    }
+    // Enforce the ownership the comment promises: the body centre must be in
+    // the caller's org, else an HQ user could post into another tenant.
+    const callerOrgId = await getOrgIdForSession(session);
+    if (!callerOrgId || c.orgId !== callerOrgId) {
+      return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
     }
     centreId = c.id;
   }

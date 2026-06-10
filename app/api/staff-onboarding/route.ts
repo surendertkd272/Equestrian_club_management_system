@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { audit } from "@/lib/audit";
 import { generateOnboardingLinkSchema } from "@/lib/schemas/onboarding-staff";
 import { hashOnboardingToken } from "@/lib/onboarding-token";
@@ -27,8 +28,15 @@ export async function POST(req: NextRequest) {
   let centreId = scopeCentre(session);
   if (!centreId && isHQ && d.centreId) centreId = d.centreId;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
-  const centre = await prisma.centre.findUnique({ where: { id: centreId }, select: { id: true } });
+  const centre = await prisma.centre.findUnique({ where: { id: centreId }, select: { id: true, orgId: true } });
   if (!centre) return NextResponse.json({ error: "CENTRE_NOT_FOUND" }, { status: 400 });
+  // Cross-org guard (C1): the centre (esp. an HQ body-supplied one) must belong
+  // to the caller's org — otherwise HQ could mint an onboarding link into
+  // another tenant's centre.
+  const callerOrgId = await getOrgIdForSession(session);
+  if (!callerOrgId || centre.orgId !== callerOrgId) {
+    return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+  }
 
   const plain = crypto.randomBytes(24).toString("base64url");
   const row = await prisma.employeeOnboarding.create({

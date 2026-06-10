@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { formatDate } from "@/lib/utils";
 import { loadEmployeeProfile, employeeFormRows } from "@/lib/employee-profile";
 import { AutoPrint } from "./auto-print";
@@ -23,7 +24,7 @@ export default async function StaffPrintPage({
   if (!session) redirect("/login");
   if (!CAN_VIEW.includes(session.role)) redirect("/staff");
 
-  const profile = await loadEmployeeProfile(params.id, scopeCentre(session));
+  const profile = await loadEmployeeProfile(params.id, scopeCentre(session), await getOrgIdForSession(session));
   if (!profile) notFound();
 
   const selected = new Set((searchParams.items ?? "form").split(",").map((s) => s.trim()).filter(Boolean));

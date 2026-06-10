@@ -7,7 +7,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre, centreWhere } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import {
   createShortLinkSchema,
   SHORT_LINK_KINDS,
@@ -33,9 +34,11 @@ export async function GET() {
   if (!canManageLinks(session.role)) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
   const centreId = scopeCentre(session);
   const rows = await prisma.shortLink.findMany({
-    where: centreWhere(centreId),
+    where: tenantWhere(centreId, orgId),
     orderBy: { createdAt: "desc" },
     take: 100,
   });
