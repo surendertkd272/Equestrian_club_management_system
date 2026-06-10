@@ -3,6 +3,7 @@
 // the route handler passes session.userId and we resolve from there.
 
 import { prisma } from "./prisma";
+import { bindTenantOrg, runWithRlsBypass } from "./tenant-context";
 
 // Canonical month key for the monthly-skill catalog ("YYYY-MM"), in IST so it
 // matches what /monthly-skills writes (UTC + 5h30m). The dashboard tracks the
@@ -15,14 +16,22 @@ export function currentYearMonth(): string {
 
 // Returns the rider tied to this signed-in user (or null if their portal access
 // hasn't been wired up by a manager yet).
+//
+// This IS the student portal's session→tenant resolution: it must read Rider
+// before any org is bound (scoped RLS bypass), and once found it binds the
+// rider's org so every downstream portal query runs inside the RLS backstop.
 export async function getRiderForUser(userId: string) {
-  return prisma.rider.findFirst({
-    where: { userId },
-    include: {
-      centre: { select: { name: true, slug: true } },
-      batch: { select: { name: true, dayOfWeek: true, startTime: true, endTime: true } },
-    },
-  });
+  const rider = await runWithRlsBypass(() =>
+    prisma.rider.findFirst({
+      where: { userId },
+      include: {
+        centre: { select: { name: true, slug: true, orgId: true } },
+        batch: { select: { name: true, dayOfWeek: true, startTime: true, endTime: true } },
+      },
+    }),
+  );
+  bindTenantOrg(rider?.centre.orgId ?? null);
+  return rider;
 }
 
 // Compact summary for the student dashboard card — 90-day attendance %,

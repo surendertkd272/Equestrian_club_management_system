@@ -5,6 +5,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
+import { bindRlsBypass } from "./tenant-context";
 
 const OWNER_COOKIE_NAME = "ew_owner_session";
 const OWNER_AUDIENCE = "owner";
@@ -89,6 +90,9 @@ export async function getOwnerSession(): Promise<OwnerSessionPayload | null> {
     if (!u || u.status !== "active") return null;
     if (u.tokenVersion !== payload.tokenVersion) return null;
   }
+  // Platform owner is cross-org by design — exempt this request's queries
+  // from the RLS org backstop (no-op unless RLS_ENFORCE=1).
+  bindRlsBypass();
   return payload;
 }
 

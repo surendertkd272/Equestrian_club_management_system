@@ -10,10 +10,12 @@ import { sendWhatsApp } from "@/lib/whatsapp";
 import { issueSaasInvoice } from "@/lib/saas-billing";
 import { isPlanKey } from "@/lib/plans";
 import { isFeatureEnabledForCentre } from "@/lib/features-gate";
+import { bindRlsBypass } from "@/lib/tenant-context";
 
 // Razorpay → us. Configure in dashboard with HTTPS URL + secret matching RAZORPAY_WEBHOOK_SECRET.
 // Idempotency is critical: Razorpay may retry; our verify endpoint may also have run.
 export async function POST(req: NextRequest) {
+  bindRlsBypass(); // signature-verified webhook, cross-org by design
   const signature = req.headers.get("x-razorpay-signature");
   const rawBody = await req.text();
 

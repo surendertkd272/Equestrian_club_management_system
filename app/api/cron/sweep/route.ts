@@ -4,6 +4,7 @@ import { alertSweepFailures } from "@/lib/sweeps/alert";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import crypto from "node:crypto";
+import { bindRlsBypass } from "@/lib/tenant-context";
 
 // Single-flight lock (H5) for the full nightly batch. A stale lock (crashed
 // holder) auto-expires after STALE_MS so the batch can never wedge permanently.
@@ -46,6 +47,7 @@ function isAuthorized(req: NextRequest): boolean {
 
 // POST = run sweeps. Optional ?job=<name> picks a single sweep; default runs all.
 export async function POST(req: NextRequest) {
+  bindRlsBypass(); // cron sweeps are cross-org by design
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
@@ -119,6 +121,7 @@ export async function POST(req: NextRequest) {
 
 // GET is the dry-run / status check (for cron schedulers that probe before scheduling).
 export async function GET(req: NextRequest) {
+  bindRlsBypass(); // cron sweeps are cross-org by design
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }

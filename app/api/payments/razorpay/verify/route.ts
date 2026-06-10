@@ -9,6 +9,7 @@ import { sendEmail, renderEmail } from "@/lib/email";
 import { sendWhatsApp } from "@/lib/whatsapp";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 import { isFeatureEnabledForCentre } from "@/lib/features-gate";
+import { bindRlsBypass } from "@/lib/tenant-context";
 
 const schema = z.object({
   invoiceId: z.string().min(1),
@@ -18,6 +19,7 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  bindRlsBypass(); // public-by-unguessable-id flow (no session to bind an org from)
   // Rate-limit per IP. The HMAC signature check below is the actual auth,
   // but unbounded retries against a leaked order/payment id can still pin
   // a CPU core re-running verifyCheckoutSignature. 30 requests / minute /

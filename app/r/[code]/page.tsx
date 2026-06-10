@@ -9,10 +9,12 @@
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { bindRlsBypass } from "@/lib/tenant-context";
 
 export const dynamic = "force-dynamic";
 
 export default async function ShortLinkRedeem({ params }: { params: { code: string } }) {
+  bindRlsBypass(); // public-by-unguessable-id flow (no session to bind an org from)
   const code = params.code.toUpperCase();
   if (!/^[0-9A-Z]{4,16}$/.test(code)) notFound();
 
