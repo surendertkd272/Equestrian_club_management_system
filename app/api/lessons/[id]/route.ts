@@ -50,16 +50,26 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
   const d = parsed.data;
 
-  const updated = await prisma.lesson.update({
-    where: { id: lesson.id },
-    data: {
-      ...(d.date !== undefined ? { date: new Date(d.date) } : {}),
-      ...(d.endAt !== undefined ? { endAt: new Date(d.endAt) } : {}),
-      ...(d.coachId !== undefined ? { coachId: d.coachId } : {}),
-      ...(d.status !== undefined ? { status: d.status } : {}),
-      ...(d.notes !== undefined ? { notes: d.notes } : {}),
-      ...(d.rescheduledToId !== undefined ? { rescheduledToId: d.rescheduledToId } : {}),
-    },
+  // Cancelling a lesson must release its horses: otherwise the lesson's
+  // HorseAllocation rows linger and keep blocking those horses (overlap) and
+  // consuming their daily cap — ghost bookings. Drop them in the same tx.
+  const willCancel = d.status === "cancelled" && lesson.status !== "cancelled";
+  const updated = await prisma.$transaction(async (tx) => {
+    const u = await tx.lesson.update({
+      where: { id: lesson.id },
+      data: {
+        ...(d.date !== undefined ? { date: new Date(d.date) } : {}),
+        ...(d.endAt !== undefined ? { endAt: new Date(d.endAt) } : {}),
+        ...(d.coachId !== undefined ? { coachId: d.coachId } : {}),
+        ...(d.status !== undefined ? { status: d.status } : {}),
+        ...(d.notes !== undefined ? { notes: d.notes } : {}),
+        ...(d.rescheduledToId !== undefined ? { rescheduledToId: d.rescheduledToId } : {}),
+      },
+    });
+    if (willCancel) {
+      await tx.horseAllocation.deleteMany({ where: { lessonId: lesson.id } });
+    }
+    return u;
   });
   await audit({
     userId: session.userId,
@@ -90,10 +100,13 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (!isHQ && lesson.centreId !== session.centreId) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
   }
-  // Allocation children (HorseAllocation) have onDelete: SetNull on lessonId
-  // so the delete succeeds without an explicit cascade; the allocation rows
-  // survive with lessonId=null for audit.
-  await prisma.lesson.delete({ where: { id: lesson.id } });
+  // Delete the lesson's HorseAllocation rows too. The FK is onDelete: SetNull,
+  // so without this the rows would survive with lessonId=null and keep blocking
+  // their horses (overlap) + consuming the daily cap — orphaned ghost bookings.
+  await prisma.$transaction([
+    prisma.horseAllocation.deleteMany({ where: { lessonId: lesson.id } }),
+    prisma.lesson.delete({ where: { id: lesson.id } }),
+  ]);
   await audit({ userId: session.userId, action: "delete", tableName: "lesson", rowId: lesson.id });
   return NextResponse.json({ ok: true });
 }
