@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runAllSweeps, SWEEP_JOBS, type SweepResult } from "@/lib/sweeps";
+import { alertSweepFailures } from "@/lib/sweeps/alert";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
 import crypto from "node:crypto";
@@ -92,11 +93,21 @@ export async function POST(req: NextRequest) {
       after: { elapsedMs, results },
     });
 
+    // Page ops about per-job failures (allSettled means they're inside
+    // `results`, not the catch below). Internally guarded — never throws.
+    await alertSweepFailures(results, { scope: job ?? "all", elapsedMs });
+
     return NextResponse.json({ ok: true, elapsedMs, results });
   } catch (e: any) {
     const elapsedMs = Date.now() - t0;
     const message = e instanceof Error ? e.message : String(e);
     console.error("[cron/sweep] run failed:", e);
+    // Whole-run/infrastructure failure (DB down, audit write threw) — alert
+    // with a synthetic result so ops hears about THIS class of failure too.
+    await alertSweepFailures(
+      [{ job: job ?? "all", scanned: 0, notified: 0, skipped: 0, error: message }],
+      { scope: job ?? "all", elapsedMs },
+    );
     return NextResponse.json(
       { ok: false, error: "SWEEP_FAILED", message, elapsedMs, job: job ?? "all" },
       { status: 500 },
