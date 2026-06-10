@@ -20,7 +20,7 @@
 //   ew_payment_received       — body params: {1}=rider name, {2}=amount, {3}=last-8 ref
 
 import { audit } from "./audit";
-import { logDispatchFailure } from "./notify-dispatch-log";
+import { logDispatchFailure, logDispatchSuccess, recentlySent } from "./notify-dispatch-log";
 import { normalizeIndianPhone } from "./sms";
 import { prisma } from "./prisma";
 import { hasFeature } from "./features-gate";
@@ -105,6 +105,13 @@ export async function sendWhatsApp(opts: {
     return { ok: true, skipped: true };
   }
 
+  // Per-channel idempotency (H5): skip a same-key delivery already sent within
+  // the dedupe window (crash-rerun guard). Only when a ref key is present.
+  if (opts.ref?.type && opts.ref?.rowId &&
+      (await recentlySent({ channel: "whatsapp", recipient: to, refType: opts.ref.type, refRowId: opts.ref.rowId }))) {
+    return { ok: true, skipped: true };
+  }
+
   const body = {
     messaging_product: "whatsapp",
     // Meta wants the number WITHOUT the leading +.
@@ -164,6 +171,7 @@ export async function sendWhatsApp(opts: {
       rowId: opts.ref?.rowId ?? "—",
       after: { to, template: opts.template.name, messageId, type: opts.ref?.type },
     });
+    await logDispatchSuccess({ channel: "whatsapp", recipient: to, refType: opts.ref?.type, refRowId: opts.ref?.rowId });
     return { ok: true, messageId };
   } catch (err) {
     await audit({

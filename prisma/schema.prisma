@@ -2869,9 +2869,15 @@ model AuditItem {
 // now the table is small enough not to need one.
 model NotificationDispatchLog {
   id        String   @id @default(cuid())
+  // "failed" (a dispatch error — the original use) or "sent" (a successful
+  // delivery, recorded for per-channel idempotency: a send helper skips a
+  // (channel, refType, refRowId, recipient) it already delivered within the
+  // dedupe window, so a crash-rerun can't re-send one channel while dropping
+  // another — H5). Existing rows default to "failed".
+  status    String   @default("failed")
   channel   String   // "sms" | "email" | "whatsapp"
   // Error code from the dispatcher (lib/sms.ts etc.) — e.g. "TWILIO_429",
-  // "META_400", "NETWORK", "INVALID_PHONE", "INVALID_ADDRESS".
+  // "META_400", "NETWORK", "INVALID_PHONE", "INVALID_ADDRESS". Empty for "sent".
   error     String
   // E.164 phone or email address. Useful for "did this user's number
   // bounce twice in a row?" — but PII; restrict the read surface.
@@ -2885,6 +2891,8 @@ model NotificationDispatchLog {
 
   @@index([channel, createdAt])
   @@index([createdAt])
+  // The per-channel dedupe lookup (recentlySent): exact key + recency.
+  @@index([channel, refType, refRowId, status, createdAt])
 }
 
 // Single-flight lock for the nightly sweep batch (H5). One row (id="sweep").

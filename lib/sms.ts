@@ -7,7 +7,7 @@
 //   - All dispatches are fire-and-forget at the call site; never throws
 
 import { audit } from "./audit";
-import { logDispatchFailure } from "./notify-dispatch-log";
+import { logDispatchFailure, logDispatchSuccess, recentlySent } from "./notify-dispatch-log";
 
 export type SendSmsResult =
   | { ok: true; sid?: string; skipped?: boolean }
@@ -75,6 +75,14 @@ export async function sendSms(opts: {
     return { ok: true, skipped: true };
   }
 
+  // Per-channel idempotency (H5): skip if we already delivered this exact
+  // (sms, type, row, recipient) within the dedupe window — guards a crash-rerun
+  // from re-sending. Only when a ref key is present.
+  if (opts.ref?.type && opts.ref?.rowId &&
+      (await recentlySent({ channel: "sms", recipient: to, refType: opts.ref.type, refRowId: opts.ref.rowId }))) {
+    return { ok: true, skipped: true };
+  }
+
   const sid = process.env.TWILIO_ACCOUNT_SID!;
   const token = process.env.TWILIO_AUTH_TOKEN!;
   const from = process.env.TWILIO_FROM!;
@@ -115,6 +123,7 @@ export async function sendSms(opts: {
       rowId: opts.ref?.rowId ?? "—",
       after: { to, body, sid: data.sid, type: opts.ref?.type },
     });
+    await logDispatchSuccess({ channel: "sms", recipient: to, refType: opts.ref?.type, refRowId: opts.ref?.rowId });
     return { ok: true, sid: data.sid };
   } catch (err) {
     await audit({
