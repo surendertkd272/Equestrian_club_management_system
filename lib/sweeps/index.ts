@@ -28,6 +28,8 @@ import { sweepBinPurge } from "./bin-purge";
 import { sweepCoachUpdateReminder } from "./coach-update-reminder";
 import { sweepOnboardingDocsOverdue } from "./onboarding-docs-overdue";
 import { sweepOnboardingLinkPurge } from "./onboarding-link-purge";
+import { sweepTaskEscalation } from "./task-escalation";
+import { sweepRecurringTasks } from "./recurring-tasks";
 
 export {
   sweepFeeDue,
@@ -49,6 +51,8 @@ export {
   sweepCoachUpdateReminder,
   sweepOnboardingDocsOverdue,
   sweepOnboardingLinkPurge,
+  sweepTaskEscalation,
+  sweepRecurringTasks,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -90,4 +94,6 @@ export const SWEEP_JOBS: Record<string, (opts?: SweepOpts) => Promise<SweepResul
   coach_update_reminder: () => sweepCoachUpdateReminder(),
   onboarding_docs_overdue: () => sweepOnboardingDocsOverdue(),
   onboarding_link_purge: () => sweepOnboardingLinkPurge(),
+  task_escalation: () => sweepTaskEscalation(),
+  recurring_tasks: () => sweepRecurringTasks(),
 };
