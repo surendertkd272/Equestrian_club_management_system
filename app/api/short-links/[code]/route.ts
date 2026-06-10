@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 
@@ -32,9 +33,17 @@ export async function DELETE(_req: NextRequest, { params }: { params: { code: st
   const link = await prisma.shortLink.findUnique({ where: { code: params.code } });
   if (!link) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
 
-  // Centre-scope guard. SUPER_ADMIN bypasses; everyone else must own the
-  // link's centre. This mirrors the listing query in GET (centreWhere).
-  if (session.role !== "SUPER_ADMIN" && link.centreId !== session.centreId) {
+  // Centre-scope guard. SUPER_ADMIN may cross centres but only within their own
+  // org (C1); centre-scoped roles must own the link's centre.
+  if (session.role === "SUPER_ADMIN") {
+    const [callerOrg, linkOrg] = await Promise.all([
+      getOrgIdForSession(session),
+      getOrgIdForCentre(link.centreId),
+    ]);
+    if (!callerOrg || callerOrg !== linkOrg) {
+      return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+    }
+  } else if (link.centreId !== session.centreId) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
   }
 

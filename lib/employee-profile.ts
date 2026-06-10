@@ -4,7 +4,7 @@
 // we synthesise the same shape from Staff.kycDocsJson + the linked User so the
 // profile and print packet work uniformly either way.
 import { prisma } from "./prisma";
-import { centreWhere } from "./tenancy";
+import { tenantWhere } from "./tenancy";
 import { ONBOARDING_ITEMS } from "./onboarding-items";
 import { formatDate } from "./utils";
 import { decryptPIISafe } from "./pii";
@@ -134,9 +134,12 @@ export type EmployeeProfile = {
 // Load a staff member's profile + registration data + uploaded documents,
 // scoped to the caller's centre (centreId null = HQ, sees all). Prefers the
 // EmployeeOnboarding row; falls back to synthesising from the Staff record.
-export async function loadEmployeeProfile(staffId: string, centreId: string | null): Promise<EmployeeProfile | null> {
+export async function loadEmployeeProfile(staffId: string, centreId: string | null, orgId: string | null): Promise<EmployeeProfile | null> {
+  // Org-scope (C1): HQ ("all centres", centreId null) is bounded to its own org,
+  // not every tenant's staff. Fail closed if the caller's org can't be resolved.
+  if (!orgId) return null;
   const staff = await prisma.staff.findFirst({
-    where: { id: staffId, ...centreWhere(centreId) },
+    where: { id: staffId, ...tenantWhere(centreId, orgId) },
     include: { user: { select: { name: true, email: true, phone: true, photoUrl: true } } },
   });
   if (!staff) return null;

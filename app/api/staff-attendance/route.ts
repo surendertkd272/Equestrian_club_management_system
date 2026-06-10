@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { blockIfFeatureOff } from "@/lib/features-gate";
+import { blockIfFeatureOff, getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
-import { scopeCentre, centreWhere } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 
 // GET /api/staff-attendance?from=YYYY-MM-DD&to=YYYY-MM-DD&userId=... — list rows in a window.
 // Manager/head-coach/etc. see their centre; super-admin can pass ?centre=<id>.
@@ -22,9 +22,11 @@ export async function GET(req: NextRequest) {
   const userId = url.searchParams.get("userId");
   const requestedCentre = url.searchParams.get("centre");
 
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
   const scopedCentre = scopeCentre(session, requestedCentre);
 
-  const where: Record<string, unknown> = { ...centreWhere(scopedCentre) };
+  const where: Record<string, unknown> = { ...tenantWhere(scopedCentre, orgId) };
   if (userId) where.userId = userId;
   if (from || to) {
     const range: Record<string, Date> = {};

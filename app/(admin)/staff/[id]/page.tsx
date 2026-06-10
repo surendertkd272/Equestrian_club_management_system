@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, FileText } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -18,7 +19,7 @@ export default async function StaffProfilePage({ params }: { params: { id: strin
   const session = (await getSession())!;
   if (!CAN_VIEW.includes(session.role)) redirect("/staff");
 
-  const profile = await loadEmployeeProfile(params.id, scopeCentre(session));
+  const profile = await loadEmployeeProfile(params.id, scopeCentre(session), await getOrgIdForSession(session));
   if (!profile) notFound();
 
   const { staff, docs, declarationName, hasOnboarding } = profile;

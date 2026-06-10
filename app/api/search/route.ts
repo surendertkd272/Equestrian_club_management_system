@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession } from "@/lib/features-gate";
 
 // GET /api/search?q=… — backing for the Cmd+K palette.
 //
@@ -37,12 +38,17 @@ export async function GET(req: NextRequest) {
   const q = new URL(req.url).searchParams.get("q")?.trim() ?? "";
   if (q.length < 2) return NextResponse.json({ hits: [] });
 
-  // Centre scoping. SUPER_ADMIN sees everything; others see their centre.
+  // Org-scoped centre filter (C1): HQ "all centres" stays bounded to the
+  // caller's org, never every tenant's data. Fail closed if org unresolved.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
   const centreId = scopeCentre(session);
-  const centreFilter = centreId ? { centreId } : {};
-  const ridersWhere = centreId ? { ...centreFilter } : {};
-  const horsesWhere = centreId ? { ...centreFilter } : {};
-  const certsWhere = centreId ? { ...centreFilter } : {};
+  // { centreId?, centre: { orgId } } — narrows to one centre for centre-scoped
+  // roles, org-bounds for HQ. Applies to every centre-owned table below.
+  const tWhere = tenantWhere(centreId, orgId);
+  const ridersWhere = tWhere;
+  const horsesWhere = tWhere;
+  const certsWhere = tWhere;
 
   const [riders, horses, users, centres, certs, exams, batches, meds] = await Promise.all([
     prisma.rider.findMany({
@@ -76,7 +82,9 @@ export async function GET(req: NextRequest) {
     session.role === "SUPER_ADMIN"
       ? prisma.user.findMany({
           where: {
-            OR: [{ name: { contains: q } }, { email: { contains: q } }],
+            // Org-bound: HQ users carry orgId, centre staff resolve via centre.orgId.
+            OR: [{ orgId }, { centre: { orgId } }],
+            AND: [{ OR: [{ name: { contains: q } }, { email: { contains: q } }] }],
           },
           select: { id: true, name: true, email: true, role: true, centre: { select: { name: true } } },
           take: 5,
@@ -94,7 +102,7 @@ export async function GET(req: NextRequest) {
     // Centres — HQ-only.
     session.role === "SUPER_ADMIN"
       ? prisma.centre.findMany({
-          where: { OR: [{ name: { contains: q } }, { slug: { contains: q.toLowerCase() } }] },
+          where: { orgId, OR: [{ name: { contains: q } }, { slug: { contains: q.toLowerCase() } }] },
           select: { id: true, name: true, slug: true },
           take: 5,
           orderBy: { name: "asc" },
@@ -115,7 +123,7 @@ export async function GET(req: NextRequest) {
     // Exams — look up by examiner name or rider name.
     prisma.exam.findMany({
       where: {
-        ...(centreId ? centreFilter : {}),
+        ...tWhere,
         OR: [
           { examinerName: { contains: q } },
           { rider: { firstName: { contains: q } } },
@@ -135,7 +143,7 @@ export async function GET(req: NextRequest) {
     }),
     prisma.batch.findMany({
       where: {
-        ...(centreId ? centreFilter : {}),
+        ...tWhere,
         OR: [{ name: { contains: q } }, { level: { contains: q } }],
       },
       select: { id: true, name: true, level: true, dayOfWeek: true, startTime: true },
@@ -144,7 +152,7 @@ export async function GET(req: NextRequest) {
     }),
     prisma.medicine.findMany({
       where: {
-        ...(centreId ? centreFilter : {}),
+        ...tWhere,
         OR: [{ name: { contains: q } }, { generic: { contains: q } }, { batchNo: { contains: q } }],
       },
       select: { id: true, name: true, generic: true, category: true, qty: true },
