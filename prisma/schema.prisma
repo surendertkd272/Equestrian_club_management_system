@@ -1669,17 +1669,29 @@ model Task {
   // and fall back to dueAt.
   overdueSince DateTime?
   recurrence  String?
+  // Set once, by sweepRecurringTasks, when this task has spawned its next
+  // occurrence — the idempotency guard so the expander never double-generates
+  // (even if the cron runs twice or overlaps). Null = not yet spawned.
+  recurrenceSpawnedAt DateTime?
   status      String   @default("open") // open | in_progress | done | overdue | escalated
   proofUrl    String?
   // Stamped when status flips to done — lets the "Tasks Completed" view show
   // when, and feeds completion-rate reporting.
   completedAt DateTime?
+  // Stamped by sweepTaskEscalation when an overdue task is escalated (manager +
+  // delegator notified). Dedup guard so escalation fires once, and powers a
+  // truthful "escalated" badge/filter without re-deriving from dueAt.
+  escalatedAt DateTime?
   createdAt   DateTime @default(now())
 
   centre Centre @relation(fields: [centreId], references: [id])
 
   @@index([centreId, assignedById])
   @@index([centreId, assigneeId])
+  // The two sweeps scan by these — escalation finds overdue-not-escalated,
+  // recurrence finds due-not-spawned.
+  @@index([status, escalatedAt])
+  @@index([recurrence, recurrenceSpawnedAt])
 }
 
 // ──────────────────────────────────────────────────────────────────────────
