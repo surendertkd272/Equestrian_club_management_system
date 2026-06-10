@@ -3,7 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre, centreWhere } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 
@@ -26,6 +27,8 @@ export async function GET(req: NextRequest) {
   if (!can(session.role, "staff.attendance")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
   const centreId = scopeCentre(session);
   const url = new URL(req.url);
   const staffUserId = url.searchParams.get("staffUserId");
@@ -33,7 +36,7 @@ export async function GET(req: NextRequest) {
 
   const events = await prisma.staffGateEvent.findMany({
     where: {
-      ...centreWhere(centreId),
+      ...tenantWhere(centreId, orgId),
       ...(staffUserId ? { staffUserId } : {}),
       occurredAt: { gte: new Date(fromMs) },
     },
@@ -65,6 +68,17 @@ export async function POST(req: NextRequest) {
       ? parsed.data.centreId ?? null
       : scopeCentre(session);
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
+
+  // Cross-org guard (C1): an HQ user supplying centreId in the body must not
+  // log into a centre outside their own org. Centre-scoped roles are pinned to
+  // their own in-org centre by scopeCentre, so only the HQ body path needs it.
+  if (session.role === "SUPER_ADMIN" || session.role === "ADMIN") {
+    const callerOrgId = await getOrgIdForSession(session);
+    const targetOrgId = await getOrgIdForCentre(centreId);
+    if (!callerOrgId || targetOrgId !== callerOrgId) {
+      return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+    }
+  }
 
   // Confirm the staff user belongs to this centre — prevents a hostile
   // payload from logging gate events against someone else's roster.

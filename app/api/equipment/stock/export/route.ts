@@ -9,7 +9,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { EQUIPMENT_CATEGORY_ORDER } from "@/lib/schemas/equipment";
 
 function csvCell(v: unknown): string {
@@ -30,13 +31,29 @@ export async function GET(req: NextRequest) {
   const centreId = requested && isHQ ? requested : scopeCentre(session);
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
 
+  // Fail closed: every export targets a concrete centre, so the caller's org
+  // must resolve. Without it we can't prove the centre belongs to them.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
+
+  // HQ can pass ?centreId= for ANY centre — including another org's. Validate
+  // the targeted centre lives under the caller's org before exporting it.
+  // (tenantWhere also makes a foreign centreId yield 0 stock rows, but the
+  // centre lookup below would still leak its name/slug without this check.)
+  if (requested && isHQ) {
+    const targetOrg = await getOrgIdForCentre(centreId);
+    if (targetOrg !== orgId) {
+      return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+    }
+  }
+
   const [centre, catalog, stocks] = await Promise.all([
     prisma.centre.findUnique({ where: { id: centreId }, select: { name: true, slug: true } }),
     prisma.equipmentCatalog.findMany({
       where: { active: true },
       orderBy: [{ category: "asc" }, { name: "asc" }],
     }),
-    prisma.equipmentStock.findMany({ where: { centreId } }),
+    prisma.equipmentStock.findMany({ where: tenantWhere(centreId, orgId) }),
   ]);
 
   if (!centre) return NextResponse.json({ error: "CENTRE_NOT_FOUND" }, { status: 404 });

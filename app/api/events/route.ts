@@ -3,10 +3,10 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { centreWhere, scopeCentre } from "@/lib/tenancy";
+import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { createEventSchema } from "@/lib/schemas/event";
 import { audit } from "@/lib/audit";
-import { blockIfFeatureOff } from "@/lib/features-gate";
+import { blockIfFeatureOff, getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 
 // POST — create a new event (clinic, schooling, fundraiser, etc.). Status
 // starts at draft. Slug, if supplied, must be globally unique because the
@@ -26,8 +26,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
 
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
+
   const centreId = scopeCentre(session) ?? (body?.centreId as string | undefined);
   if (!centreId) return NextResponse.json({ error: "centreId required" }, { status: 400 });
+
+  // HQ can target any centre via body.centreId — confirm it's within their org
+  // before writing, so an HQ admin can't create events under another org's centre.
+  if ((await getOrgIdForCentre(centreId)) !== orgId) {
+    return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+  }
 
   if (parsed.data.slug) {
     const dupe = await prisma.event.findUnique({ where: { slug: parsed.data.slug } });
@@ -71,9 +80,11 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
   const url = new URL(req.url);
   const centreId = scopeCentre(session);
-  const where: Prisma.EventWhereInput = { ...centreWhere(centreId) };
+  const where: Prisma.EventWhereInput = { ...tenantWhere(centreId, orgId) };
   const status = url.searchParams.get("status");
   const type = url.searchParams.get("type");
   if (status) where.status = status;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { updateStockSchema } from "@/lib/schemas/equipment";
 import { audit } from "@/lib/audit";
 import { notifyLowStockIfCrossed } from "@/lib/equipment-notify";
@@ -40,8 +41,24 @@ export async function PATCH(
   const url = new URL(req.url);
   const requested = url.searchParams.get("centreId");
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  const centreId = requested && isHQ ? requested : scopeCentre(session);
+  const fromParam = requested && isHQ;
+  const centreId = fromParam ? requested : scopeCentre(session);
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
+
+  // Cross-org guard (C1): an HQ user targeting a centre by ?centreId= must not
+  // be able to write into a centre outside their own Organisation. scopeCentre
+  // already pins centre-scoped roles to their own (in-org) centre, so only the
+  // param-driven HQ path can target a foreign centre. The composite-key upsert
+  // and the raw FOR UPDATE below act on this centreId directly, so validate it
+  // explicitly here (tenantWhere can't guard a write-by-key).
+  if (fromParam) {
+    const callerOrgId = await getOrgIdForSession(session);
+    if (!callerOrgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
+    const targetOrgId = await getOrgIdForCentre(centreId);
+    if (!targetOrgId || targetOrgId !== callerOrgId) {
+      return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+    }
+  }
 
   const catalog = await prisma.equipmentCatalog.findUnique({ where: { id: params.catalogId } });
   if (!catalog) return NextResponse.json({ error: "CATALOG_NOT_FOUND" }, { status: 404 });
