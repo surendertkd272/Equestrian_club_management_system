@@ -46,89 +46,99 @@ export async function PATCH(
   const catalog = await prisma.equipmentCatalog.findUnique({ where: { id: params.catalogId } });
   if (!catalog) return NextResponse.json({ error: "CATALOG_NOT_FOUND" }, { status: 404 });
 
-  const existing = await prisma.equipmentStock.findUnique({
-    where: { centreId_catalogId: { centreId, catalogId: catalog.id } },
-  });
+  // H2 — serialize concurrent adjustments for this (centre, catalog) pair.
+  // The whole read → compute → upsert → movement runs inside a transaction
+  // that first takes SELECT … FOR UPDATE on the stock row, so two delta writes
+  // can't both read the same prev value and lose an update (and the audited
+  // movement delta is computed from the locked prev, not a stale read). A
+  // first-touch double-create (no row to lock yet) raises P2002 and is retried
+  // once — by then the row exists and takes the locked update path.
+  let stock: Awaited<ReturnType<typeof prisma.equipmentStock.upsert>>;
+  let newQty = 0;
+  let newThreshold: number | null = null;
+  let previousQty = 0;
+  let beforeThreshold: number | null = null;
 
-  const previousQty = existing?.qty ?? 0;
-  // Compute the new state. Condition-state inputs (qtyUnused etc) are the
-  // new source of truth; legacy `qty` / `delta` still work for back-compat.
-  // We always keep `qty` = qtyUnused + qtyInUse for the low-stock sweep
-  // and any older API consumers.
-  const prevUnused = existing?.qtyUnused ?? 0;
-  const prevInUse = existing?.qtyInUse ?? 0;
-  const prevForRepair = existing?.qtyForRepair ?? 0;
-  const prevDamaged = existing?.qtyDamaged ?? 0;
+  const runTx = () =>
+    prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "EquipmentStock" WHERE "centreId" = ${centreId} AND "catalogId" = ${catalog.id} FOR UPDATE`;
+      const existing = await tx.equipmentStock.findUnique({
+        where: { centreId_catalogId: { centreId, catalogId: catalog.id } },
+      });
+      previousQty = existing?.qty ?? 0;
+      beforeThreshold = existing?.threshold ?? null;
+      const prevUnused = existing?.qtyUnused ?? 0;
+      const prevInUse = existing?.qtyInUse ?? 0;
+      const prevForRepair = existing?.qtyForRepair ?? 0;
+      const prevDamaged = existing?.qtyDamaged ?? 0;
 
-  let newUnused = parsed.data.qtyUnused ?? prevUnused;
-  let newInUse = parsed.data.qtyInUse ?? prevInUse;
-  let newForRepair = parsed.data.qtyForRepair ?? prevForRepair;
-  let newDamaged = parsed.data.qtyDamaged ?? prevDamaged;
+      let newUnused = parsed.data.qtyUnused ?? prevUnused;
+      const newInUse = parsed.data.qtyInUse ?? prevInUse;
+      const newForRepair = parsed.data.qtyForRepair ?? prevForRepair;
+      const newDamaged = parsed.data.qtyDamaged ?? prevDamaged;
+      // Legacy qty/delta path → treated as qtyUnused so the row stays correct.
+      if (parsed.data.qty !== undefined) {
+        newUnused = parsed.data.qty;
+      } else if (parsed.data.delta !== undefined) {
+        newUnused = Math.max(0, prevUnused + parsed.data.delta);
+      }
+      newQty = newUnused + newInUse; // cached "available" for the low-stock sweep
+      newThreshold = parsed.data.threshold === undefined ? existing?.threshold ?? null : parsed.data.threshold;
+      const isRestock = newQty > previousQty;
 
-  // Legacy qty/delta path: when an old caller sets qty / delta, treat
-  // the value as "qtyUnused" so the row stays semantically correct.
-  let legacyTouchedQty = false;
-  if (parsed.data.qty !== undefined) {
-    newUnused = parsed.data.qty;
-    legacyTouchedQty = true;
-  } else if (parsed.data.delta !== undefined) {
-    newUnused = Math.max(0, prevUnused + parsed.data.delta);
-    legacyTouchedQty = true;
-  }
+      const s = await tx.equipmentStock.upsert({
+        where: { centreId_catalogId: { centreId, catalogId: catalog.id } },
+        create: {
+          centreId,
+          catalogId: catalog.id,
+          qty: newQty,
+          qtyUnused: newUnused,
+          qtyInUse: newInUse,
+          qtyForRepair: newForRepair,
+          qtyDamaged: newDamaged,
+          newRequired: parsed.data.newRequired ?? 0,
+          owner: parsed.data.owner ?? null,
+          notes: parsed.data.notes ?? null,
+          threshold: newThreshold,
+          lastRestockedAt: isRestock ? new Date() : null,
+        },
+        update: {
+          qty: newQty,
+          qtyUnused: newUnused,
+          qtyInUse: newInUse,
+          qtyForRepair: newForRepair,
+          qtyDamaged: newDamaged,
+          ...(parsed.data.newRequired !== undefined ? { newRequired: parsed.data.newRequired } : {}),
+          ...(parsed.data.owner !== undefined ? { owner: parsed.data.owner } : {}),
+          ...(parsed.data.notes !== undefined ? { notes: parsed.data.notes } : {}),
+          threshold: newThreshold,
+          ...(isRestock ? { lastRestockedAt: new Date(), lastLowNotifiedAt: null } : {}),
+        },
+      });
 
-  // Cached "available" qty — what the low-stock sweep compares to.
-  const newQty = newUnused + newInUse;
-
-  const newThreshold =
-    parsed.data.threshold === undefined ? existing?.threshold ?? null : parsed.data.threshold;
-
-  // Restock = qty went UP. Resets the low-stock dedup so a future dip can
-  // re-fire the notification.
-  const isRestock = newQty > previousQty;
-
-  const stock = await prisma.equipmentStock.upsert({
-    where: { centreId_catalogId: { centreId, catalogId: catalog.id } },
-    create: {
-      centreId,
-      catalogId: catalog.id,
-      qty: newQty,
-      qtyUnused: newUnused,
-      qtyInUse: newInUse,
-      qtyForRepair: newForRepair,
-      qtyDamaged: newDamaged,
-      newRequired: parsed.data.newRequired ?? 0,
-      owner: parsed.data.owner ?? null,
-      notes: parsed.data.notes ?? null,
-      threshold: newThreshold,
-      lastRestockedAt: isRestock ? new Date() : null,
-    },
-    update: {
-      qty: newQty,
-      qtyUnused: newUnused,
-      qtyInUse: newInUse,
-      qtyForRepair: newForRepair,
-      qtyDamaged: newDamaged,
-      ...(parsed.data.newRequired !== undefined ? { newRequired: parsed.data.newRequired } : {}),
-      ...(parsed.data.owner !== undefined ? { owner: parsed.data.owner } : {}),
-      ...(parsed.data.notes !== undefined ? { notes: parsed.data.notes } : {}),
-      threshold: newThreshold,
-      ...(isRestock ? { lastRestockedAt: new Date(), lastLowNotifiedAt: null } : {}),
-    },
-  });
-
-  // Always record the movement, even threshold-only updates (delta=0). The
-  // audit row helps reconstruct who set the threshold from what to what.
-  if (parsed.data.qty !== undefined || parsed.data.delta !== undefined) {
-    const delta = newQty - previousQty;
-    await prisma.equipmentStockMovement.create({
-      data: {
-        stockId: stock.id,
-        delta,
-        reason: parsed.data.reason,
-        notes: parsed.data.notes ?? null,
-        actorId: session.userId,
-      },
+      // Always record the movement, even threshold-only updates (delta=0).
+      if (parsed.data.qty !== undefined || parsed.data.delta !== undefined) {
+        await tx.equipmentStockMovement.create({
+          data: {
+            stockId: s.id,
+            delta: newQty - previousQty,
+            reason: parsed.data.reason,
+            notes: parsed.data.notes ?? null,
+            actorId: session.userId,
+          },
+        });
+      }
+      return s;
     });
+
+  try {
+    stock = await runTx();
+  } catch (e: any) {
+    if (e?.code === "P2002") {
+      stock = await runTx();
+    } else {
+      throw e;
+    }
   }
 
   await audit({
@@ -136,7 +146,7 @@ export async function PATCH(
     action: "equipment_stock.update",
     tableName: "equipmentStock",
     rowId: stock.id,
-    before: { qty: previousQty, threshold: existing?.threshold ?? null },
+    before: { qty: previousQty, threshold: beforeThreshold },
     after: { qty: newQty, threshold: newThreshold },
   });
 
