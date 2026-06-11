@@ -3,6 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import type { Role } from "./roles";
+import { bindTenantOrg } from "./tenant-context";
 
 const COOKIE_NAME = "ew_session";
 
@@ -116,7 +117,8 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
         tokenVersion: true,
         status: true,
         deletionRequestedAt: true,
-        centre: { select: { org: { select: { status: true } } } },
+        orgId: true,
+        centre: { select: { orgId: true, org: { select: { status: true } } } },
         org: { select: { status: true } },
       },
     });
@@ -128,6 +130,13 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
     if (u.deletionRequestedAt) return null;
     const orgStatus = u.centre?.org?.status ?? u.org?.status;
     if (orgStatus === "suspended") return null;
+    // RLS backstop: bind this request's org for the Postgres policies. getSession
+    // is the one chokepoint EVERY authenticated route + page hits, so binding
+    // here means even API routes that only filter by centreId in app-code (and
+    // never call getOrgIdForSession) still run inside the org-scoped policies
+    // under RLS_ENFORCE=1. No-op when the flag is off. Parent/Rider portals
+    // (whose org comes from links, not User.orgId) re-bind in their resolvers.
+    bindTenantOrg(u.orgId ?? u.centre?.orgId ?? null);
   }
   // Honour explicit impersonation expiry too — separate from JWT exp so we
   // can cap impersonated sessions to 30 min regardless of the JWT TTL.
