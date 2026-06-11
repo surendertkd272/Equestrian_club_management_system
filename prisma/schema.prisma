@@ -933,6 +933,9 @@ model Attendance {
 
   @@unique([riderId, batchId, date])
   @@index([date])
+  // Attendance roster is loaded per-batch per-day; the unique index leads with
+  // riderId so batchId isn't a usable prefix for the (batchId, date) filter.
+  @@index([batchId, date])
 }
 
 // A specific instance of a Batch on a given date. Batches define the
@@ -1499,6 +1502,9 @@ model HorseAllocation {
 
   @@index([horseId, startAt])
   @@index([lessonId])
+  // Student/parent portals + per-rider allocation views filter on riderId
+  // (nullable FK, not auto-indexed).
+  @@index([riderId, startAt])
 }
 
 // Per-horse feeding plan. JSON-as-text keeps the SQLite-portable rule the
@@ -1597,6 +1603,14 @@ model MedicineUsage {
 
   medicine Medicine @relation(fields: [medicineId], references: [id])
   horse    Horse    @relation(fields: [horseId], references: [id])
+
+  // Both FKs were unindexed (table had only requestKey @unique). The medicine
+  // detail page reads usage by medicineId and the horse medical-history tab by
+  // horseId — both order by usedAt desc — and this append-only table grows
+  // with every prescription. Under RLS each scanned row also runs the via-fk
+  // EXISTS(Medicine) check, so an unindexed seq scan compounds.
+  @@index([medicineId, usedAt])
+  @@index([horseId, usedAt])
 }
 
 // Vet visit — a journal entry the on-site or visiting vet records against a
@@ -1830,6 +1844,9 @@ model Invoice {
   // Admin/finance views filter heavily by centre (+ status); FK columns are
   // NOT auto-indexed in Postgres, so index it explicitly.
   @@index([centreId, status])
+  // Student/parent portals count unpaid invoices per rider on every load
+  // (where riderId + status); no riderId-leading index existed.
+  @@index([riderId, status])
 }
 
 model Payment {
@@ -1895,6 +1912,9 @@ model Certificate {
   @@index([examId])
   @@index([centreId, revokedAt])
   @@index([batchTag])
+  // Student/parent portals + monthly-report sweep fetch a rider's latest
+  // certificate (where riderId, order by issuedAt) — no riderId index existed.
+  @@index([riderId, issuedAt])
 }
 
 // ──────────────────────────────────────────────────────────────────────────
