@@ -5,23 +5,12 @@ import { can } from "@/lib/permissions";
 import { createAllocationSchema, DEFAULT_WORKLOAD_CAP_MIN } from "@/lib/schemas/horse";
 import { audit } from "@/lib/audit";
 import { AllocConflict } from "@/lib/allocation-guard";
+import { startOfDayInTz, endOfDayInTz, sameLocalDay } from "@/lib/tz";
 
 function parseLocalDate(s: string): Date {
   // Accept "YYYY-MM-DDTHH:MM" (local) or full ISO; treat plain form as local time.
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)) return new Date(s);
   return new Date(s);
-}
-
-function startOfDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-
-function endOfDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(23, 59, 59, 999);
-  return x;
 }
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -36,7 +25,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
   const d = parsed.data;
 
-  const horse = await prisma.horse.findUnique({ where: { id: params.id } });
+  const horse = await prisma.horse.findUnique({
+    where: { id: params.id },
+    include: { centre: { select: { timezone: true } } },
+  });
   if (!horse) return NextResponse.json({ error: "HORSE_NOT_FOUND" }, { status: 404 });
   if (session.role !== "SUPER_ADMIN" && horse.centreId !== session.centreId) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
@@ -66,6 +58,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     );
   }
 
+  const tz = horse.centre.timezone; // day-bucketing in the centre's local zone
   const startAt = parseLocalDate(d.startAt);
   const endAt = parseLocalDate(d.endAt);
   if (!(endAt > startAt)) {
@@ -78,7 +71,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // count correctly. (endAt is treated as exclusive so a session ending exactly
   // at midnight still counts as same-day.)
   const endDayRef = new Date(endAt.getTime() - 1);
-  if (startOfDay(startAt).getTime() !== startOfDay(endDayRef).getTime()) {
+  if (!sameLocalDay(startAt, endDayRef, tz)) {
     return NextResponse.json(
       { error: "MULTI_DAY_ALLOCATION", message: "An allocation must fall within a single day; split multi-day bookings into one per day." },
       { status: 400 },
@@ -114,8 +107,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       }
 
       // Daily workload cap (active hours on the start-day).
-      const dayStart = startOfDay(startAt);
-      const dayEnd = endOfDay(startAt);
+      const dayStart = startOfDayInTz(startAt, tz);
+      const dayEnd = endOfDayInTz(startAt, tz);
       const sameDay = await tx.horseAllocation.findMany({
         where: { horseId: horse.id, startAt: { gte: dayStart, lte: dayEnd } },
         select: { startAt: true, endAt: true },
