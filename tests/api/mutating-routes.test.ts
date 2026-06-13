@@ -215,8 +215,9 @@ describe("POST /api/requisitions", () => {
   it("rejects a caller without requisition.submit", async () => {
     const org = await mkOrg();
     const centre = await mkCentre({ orgId: org.id });
-    const groom = await mkUser({ role: "GROOM", centreId: centre.id });
-    await signInAs(groom);
+    // RIDER lacks requisition.submit (GROOM was granted it).
+    const rider = await mkUser({ role: "RIDER", centreId: centre.id });
+    await signInAs(rider);
 
     const res = await postRequisition(
       jsonReq("http://localhost/api/requisitions", {

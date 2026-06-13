@@ -11,6 +11,9 @@ export default defineConfig({
     environment: "node",
     include: ["lib/**/*.test.ts", "tests/**/*.test.ts"],
     globalSetup: ["./tests/global-setup.ts"],
+    // Per-file setup: shims React's RSC-only `cache()` so auth-importing
+    // integration tests can run under plain vitest (see tests/setup.ts).
+    setupFiles: ["./tests/setup.ts"],
     // Each test file gets a fresh fork (and thus a fresh PrismaClient). Running files
     // sequentially keeps the shared Postgres session from contending. Per-file isolation
     // also matters for test ordering — phantom FK errors used to crop up under SQLite

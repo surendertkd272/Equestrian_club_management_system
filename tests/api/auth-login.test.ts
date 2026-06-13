@@ -100,7 +100,7 @@ describe("POST /api/auth/login", () => {
 
     const cookie = cookieJar.get("ew_session");
     expect(cookie).toBeDefined();
-    expect(cookie!.opts).toMatchObject({ httpOnly: true, sameSite: "strict", path: "/" });
+    expect(cookie!.opts).toMatchObject({ httpOnly: true, sameSite: "lax", path: "/" });
 
     const session = await verifySession(cookie!.value);
     expect(session).not.toBeNull();

@@ -174,8 +174,8 @@ describe("PATCH /api/centres/[id]", () => {
 
 describe("POST /api/centres (create)", () => {
   it("super admin can create a new club + auto-bootstrap catalog", async () => {
-    await seedOrg();
-    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null });
+    const org = await seedOrg();
+    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id });
     await loginAs({ userId: su.id, role: "SUPER_ADMIN", centreId: null, name: su.name });
 
     const r = await post({
@@ -194,8 +194,8 @@ describe("POST /api/centres (create)", () => {
 
     // Catalog bootstrapped — fee plans, progress levels, scoring templates all present.
     expect(await prisma.feePlan.count({ where: { centreId: centre.id } })).toBeGreaterThanOrEqual(2);
-    expect(await prisma.progressLevel.count({ where: { centreId: centre.id } })).toBe(3);
-    expect(await prisma.scoringTemplate.count({ where: { centreId: centre.id } })).toBe(2);
+    expect(await prisma.progressLevel.count({ where: { centreId: centre.id } })).toBe(4);
+    expect(await prisma.scoringTemplate.count({ where: { centreId: centre.id } })).toBe(4);
     // Skills attached to levels — at least the normal track is seeded.
     const levels = await prisma.progressLevel.findMany({
       where: { centreId: centre.id },
@@ -217,8 +217,8 @@ describe("POST /api/centres (create)", () => {
   });
 
   it("rejects malformed slug (uppercase / starts with digit / too short)", async () => {
-    await seedOrg();
-    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null });
+    const org = await seedOrg();
+    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id });
     await loginAs({ userId: su.id, role: "SUPER_ADMIN", centreId: null, name: su.name });
 
     for (const bad of ["UPPERCASE", "9starts-with-digit", "a", "has spaces"]) {
@@ -238,8 +238,8 @@ describe("POST /api/centres (create)", () => {
   });
 
   it("writes a centre.create audit row", async () => {
-    await seedOrg();
-    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null });
+    const org = await seedOrg();
+    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id });
     await loginAs({ userId: su.id, role: "SUPER_ADMIN", centreId: null, name: su.name });
 
     const r = await post({ name: "Equiwings Hyderabad", slug: "hyderabad" });

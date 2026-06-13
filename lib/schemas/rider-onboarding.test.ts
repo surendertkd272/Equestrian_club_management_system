@@ -41,6 +41,7 @@ describe("onboardingSchema — school flows through", () => {
       weightKg: 35,
       fullNameSignature: "Riya Test",
       agreed: true,
+      injuryNocAgreed: true,
       centreSlug: "ghrc",
     });
     expect(r.success).toBe(true);

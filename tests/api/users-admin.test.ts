@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { resetDb } from "../helpers/db";
-import { mkUser, mkCentre } from "../helpers/fixtures";
+import { mkOrg, mkUser, mkCentre } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession, verifyPassword } from "@/lib/auth";
 import { mockReq } from "../helpers/request";
@@ -62,11 +62,13 @@ describe("GET /api/users", () => {
   });
 
   it("HQ lists all users with total count", async () => {
-    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null });
-    const c = await mkCentre();
+    // All four users share one org so the HQ admin (org-scoped post-C1) sees them.
+    const org = await mkOrg();
+    const c = await mkCentre({ orgId: org.id });
+    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id });
     await mkUser({ role: "COACH", centreId: c.id, name: "Coach A" });
     await mkUser({ role: "VET", centreId: c.id, name: "Vet B" });
-    await mkUser({ role: "PARENT", centreId: null, name: "Parent C" });
+    await mkUser({ role: "PARENT", centreId: null, orgId: org.id, name: "Parent C" });
     await loginAs({ userId: su.id, role: "SUPER_ADMIN", centreId: null, name: su.name });
 
     const r = await list();
@@ -91,14 +93,15 @@ describe("GET /api/users", () => {
   });
 
   it("filters by centreId='null' to find HQ users", async () => {
-    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null });
-    const c = await mkCentre();
+    const org = await mkOrg();
+    const c = await mkCentre({ orgId: org.id });
+    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id });
     await mkUser({ role: "COACH", centreId: c.id });
     await loginAs({ userId: su.id, role: "SUPER_ADMIN", centreId: null, name: su.name });
 
     const r = await list({ centreId: "null" });
     const data = await r.json();
-    // Only the HQ super admin matches.
+    // Only the HQ super admin matches (centre-less, in the caller's org).
     expect(data.rows).toHaveLength(1);
     expect(data.rows[0].id).toBe(su.id);
   });
