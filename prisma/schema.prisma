@@ -577,6 +577,10 @@ model Centre {
   // { label, number, type } so each centre lists its on-call vet, nearest
   // equine hospital, ambulance, electricity / water emergency, etc.
   emergencyContactsJson Json?
+  // IANA timezone for centre-local day boundaries (workload-cap bucketing,
+  // "today" windows). Server runs in UTC; without this, day-bucketing is off
+  // by the local offset (IST = +05:30). Defaults to India.
+  timezone  String   @default("Asia/Kolkata")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

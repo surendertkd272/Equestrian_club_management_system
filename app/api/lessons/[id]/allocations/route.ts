@@ -8,6 +8,7 @@ import { DEFAULT_WORKLOAD_CAP_MIN } from "@/lib/schemas/horse";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { AllocConflict } from "@/lib/allocation-guard";
+import { startOfDayInTz, endOfDayInTz, sameLocalDay } from "@/lib/tz";
 
 // POST /api/lessons/[id]/allocations — replace this lesson's rider→horse
 // pairings in one go. We delete + insert in a transaction so the table
@@ -20,8 +21,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
 
-  const lesson = await prisma.lesson.findUnique({ where: { id: params.id } });
+  const lesson = await prisma.lesson.findUnique({
+    where: { id: params.id },
+    include: { centre: { select: { timezone: true } } },
+  });
   if (!lesson) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  const tz = lesson.centre.timezone; // day-bucketing in the centre's local zone
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
   if (!isHQ && lesson.centreId !== session.centreId) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
@@ -30,9 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // window spans more than one day would be mis-counted. A lesson is a single
   // session; reject allocating to a multi-day window. (endAt exclusive so a
   // session ending exactly at midnight still counts as same-day.)
-  const startDay = new Date(lesson.date); startDay.setHours(0, 0, 0, 0);
-  const endDay = new Date(lesson.endAt.getTime() - 1); endDay.setHours(0, 0, 0, 0);
-  if (startDay.getTime() !== endDay.getTime()) {
+  if (!sameLocalDay(lesson.date, new Date(lesson.endAt.getTime() - 1), tz)) {
     return NextResponse.json(
       { error: "MULTI_DAY_LESSON", message: "Lesson window spans more than one day; allocations require a single-day session." },
       { status: 400 },
@@ -114,8 +117,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // bust the cap. Previously the clash read was outside the (array) tx and the
   // cap was never enforced here at all.
   const lessonMin = (lesson.endAt.getTime() - lesson.date.getTime()) / 60000;
-  const dayStart = new Date(lesson.date); dayStart.setHours(0, 0, 0, 0);
-  const dayEnd = new Date(lesson.date); dayEnd.setHours(23, 59, 59, 999);
+  const dayStart = startOfDayInTz(lesson.date, tz);
+  const dayEnd = endOfDayInTz(lesson.date, tz);
   try {
     await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "Horse" WHERE id IN (${Prisma.join(horseIds)}) ORDER BY id FOR UPDATE`;
