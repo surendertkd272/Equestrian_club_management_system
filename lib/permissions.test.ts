@@ -129,6 +129,9 @@ describe("permissionsFor", () => {
       "progress.write",
       "task.complete",
       "leave.request",
+      "expense.submit",
+      "requisition.submit",
+      "lesson.write",
     ]);
   });
   it("returns [] for unknown role", () => {

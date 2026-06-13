@@ -50,11 +50,20 @@ export async function mkUser(over: {
   name?: string;
   role?: string;
   centreId?: string | null;
+  orgId?: string | null;
   status?: string;
 } = {}) {
   const passwordHash =
     over.passwordHash ??
     (over.password ? await bcrypt.hash(over.password, 4) : "x"); // low cost rounds for speed
+  // Real users always carry an orgId (set at onboarding); org resolution
+  // (getOrgIdForSession) + the RLS org-bind depend on it. Default it from the
+  // user's centre so fixtures mirror production. Pass orgId explicitly for
+  // HQ-tier users that have no centre.
+  let orgId = over.orgId ?? null;
+  if (!orgId && over.centreId) {
+    orgId = (await prisma.centre.findUnique({ where: { id: over.centreId }, select: { orgId: true } }))?.orgId ?? null;
+  }
   return prisma.user.create({
     data: {
       email: over.email ?? `${uniq("u")}@test.local`,
@@ -62,6 +71,7 @@ export async function mkUser(over: {
       name: over.name ?? "Test User",
       role: over.role ?? "COACH",
       centreId: over.centreId ?? null,
+      orgId,
       status: over.status ?? "active",
     },
   });

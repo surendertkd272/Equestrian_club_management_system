@@ -255,7 +255,7 @@ describe("short link API", () => {
     expect(res.status).toBe(200);
     const { link } = await res.json();
     expect(link.code).toMatch(/^[0-9A-Z]{8}$/);
-    expect(link.targetPath).toBe("/injuries/new");
+    expect(link.targetPath).toBe("/injuries");
 
     // No POST gate on /r/[code]; the page itself is a Server Component
     // we'd need a fuller Next harness to test. Validate the DB row instead.

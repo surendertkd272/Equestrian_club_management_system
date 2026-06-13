@@ -2,7 +2,7 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { resetDb } from "../helpers/db";
-import { mkCentre, mkUser, mkRider } from "../helpers/fixtures";
+import { mkOrg, mkCentre, mkUser, mkRider } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession, verifyPassword, type SessionPayload } from "@/lib/auth";
 import { mockReq } from "../helpers/request";
@@ -25,7 +25,8 @@ async function loginAs(payload: SessionPayload) {
 }
 
 async function loginAsHQ() {
-  const su = await mkUser({ role: "SUPER_ADMIN", centreId: null, name: "HQ Boss" });
+  const org = await mkOrg();
+  const su = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id, name: "HQ Boss" });
   await loginAs({ userId: su.id, role: "SUPER_ADMIN", centreId: null, name: su.name });
   return su;
 }
@@ -92,8 +93,8 @@ describe("POST /api/users", () => {
   });
 
   it("happy path: creates user + returns verifiable temp password + audit row", async () => {
-    await loginAsHQ();
-    const c = await mkCentre();
+    const su = await loginAsHQ();
+    const c = await mkCentre({ orgId: su.orgId ?? undefined }); // same org as caller (post-C1 cross-org guard)
     const r = await createUser(
       mockReq("http://localhost", {
         method: "POST",
