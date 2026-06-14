@@ -35,10 +35,5 @@ export const submitChecklistSchema = z.object({
     .max(200),
 });
 
-// Stable-manager countersign on a filed submission.
-export const reviewChecklistSchema = z.object({
-  submissionId: z.string().min(1),
-});
-
 export type UpsertItemInput = z.infer<typeof upsertItemSchema>;
 export type SubmitChecklistInput = z.infer<typeof submitChecklistSchema>;
