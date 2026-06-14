@@ -133,6 +133,43 @@ describe("Equiwings coach-checklist seed", () => {
     expect(await prisma.checklistItem.count({ where: { templateId: firstTpl.id } })).toBe(0);
   });
 
+  it("replaces a pre-existing general template (unique centreId+scope), leaving per_horse intact", async () => {
+    const equiwings = await mkEquiwingsOrg();
+    const centre = await mkCentre({ orgId: equiwings.id, name: "Gurgaon" });
+    // Mirror prod: the centre already has a general "Daily ops checklist" + a
+    // per_horse template. A naive name-keyed seed would collide on the unique
+    // (centreId, scope) constraint instead of replacing the general one.
+    const oldGeneral = await prisma.checklistTemplate.create({
+      data: {
+        centreId: centre.id,
+        scope: "general",
+        name: "Daily ops checklist",
+        items: { create: [{ label: "old item", orderIndex: 1 }] },
+      },
+    });
+    const perHorse = await prisma.checklistTemplate.create({
+      data: {
+        centreId: centre.id,
+        scope: "per_horse",
+        name: "Per-horse daily report",
+        items: { create: [{ label: "horse item", orderIndex: 1 }] },
+      },
+    });
+
+    const summary = await seedEquiwingsCoachChecklist(prisma, silent);
+    expect(summary).toMatchObject({ centres: 1, created: 1 });
+
+    // The general template is now the coach checklist (old one gone), still one general.
+    const generals = await prisma.checklistTemplate.findMany({ where: { centreId: centre.id, scope: "general" } });
+    expect(generals).toHaveLength(1);
+    expect(generals[0].name).toBe(TEMPLATE_NAME);
+    expect(generals[0].id).not.toBe(oldGeneral.id);
+    expect(await prisma.checklistItem.count({ where: { templateId: generals[0].id } })).toBe(34);
+    // The per_horse template is untouched.
+    const ph = await prisma.checklistTemplate.findUniqueOrThrow({ where: { id: perHorse.id } });
+    expect(ph.name).toBe("Per-horse daily report");
+  });
+
   it("throws (touches nothing) when no Equiwings org exists", async () => {
     await mkCentre({ name: "Some Other Tenant" }); // non-equiwings only
     await expect(seedEquiwingsCoachChecklist(prisma, silent)).rejects.toThrow(/slug 'equiwings' not found/);

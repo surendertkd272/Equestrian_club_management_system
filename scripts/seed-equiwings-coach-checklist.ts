@@ -1,8 +1,11 @@
-// Seeds the "Daily Horse Riding Coach Checklist" (the EQUIWINGS paper form) as a
-// general-scope ChecklistTemplate for EVERY centre in the Equiwings org only —
-// other tenants build their own. Idempotent: an existing template of the same
-// name (and its submissions) is deleted first, then recreated, so re-running
-// always lands the current item set.
+// Seeds the "Daily Horse Riding Coach Checklist" (the EQUIWINGS paper form) as
+// THE general-scope ChecklistTemplate for EVERY centre in the Equiwings org
+// only — other tenants build their own. A centre can have just one general
+// template (unique on centreId+scope), so the coach checklist *is* the general
+// daily checklist: any existing general template (and its submissions) is
+// deleted first, then the coach checklist is created in its place. Idempotent —
+// re-running always lands the current item set. The per_horse template is left
+// untouched.
 //
 //   DATABASE_URL=… npx tsx scripts/seed-equiwings-coach-checklist.ts
 //
@@ -77,10 +80,12 @@ export async function seedEquiwingsCoachChecklist(
 
   let created = 0;
   for (const c of centres) {
-    // Idempotent: drop any existing same-named template for this centre first.
+    // A centre may hold only one general template (unique centreId+scope), so
+    // replace whatever general template it has — by scope, not by name — to
+    // make the coach checklist THE general daily checklist.
     const existing = await db.checklistTemplate.findMany({
-      where: { centreId: c.id, name: TEMPLATE_NAME },
-      select: { id: true },
+      where: { centreId: c.id, scope: "general" },
+      select: { id: true, name: true },
     });
     if (existing.length > 0) {
       const ids = existing.map((t) => t.id);
@@ -88,7 +93,7 @@ export async function seedEquiwingsCoachChecklist(
       // (their items cascade), then the template (its items cascade).
       const subs = await db.checklistSubmission.deleteMany({ where: { templateId: { in: ids } } });
       await db.checklistTemplate.deleteMany({ where: { id: { in: ids } } });
-      log(`  ${c.name}: removed ${existing.length} existing template(s) + ${subs.count} submission(s).`);
+      log(`  ${c.name}: replaced general template "${existing.map((t) => t.name).join(", ")}" (+${subs.count} submission(s) removed).`);
     }
 
     await db.checklistTemplate.create({
