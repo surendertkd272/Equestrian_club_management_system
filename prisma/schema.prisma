@@ -171,6 +171,14 @@ model ChecklistSubmission {
   horseId           String?  // set for per_horse submissions
   submittedAt       DateTime @default(now())
   generalNotes      String?
+  shift             String?  // morning | evening (daily coach checklist)
+  // Coach's truthful-submission declaration (the PDF's certify line). The
+  // submitter is already recorded via submittedByUserId — this is the explicit
+  // tick that the checks were really done.
+  declarationAgreed Boolean  @default(false)
+  // Stable-manager countersign (the PDF's manager signature line).
+  reviewedByUserId  String?
+  reviewedAt        DateTime?
 
   template ChecklistTemplate          @relation(fields: [templateId], references: [id])
   centre   Centre                     @relation(fields: [centreId], references: [id])

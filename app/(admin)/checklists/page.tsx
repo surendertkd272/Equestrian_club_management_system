@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { ChecklistSubmissionForm } from "./checklist-form";
+import { SignOffButton } from "./sign-off-button";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +74,7 @@ export default async function ChecklistsPage() {
   const general = templates.find((t) => t.scope === "general") ?? null;
   const perHorse = templates.find((t) => t.scope === "per_horse") ?? null;
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  const isManager = new Set(["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "STABLE_MANAGER", "HEAD_COACH"]).has(session.role);
 
   return (
     <div className="space-y-6">
@@ -96,7 +98,7 @@ export default async function ChecklistsPage() {
           <CardHeader>
             <CardTitle>General daily checks</CardTitle>
             <CardDescription>
-              Section A = horse health · Section B = feed &amp; stable. Submit once per day.
+              Pick the shift, run through each section, tick the declaration, and submit.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -157,9 +159,11 @@ export default async function ChecklistsPage() {
                 <tr>
                   <th className="pb-2">Submitted</th>
                   <th className="pb-2">Type</th>
+                  <th className="pb-2">Shift</th>
                   <th className="pb-2">Horse</th>
                   <th className="pb-2 text-center">Done</th>
                   <th className="pb-2 text-center">Issues</th>
+                  <th className="pb-2">Signed off</th>
                 </tr>
               </thead>
               <tbody>
@@ -174,6 +178,7 @@ export default async function ChecklistsPage() {
                           {s.template.scope === "general" ? "General" : "Per-horse"}
                         </Badge>
                       </td>
+                      <td className="py-2 capitalize">{s.shift ?? "—"}</td>
                       <td className="py-2">
                         {s.horse
                           ? `${s.horse.name}${s.horse.stableNo ? ` (${s.horse.stableNo})` : ""}`
@@ -182,6 +187,13 @@ export default async function ChecklistsPage() {
                       <td className="py-2 text-center">{done}</td>
                       <td className={`py-2 text-center ${issues > 0 ? "font-semibold text-amber-700" : ""}`}>
                         {issues}
+                      </td>
+                      <td className="py-2">
+                        <SignOffButton
+                          submissionId={s.id}
+                          reviewedAt={s.reviewedAt ? s.reviewedAt.toISOString() : null}
+                          canReview={isManager}
+                        />
                       </td>
                     </tr>
                   );
