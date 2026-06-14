@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { openConfirm } from "@/components/ui/confirm-dialog";
+import { bucketsBySection } from "@/lib/checklist-buckets";
 
 type Item = {
   id: string;
@@ -22,11 +23,6 @@ type Props = {
   items: Item[];
 };
 
-// Section bucket order for the "general" template (Section A then B). Items
-// without a section sit at the bottom — that's fine for "per_horse" which
-// doesn't bucket.
-const SECTION_ORDER = ["A", "B"];
-
 export function TemplateEditor({ templateId, scope, items }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
@@ -37,23 +33,10 @@ export function TemplateEditor({ templateId, scope, items }: Props) {
   // showInactive lets the admin recover a soft-deleted item.
   const [showInactive, setShowInactive] = useState(false);
 
-  const buckets = useMemo(() => {
-    const map = new Map<string, Item[]>();
-    for (const it of items) {
-      if (!it.active && !showInactive) continue;
-      const key = it.section ?? "—";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(it);
-    }
-    for (const list of map.values()) list.sort((a, b) => a.orderIndex - b.orderIndex);
-    // Stable section ordering: A, B, then anything else alphabetically.
-    return Array.from(map.entries()).sort(([a], [b]) => {
-      const ai = SECTION_ORDER.indexOf(a);
-      const bi = SECTION_ORDER.indexOf(b);
-      if (ai !== -1 || bi !== -1) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-      return a.localeCompare(b);
-    });
-  }, [items, showInactive]);
+  const buckets = useMemo(
+    () => bucketsBySection(items.filter((it) => it.active || showInactive)),
+    [items, showInactive],
+  );
 
   async function patch(itemId: string, body: Record<string, unknown>) {
     setBusy(itemId);

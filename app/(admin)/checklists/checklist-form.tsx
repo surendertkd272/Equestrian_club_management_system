@@ -7,8 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { bucketsBySection } from "@/lib/checklist-buckets";
 
-type Item = { id: string; label: string; section: string | null };
+type Item = { id: string; label: string; section: string | null; orderIndex: number };
 type Horse = { id: string; name: string; stableNo: string | null };
 type Status = "done" | "not_done" | "na";
 
@@ -18,9 +19,6 @@ type Props = {
   items: Item[];
   horses: Horse[];
 };
-
-// Section ordering matches the template editor (A first, B second, then others).
-const SECTION_ORDER = ["A", "B"];
 
 export function ChecklistSubmissionForm({ templateId, scope, items, horses }: Props) {
   const router = useRouter();
@@ -34,20 +32,7 @@ export function ChecklistSubmissionForm({ templateId, scope, items, horses }: Pr
     Object.fromEntries(items.map((i) => [i.id, { status: "done" as Status, remarks: "" }])),
   );
 
-  const buckets = useMemo(() => {
-    const map = new Map<string, Item[]>();
-    for (const it of items) {
-      const key = it.section ?? "—";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(it);
-    }
-    return Array.from(map.entries()).sort(([a], [b]) => {
-      const ai = SECTION_ORDER.indexOf(a);
-      const bi = SECTION_ORDER.indexOf(b);
-      if (ai !== -1 || bi !== -1) return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-      return a.localeCompare(b);
-    });
-  }, [items]);
+  const buckets = useMemo(() => bucketsBySection(items), [items]);
 
   function setStatus(id: string, status: Status) {
     setMarks((m) => ({ ...m, [id]: { ...m[id], status } }));

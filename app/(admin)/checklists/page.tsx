@@ -109,6 +109,7 @@ export default async function ChecklistsPage() {
                 id: i.id,
                 label: i.label,
                 section: i.section ?? null,
+                orderIndex: i.orderIndex,
               }))}
               horses={[]}
             />
@@ -134,6 +135,7 @@ export default async function ChecklistsPage() {
                 id: i.id,
                 label: i.label,
                 section: i.section ?? null,
+                orderIndex: i.orderIndex,
               }))}
               horses={horses.map((h) => ({ id: h.id, name: h.name, stableNo: h.stableNo }))}
             />
