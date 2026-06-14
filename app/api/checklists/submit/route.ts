@@ -79,6 +79,8 @@ export async function POST(req: NextRequest) {
       submittedByUserId: session.userId,
       horseId: parsed.data.horseId ?? null,
       generalNotes: parsed.data.generalNotes ?? null,
+      shift: parsed.data.shift ?? null,
+      declarationAgreed: parsed.data.declarationAgreed ?? false,
       items: {
         create: parsed.data.items.map((r) => {
           const tplItem = itemMap.get(r.itemId)!;

@@ -27,6 +27,8 @@ export function ChecklistSubmissionForm({ templateId, scope, items, horses }: Pr
   const [busy, setBusy] = useState(false);
   const [horseId, setHorseId] = useState(scope === "per_horse" ? horses[0]?.id ?? "" : "");
   const [generalNotes, setGeneralNotes] = useState("");
+  const [shift, setShift] = useState<"morning" | "evening">("morning");
+  const [agreed, setAgreed] = useState(false);
   // Default everyone to "done" — the coach un-ticks the few that didn't go right.
   const [marks, setMarks] = useState<Record<string, { status: Status; remarks: string }>>(() =>
     Object.fromEntries(items.map((i) => [i.id, { status: "done" as Status, remarks: "" }])),
@@ -59,6 +61,10 @@ export function ChecklistSubmissionForm({ templateId, scope, items, horses }: Pr
       toast.error("Pick a horse first.");
       return;
     }
+    if (scope === "general" && !agreed) {
+      toast.error("Please tick the declaration before submitting.");
+      return;
+    }
     setBusy(true);
     try {
       const res = await fetch("/api/checklists/submit", {
@@ -68,6 +74,8 @@ export function ChecklistSubmissionForm({ templateId, scope, items, horses }: Pr
           templateId,
           horseId: scope === "per_horse" ? horseId : undefined,
           generalNotes: generalNotes.trim() || undefined,
+          shift: scope === "general" ? shift : undefined,
+          declarationAgreed: scope === "general" ? agreed : undefined,
           items: items.map((it) => ({
             itemId: it.id,
             status: marks[it.id]?.status ?? "done",
@@ -84,6 +92,7 @@ export function ChecklistSubmissionForm({ templateId, scope, items, horses }: Pr
       // Reset to defaults for the next horse / next day.
       setMarks(Object.fromEntries(items.map((i) => [i.id, { status: "done" as Status, remarks: "" }])));
       setGeneralNotes("");
+      setAgreed(false);
       router.refresh();
     } finally {
       setBusy(false);
@@ -92,6 +101,15 @@ export function ChecklistSubmissionForm({ templateId, scope, items, horses }: Pr
 
   return (
     <div className="space-y-4">
+      {scope === "general" && (
+        <div className="max-w-xs">
+          <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Shift</label>
+          <Select value={shift} onChange={(e) => setShift(e.target.value as "morning" | "evening")}>
+            <option value="morning">Morning</option>
+            <option value="evening">Evening</option>
+          </Select>
+        </div>
+      )}
       {scope === "per_horse" && (
         <div className="max-w-xs">
           <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
@@ -179,8 +197,23 @@ export function ChecklistSubmissionForm({ templateId, scope, items, horses }: Pr
         />
       </div>
 
+      {scope === "general" && (
+        <label className="flex items-start gap-2 rounded-md border bg-muted/30 p-3 text-sm">
+          <input
+            type="checkbox"
+            className="mt-0.5"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+          />
+          <span>
+            I certify that the above checks have been carried out and all observations
+            truthfully reported.
+          </span>
+        </label>
+      )}
+
       <div className="flex justify-end">
-        <Button onClick={submit} disabled={busy || items.length === 0}>
+        <Button onClick={submit} disabled={busy || items.length === 0 || (scope === "general" && !agreed)}>
           {busy ? "Submitting…" : "Submit checklist"}
         </Button>
       </div>
