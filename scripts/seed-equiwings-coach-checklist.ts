@@ -22,7 +22,9 @@ const S_HORSES = "1 · Horses & Stable Management";
 const S_RIDER = "2 · Rider Safety & Incidents";
 const S_OTHER = "3 · Other Observations";
 
-// 34 particulars, verbatim from the EQUIWINGS form. orderIndex = the form's S.No.
+// The EQUIWINGS form's particulars, verbatim. orderIndex = position below.
+// (The "Club video shared on WhatsApp" flag from the form is the last-but-one
+// item; "any other issue" stays the catch-all last row.)
 export const COACH_CHECKLIST_ITEMS: { label: string; section: string }[] = [
   { label: "All horses are fit and healthy", section: S_HORSES },
   { label: "All horses massage done", section: S_HORSES },
@@ -57,6 +59,7 @@ export const COACH_CHECKLIST_ITEMS: { label: string; section: string }[] = [
   { label: "Any rider fall occurred today (note rider name in remarks)", section: S_RIDER },
   { label: "Any serious injury reported (note details in remarks)", section: S_RIDER },
   { label: "All riders in proper riding uniform and safety gear", section: S_RIDER },
+  { label: "Club video shared on WhatsApp today", section: S_OTHER },
   { label: "Any other issue requiring management attention", section: S_OTHER },
 ];
 
@@ -64,36 +67,62 @@ type Db = Pick<PrismaClient, "organisation" | "centre" | "checklistTemplate" | "
 
 // Idempotently (re)seed the coach checklist for every centre in the Equiwings
 // org. Returns a per-centre summary. Touches NO other org.
+// Canonical signature of an item set (label/section/orderIndex), order-stable.
+function itemsSignature(items: { label: string; section: string | null; orderIndex: number }[]): string {
+  return JSON.stringify(
+    [...items]
+      .sort((a, b) => a.orderIndex - b.orderIndex)
+      .map((i) => [i.orderIndex, i.label, i.section ?? null]),
+  );
+}
+const DESIRED_SIG = itemsSignature(
+  COACH_CHECKLIST_ITEMS.map((it, i) => ({ label: it.label, section: it.section, orderIndex: i + 1 })),
+);
+
 export async function seedEquiwingsCoachChecklist(
   db: Db,
   log: (msg: string) => void = console.log,
-): Promise<{ org: string; centres: number; created: number }> {
+): Promise<{ org: string; centres: number; created: number; skipped: number }> {
   const org = await db.organisation.findFirst({ where: { slug: ORG_SLUG }, select: { id: true, name: true } });
   if (!org) throw new Error(`Org with slug '${ORG_SLUG}' not found — nothing to seed.`);
 
   const centres = await db.centre.findMany({ where: { orgId: org.id }, select: { id: true, name: true } });
   if (centres.length === 0) {
     log(`Org '${org.name}' has no centres. Nothing to do.`);
-    return { org: org.name, centres: 0, created: 0 };
+    return { org: org.name, centres: 0, created: 0, skipped: 0 };
   }
   log(`Seeding "${TEMPLATE_NAME}" (${COACH_CHECKLIST_ITEMS.length} items) for ${centres.length} centre(s) in "${org.name}"…\n`);
 
   let created = 0;
+  let skipped = 0;
   for (const c of centres) {
-    // A centre may hold only one general template (unique centreId+scope), so
-    // replace whatever general template it has — by scope, not by name — to
-    // make the coach checklist THE general daily checklist.
-    const existing = await db.checklistTemplate.findMany({
+    // A centre may hold only one general template (unique centreId+scope).
+    const existing = await db.checklistTemplate.findFirst({
       where: { centreId: c.id, scope: "general" },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        items: { select: { label: true, section: true, orderIndex: true } },
+      },
     });
-    if (existing.length > 0) {
-      const ids = existing.map((t) => t.id);
-      // Submissions don't cascade from the template — delete them first
-      // (their items cascade), then the template (its items cascade).
-      const subs = await db.checklistSubmission.deleteMany({ where: { templateId: { in: ids } } });
-      await db.checklistTemplate.deleteMany({ where: { id: { in: ids } } });
-      log(`  ${c.name}: replaced general template "${existing.map((t) => t.name).join(", ")}" (+${subs.count} submission(s) removed).`);
+
+    // Non-destructive: if the general template is already this checklist with an
+    // identical item set, leave it (and its submissions + manager sign-offs)
+    // alone. A re-run only rewrites when something actually changed.
+    if (existing && existing.name === TEMPLATE_NAME && itemsSignature(existing.items) === DESIRED_SIG) {
+      skipped += 1;
+      log(`  ${c.name}: already up to date — left intact (${existing.items.length} items, submissions preserved).`);
+      continue;
+    }
+
+    if (existing) {
+      // Replace whatever general template it has — by scope, not by name — so
+      // the coach checklist becomes THE general daily checklist. Submissions
+      // don't cascade from the template, so delete them first (their items
+      // cascade), then the template (its items cascade).
+      const subs = await db.checklistSubmission.deleteMany({ where: { templateId: existing.id } });
+      await db.checklistTemplate.delete({ where: { id: existing.id } });
+      log(`  ${c.name}: replaced general template "${existing.name}" (+${subs.count} submission(s) removed).`);
     }
 
     await db.checklistTemplate.create({
@@ -115,8 +144,8 @@ export async function seedEquiwingsCoachChecklist(
     created += 1;
     log(`  ${c.name}: created with ${COACH_CHECKLIST_ITEMS.length} items.`);
   }
-  log("\nDone.");
-  return { org: org.name, centres: centres.length, created };
+  log(`\nDone. created=${created}, skipped=${skipped}.`);
+  return { org: org.name, centres: centres.length, created, skipped };
 }
 
 // CLI runner — only when invoked directly (not when imported by the test

@@ -168,10 +168,10 @@ export function ChecklistSubmissionForm({ templateId, scope, items, horses }: Pr
                       </StatusBtn>
                     </div>
                   </div>
-                  {m.status === "not_done" && (
+                  {(m.status !== "done" || /remarks/i.test(it.label)) && (
                     <Input
                       className="mt-2"
-                      placeholder="What went wrong?"
+                      placeholder={m.status === "not_done" ? "What went wrong?" : "Remarks (optional)"}
                       value={m.remarks}
                       onChange={(e) => setRemarks(it.id, e.target.value)}
                       maxLength={500}

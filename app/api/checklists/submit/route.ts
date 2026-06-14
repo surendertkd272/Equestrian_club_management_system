@@ -53,6 +53,18 @@ export async function POST(req: NextRequest) {
   if (tpl.scope === "per_horse" && !parsed.data.horseId) {
     return NextResponse.json({ error: "HORSE_REQUIRED" }, { status: 400 });
   }
+
+  // General (daily coach) submissions must carry a shift and the truthful-
+  // submission declaration — the form gates both client-side, but enforce it
+  // server-side too so a direct API call can't file an uncertified checklist.
+  if (tpl.scope === "general") {
+    if (parsed.data.declarationAgreed !== true) {
+      return NextResponse.json({ error: "DECLARATION_REQUIRED" }, { status: 400 });
+    }
+    if (!parsed.data.shift) {
+      return NextResponse.json({ error: "SHIFT_REQUIRED" }, { status: 400 });
+    }
+  }
   if (parsed.data.horseId) {
     const horse = await prisma.horse.findUnique({
       where: { id: parsed.data.horseId },
@@ -106,6 +118,8 @@ export async function POST(req: NextRequest) {
       scope: tpl.scope,
       horseId: parsed.data.horseId ?? null,
       itemCount: parsed.data.items.length,
+      shift: parsed.data.shift ?? null,
+      declarationAgreed: parsed.data.declarationAgreed ?? false,
     },
   });
 

@@ -63,7 +63,9 @@ beforeEach(async () => {
 });
 
 describe("Equiwings coach-checklist seed", () => {
-  it("seeds the 34-item general template for every Equiwings centre, and NO other org", async () => {
+  const N = COACH_CHECKLIST_ITEMS.length;
+
+  it("seeds the full general template for every Equiwings centre, and NO other org", async () => {
     const equiwings = await mkEquiwingsOrg();
     const c1 = await mkCentre({ orgId: equiwings.id, name: "Gurgaon" });
     const c2 = await mkCentre({ orgId: equiwings.id, name: "Delhi" });
@@ -71,7 +73,7 @@ describe("Equiwings coach-checklist seed", () => {
     const other = await mkCentre({ name: "Other Tenant Centre" });
 
     const summary = await seedEquiwingsCoachChecklist(prisma, silent);
-    expect(summary).toMatchObject({ org: "Equiwings", centres: 2, created: 2 });
+    expect(summary).toMatchObject({ org: "Equiwings", centres: 2, created: 2, skipped: 0 });
 
     for (const c of [c1, c2]) {
       const tpls = await prisma.checklistTemplate.findMany({
@@ -81,13 +83,15 @@ describe("Equiwings coach-checklist seed", () => {
       expect(tpls).toHaveLength(1);
       expect(tpls[0].scope).toBe("general");
       expect(tpls[0].active).toBe(true);
-      expect(tpls[0].items).toHaveLength(34);
-      // orderIndex is 1..34 in form order; labels + sections match the source.
+      expect(tpls[0].items).toHaveLength(N);
+      // orderIndex is 1..N in form order; labels + sections match the source.
       expect(tpls[0].items.map((i) => i.orderIndex)).toEqual(
-        Array.from({ length: 34 }, (_, i) => i + 1),
+        Array.from({ length: N }, (_, i) => i + 1),
       );
       expect(tpls[0].items.map((i) => i.label)).toEqual(COACH_CHECKLIST_ITEMS.map((x) => x.label));
       expect(tpls[0].items.map((i) => i.section)).toEqual(COACH_CHECKLIST_ITEMS.map((x) => x.section));
+      // The "Club video shared on WhatsApp" flag from the paper form is present.
+      expect(tpls[0].items.some((i) => /whatsapp/i.test(i.label))).toBe(true);
     }
 
     // The other tenant got nothing.
@@ -95,7 +99,7 @@ describe("Equiwings coach-checklist seed", () => {
     expect(otherTpls).toBe(0);
   });
 
-  it("is idempotent — re-running deletes the old template + its submissions, then recreates", async () => {
+  it("is non-destructive on re-run when items are unchanged — keeps the template id and submissions", async () => {
     const equiwings = await mkEquiwingsOrg();
     const centre = await mkCentre({ orgId: equiwings.id, name: "Gurgaon" });
     const coach = await mkUser({ role: "COACH", centreId: centre.id });
@@ -103,7 +107,7 @@ describe("Equiwings coach-checklist seed", () => {
     await seedEquiwingsCoachChecklist(prisma, silent);
     const firstTpl = await prisma.checklistTemplate.findFirstOrThrow({ where: { centreId: centre.id } });
 
-    // File a submission against the seeded template (with an item row).
+    // File a submission (with a manager sign-off) against the seeded template.
     const firstItem = await prisma.checklistItem.findFirstOrThrow({ where: { templateId: firstTpl.id } });
     const sub = await prisma.checklistSubmission.create({
       data: {
@@ -112,24 +116,49 @@ describe("Equiwings coach-checklist seed", () => {
         submittedByUserId: coach.id,
         shift: "morning",
         declarationAgreed: true,
+        reviewedByUserId: coach.id,
+        reviewedAt: new Date(),
         items: { create: [{ itemId: firstItem.id, itemLabel: firstItem.label, status: "done" }] },
       },
     });
 
-    // Re-run the seed.
+    // Re-run with the identical item set → no-op.
     const summary = await seedEquiwingsCoachChecklist(prisma, silent);
-    expect(summary).toMatchObject({ centres: 1, created: 1 });
+    expect(summary).toMatchObject({ centres: 1, created: 0, skipped: 1 });
 
-    // Old template gone (new id), still exactly one, still 34 items.
+    // Same template id, same item count — and the submission + sign-off survive.
     const tpls = await prisma.checklistTemplate.findMany({ where: { centreId: centre.id } });
     expect(tpls).toHaveLength(1);
-    expect(tpls[0].id).not.toBe(firstTpl.id);
-    expect(await prisma.checklistItem.count({ where: { templateId: tpls[0].id } })).toBe(34);
+    expect(tpls[0].id).toBe(firstTpl.id);
+    expect(await prisma.checklistItem.count({ where: { templateId: firstTpl.id } })).toBe(N);
+    const keptSub = await prisma.checklistSubmission.findUnique({ where: { id: sub.id } });
+    expect(keptSub).not.toBeNull();
+    expect(keptSub!.reviewedByUserId).toBe(coach.id);
+  });
 
-    // Old submission + its items were cascaded away.
+  it("rewrites (delete + recreate) when the existing item set differs", async () => {
+    const equiwings = await mkEquiwingsOrg();
+    const centre = await mkCentre({ orgId: equiwings.id, name: "Gurgaon" });
+    const coach = await mkUser({ role: "COACH", centreId: centre.id });
+
+    await seedEquiwingsCoachChecklist(prisma, silent);
+    const firstTpl = await prisma.checklistTemplate.findFirstOrThrow({ where: { centreId: centre.id } });
+    // Make the on-disk item set diverge from the canonical one.
+    const anItem = await prisma.checklistItem.findFirstOrThrow({ where: { templateId: firstTpl.id } });
+    await prisma.checklistItem.delete({ where: { id: anItem.id } });
+    const sub = await prisma.checklistSubmission.create({
+      data: { templateId: firstTpl.id, centreId: centre.id, submittedByUserId: coach.id, shift: "morning", declarationAgreed: true },
+    });
+
+    const summary = await seedEquiwingsCoachChecklist(prisma, silent);
+    expect(summary).toMatchObject({ centres: 1, created: 1, skipped: 0 });
+
+    const tpls = await prisma.checklistTemplate.findMany({ where: { centreId: centre.id } });
+    expect(tpls).toHaveLength(1);
+    expect(tpls[0].id).not.toBe(firstTpl.id); // replaced
+    expect(await prisma.checklistItem.count({ where: { templateId: tpls[0].id } })).toBe(N);
+    // The stale submission was cascaded away; old items gone.
     expect(await prisma.checklistSubmission.findUnique({ where: { id: sub.id } })).toBeNull();
-    expect(await prisma.checklistSubmissionItem.count({ where: { submissionId: sub.id } })).toBe(0);
-    // No item rows orphaned from the old template.
     expect(await prisma.checklistItem.count({ where: { templateId: firstTpl.id } })).toBe(0);
   });
 
@@ -164,7 +193,7 @@ describe("Equiwings coach-checklist seed", () => {
     expect(generals).toHaveLength(1);
     expect(generals[0].name).toBe(TEMPLATE_NAME);
     expect(generals[0].id).not.toBe(oldGeneral.id);
-    expect(await prisma.checklistItem.count({ where: { templateId: generals[0].id } })).toBe(34);
+    expect(await prisma.checklistItem.count({ where: { templateId: generals[0].id } })).toBe(N);
     // The per_horse template is untouched.
     const ph = await prisma.checklistTemplate.findUniqueOrThrow({ where: { id: perHorse.id } });
     expect(ph.name).toBe("Per-horse daily report");
@@ -223,10 +252,85 @@ describe("checklist submit — shift + declaration", () => {
       jsonRequest("http://localhost/api/checklists/submit", {
         templateId: tpl.id,
         shift: "midnight", // not in the enum
+        declarationAgreed: true,
         items: tpl.items.map((i) => ({ itemId: i.id, status: "done" })),
       }),
     );
     expect(res.status).toBe(400);
+  });
+
+  it("rejects a general submission with the declaration unticked (server-side, not just UI)", async () => {
+    const { POST } = await import("@/app/api/checklists/submit/route");
+    const equiwings = await mkEquiwingsOrg();
+    const centre = await mkCentre({ orgId: equiwings.id });
+    const coach = await mkUser({ role: "COACH", centreId: centre.id });
+    await seedEquiwingsCoachChecklist(prisma, silent);
+    const tpl = await prisma.checklistTemplate.findFirstOrThrow({ where: { centreId: centre.id }, include: { items: true } });
+
+    await loginAs(coach);
+    const res = await POST(
+      jsonRequest("http://localhost/api/checklists/submit", {
+        templateId: tpl.id,
+        shift: "morning",
+        // declarationAgreed omitted — a direct API call trying to bypass the tick.
+        items: tpl.items.map((i) => ({ itemId: i.id, status: "done" })),
+      }),
+    );
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe("DECLARATION_REQUIRED");
+    expect(await prisma.checklistSubmission.count({ where: { templateId: tpl.id } })).toBe(0);
+  });
+
+  it("rejects a general submission with no shift (server-side)", async () => {
+    const { POST } = await import("@/app/api/checklists/submit/route");
+    const equiwings = await mkEquiwingsOrg();
+    const centre = await mkCentre({ orgId: equiwings.id });
+    const coach = await mkUser({ role: "COACH", centreId: centre.id });
+    await seedEquiwingsCoachChecklist(prisma, silent);
+    const tpl = await prisma.checklistTemplate.findFirstOrThrow({ where: { centreId: centre.id }, include: { items: true } });
+
+    await loginAs(coach);
+    const res = await POST(
+      jsonRequest("http://localhost/api/checklists/submit", {
+        templateId: tpl.id,
+        declarationAgreed: true,
+        // shift omitted
+        items: tpl.items.map((i) => ({ itemId: i.id, status: "done" })),
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("SHIFT_REQUIRED");
+  });
+
+  it("a per_horse submission needs no shift/declaration (still works)", async () => {
+    const { POST } = await import("@/app/api/checklists/submit/route");
+    const equiwings = await mkEquiwingsOrg();
+    const centre = await mkCentre({ orgId: equiwings.id });
+    const coach = await mkUser({ role: "COACH", centreId: centre.id });
+    const horse = await prisma.horse.create({ data: { centreId: centre.id, name: "Bijli" } });
+    const tpl = await prisma.checklistTemplate.create({
+      data: {
+        centreId: centre.id,
+        scope: "per_horse",
+        name: "Per-horse daily report",
+        items: { create: [{ label: "Groomed", orderIndex: 1 }] },
+      },
+      include: { items: true },
+    });
+
+    await loginAs(coach);
+    const res = await POST(
+      jsonRequest("http://localhost/api/checklists/submit", {
+        templateId: tpl.id,
+        horseId: horse.id,
+        items: tpl.items.map((i) => ({ itemId: i.id, status: "done" })),
+      }),
+    );
+    expect(res.status).toBe(200);
+    const stored = await prisma.checklistSubmission.findFirstOrThrow({ where: { templateId: tpl.id } });
+    expect(stored.shift).toBeNull();
+    expect(stored.declarationAgreed).toBe(false);
   });
 });
 

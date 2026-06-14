@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: { params: { submissionI
 
   const sub = await prisma.checklistSubmission.findUnique({
     where: { id: params.submissionId },
-    select: { id: true, centreId: true },
+    select: { id: true, centreId: true, reviewedByUserId: true, reviewedAt: true },
   });
   if (!sub) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
 
@@ -39,7 +39,10 @@ export async function POST(req: NextRequest, { params }: { params: { submissionI
     action: "checklist.review",
     tableName: "checklistSubmission",
     rowId: sub.id,
-    after: { reviewedAt: updated.reviewedAt },
+    // Keep the prior countersign in `before` so re-signing doesn't erase who
+    // signed first — the manager-signature line stays auditable.
+    before: { reviewedByUserId: sub.reviewedByUserId, reviewedAt: sub.reviewedAt },
+    after: { reviewedByUserId: session.userId, reviewedAt: updated.reviewedAt },
   });
 
   return NextResponse.json({ ok: true, reviewedAt: updated.reviewedAt });
