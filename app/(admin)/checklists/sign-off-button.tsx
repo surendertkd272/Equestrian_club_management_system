@@ -26,7 +26,7 @@ export function SignOffButton({
   async function signOff() {
     setBusy(true);
     try {
-      const res = await fetch(`/api/checklists/${submissionId}/review`, { method: "POST" });
+      const res = await fetch(`/api/checklists/submissions/${submissionId}/review`, { method: "POST" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error(data.message ?? data.error ?? "Failed");

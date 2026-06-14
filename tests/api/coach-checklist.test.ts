@@ -215,12 +215,12 @@ describe("checklist review — manager countersign", () => {
   }
 
   it("a STABLE_MANAGER in the centre can sign off — stamps reviewer + time", async () => {
-    const { POST } = await import("@/app/api/checklists/[submissionId]/review/route");
+    const { POST } = await import("@/app/api/checklists/submissions/[submissionId]/review/route");
     const { centre, sub } = await seededSubmission();
     const manager = await mkUser({ role: "STABLE_MANAGER", centreId: centre.id });
 
     await loginAs(manager);
-    const res = await POST(jsonRequest(`http://localhost/api/checklists/${sub.id}/review`, {}), {
+    const res = await POST(jsonRequest(`http://localhost/api/checklists/submissions/${sub.id}/review`, {}), {
       params: { submissionId: sub.id },
     });
     expect(res.status).toBe(200);
@@ -230,25 +230,25 @@ describe("checklist review — manager countersign", () => {
   });
 
   it("a COACH cannot sign off (403)", async () => {
-    const { POST } = await import("@/app/api/checklists/[submissionId]/review/route");
+    const { POST } = await import("@/app/api/checklists/submissions/[submissionId]/review/route");
     const { centre, sub } = await seededSubmission();
     const coach = await mkUser({ role: "COACH", centreId: centre.id });
 
     await loginAs(coach);
-    const res = await POST(jsonRequest(`http://localhost/api/checklists/${sub.id}/review`, {}), {
+    const res = await POST(jsonRequest(`http://localhost/api/checklists/submissions/${sub.id}/review`, {}), {
       params: { submissionId: sub.id },
     });
     expect(res.status).toBe(403);
   });
 
   it("a manager from another centre cannot sign off (cross-centre 403)", async () => {
-    const { POST } = await import("@/app/api/checklists/[submissionId]/review/route");
+    const { POST } = await import("@/app/api/checklists/submissions/[submissionId]/review/route");
     const { sub } = await seededSubmission();
     const otherCentre = await mkCentre({ name: "Elsewhere" });
     const otherMgr = await mkUser({ role: "STABLE_MANAGER", centreId: otherCentre.id });
 
     await loginAs(otherMgr);
-    const res = await POST(jsonRequest(`http://localhost/api/checklists/${sub.id}/review`, {}), {
+    const res = await POST(jsonRequest(`http://localhost/api/checklists/submissions/${sub.id}/review`, {}), {
       params: { submissionId: sub.id },
     });
     expect(res.status).toBe(403);
