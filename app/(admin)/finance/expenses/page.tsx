@@ -12,6 +12,7 @@ import { ChevronLeft, Plus } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { BulkReimburse } from "./bulk-reimburse";
 import { DeleteEntityButton } from "@/components/ui/delete-entity-button";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 export const dynamic = "force-dynamic";
 
@@ -153,55 +154,55 @@ export default async function ExpensesPage({
           </form>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="pb-2">Date</th>
-                  <th className="pb-2">Description</th>
-                  <th className="pb-2">Category</th>
-                  <th className="pb-2">Vendor</th>
-                  <th className="pb-2">Amount</th>
-                  <th className="pb-2">Status</th>
-                  {canManage && <th className="pb-2"></th>}
-                </tr>
-              </thead>
-              <tbody>
-                {expenses.map((e) => (
-                  <tr key={e.id} className="border-t">
-                    <td className="py-2">{formatDate(e.spentAt)}</td>
-                    <td className="py-2">{e.description}</td>
-                    <td className="py-2 text-xs">
-                      {e.category.name}
-                      <Badge variant="outline" className="ml-1 text-[10px] uppercase">{e.category.group}</Badge>
-                    </td>
-                    <td className="py-2 text-xs">{e.vendor?.name ?? "—"}</td>
-                    <td className="py-2 font-mono">{inr(e.amount)}</td>
-                    <td className="py-2">
-                      <Badge variant={e.paid ? "success" : "warning"}>{e.paid ? "paid" : "due"}</Badge>
-                    </td>
-                    {canManage && (
-                      <td className="py-2 text-right">
+          <ResponsiveTable
+            rows={expenses}
+            getRowKey={(e) => e.id}
+            emptyMessage="No expenses match these filters."
+            columns={[
+              {
+                key: "description",
+                header: "Description",
+                primary: true,
+                cell: (e) => e.description,
+              },
+              { key: "date", header: "Date", cell: (e) => formatDate(e.spentAt) },
+              {
+                key: "category",
+                header: "Category",
+                className: "py-2 text-xs",
+                cell: (e) => (
+                  <>
+                    {e.category.name}
+                    <Badge variant="outline" className="ml-1 text-[10px] uppercase">{e.category.group}</Badge>
+                  </>
+                ),
+              },
+              { key: "vendor", header: "Vendor", className: "py-2 text-xs", cell: (e) => e.vendor?.name ?? "—" },
+              { key: "amount", header: "Amount", className: "py-2 font-mono", cell: (e) => inr(e.amount) },
+              {
+                key: "status",
+                header: "Status",
+                cell: (e) => <Badge variant={e.paid ? "success" : "warning"}>{e.paid ? "paid" : "due"}</Badge>,
+              },
+              ...(canManage
+                ? [
+                    {
+                      key: "actions",
+                      header: "",
+                      className: "py-2 text-right",
+                      cell: (e: (typeof expenses)[number]) => (
                         <DeleteEntityButton
                           endpoint={`/api/expenses/${e.id}`}
                           entityLabel="expense"
                           redirectTo="/finance/expenses"
                           confirmBody={`Delete "${e.description}" (${inr(e.amount)})? This cannot be undone.`}
                         />
-                      </td>
-                    )}
-                  </tr>
-                ))}
-                {expenses.length === 0 && (
-                  <tr>
-                    <td colSpan={canManage ? 7 : 6} className="py-12 text-center text-muted-foreground">
-                      No expenses match these filters.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
+          />
         </CardContent>
       </Card>
     </div>

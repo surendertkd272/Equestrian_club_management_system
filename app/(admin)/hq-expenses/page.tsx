@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { HqExpenseForm } from "./form";
 import { formatDate } from "@/lib/utils";
 
@@ -62,73 +63,72 @@ export default async function HqExpensesPage() {
           <CardTitle>Recent HQ expenses</CardTitle>
         </CardHeader>
         <CardContent>
-          {expenses.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No HQ expenses recorded yet.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="pb-2">Date</th>
-                    <th className="pb-2">Description</th>
-                    <th className="pb-2">Vendor</th>
-                    <th className="pb-2">Tagged clubs</th>
-                    <th className="pb-2 text-right">Amount</th>
-                    <th className="pb-2">Status</th>
-                    <th className="pb-2">Invoice</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {expenses.map((e) => {
-                    const tagged = e.taggedCentreIdsCsv?.split(",").filter(Boolean) ?? [];
-                    return (
-                      <tr key={e.id} className="border-t align-top">
-                        <td className="py-2 text-xs">{formatDate(e.spentAt)}</td>
-                        <td className="py-2">
-                          <div className="font-medium">{e.description}</div>
-                          {e.category && (
-                            <div className="text-xs text-muted-foreground">{e.category.name}</div>
-                          )}
-                        </td>
-                        <td className="py-2 text-xs">{e.vendorName ?? "—"}</td>
-                        <td className="py-2 text-xs">
-                          {tagged.length === 0 ? (
-                            <span className="text-muted-foreground">HQ overhead</span>
-                          ) : (
-                            <div className="flex flex-wrap gap-1">
-                              {tagged.map((cid) => (
-                                <Badge key={cid} variant="outline">
-                                  {centresById[cid] ?? cid}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-2 text-right font-mono">
-                          ₹{e.amount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                        </td>
-                        <td className="py-2">
-                          <Badge variant={e.paid ? "success" : "warning"}>{e.paid ? "Paid" : "Unpaid"}</Badge>
-                        </td>
-                        <td className="py-2">
-                          <a
-                            href={e.attachmentUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-primary underline"
-                          >
-                            View
-                          </a>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <ResponsiveTable
+            rows={expenses}
+            getRowKey={(e) => e.id}
+            emptyMessage="No HQ expenses recorded yet."
+            columns={[
+              { key: "date", header: "Date", cell: (e) => <span className="text-xs">{formatDate(e.spentAt)}</span> },
+              {
+                key: "description",
+                header: "Description",
+                primary: true,
+                cell: (e) => (
+                  <>
+                    <div className="font-medium">{e.description}</div>
+                    {e.category && (
+                      <div className="text-xs text-muted-foreground">{e.category.name}</div>
+                    )}
+                  </>
+                ),
+              },
+              { key: "vendor", header: "Vendor", cell: (e) => <span className="text-xs">{e.vendorName ?? "—"}</span> },
+              {
+                key: "tagged",
+                header: "Tagged clubs",
+                cell: (e) => {
+                  const tagged = e.taggedCentreIdsCsv?.split(",").filter(Boolean) ?? [];
+                  return tagged.length === 0 ? (
+                    <span className="text-xs text-muted-foreground">HQ overhead</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {tagged.map((cid) => (
+                        <Badge key={cid} variant="outline">
+                          {centresById[cid] ?? cid}
+                        </Badge>
+                      ))}
+                    </div>
+                  );
+                },
+              },
+              {
+                key: "amount",
+                header: "Amount",
+                headerClassName: "text-right",
+                className: "text-right font-mono",
+                cell: (e) => <>₹{e.amount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}</>,
+              },
+              {
+                key: "status",
+                header: "Status",
+                cell: (e) => <Badge variant={e.paid ? "success" : "warning"}>{e.paid ? "Paid" : "Unpaid"}</Badge>,
+              },
+              {
+                key: "invoice",
+                header: "Invoice",
+                cell: (e) => (
+                  <a
+                    href={e.attachmentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline"
+                  >
+                    View
+                  </a>
+                ),
+              },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { CheckCheck } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { ReviewButtons } from "./approvals-client";
 
 export const dynamic = "force-dynamic";
@@ -85,62 +86,81 @@ export default async function ApprovalsPage() {
               body="When a rider self-enrols, a coach submits a requisition, or a leave request lands, it shows up here."
             />
           ) : (
-            <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-2 py-2">Request</th>
-                  <th className="px-2 py-2">From</th>
-                  <th className="px-2 py-2">Type</th>
-                  <th className="px-2 py-2">Status</th>
-                  <th className="px-2 py-2">Created</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => {
-                  const user = userById.get(r.requestedBy);
-                  const isMine = r.requestedBy === session.userId;
-                  return (
-                    <tr key={r.id} className="border-t align-top">
-                      <td className="px-2 py-2">
-                        <div className="font-medium">{r.title}</div>
-                        {r.body && <div className="mt-0.5 text-xs text-muted-foreground">{r.body}</div>}
-                        {r.reviewNotes && (
-                          <div className="mt-1 rounded bg-muted/40 px-2 py-1 text-xs">
-                            <span className="text-muted-foreground">Review:</span> {r.reviewNotes}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-2 py-2 text-xs">
+            <ResponsiveTable
+              rows={rows}
+              getRowKey={(r) => r.id}
+              columns={[
+                {
+                  key: "request",
+                  header: "Request",
+                  primary: true,
+                  cell: (r) => (
+                    <>
+                      <div className="font-medium">{r.title}</div>
+                      {r.body && <div className="mt-0.5 text-xs text-muted-foreground">{r.body}</div>}
+                      {r.reviewNotes && (
+                        <div className="mt-1 rounded bg-muted/40 px-2 py-1 text-xs">
+                          <span className="text-muted-foreground">Review:</span> {r.reviewNotes}
+                        </div>
+                      )}
+                    </>
+                  ),
+                },
+                {
+                  key: "from",
+                  header: "From",
+                  className: "text-xs",
+                  cell: (r) => {
+                    const user = userById.get(r.requestedBy);
+                    return (
+                      <>
                         {user?.name ?? "—"}
                         {user && <div className="text-[10px] text-muted-foreground">{user.role}</div>}
-                      </td>
-                      <td className="px-2 py-2 text-xs font-mono">{r.entityType}</td>
-                      <td className="px-2 py-2">
-                        <Badge
-                          variant={
-                            r.status === "approved" ? "success"
-                            : r.status === "rejected" ? "destructive"
-                            : r.status === "cancelled" ? "outline"
-                            : "warning"
-                          }
-                        >
-                          {r.status}
-                        </Badge>
-                      </td>
-                      <td className="px-2 py-2 text-xs text-muted-foreground">{formatDate(r.createdAt)}</td>
-                      <td className="px-2 py-2 text-right">
-                        {r.status === "pending" && (
-                          <ReviewButtons id={r.id} canReview={canReview} isMine={isMine} />
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            </div>
+                      </>
+                    );
+                  },
+                },
+                {
+                  key: "type",
+                  header: "Type",
+                  className: "text-xs font-mono",
+                  cell: (r) => r.entityType,
+                },
+                {
+                  key: "status",
+                  header: "Status",
+                  cell: (r) => (
+                    <Badge
+                      variant={
+                        r.status === "approved" ? "success"
+                        : r.status === "rejected" ? "destructive"
+                        : r.status === "cancelled" ? "outline"
+                        : "warning"
+                      }
+                    >
+                      {r.status}
+                    </Badge>
+                  ),
+                },
+                {
+                  key: "created",
+                  header: "Created",
+                  className: "text-xs text-muted-foreground",
+                  cell: (r) => formatDate(r.createdAt),
+                },
+                {
+                  key: "actions",
+                  header: "",
+                  className: "text-right",
+                  cell: (r) => {
+                    const isMine = r.requestedBy === session.userId;
+                    return r.status === "pending" ? (
+                      <ReviewButtons id={r.id} canReview={canReview} isMine={isMine} />
+                    ) : null;
+                  },
+                },
+              ]}
+            />
           )}
         </CardContent>
       </Card>

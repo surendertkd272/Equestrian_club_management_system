@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 export const dynamic = "force-dynamic";
 
@@ -129,59 +130,71 @@ function TaskTable({
 }) {
   const now = new Date();
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-          <tr>
-            <th className="pb-2">Task</th>
-            <th className="pb-2">Assigned to</th>
-            <th className="pb-2">Recurrence</th>
-            <th className="pb-2">{showCompleted ? "Completed" : "Due"}</th>
-            <th className="pb-2">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tasks.map((t) => {
+    <ResponsiveTable
+      rows={tasks}
+      getRowKey={(t) => t.id}
+      columns={[
+        {
+          key: "task",
+          header: "Task",
+          primary: true,
+          cell: (t) => <span className="font-medium">{t.title}</span>,
+        },
+        {
+          key: "assignee",
+          header: "Assigned to",
+          cell: (t) => {
             const assignee = t.assigneeId ? userMap.get(t.assigneeId) : null;
+            return assignee ? (
+              <span>
+                {assignee.name}{" "}
+                <span className="text-[11px] text-muted-foreground">
+                  {assignee.role.replace(/_/g, " ").toLowerCase()}
+                </span>
+              </span>
+            ) : (
+              <span className="text-muted-foreground">Unassigned</span>
+            );
+          },
+        },
+        {
+          key: "recurrence",
+          header: "Recurrence",
+          cell: (t) => (
+            <span className="text-xs capitalize text-muted-foreground">{t.recurrence ?? "once"}</span>
+          ),
+        },
+        {
+          key: "when",
+          header: showCompleted ? "Completed" : "Due",
+          cell: (t) => {
             const overdue = !showCompleted && t.dueAt && t.dueAt < now;
             return (
-              <tr key={t.id} className="border-t">
-                <td className="py-2 font-medium">{t.title}</td>
-                <td className="py-2">
-                  {assignee ? (
-                    <span>
-                      {assignee.name}{" "}
-                      <span className="text-[11px] text-muted-foreground">
-                        {assignee.role.replace(/_/g, " ").toLowerCase()}
-                      </span>
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">Unassigned</span>
-                  )}
-                </td>
-                <td className="py-2 text-xs capitalize text-muted-foreground">{t.recurrence ?? "once"}</td>
-                <td className={`py-2 text-xs ${overdue ? "font-semibold text-amber-700" : ""}`}>
-                  {showCompleted
-                    ? t.completedAt
-                      ? formatDate(t.completedAt)
-                      : "—"
-                    : t.dueAt
-                      ? `${formatDate(t.dueAt)}${overdue ? " · overdue" : ""}`
-                      : "—"}
-                </td>
-                <td className="py-2">
-                  <Badge
-                    variant={t.status === "done" ? "success" : t.status === "in_progress" ? "warning" : "outline"}
-                  >
-                    {t.status.replace("_", " ")}
-                  </Badge>
-                </td>
-              </tr>
+              <span className={`text-xs ${overdue ? "font-semibold text-amber-700" : ""}`}>
+                {showCompleted
+                  ? t.completedAt
+                    ? formatDate(t.completedAt)
+                    : "—"
+                  : t.dueAt
+                    ? `${formatDate(t.dueAt)}${overdue ? " · overdue" : ""}`
+                    : "—"}
+              </span>
             );
-          })}
-        </tbody>
-      </table>
-    </div>
+          },
+        },
+        {
+          key: "status",
+          header: "Status",
+          cell: (t) => (
+            <Badge
+              variant={t.status === "done" ? "success" : t.status === "in_progress" ? "warning" : "outline"}
+            >
+              {t.status.replace("_", " ")}
+            </Badge>
+          ),
+        },
+      ]}
+    />
   );
 }
 
