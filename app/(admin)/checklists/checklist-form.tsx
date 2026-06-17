@@ -129,7 +129,7 @@ export function ChecklistSubmissionForm({ templateId, scope, items, horses }: Pr
                 <li key={it.id} className="px-3 py-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="min-w-[200px] flex-1 text-sm">{it.label}</div>
-                    <div className="flex gap-1">
+                    <div className="flex w-full gap-1 sm:w-auto" role="group" aria-label={it.label}>
                       <StatusBtn
                         active={m.status === "done"}
                         tone="green"
@@ -217,19 +217,24 @@ function StatusBtn({
   onClick: () => void;
   children: React.ReactNode;
 }) {
-  const base = "rounded-md border px-2 py-1 text-xs font-medium transition";
+  // ≥44px tap target on phones (full-width 3-up), compact on desktop. font-semibold
+  // + ring when active is a non-colour selection cue; aria-pressed exposes state to SRs.
+  const base =
+    "inline-flex min-h-[44px] flex-1 items-center justify-center gap-1 rounded-md border px-3 text-sm font-medium transition sm:min-h-[34px] sm:flex-none sm:text-xs";
   const inactive = "border-input bg-background text-muted-foreground hover:bg-muted";
   const activeMap: Record<string, string> = {
-    green: "border-emerald-600 bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
-    amber: "border-amber-600 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-    muted: "border-zinc-400 bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200",
+    green: "border-emerald-600 bg-emerald-50 font-semibold text-emerald-700 ring-1 ring-emerald-600 dark:bg-emerald-950 dark:text-emerald-300",
+    amber: "border-amber-600 bg-amber-50 font-semibold text-amber-700 ring-1 ring-amber-600 dark:bg-amber-950 dark:text-amber-300",
+    muted: "border-zinc-400 bg-zinc-100 font-semibold text-zinc-700 ring-1 ring-zinc-400 dark:bg-zinc-800 dark:text-zinc-200",
   };
   return (
     <button
       type="button"
+      aria-pressed={active}
       onClick={onClick}
       className={`${base} ${active ? activeMap[tone] : inactive}`}
     >
+      {active && <span aria-hidden="true">✓</span>}
       {children}
     </button>
   );

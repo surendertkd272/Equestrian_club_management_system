@@ -89,7 +89,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link
             href="/my-documents"
             className={`block px-4 py-2 text-center text-sm hover:underline ${
-              docsOverdue ? "bg-rose-600 text-white" : "bg-amber-500 text-white"
+              docsOverdue ? "bg-rose-700 text-white" : "bg-amber-500 text-amber-950"
             }`}
           >
             {docsOverdue ? "⚠ Overdue: " : ""}

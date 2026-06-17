@@ -147,20 +147,32 @@ export function CommandPalette() {
   }
 
   if (!open) {
-    // The trigger button — small affordance in the admin layout topbar.
+    // Trigger affordance. On phones the sidebar is a drawer, so search is the
+    // fastest way to a named rider/horse — give it a visible icon button there;
+    // desktop keeps the full bar with the keyboard-shortcut hint.
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="hidden h-9 items-center gap-2 rounded-md border bg-card px-3 text-xs text-muted-foreground hover:bg-muted md:inline-flex"
-        title="Search — Cmd/Ctrl + K"
-      >
-        <Search className="h-3.5 w-3.5" />
-        <span>Search…</span>
-        <kbd className="ml-2 rounded border bg-background px-1.5 py-0.5 font-mono text-[10px]">
-          ⌘K
-        </kbd>
-      </button>
+      <>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Search"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-md border bg-card text-muted-foreground hover:bg-muted md:hidden"
+        >
+          <Search className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="hidden h-9 items-center gap-2 rounded-md border bg-card px-3 text-xs text-muted-foreground hover:bg-muted md:inline-flex"
+          title="Search — Cmd/Ctrl + K"
+        >
+          <Search className="h-3.5 w-3.5" />
+          <span>Search…</span>
+          <kbd className="ml-2 rounded border bg-background px-1.5 py-0.5 font-mono text-[10px]">
+            ⌘K
+          </kbd>
+        </button>
+      </>
     );
   }
 

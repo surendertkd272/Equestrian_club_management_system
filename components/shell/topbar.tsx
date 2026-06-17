@@ -66,9 +66,7 @@ export function TopBar({
           )}
         </div>
         <div className="flex items-center gap-1 md:gap-3">
-          <div className="hidden md:block">
-            <CommandPalette />
-          </div>
+          <CommandPalette />
           <ThemeToggle />
           <NotificationsDropdown initialUnread={unreadCount} />
           <Link href="/account" className="flex items-center gap-2 text-right text-sm hover:underline" title="Account settings">
