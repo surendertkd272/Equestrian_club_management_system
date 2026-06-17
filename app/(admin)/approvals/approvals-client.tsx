@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { openConfirm } from "@/components/ui/confirm-dialog";
+import { openPrompt } from "@/components/ui/prompt-dialog";
+import { postJson } from "@/lib/client/post-json";
 
 export function ReviewButtons({
   id,
@@ -20,7 +22,13 @@ export function ReviewButtons({
   async function review(decision: "approved" | "rejected" | "cancelled") {
     let reviewNotes = "";
     if (decision === "rejected") {
-      const note = window.prompt("Reason for rejecting (shown to the requester):");
+      const note = await openPrompt({
+        title: "Reject request",
+        label: "Reason for rejecting",
+        body: "Shown to the requester.",
+        multiline: true,
+        confirmLabel: "Reject",
+      });
       if (note === null) return;
       reviewNotes = note;
     } else if (decision === "cancelled") {
@@ -32,14 +40,9 @@ export function ReviewButtons({
     }
     setBusy(true);
     try {
-      const res = await fetch(`/api/approvals/${id}/review`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ decision, reviewNotes: reviewNotes || undefined }),
-      });
-      const data = await res.json().catch(() => ({}));
+      const res = await postJson(`/api/approvals/${id}/review`, { decision, reviewNotes: reviewNotes || undefined });
       if (!res.ok) {
-        toast.error(data.message ?? data.error ?? "Failed");
+        toast.error(res.message);
         return;
       }
       toast.success(`Marked ${decision}`);

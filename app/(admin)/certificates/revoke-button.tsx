@@ -3,23 +3,28 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { openPrompt } from "@/components/ui/prompt-dialog";
+import { postJson } from "@/lib/client/post-json";
 
 export function RevokeButton({ id }: { id: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
   async function onClick() {
-    const reason = window.prompt("Reason for revoking (shown on the public verify page):");
+    const reason = await openPrompt({
+      title: "Revoke certificate",
+      body: "This is shown on the public verify page.",
+      label: "Reason for revoking",
+      multiline: true,
+      required: true,
+      confirmLabel: "Revoke",
+    });
     if (!reason || reason.trim().length < 2) return;
     setBusy(true);
     try {
-      const res = await fetch(`/api/certificates/${id}/revoke`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: reason.trim() }),
-      });
+      const res = await postJson(`/api/certificates/${id}/revoke`, { reason: reason.trim() });
       if (!res.ok) {
-        toast.error("Revoke failed");
+        toast.error(res.message);
         return;
       }
       toast.success("Revoked");

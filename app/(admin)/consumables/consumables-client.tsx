@@ -9,6 +9,8 @@ import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeactivateButton } from "@/components/ui/deactivate-button";
 import { toast } from "sonner";
+import { openPrompt } from "@/components/ui/prompt-dialog";
+import { postJson } from "@/lib/client/post-json";
 
 export function ConsumablesClient() {
   const router = useRouter();
@@ -116,31 +118,33 @@ export function ConsumablesClient() {
 export function MoveButtons({ id, unit }: { id: string; unit: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  async function move(direction: "in" | "out", askLabel: string) {
-    const raw = window.prompt(`${askLabel} how many ${unit}?`);
+  async function move(direction: "in" | "out") {
+    const raw = await openPrompt({
+      title: direction === "in" ? "Restock" : "Use stock",
+      label: `How many ${unit}?`,
+      inputMode: "numeric",
+      required: true,
+      confirmLabel: "Continue",
+    });
     if (!raw) return;
     const qty = parseInt(raw, 10);
     if (!Number.isFinite(qty) || qty <= 0) {
-      toast.error("Enter a positive integer.");
+      toast.error("Enter a positive whole number.");
       return;
     }
-    const reason = window.prompt("Reason (optional):") ?? "";
+    const reason = (await openPrompt({ title: "Reason (optional)", label: "Reason", multiline: true })) ?? "";
     setBusy(true);
     try {
-      const res = await fetch(`/api/consumables/${id}/move`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ direction, qty, reason: reason || undefined }),
-      });
-      const data = await res.json().catch(() => ({}));
+      const res = await postJson<{ qty: number }>(`/api/consumables/${id}/move`, { direction, qty, reason: reason || undefined });
       if (!res.ok) {
         const msg =
-          data.error === "INSUFFICIENT_STOCK" ? `Only ${data.available} ${unit} available.` :
-          (data.error ?? "Failed");
+          res.code === "INSUFFICIENT_STOCK"
+            ? `Only ${(res.data as { available?: number }).available} ${unit} available.`
+            : res.message;
         toast.error(msg);
         return;
       }
-      toast.success(`Stock now ${data.qty} ${unit}`);
+      toast.success(`Stock now ${res.data.qty} ${unit}`);
       router.refresh();
     } finally {
       setBusy(false);
@@ -148,8 +152,8 @@ export function MoveButtons({ id, unit }: { id: string; unit: string }) {
   }
   return (
     <div className="flex gap-1">
-      <Button size="sm" variant="outline" disabled={busy} onClick={() => move("in", "Restocked —")}>+ In</Button>
-      <Button size="sm" variant="outline" disabled={busy} onClick={() => move("out", "Used —")}>− Out</Button>
+      <Button size="sm" variant="outline" disabled={busy} onClick={() => move("in")}>+ In</Button>
+      <Button size="sm" variant="outline" disabled={busy} onClick={() => move("out")}>− Out</Button>
       <DeactivateButton apiPath={`/api/consumables/${id}`} />
     </div>
   );
