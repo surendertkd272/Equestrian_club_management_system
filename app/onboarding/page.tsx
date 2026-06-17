@@ -14,25 +14,39 @@ export default async function OnboardingPage({
   const centre = slug ? await prisma.centre.findUnique({ where: { slug } }) : null;
 
   if (!centre) {
-    const centres = await prisma.centre.findMany({ select: { slug: true, name: true } });
+    // SECURITY: this page is public + RLS-bypassed and reached via an
+    // unguessable per-centre link (?centre=<slug>). It must NEVER enumerate
+    // centres — doing so leaks every tenant's club list to any visitor. With no
+    // (or an unknown) slug, show a neutral message instead of a directory.
+    // In development only, list centres as a convenience for local testing.
+    const devCentres =
+      process.env.NODE_ENV !== "production"
+        ? await prisma.centre.findMany({ select: { slug: true, name: true } })
+        : [];
     return (
-      <main className="container max-w-md py-16">
-        <h1 className="text-2xl font-bold">Pick a centre</h1>
+      <main className="container max-w-md py-16 text-center">
+        <h1 className="text-2xl font-bold">Registration link needed</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Add <code>?centre=&lt;slug&gt;</code> to the URL, or pick one below.
+          {slug
+            ? "That registration link isn't valid. Please ask your club for the correct link."
+            : "Open the registration link your club shared with you to start."}
         </p>
-        <ul className="mt-6 space-y-2">
-          {centres.map((c) => (
-            <li key={c.slug}>
-              <a className="text-primary underline" href={`/onboarding?centre=${c.slug}`}>
-                {c.name}
-              </a>
-            </li>
-          ))}
-          {centres.length === 0 && (
-            <li className="text-sm text-muted-foreground">No centres set up yet. Run <code>npm run db:seed</code>.</li>
-          )}
-        </ul>
+        {devCentres.length > 0 && (
+          <div className="mt-8 rounded-md border border-dashed p-4 text-left">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Dev only — pick a centre
+            </p>
+            <ul className="mt-2 space-y-1">
+              {devCentres.map((c) => (
+                <li key={c.slug}>
+                  <a className="text-primary underline" href={`/onboarding?centre=${c.slug}`}>
+                    {c.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </main>
     );
   }
