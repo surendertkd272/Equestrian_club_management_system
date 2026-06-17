@@ -25,7 +25,7 @@ const EXPIRY_BADGE: Record<string, { variant: "success" | "warning" | "destructi
 export default async function MedicinesPage({
   searchParams,
 }: {
-  searchParams: { category?: string; status?: string };
+  searchParams: { q?: string; category?: string; status?: string };
 }) {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
@@ -33,6 +33,13 @@ export default async function MedicinesPage({
   if (!orgId) redirect("/dashboard");
 
   const where: any = { ...tenantWhere(centreId, orgId), active: true };
+  if (searchParams.q) {
+    where.OR = [
+      { name: { contains: searchParams.q } },
+      { batchNo: { contains: searchParams.q } },
+      { category: { contains: searchParams.q } },
+    ];
+  }
   if (searchParams.category) where.category = searchParams.category;
   if (searchParams.status === "low") where.qty = { lte: 5 };
   if (searchParams.status === "expiring") where.expDate = { lte: new Date(Date.now() + 30 * 86400000) };
@@ -75,6 +82,17 @@ export default async function MedicinesPage({
       <Card>
         <CardHeader>
           <form className="flex flex-wrap items-end gap-2 text-sm" method="get">
+            <div>
+              <label className="mb-1 block text-xs uppercase text-muted-foreground">Search</label>
+              <input
+                type="search"
+                name="q"
+                aria-label="Search medicines by name, batch no, or category"
+                defaultValue={searchParams.q ?? ""}
+                placeholder="Name, batch no…"
+                className="h-9 w-48 rounded-md border border-input bg-background px-3 text-base md:text-sm"
+              />
+            </div>
             <div>
               <label className="mb-1 block text-xs uppercase text-muted-foreground">Category</label>
               <select aria-label="Filter by category"
