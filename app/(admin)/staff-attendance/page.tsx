@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { redirect } from "next/navigation";
 import { StaffAttendanceMarker } from "./marker";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 export const dynamic = "force-dynamic";
 
@@ -59,53 +60,57 @@ export default async function StaffAttendancePage() {
           <CardTitle>Recent Rows</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="pb-2">Date</th>
-                <th className="pb-2">Staff</th>
-                <th className="pb-2">Role</th>
-                <th className="pb-2">Status</th>
-                <th className="pb-2">Check-in</th>
-                <th className="pb-2">Check-out</th>
-                <th className="pb-2">OT (h)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recent.map((r) => (
-                <tr key={r.id} className="border-t">
-                  <td className="py-2">{formatDate(r.date)}</td>
-                  <td className="py-2 font-medium">{r.user.name}</td>
-                  <td className="py-2">
-                    <Badge variant="outline">{r.user.role.replaceAll("_", " ")}</Badge>
-                  </td>
-                  <td className="py-2">
-                    <Badge
-                      variant={
-                        r.status === "present" ? "success" : r.status === "late" ? "warning" : r.status === "leave" ? "outline" : "destructive"
-                      }
-                    >
-                      {r.status}
-                    </Badge>
-                  </td>
-                  <td className="py-2 font-mono text-xs">
+          <ResponsiveTable
+            rows={recent}
+            getRowKey={(r) => r.id}
+            emptyMessage="No staff attendance recorded in the last 30 days."
+            columns={[
+              { key: "date", header: "Date", cell: (r) => formatDate(r.date) },
+              {
+                key: "staff",
+                header: "Staff",
+                primary: true,
+                cell: (r) => <span className="font-medium">{r.user.name}</span>,
+              },
+              {
+                key: "role",
+                header: "Role",
+                cell: (r) => <Badge variant="outline">{r.user.role.replaceAll("_", " ")}</Badge>,
+              },
+              {
+                key: "status",
+                header: "Status",
+                cell: (r) => (
+                  <Badge
+                    variant={
+                      r.status === "present" ? "success" : r.status === "late" ? "warning" : r.status === "leave" ? "outline" : "destructive"
+                    }
+                  >
+                    {r.status}
+                  </Badge>
+                ),
+              },
+              {
+                key: "checkIn",
+                header: "Check-in",
+                cell: (r) => (
+                  <span className="font-mono text-xs">
                     {r.checkInAt ? r.checkInAt.toISOString().slice(11, 16) : "—"}
-                  </td>
-                  <td className="py-2 font-mono text-xs">
+                  </span>
+                ),
+              },
+              {
+                key: "checkOut",
+                header: "Check-out",
+                cell: (r) => (
+                  <span className="font-mono text-xs">
                     {r.checkOutAt ? r.checkOutAt.toISOString().slice(11, 16) : "—"}
-                  </td>
-                  <td className="py-2">{r.overtimeHours ?? "—"}</td>
-                </tr>
-              ))}
-              {recent.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
-                    No staff attendance recorded in the last 30 days.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table></div>
+                  </span>
+                ),
+              },
+              { key: "ot", header: "OT (h)", cell: (r) => r.overtimeHours ?? "—" },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>

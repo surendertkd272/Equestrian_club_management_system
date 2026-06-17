@@ -8,6 +8,7 @@ import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { TrainingClient } from "./training-client";
 
 export const dynamic = "force-dynamic";
@@ -98,50 +99,61 @@ export default async function TrainingPage() {
           <CardTitle>Certifications</CardTitle>
         </CardHeader>
         <CardContent>
-          {certs.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No certifications recorded yet.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-2 py-2">Staff</th>
-                  <th className="px-2 py-2">Title</th>
-                  <th className="px-2 py-2">Issuer</th>
-                  <th className="px-2 py-2">Issued</th>
-                  <th className="px-2 py-2">Valid until</th>
-                </tr>
-              </thead>
-              <tbody>
-                {certs.map((c) => {
+          <ResponsiveTable
+            rows={certs}
+            getRowKey={(c) => c.id}
+            emptyMessage="No certifications recorded yet."
+            columns={[
+              {
+                key: "staff",
+                header: "Staff",
+                primary: true,
+                cell: (c) => (
+                  <>
+                    <div className="font-medium">{userById.get(c.userId)?.name ?? "—"}</div>
+                    <div className="text-[10px] text-muted-foreground">{userById.get(c.userId)?.role ?? ""}</div>
+                  </>
+                ),
+              },
+              {
+                key: "title",
+                header: "Title",
+                cell: (c) => (
+                  <>
+                    <div>{c.title}</div>
+                    {c.serialNo && <div className="text-[10px] font-mono text-muted-foreground">{c.serialNo}</div>}
+                  </>
+                ),
+              },
+              {
+                key: "issuer",
+                header: "Issuer",
+                className: "text-xs",
+                cell: (c) => c.issuer ?? (c.courseId ? "Internal" : "—"),
+              },
+              {
+                key: "issued",
+                header: "Issued",
+                className: "text-xs",
+                cell: (c) => formatDate(c.issuedAt),
+              },
+              {
+                key: "validUntil",
+                header: "Valid until",
+                cell: (c) => {
                   const expired = c.validUntil && c.validUntil < now;
                   const expSoon = c.validUntil && !expired && c.validUntil <= expiringCutoff;
                   return (
-                    <tr key={c.id} className="border-t">
-                      <td className="px-2 py-2">
-                        <div className="font-medium">{userById.get(c.userId)?.name ?? "—"}</div>
-                        <div className="text-[10px] text-muted-foreground">{userById.get(c.userId)?.role ?? ""}</div>
-                      </td>
-                      <td className="px-2 py-2">
-                        <div>{c.title}</div>
-                        {c.serialNo && <div className="text-[10px] font-mono text-muted-foreground">{c.serialNo}</div>}
-                      </td>
-                      <td className="px-2 py-2 text-xs">{c.issuer ?? (c.courseId ? "Internal" : "—")}</td>
-                      <td className="px-2 py-2 text-xs">{formatDate(c.issuedAt)}</td>
-                      <td className={`px-2 py-2 text-xs ${expired ? "font-semibold text-rose-600" : expSoon ? "font-semibold text-amber-700" : ""}`}>
-                        {c.validUntil ? formatDate(c.validUntil) : "—"}
-                        {expired && <Badge variant="destructive" className="ml-2 text-[10px]">EXPIRED</Badge>}
-                        {expSoon && <Badge variant="warning" className="ml-2 text-[10px]">SOON</Badge>}
-                      </td>
-                    </tr>
+                    <span className={`text-xs ${expired ? "font-semibold text-rose-600" : expSoon ? "font-semibold text-amber-700" : ""}`}>
+                      {c.validUntil ? formatDate(c.validUntil) : "—"}
+                      {expired && <Badge variant="destructive" className="ml-2 text-[10px]">EXPIRED</Badge>}
+                      {expSoon && <Badge variant="warning" className="ml-2 text-[10px]">SOON</Badge>}
+                    </span>
                   );
-                })}
-              </tbody>
-            </table>
-            </div>
-          )}
+                },
+              },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>

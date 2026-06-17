@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { USER_STATUSES } from "@/lib/schemas/user-admin";
 import { ROLES } from "@/lib/roles";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { UserActions, UserSearchBar, NewUserCard } from "./client";
 import { ApprovalQueue } from "./approval-queue";
 
@@ -170,79 +171,93 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
           <CardTitle>Results ({filteredTotal})</CardTitle>
         </CardHeader>
         <CardContent>
-          {users.length === 0 ? (
-            <p className="py-12 text-center text-sm text-muted-foreground">No users match.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="pb-2">Name</th>
-                    <th className="pb-2">Email</th>
-                    <th className="pb-2">Phone</th>
-                    <th className="pb-2">Role</th>
-                    <th className="pb-2">Centre</th>
-                    <th className="pb-2">Status</th>
-                    <th className="pb-2">Joined</th>
-                    <th className="pb-2 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((u) => (
-                    <tr key={u.id} className="border-t align-top">
-                      <td className="py-2">
-                        <div className="font-medium">{u.name}</div>
-                      </td>
-                      <td className="py-2 font-mono text-xs">{u.email}</td>
-                      <td className="py-2 font-mono text-xs">
-                        {u.phone ? (
-                          <a href={`tel:${u.phone}`} className="hover:underline">{u.phone}</a>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className="py-2">
-                        <Badge variant="outline">{u.role.replaceAll("_", " ")}</Badge>
-                      </td>
-                      <td className="py-2 text-xs">
-                        {u.centre ? (
-                          <>
-                            {u.centre.name}
-                            <div className="text-muted-foreground">/{u.centre.slug}</div>
-                          </>
-                        ) : (
-                          <span className="text-muted-foreground italic">HQ</span>
-                        )}
-                      </td>
-                      <td className="py-2">
-                        <Badge variant={u.status === "active" ? "success" : "destructive"}>
-                          {u.status}
-                        </Badge>
-                      </td>
-                      <td className="py-2 text-xs text-muted-foreground">{formatDate(u.createdAt)}</td>
-                      <td className="py-2 text-right">
-                        <UserActions
-                          user={{
-                            id: u.id,
-                            name: u.name,
-                            email: u.email,
-                            phone: u.phone ?? "",
-                            role: u.role,
-                            centreId: u.centreId,
-                            status: u.status,
-                          }}
-                          centres={centres}
-                          roles={ROLES as readonly string[]}
-                          isSelf={u.id === session.userId}
-                          canResetPassword={canResetPassword}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <ResponsiveTable
+            rows={users}
+            getRowKey={(u) => u.id}
+            emptyMessage="No users match."
+            columns={[
+              {
+                key: "name",
+                header: "Name",
+                primary: true,
+                cell: (u) => <div className="font-medium">{u.name}</div>,
+              },
+              {
+                key: "email",
+                header: "Email",
+                className: "font-mono text-xs",
+                cell: (u) => u.email,
+              },
+              {
+                key: "phone",
+                header: "Phone",
+                className: "font-mono text-xs",
+                cell: (u) =>
+                  u.phone ? (
+                    <a href={`tel:${u.phone}`} className="hover:underline">{u.phone}</a>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  ),
+              },
+              {
+                key: "role",
+                header: "Role",
+                cell: (u) => <Badge variant="outline">{u.role.replaceAll("_", " ")}</Badge>,
+              },
+              {
+                key: "centre",
+                header: "Centre",
+                className: "text-xs",
+                cell: (u) =>
+                  u.centre ? (
+                    <>
+                      {u.centre.name}
+                      <div className="text-muted-foreground">/{u.centre.slug}</div>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground italic">HQ</span>
+                  ),
+              },
+              {
+                key: "status",
+                header: "Status",
+                cell: (u) => (
+                  <Badge variant={u.status === "active" ? "success" : "destructive"}>
+                    {u.status}
+                  </Badge>
+                ),
+              },
+              {
+                key: "joined",
+                header: "Joined",
+                className: "text-xs text-muted-foreground",
+                cell: (u) => formatDate(u.createdAt),
+              },
+              {
+                key: "actions",
+                header: "Actions",
+                headerClassName: "text-right",
+                className: "text-right",
+                cell: (u) => (
+                  <UserActions
+                    user={{
+                      id: u.id,
+                      name: u.name,
+                      email: u.email,
+                      phone: u.phone ?? "",
+                      role: u.role,
+                      centreId: u.centreId,
+                      status: u.status,
+                    }}
+                    centres={centres}
+                    roles={ROLES as readonly string[]}
+                    isSelf={u.id === session.userId}
+                    canResetPassword={canResetPassword}
+                  />
+                ),
+              },
+            ]}
+          />
 
           {totalPages > 1 && (
             <div className="mt-4 flex items-center justify-between border-t pt-3 text-sm">

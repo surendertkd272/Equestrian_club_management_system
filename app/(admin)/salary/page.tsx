@@ -17,6 +17,7 @@ import { formatDate } from "@/lib/utils";
 import { SalaryStructureTable } from "./structure-table";
 import { SalaryPanel } from "./panel";
 import { MarkPaidButton } from "./mark-paid-button";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 export const dynamic = "force-dynamic";
 
@@ -105,57 +106,79 @@ export default async function SalaryPage() {
           <CardDescription>Last 40 — gross, deductions, and net.</CardDescription>
         </CardHeader>
         <CardContent>
-          {recent.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">No salary recorded yet.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-                  <tr>
-                    <th className="pb-2">Staff</th>
-                    <th className="pb-2">Month</th>
-                    <th className="pb-2 text-right">Gross</th>
-                    <th className="pb-2 text-right">Attendance</th>
-                    <th className="pb-2 text-right">Advance</th>
-                    <th className="pb-2 text-right">Other</th>
-                    <th className="pb-2 text-right">Net</th>
-                    <th className="pb-2">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recent.map((p) => (
-                    <tr key={p.id} className="border-t">
-                      <td className="py-2">
-                        <div className="font-medium">{p.user.name}</div>
-                        <div className="text-[11px] text-muted-foreground">{p.user.role.replace(/_/g, " ").toLowerCase()}</div>
-                      </td>
-                      <td className="py-2">{p.periodMonth}</td>
-                      <td className="py-2 text-right font-mono">₹{Math.round(p.grossAmount).toLocaleString("en-IN")}</td>
-                      <td className="py-2 text-right font-mono text-amber-700">
-                        {p.attendanceDeducted > 0 ? `−₹${Math.round(p.attendanceDeducted).toLocaleString("en-IN")}` : "—"}
-                        {p.absentDays > 0 && <span className="ml-1 text-[10px] text-muted-foreground">({p.absentDays}a)</span>}
-                      </td>
-                      <td className="py-2 text-right font-mono text-amber-700">
-                        {p.advanceDeducted > 0 ? `−₹${Math.round(p.advanceDeducted).toLocaleString("en-IN")}` : "—"}
-                      </td>
-                      <td className="py-2 text-right font-mono">
-                        {p.otherDeductions > 0 ? `−₹${Math.round(p.otherDeductions).toLocaleString("en-IN")}` : "—"}
-                      </td>
-                      <td className="py-2 text-right font-mono font-semibold">₹{Math.round(p.netAmount).toLocaleString("en-IN")}</td>
-                      <td className="py-2">
-                        <div className="flex items-center gap-2">
-                          <Badge variant={p.paidAt ? "success" : "outline"}>
-                            {p.paidAt ? `paid ${formatDate(p.paidAt)}` : "recorded"}
-                          </Badge>
-                          {!p.paidAt && <MarkPaidButton id={p.id} />}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <ResponsiveTable
+            rows={recent}
+            getRowKey={(p) => p.id}
+            emptyMessage="No salary recorded yet."
+            columns={[
+              {
+                key: "staff",
+                header: "Staff",
+                primary: true,
+                cell: (p) => (
+                  <>
+                    <div className="font-medium">{p.user.name}</div>
+                    <div className="text-[11px] text-muted-foreground">{p.user.role.replace(/_/g, " ").toLowerCase()}</div>
+                  </>
+                ),
+              },
+              { key: "month", header: "Month", cell: (p) => p.periodMonth },
+              {
+                key: "gross",
+                header: "Gross",
+                headerClassName: "text-right",
+                className: "text-right font-mono",
+                cell: (p) => `₹${Math.round(p.grossAmount).toLocaleString("en-IN")}`,
+              },
+              {
+                key: "attendance",
+                header: "Attendance",
+                headerClassName: "text-right",
+                className: "text-right font-mono text-amber-700",
+                cell: (p) => (
+                  <>
+                    {p.attendanceDeducted > 0 ? `−₹${Math.round(p.attendanceDeducted).toLocaleString("en-IN")}` : "—"}
+                    {p.absentDays > 0 && <span className="ml-1 text-[10px] text-muted-foreground">({p.absentDays}a)</span>}
+                  </>
+                ),
+              },
+              {
+                key: "advance",
+                header: "Advance",
+                headerClassName: "text-right",
+                className: "text-right font-mono text-amber-700",
+                cell: (p) =>
+                  p.advanceDeducted > 0 ? `−₹${Math.round(p.advanceDeducted).toLocaleString("en-IN")}` : "—",
+              },
+              {
+                key: "other",
+                header: "Other",
+                headerClassName: "text-right",
+                className: "text-right font-mono",
+                cell: (p) =>
+                  p.otherDeductions > 0 ? `−₹${Math.round(p.otherDeductions).toLocaleString("en-IN")}` : "—",
+              },
+              {
+                key: "net",
+                header: "Net",
+                headerClassName: "text-right",
+                className: "text-right font-mono font-semibold",
+                cell: (p) => `₹${Math.round(p.netAmount).toLocaleString("en-IN")}`,
+              },
+              {
+                key: "status",
+                header: "Status",
+                cell: (p) => (
+                  <div className="flex items-center gap-2">
+                    <Badge variant={p.paidAt ? "success" : "outline"}>
+                      {p.paidAt ? `paid ${formatDate(p.paidAt)}` : "recorded"}
+                    </Badge>
+                    {!p.paidAt && <MarkPaidButton id={p.id} />}
+                  </div>
+                ),
+              },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>

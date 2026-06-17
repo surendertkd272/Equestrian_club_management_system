@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { NewBatchForm } from "./new-form";
 import { BatchDeleteButton } from "./delete-button";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 export const dynamic = "force-dynamic";
 
@@ -63,50 +64,31 @@ export default async function BatchesPage() {
               <CardTitle>All Batches</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="pb-2">Name</th>
-                    <th className="pb-2">Centre</th>
-                    <th className="pb-2">Days</th>
-                    <th className="pb-2">Time</th>
-                    <th className="pb-2">Level</th>
-                    <th className="pb-2">Riders</th>
-                    <th className="pb-2"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {batches.map((b) => (
-                    <tr key={b.id} className="border-t">
-                      <td className="py-2 font-medium">{b.name}</td>
-                      <td className="py-2 text-xs text-muted-foreground">{b.centre.name}</td>
-                      <td className="py-2">{b.dayOfWeek}</td>
-                      <td className="py-2">
-                        {b.startTime}–{b.endTime}
-                      </td>
-                      <td className="py-2">{b.level ?? "—"}</td>
-                      <td className="py-2">{b._count.riders}</td>
-                      <td className="py-2">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link className="text-xs text-primary underline" href={`/attendance?batch=${b.id}`}>
-                            Mark attendance →
-                          </Link>
-                          <BatchDeleteButton id={b.id} name={b.name} riderCount={b._count.riders} />
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {batches.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="py-8 text-center text-muted-foreground">
-                        No batches yet. Use the form on the right to create one.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-              </div>
+              <ResponsiveTable
+                rows={batches}
+                getRowKey={(b) => b.id}
+                emptyMessage="No batches yet. Use the form on the right to create one."
+                columns={[
+                  { key: "name", header: "Name", primary: true, cell: (b) => b.name },
+                  { key: "centre", header: "Centre", className: "py-2 text-xs text-muted-foreground", cell: (b) => b.centre.name },
+                  { key: "days", header: "Days", cell: (b) => b.dayOfWeek },
+                  { key: "time", header: "Time", cell: (b) => <>{b.startTime}–{b.endTime}</> },
+                  { key: "level", header: "Level", cell: (b) => b.level ?? "—" },
+                  { key: "riders", header: "Riders", cell: (b) => b._count.riders },
+                  {
+                    key: "actions",
+                    header: "",
+                    cell: (b) => (
+                      <div className="flex items-center justify-end gap-2">
+                        <Link className="text-xs text-primary underline" href={`/attendance?batch=${b.id}`}>
+                          Mark attendance →
+                        </Link>
+                        <BatchDeleteButton id={b.id} name={b.name} riderCount={b._count.riders} />
+                      </div>
+                    ),
+                  },
+                ]}
+              />
             </CardContent>
           </Card>
         </div>

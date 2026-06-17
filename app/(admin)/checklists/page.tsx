@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { ChecklistSubmissionForm } from "./checklist-form";
 import { SignOffButton } from "./sign-off-button";
 
@@ -156,52 +157,72 @@ export default async function ChecklistsPage() {
               No submissions yet.
             </div>
           ) : (
-            <div className="overflow-x-auto"><table className="w-full text-sm">
-              <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="pb-2">Submitted</th>
-                  <th className="pb-2">Type</th>
-                  <th className="pb-2">Shift</th>
-                  <th className="pb-2">Horse</th>
-                  <th className="pb-2 text-center">Done</th>
-                  <th className="pb-2 text-center">Issues</th>
-                  <th className="pb-2">Signed off</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent.map((s) => {
-                  const done = s.items.filter((i) => i.status === "done").length;
-                  const issues = s.items.filter((i) => i.status === "not_done").length;
-                  return (
-                    <tr key={s.id} className="border-t">
-                      <td className="py-2">{formatDate(s.submittedAt)}</td>
-                      <td className="py-2">
-                        <Badge variant="outline">
-                          {s.template.scope === "general" ? "General" : "Per-horse"}
-                        </Badge>
-                      </td>
-                      <td className="py-2 capitalize">{s.shift ?? "—"}</td>
-                      <td className="py-2">
-                        {s.horse
-                          ? `${s.horse.name}${s.horse.stableNo ? ` (${s.horse.stableNo})` : ""}`
-                          : "—"}
-                      </td>
-                      <td className="py-2 text-center">{done}</td>
-                      <td className={`py-2 text-center ${issues > 0 ? "font-semibold text-amber-700" : ""}`}>
+            <ResponsiveTable
+              rows={recent}
+              getRowKey={(s) => s.id}
+              columns={[
+                {
+                  key: "submitted",
+                  header: "Submitted",
+                  primary: true,
+                  cell: (s) => formatDate(s.submittedAt),
+                },
+                {
+                  key: "type",
+                  header: "Type",
+                  cell: (s) => (
+                    <Badge variant="outline">
+                      {s.template.scope === "general" ? "General" : "Per-horse"}
+                    </Badge>
+                  ),
+                },
+                {
+                  key: "shift",
+                  header: "Shift",
+                  className: "capitalize",
+                  cell: (s) => s.shift ?? "—",
+                },
+                {
+                  key: "horse",
+                  header: "Horse",
+                  cell: (s) =>
+                    s.horse
+                      ? `${s.horse.name}${s.horse.stableNo ? ` (${s.horse.stableNo})` : ""}`
+                      : "—",
+                },
+                {
+                  key: "done",
+                  header: "Done",
+                  className: "text-center",
+                  headerClassName: "text-center",
+                  cell: (s) => s.items.filter((i) => i.status === "done").length,
+                },
+                {
+                  key: "issues",
+                  header: "Issues",
+                  headerClassName: "text-center",
+                  cell: (s) => {
+                    const issues = s.items.filter((i) => i.status === "not_done").length;
+                    return (
+                      <div className={`text-center ${issues > 0 ? "font-semibold text-amber-700" : ""}`}>
                         {issues}
-                      </td>
-                      <td className="py-2">
-                        <SignOffButton
-                          submissionId={s.id}
-                          reviewedAt={s.reviewedAt ? s.reviewedAt.toISOString() : null}
-                          canReview={isManager}
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table></div>
+                      </div>
+                    );
+                  },
+                },
+                {
+                  key: "signedOff",
+                  header: "Signed off",
+                  cell: (s) => (
+                    <SignOffButton
+                      submissionId={s.id}
+                      reviewedAt={s.reviewedAt ? s.reviewedAt.toISOString() : null}
+                      canReview={isManager}
+                    />
+                  ),
+                },
+              ]}
+            />
           )}
         </CardContent>
       </Card>
