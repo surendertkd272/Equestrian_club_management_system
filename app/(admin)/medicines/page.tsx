@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Snowflake } from "lucide-react";
 import { DeactivateButton } from "@/components/ui/deactivate-button";
 import { formatDate } from "@/lib/utils";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 export const dynamic = "force-dynamic";
 
@@ -134,91 +135,99 @@ export default async function MedicinesPage({
           </form>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="pb-2">Medicine</th>
-                  <th className="pb-2">Category</th>
-                  <th className="pb-2">Batch</th>
-                  <th className="pb-2">Expiry</th>
-                  <th className="pb-2">Stock</th>
-                  <th className="pb-2">Flags</th>
-                  <th className="pb-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {meds.map((m) => {
+          <ResponsiveTable
+            rows={meds}
+            getRowKey={(m) => m.id}
+            emptyMessage={
+              <>
+                No medicines.
+                {canManage && (
+                  <>
+                    {" "}
+                    <Link href="/medicines/new" className="text-primary underline">
+                      Add the first batch
+                    </Link>
+                    .
+                  </>
+                )}
+              </>
+            }
+            columns={[
+              {
+                key: "name",
+                header: "Medicine",
+                primary: true,
+                cell: (m) => (
+                  <>
+                    <Link href={`/medicines/${m.id}`} className="font-medium hover:underline">
+                      {m.name}
+                    </Link>
+                    {m.generic && <span className="ml-2 text-xs text-muted-foreground">({m.generic})</span>}
+                  </>
+                ),
+              },
+              { key: "category", header: "Category", cell: (m) => <span className="capitalize">{m.category}</span> },
+              { key: "batch", header: "Batch", cell: (m) => <span className="font-mono text-xs">{m.batchNo}</span> },
+              {
+                key: "expiry",
+                header: "Expiry",
+                cell: (m) => {
                   const exp = expiryStatus(m.expDate);
                   const days = daysUntil(m.expDate);
                   const meta = EXPIRY_BADGE[exp];
+                  return (
+                    <div className="flex items-center justify-end gap-2 md:justify-start">
+                      <span>{formatDate(m.expDate)}</span>
+                      <Badge variant={meta.variant}>
+                        {meta.label}
+                        {exp !== "expired" && ` · ${days}d`}
+                      </Badge>
+                    </div>
+                  );
+                },
+              },
+              {
+                key: "stock",
+                header: "Stock",
+                cell: (m) => {
                   const isLow = m.qty <= m.reorderThreshold;
                   return (
-                    <tr key={m.id} className="border-t hover:bg-muted/40">
-                      <td className="py-2">
-                        <Link href={`/medicines/${m.id}`} className="font-medium hover:underline">
-                          {m.name}
-                        </Link>
-                        {m.generic && (
-                          <span className="ml-2 text-xs text-muted-foreground">({m.generic})</span>
-                        )}
-                      </td>
-                      <td className="py-2 capitalize">{m.category}</td>
-                      <td className="py-2 font-mono text-xs">{m.batchNo}</td>
-                      <td className="py-2">
-                        <div className="flex items-center gap-2">
-                          <span>{formatDate(m.expDate)}</span>
-                          <Badge variant={meta.variant}>
-                            {meta.label}
-                            {exp !== "expired" && ` · ${days}d`}
-                          </Badge>
-                        </div>
-                      </td>
-                      <td className="py-2">
-                        <span className={isLow ? "font-bold text-destructive" : ""}>{m.qty}</span>
-                        <span className="text-xs text-muted-foreground"> / reorder at {m.reorderThreshold}</span>
-                      </td>
-                      <td className="py-2">
-                        <div className="flex gap-1">
-                          {isLow && <Badge variant="destructive">low</Badge>}
-                          {m.coldChain && (
-                            <Badge variant="outline" className="gap-1">
-                              <Snowflake className="h-3 w-3" /> cold
-                            </Badge>
-                          )}
-                          {m.schedule && <Badge variant="outline">{m.schedule.replace("_", " ")}</Badge>}
-                        </div>
-                      </td>
-                      <td className="py-2 text-right whitespace-nowrap">
-                        <Link href={`/medicines/${m.id}`} className="text-xs text-primary underline">
-                          Open →
-                        </Link>
-                        {canManage && (
-                          <DeactivateButton apiPath={`/api/medicines/${m.id}`} itemName={m.name} label="Remove" />
-                        )}
-                      </td>
-                    </tr>
+                    <>
+                      <span className={isLow ? "font-bold text-destructive" : ""}>{m.qty}</span>
+                      <span className="text-xs text-muted-foreground"> / reorder at {m.reorderThreshold}</span>
+                    </>
                   );
-                })}
-                {meds.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center text-muted-foreground">
-                      No medicines.
-                      {canManage && (
-                        <>
-                          {" "}
-                          <Link href="/medicines/new" className="text-primary underline">
-                            Add the first batch
-                          </Link>
-                          .
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                },
+              },
+              {
+                key: "flags",
+                header: "Flags",
+                cell: (m) => (
+                  <div className="flex justify-end gap-1 md:justify-start">
+                    {m.qty <= m.reorderThreshold && <Badge variant="destructive">low</Badge>}
+                    {m.coldChain && (
+                      <Badge variant="outline" className="gap-1">
+                        <Snowflake className="h-3 w-3" /> cold
+                      </Badge>
+                    )}
+                    {m.schedule && <Badge variant="outline">{m.schedule.replace("_", " ")}</Badge>}
+                  </div>
+                ),
+              },
+              {
+                key: "actions",
+                header: "",
+                cell: (m) => (
+                  <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                    <Link href={`/medicines/${m.id}`} className="text-xs text-primary underline">
+                      Open →
+                    </Link>
+                    {canManage && <DeactivateButton apiPath={`/api/medicines/${m.id}`} itemName={m.name} label="Remove" />}
+                  </span>
+                ),
+              },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>

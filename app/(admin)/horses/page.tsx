@@ -13,6 +13,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { parsePaging } from "@/lib/paging";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExportCsvButton } from "@/components/ui/export-csv";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 export const dynamic = "force-dynamic";
 
@@ -144,68 +145,57 @@ export default async function HorsesPage({
           </form>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="pb-2">Name</th>
-                  <th className="pb-2">Breed</th>
-                  <th className="pb-2">Sex</th>
-                  <th className="pb-2">Age</th>
-                  <th className="pb-2">Stable</th>
-                  <th className="pb-2">Status</th>
-                  <th className="pb-2">Workload today</th>
-                  <th className="pb-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {horses.map((h) => {
+          <ResponsiveTable
+            rows={horses}
+            getRowKey={(h) => h.id}
+            emptyMessage="No horses match these filters."
+            columns={[
+              {
+                key: "name",
+                header: "Name",
+                primary: true,
+                cell: (h) => (
+                  <Link href={`/horses/${h.id}`} className="font-medium hover:underline">
+                    {h.name}
+                  </Link>
+                ),
+              },
+              { key: "breed", header: "Breed", cell: (h) => h.breed ?? "—" },
+              { key: "sex", header: "Sex", cell: (h) => h.sex ?? "—" },
+              { key: "age", header: "Age", cell: (h) => h.ageYears ?? "—" },
+              { key: "stable", header: "Stable", cell: (h) => h.stableNo ?? "—" },
+              { key: "status", header: "Status", cell: (h) => <Badge variant={STATUS_VARIANT[h.status] ?? "outline"}>{h.status}</Badge> },
+              {
+                key: "workload",
+                header: "Workload today",
+                cell: (h) => {
                   const used = usedByHorse.get(h.id) ?? 0;
                   const pct = Math.min(100, Math.round((used / DEFAULT_WORKLOAD_CAP_MIN) * 100));
-                  const barCls =
-                    pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-amber-500" : "bg-emerald-500";
+                  const barCls = pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-amber-500" : "bg-emerald-500";
                   return (
-                    <tr key={h.id} className="border-t hover:bg-muted/40">
-                      <td className="py-2">
-                        <Link href={`/horses/${h.id}`} className="font-medium hover:underline">
-                          {h.name}
-                        </Link>
-                      </td>
-                      <td className="py-2">{h.breed ?? "—"}</td>
-                      <td className="py-2">{h.sex ?? "—"}</td>
-                      <td className="py-2">{h.ageYears ?? "—"}</td>
-                      <td className="py-2">{h.stableNo ?? "—"}</td>
-                      <td className="py-2">
-                        <Badge variant={STATUS_VARIANT[h.status] ?? "outline"}>{h.status}</Badge>
-                      </td>
-                      <td className="py-2">
-                        <div className="flex items-center gap-2">
-                          <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
-                            <div className={`h-full ${barCls}`} style={{ width: `${pct}%` }} />
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            {Math.round(used)} / {DEFAULT_WORKLOAD_CAP_MIN} min
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-2 text-right">
-                        <Link href={`/horses/${h.id}`} className="text-xs text-primary underline">
-                          Open →
-                        </Link>
-                      </td>
-                    </tr>
+                    <div className="flex items-center justify-end gap-2 md:justify-start">
+                      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted">
+                        <div className={`h-full ${barCls}`} style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {Math.round(used)} / {DEFAULT_WORKLOAD_CAP_MIN} min
+                      </span>
+                    </div>
                   );
-                })}
-                {horses.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="py-12 text-center text-muted-foreground">
-                      No horses match these filters.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                },
+              },
+              {
+                key: "open",
+                header: "",
+                hideOnMobile: true,
+                cell: (h) => (
+                  <Link href={`/horses/${h.id}`} className="text-xs text-primary underline">
+                    Open →
+                  </Link>
+                ),
+              },
+            ]}
+          />
           <Pagination total={total} page={page} pageSize={pageSize} />
         </CardContent>
       </Card>

@@ -12,6 +12,7 @@ import { formatDate } from "@/lib/utils";
 import { Plus, Users } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { parsePaging } from "@/lib/paging";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExportCsvButton } from "@/components/ui/export-csv";
 
@@ -128,45 +129,28 @@ export default async function RidersPage({
           </form>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="pb-2">Name</th>
-                  <th className="pb-2">Mobile</th>
-                  <th className="pb-2">Joined</th>
-                  <th className="pb-2">Batch</th>
-                  <th className="pb-2">Level</th>
-                  <th className="pb-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {riders.map((r) => (
-                  <tr key={r.id} className="border-t hover:bg-muted/40">
-                    <td className="py-2">
-                      <Link href={`/riders/${r.id}`} className="font-medium hover:underline">
-                        {r.firstName} {r.lastName}
-                      </Link>
-                    </td>
-                    <td className="py-2">{r.mobile}</td>
-                    <td className="py-2">{formatDate(r.joiningDate)}</td>
-                    <td className="py-2">{r.batch?.name ?? "—"}</td>
-                    <td className="py-2">{r.currentLevel ?? "—"}</td>
-                    <td className="py-2">
-                      <Badge variant={statusVariant(r.status) as any}>{r.status.replace("_", " ")}</Badge>
-                    </td>
-                  </tr>
-                ))}
-                {riders.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="py-12 text-center text-muted-foreground">
-                      No riders match these filters.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable
+            rows={riders}
+            getRowKey={(r) => r.id}
+            emptyMessage="No riders match these filters."
+            columns={[
+              {
+                key: "name",
+                header: "Name",
+                primary: true,
+                cell: (r) => (
+                  <Link href={`/riders/${r.id}`} className="font-medium hover:underline">
+                    {r.firstName} {r.lastName}
+                  </Link>
+                ),
+              },
+              { key: "mobile", header: "Mobile", cell: (r) => r.mobile },
+              { key: "joined", header: "Joined", cell: (r) => formatDate(r.joiningDate) },
+              { key: "batch", header: "Batch", cell: (r) => r.batch?.name ?? "—" },
+              { key: "level", header: "Level", cell: (r) => r.currentLevel ?? "—" },
+              { key: "status", header: "Status", cell: (r) => <Badge variant={statusVariant(r.status) as any}>{r.status.replace("_", " ")}</Badge> },
+            ]}
+          />
           <Pagination total={total} page={page} pageSize={pageSize} />
         </CardContent>
       </Card>
