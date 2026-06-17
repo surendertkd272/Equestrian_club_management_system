@@ -25,7 +25,7 @@ const STATUS_VARIANT: Record<string, "success" | "warning" | "outline"> = {
 export default async function HorsesPage({
   searchParams,
 }: {
-  searchParams: { status?: string; ownership?: string; page?: string; pageSize?: string };
+  searchParams: { q?: string; status?: string; ownership?: string; page?: string; pageSize?: string };
 }) {
   const session = (await getSession())!;
   const centreId = scopeCentre(session);
@@ -35,6 +35,14 @@ export default async function HorsesPage({
   const where: any = { ...tenantWhere(centreId, orgId) };
   if (searchParams.status) where.status = searchParams.status;
   if (searchParams.ownership) where.ownership = searchParams.ownership;
+  if (searchParams.q) {
+    where.OR = [
+      { name: { contains: searchParams.q } },
+      { stableNo: { contains: searchParams.q } },
+      { breed: { contains: searchParams.q } },
+      { microchip: { contains: searchParams.q } },
+    ];
+  }
 
   const { page, pageSize, skip, take } = parsePaging(searchParams, { pageSize: 50 });
   const [total, horses] = await Promise.all([
@@ -59,7 +67,7 @@ export default async function HorsesPage({
   }
 
   const canManage = ["SUPER_ADMIN", "CENTRE_MANAGER", "VET"].includes(session.role);
-  const hasFilters = Boolean(searchParams.status || searchParams.ownership);
+  const hasFilters = Boolean(searchParams.status || searchParams.ownership || searchParams.q);
 
   return (
     <div className="space-y-6">
@@ -94,6 +102,17 @@ export default async function HorsesPage({
       <Card>
         <CardHeader>
           <form className="flex flex-wrap items-end gap-2 text-sm" method="get">
+            <div>
+              <label className="mb-1 block text-xs uppercase text-muted-foreground">Search</label>
+              <input
+                type="search"
+                name="q"
+                aria-label="Search horses by name, stable no, breed, or microchip"
+                defaultValue={searchParams.q ?? ""}
+                placeholder="Name, stable no, breed…"
+                className="h-9 w-48 rounded-md border border-input bg-background px-3 text-base md:text-sm"
+              />
+            </div>
             <div>
               <label className="mb-1 block text-xs uppercase text-muted-foreground">Status</label>
               <select aria-label="Filter by status"
