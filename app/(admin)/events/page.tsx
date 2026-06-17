@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { TruncationNotice } from "@/components/ui/truncation-notice";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 export const dynamic = "force-dynamic";
 
@@ -116,65 +117,68 @@ export default async function EventsPage({
         </CardHeader>
         <CardContent>
           <TruncationNotice shown={events.length} total={totalEvents} noun="events" />
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="pb-2">Title</th>
-                  <th className="pb-2">Type</th>
-                  <th className="pb-2">Dates</th>
-                  <th className="pb-2">Fee</th>
-                  <th className="pb-2">Registered</th>
-                  <th className="pb-2">Status</th>
-                  <th className="pb-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {events.map((e) => (
-                  <tr key={e.id} className="border-t hover:bg-muted/40">
-                    <td className="py-2">
-                      <Link href={`/events/${e.id}`} className="font-medium hover:underline">
-                        {e.title}
-                      </Link>
-                      {e.externalVenue && (
-                        <div className="text-xs text-muted-foreground">{e.externalVenue}</div>
-                      )}
-                    </td>
-                    <td className="py-2 text-xs">{TYPE_LABEL[e.type] ?? e.type}</td>
-                    <td className="py-2">
-                      {formatDate(e.startDate)}
-                      {e.startDate.getTime() !== e.endDate.getTime() && ` — ${formatDate(e.endDate)}`}
-                    </td>
-                    <td className="py-2">{e.fee > 0 ? `₹${e.fee.toLocaleString("en-IN")}` : "Free"}</td>
-                    <td className="py-2">
-                      {e._count.registrations}
-                      {e.capacity ? <span className="text-xs text-muted-foreground"> / {e.capacity}</span> : null}
-                    </td>
-                    <td className="py-2">
-                      <Badge variant={STATUS_VARIANT[e.status] ?? "outline"}>{e.status}</Badge>
-                    </td>
-                    <td className="py-2 text-right">
-                      <Link href={`/events/${e.id}`} className="text-xs text-primary underline">
-                        Manage →
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-                {events.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center text-muted-foreground">
-                      No events yet.{" "}
-                      {canManage && (
-                        <Link href="/events/new" className="text-primary underline">
-                          Create the first one →
-                        </Link>
-                      )}
-                    </td>
-                  </tr>
+          <ResponsiveTable
+            rows={events}
+            getRowKey={(e) => e.id}
+            emptyMessage={
+              <>
+                No events yet.{" "}
+                {canManage && (
+                  <Link href="/events/new" className="text-primary underline">
+                    Create the first one →
+                  </Link>
                 )}
-              </tbody>
-            </table>
-          </div>
+              </>
+            }
+            columns={[
+              {
+                key: "title",
+                header: "Title",
+                primary: true,
+                cell: (e) => (
+                  <>
+                    <Link href={`/events/${e.id}`} className="font-medium hover:underline">
+                      {e.title}
+                    </Link>
+                    {e.externalVenue && <div className="text-xs text-muted-foreground">{e.externalVenue}</div>}
+                  </>
+                ),
+              },
+              { key: "type", header: "Type", cell: (e) => <span className="text-xs">{TYPE_LABEL[e.type] ?? e.type}</span> },
+              {
+                key: "dates",
+                header: "Dates",
+                cell: (e) => (
+                  <>
+                    {formatDate(e.startDate)}
+                    {e.startDate.getTime() !== e.endDate.getTime() && ` — ${formatDate(e.endDate)}`}
+                  </>
+                ),
+              },
+              { key: "fee", header: "Fee", cell: (e) => (e.fee > 0 ? `₹${e.fee.toLocaleString("en-IN")}` : "Free") },
+              {
+                key: "registered",
+                header: "Registered",
+                cell: (e) => (
+                  <>
+                    {e._count.registrations}
+                    {e.capacity ? <span className="text-xs text-muted-foreground"> / {e.capacity}</span> : null}
+                  </>
+                ),
+              },
+              { key: "status", header: "Status", cell: (e) => <Badge variant={STATUS_VARIANT[e.status] ?? "outline"}>{e.status}</Badge> },
+              {
+                key: "manage",
+                header: "",
+                hideOnMobile: true,
+                cell: (e) => (
+                  <Link href={`/events/${e.id}`} className="text-xs text-primary underline">
+                    Manage →
+                  </Link>
+                ),
+              },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>
