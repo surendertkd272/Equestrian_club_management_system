@@ -9,6 +9,7 @@ import { formatDate } from "@/lib/utils";
 import { Phone } from "lucide-react";
 import { InjuriesClient } from "./injuries-client";
 import { arrayLength } from "@/lib/json-narrow";
+import { TruncationNotice } from "@/components/ui/truncation-notice";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +21,13 @@ export default async function InjuriesPage() {
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/dashboard");
 
-  const [rows, horses, riders, centre] = await Promise.all([
+  const [rows, totalInjuries, horses, riders, centre] = await Promise.all([
     prisma.injuryLog.findMany({
       where: tenantWhere(centreId, orgId),
       orderBy: [{ status: "asc" }, { occurredAt: "desc" }],
       take: 200,
     }),
+    prisma.injuryLog.count({ where: tenantWhere(centreId, orgId) }),
     prisma.horse.findMany({
       where: tenantWhere(centreId, orgId),
       select: { id: true, name: true, stableNo: true },
@@ -107,6 +109,7 @@ export default async function InjuriesPage() {
           <CardTitle>Records</CardTitle>
         </CardHeader>
         <CardContent>
+          <TruncationNotice shown={rows.length} total={totalInjuries} noun="injuries" />
           {rows.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
               No injuries logged. Hopefully it stays that way.
