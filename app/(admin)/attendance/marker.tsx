@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import type { AttendanceStatus } from "@/lib/schemas/attendance";
 import { Check, X, Clock, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { postJson } from "@/lib/client/post-json";
 
 type Rider = { id: string; firstName: string; lastName: string };
 type Existing = { riderId: string; status: string; reason: string | null };
@@ -99,19 +100,13 @@ export function AttendanceMarker({
       return;
     }
     setSaving(true);
-    const res = await fetch("/api/attendance/mark", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ batchId, date, entries }),
-    });
+    const res = await postJson<{ count: number }>("/api/attendance/mark", { batchId, date, entries });
     setSaving(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Save failed");
+      toast.error(res.message);
       return;
     }
-    const data = await res.json();
-    toast.success(`Saved ${data.count} record${data.count === 1 ? "" : "s"}.`);
+    toast.success(`Saved ${res.data.count} record${res.data.count === 1 ? "" : "s"}.`);
     router.refresh();
   }
 

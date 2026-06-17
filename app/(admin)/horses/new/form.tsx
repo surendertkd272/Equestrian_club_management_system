@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { postJson } from "@/lib/client/post-json";
 
 export function NewHorseForm() {
   const router = useRouter();
@@ -46,20 +47,14 @@ export function NewHorseForm() {
     for (const k of ["insurerName", "insurancePolicyNo", "insuranceValidFrom", "insuranceValidTo", "efiHorseId", "homeClub", "microchip", "breed", "diet", "stableNo"]) {
       if (payload[k] === "") delete payload[k];
     }
-    const res = await fetch("/api/horses", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await postJson<{ id: string }>("/api/horses", payload);
     setSaving(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
-    const data = await res.json();
     toast.success("Horse added");
-    router.push(`/horses/${data.id}`);
+    router.push(`/horses/${res.data.id}`);
     router.refresh();
   }
 

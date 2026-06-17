@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { postJson } from "@/lib/client/post-json";
 
 type Staff = { id: string; name: string; role: string };
 type Event = {
@@ -51,15 +52,10 @@ export function GatePanel({
 
   async function record(staffUserId: string, direction: "in" | "out") {
     setBusy(staffUserId);
-    const res = await fetch("/api/gate-log", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ staffUserId, direction, centreId }),
-    });
+    const res = await postJson("/api/gate-log", { staffUserId, direction, centreId });
     setBusy(null);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     // Optimistically prepend so the row updates instantly without a refetch.
