@@ -6,6 +6,7 @@ import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { TruncationNotice } from "@/components/ui/truncation-notice";
 import { FarrierClient } from "./farrier-client";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export default async function FarrieryPage() {
   const where: any = { horse: { centre: { orgId } } };
   if (centreId) where.centreId = centreId;
 
-  const [visits, horses] = await Promise.all([
+  const [visits, horses, totalVisits] = await Promise.all([
     prisma.farrierVisit.findMany({
       where,
       orderBy: [{ status: "asc" }, { scheduledAt: "desc" }],
@@ -33,6 +34,7 @@ export default async function FarrieryPage() {
       select: { id: true, name: true, stableNo: true },
       orderBy: { name: "asc" },
     }),
+    prisma.farrierVisit.count({ where }),
   ]);
 
   const now = new Date();
@@ -64,6 +66,7 @@ export default async function FarrieryPage() {
           <CardTitle>Visits</CardTitle>
         </CardHeader>
         <CardContent>
+          <TruncationNotice shown={visits.length} total={totalVisits} noun="farrier visits" />
           <div className="overflow-x-auto"><table className="w-full text-sm">
             <thead className="text-xs uppercase tracking-wide text-muted-foreground">
               <tr>

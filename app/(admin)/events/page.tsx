@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { TruncationNotice } from "@/components/ui/truncation-notice";
 
 export const dynamic = "force-dynamic";
 
@@ -46,15 +47,18 @@ export default async function EventsPage({
   if (searchParams.status) where.status = searchParams.status;
   if (searchParams.type) where.type = searchParams.type;
 
-  const events = await prisma.event.findMany({
-    where,
-    orderBy: { startDate: "desc" },
-    take: 100,
-    include: {
-      _count: { select: { registrations: true } },
-      centre: { select: { name: true } },
-    },
-  });
+  const [events, totalEvents] = await Promise.all([
+    prisma.event.findMany({
+      where,
+      orderBy: { startDate: "desc" },
+      take: 100,
+      include: {
+        _count: { select: { registrations: true } },
+        centre: { select: { name: true } },
+      },
+    }),
+    prisma.event.count({ where }),
+  ]);
 
   const canManage = can(session.role, "event.manage");
 
@@ -111,6 +115,7 @@ export default async function EventsPage({
           </form>
         </CardHeader>
         <CardContent>
+          <TruncationNotice shown={events.length} total={totalEvents} noun="events" />
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted-foreground">

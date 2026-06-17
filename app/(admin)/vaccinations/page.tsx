@@ -6,6 +6,7 @@ import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { TruncationNotice } from "@/components/ui/truncation-notice";
 import { VaccinationsClient } from "./vaccinations-client";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,7 @@ export default async function VaccinationsPage() {
   const orgCentreIds = (await prisma.centre.findMany({ where: { orgId }, select: { id: true } })).map((c) => c.id);
   const where: any = { centreId: centreId ?? { in: orgCentreIds } };
 
-  const [rows, horses] = await Promise.all([
+  const [rows, horses, totalSchedules] = await Promise.all([
     prisma.vaccinationSchedule.findMany({
       where,
       orderBy: { nextDueAt: "asc" },
@@ -33,6 +34,7 @@ export default async function VaccinationsPage() {
       select: { id: true, name: true, stableNo: true },
       orderBy: { name: "asc" },
     }),
+    prisma.vaccinationSchedule.count({ where }),
   ]);
 
   const now = new Date();
@@ -65,6 +67,7 @@ export default async function VaccinationsPage() {
           <CardTitle>Schedules</CardTitle>
         </CardHeader>
         <CardContent>
+          <TruncationNotice shown={rows.length} total={totalSchedules} noun="schedules" />
           {rows.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
               No vaccination schedules yet — add one above for any of the {horses.length} horses.
