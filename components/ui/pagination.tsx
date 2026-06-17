@@ -59,7 +59,7 @@ export function Pagination({
               // discarded.
               router.push(href(1, Number(e.target.value)));
             }}
-            className="rounded border bg-card px-1 py-0.5 text-xs"
+            className="min-h-[36px] rounded border bg-card px-2 text-xs sm:min-h-0 sm:py-0.5"
           >
             {pageSizes.map((s) => (
               <option key={s} value={s}>
@@ -72,7 +72,7 @@ export function Pagination({
           aria-disabled={prevDisabled}
           tabIndex={prevDisabled ? -1 : 0}
           href={prevDisabled ? "#" : href(page - 1)}
-          className={`inline-flex items-center gap-0.5 rounded border px-2 py-1 ${
+          className={`inline-flex min-h-[40px] items-center gap-0.5 rounded border px-3 sm:min-h-[30px] sm:px-2 ${
             prevDisabled ? "pointer-events-none opacity-40" : "hover:bg-muted"
           }`}
         >
@@ -85,7 +85,7 @@ export function Pagination({
           aria-disabled={nextDisabled}
           tabIndex={nextDisabled ? -1 : 0}
           href={nextDisabled ? "#" : href(page + 1)}
-          className={`inline-flex items-center gap-0.5 rounded border px-2 py-1 ${
+          className={`inline-flex min-h-[40px] items-center gap-0.5 rounded border px-3 sm:min-h-[30px] sm:px-2 ${
             nextDisabled ? "pointer-events-none opacity-40" : "hover:bg-muted"
           }`}
         >

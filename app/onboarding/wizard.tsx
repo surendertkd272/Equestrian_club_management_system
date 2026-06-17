@@ -118,6 +118,7 @@ function Field<T extends FieldValues>({
   type = "text",
   placeholder,
   required,
+  inputMode,
 }: {
   methods: UseFormReturn<T>;
   name: FieldPath<T>;
@@ -125,6 +126,7 @@ function Field<T extends FieldValues>({
   type?: string;
   placeholder?: string;
   required?: boolean;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
 }) {
   const { register, formState } = methods;
   // rhf nests errors by path; for top-level keys (which is all we have) the
@@ -136,7 +138,7 @@ function Field<T extends FieldValues>({
       <Label htmlFor={name}>
         {label} {required && <span className="text-destructive">*</span>}
       </Label>
-      <Input id={name} type={type} placeholder={placeholder} {...register(name)} />
+      <Input id={name} type={type} inputMode={inputMode} placeholder={placeholder} {...register(name)} />
       {err && <p className="text-xs text-destructive">{err}</p>}
     </div>
   );
@@ -283,9 +285,9 @@ function PersonalStep({ initial, onNext }: { initial: WizardData; onNext: (d: Pe
             <option value="other">Other</option>
           </Select>
         </div>
-        <Field methods={methods} name="mobile" label="Mobile" required placeholder="10-digit" />
+        <Field methods={methods} name="mobile" label="Mobile" required placeholder="10-digit" inputMode="tel" />
         <Field methods={methods} name="email" label="Email" type="email" />
-        <Field methods={methods} name="aadhaarNo" label="Aadhaar (12 digits)" placeholder="123412341234" />
+        <Field methods={methods} name="aadhaarNo" label="Aadhaar (12 digits)" placeholder="123412341234" inputMode="numeric" />
         <Field methods={methods} name="placeOfBirth" label="Place of birth" />
         <Field methods={methods} name="nationality" label="Nationality" placeholder="Indian" />
         <Field methods={methods} name="maritalStatus" label="Marital status" />
@@ -343,7 +345,7 @@ function AddressStep({
           <TextareaField methods={methods} name="addressPermanent" />
         </div>
         <div className="max-w-xs">
-          <Field methods={methods} name="pincode" label="Pincode" required placeholder="201001" />
+          <Field methods={methods} name="pincode" label="Pincode" required placeholder="201001" inputMode="numeric" />
         </div>
       </div>
       <StepFooter canBack onBack={onBack} submitting={false} submitLabel="Next" />
@@ -369,11 +371,11 @@ function ParentsStep({
     <form onSubmit={methods.handleSubmit(onNext)} className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
         <Field methods={methods} name="fatherName" label="Father's name" />
-        <Field methods={methods} name="fatherPhone" label="Father's phone" />
+        <Field methods={methods} name="fatherPhone" label="Father's phone" inputMode="tel" />
         <Field methods={methods} name="motherName" label="Mother's name" />
-        <Field methods={methods} name="motherPhone" label="Mother's phone" />
+        <Field methods={methods} name="motherPhone" label="Mother's phone" inputMode="tel" />
         <Field methods={methods} name="emergencyName" label="Emergency contact name" required />
-        <Field methods={methods} name="emergencyPhone" label="Emergency contact phone" required />
+        <Field methods={methods} name="emergencyPhone" label="Emergency contact phone" required inputMode="tel" />
       </div>
       <StepFooter canBack onBack={onBack} submitting={false} submitLabel="Next" />
     </form>
@@ -465,7 +467,7 @@ function ParentalConsentStep({
             </Select>
             {relationError && <p className="text-xs text-destructive">{relationError}</p>}
           </div>
-          <Field methods={methods} name="parentPhone" label="Parent's phone" required placeholder="10-digit mobile" />
+          <Field methods={methods} name="parentPhone" label="Parent's phone" required placeholder="10-digit mobile" inputMode="tel" />
           <Field methods={methods} name="parentEmail" label="Parent's email" type="email" />
         </div>
 

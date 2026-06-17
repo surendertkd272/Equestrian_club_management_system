@@ -171,7 +171,7 @@ export function InjuryRowActions({ id, status }: { id: string; status: string })
           if (!t) return;
           patch({ treatment: t }, "Treatment added");
         }}
-        className="rounded border px-2 py-0.5 text-[11px] hover:bg-muted disabled:opacity-50"
+        className="inline-flex min-h-[40px] items-center justify-center rounded border px-3 text-sm hover:bg-muted disabled:opacity-50"
       >
         + Treatment
       </button>
@@ -188,7 +188,7 @@ export function InjuryRowActions({ id, status }: { id: string; status: string })
             if (!ok) return;
             patch({ status: "recovered" }, "Marked recovered");
           }}
-          className="rounded border border-emerald-500 px-2 py-0.5 text-[11px] text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+          className="inline-flex min-h-[40px] items-center justify-center rounded border border-emerald-500 px-3 text-sm text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
         >
           Mark recovered
         </button>
@@ -198,7 +198,7 @@ export function InjuryRowActions({ id, status }: { id: string; status: string })
           type="button"
           disabled={busy}
           onClick={() => patch({ status: "recovering" }, "Status updated")}
-          className="rounded border px-2 py-0.5 text-[11px] hover:bg-muted disabled:opacity-50"
+          className="inline-flex min-h-[40px] items-center justify-center rounded border px-3 text-sm hover:bg-muted disabled:opacity-50"
         >
           → Recovering
         </button>

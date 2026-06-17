@@ -7,6 +7,7 @@ import type { FeatureKey } from "@/lib/features";
 
 const ALL_STAFF: Role[] = [
   "SUPER_ADMIN",
+  "ADMIN", // HQ peer of SUPER_ADMIN — was missing, so it lost Dashboard/Notifications/Tasks/Leave/Requisitions
   "CENTRE_MANAGER",
   "HEAD_COACH",
   "COACH",
