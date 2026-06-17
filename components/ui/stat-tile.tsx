@@ -84,7 +84,7 @@ export function StatTile({
         <div className="mt-0.5 flex items-baseline gap-1.5">
           <span className={cn("text-2xl font-bold leading-none", VALUE_TONE[variant][tone])}>{value}</span>
           {delta && (
-            <span className={cn("text-[11px] font-semibold", delta.dir === "up" ? "text-emerald-500" : "text-rose-500")}>
+            <span className={cn("text-[11px] font-semibold", delta.dir === "up" ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400")}>
               {delta.dir === "up" ? "↑" : "↓"} {delta.value}
             </span>
           )}

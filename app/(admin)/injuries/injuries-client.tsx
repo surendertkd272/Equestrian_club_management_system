@@ -81,15 +81,15 @@ export function InjuriesClient({ horses, riders }: { horses: Horse[]; riders: Ri
       <CardContent>
         <div className="grid gap-3 md:grid-cols-3">
           <div>
-            <Label>Subject type</Label>
-            <Select aria-label="Subject type" value={form.subjectType} onChange={(e) => changeSubjectType(e.target.value as any)}>
+            <Label htmlFor="inj-subjectType">Subject type</Label>
+            <Select id="inj-subjectType" value={form.subjectType} onChange={(e) => changeSubjectType(e.target.value as any)}>
               <option value="horse">Horse</option>
               <option value="rider">Rider</option>
             </Select>
           </div>
           <div>
-            <Label>{form.subjectType === "horse" ? "Horse" : "Rider"}</Label>
-            <Select value={form.subjectId} onChange={(e) => set("subjectId", e.target.value)}>
+            <Label htmlFor="inj-subjectId">{form.subjectType === "horse" ? "Horse" : "Rider"}</Label>
+            <Select id="inj-subjectId" value={form.subjectId} onChange={(e) => set("subjectId", e.target.value)}>
               {(form.subjectType === "horse" ? horses : riders).map((s: any) =>
                 form.subjectType === "horse" ? (
                   <option key={s.id} value={s.id}>
@@ -104,28 +104,28 @@ export function InjuriesClient({ horses, riders }: { horses: Horse[]; riders: Ri
             </Select>
           </div>
           <div>
-            <Label>Occurred</Label>
-            <Input aria-label="Occurred" type="date" value={form.occurredAt} onChange={(e) => set("occurredAt", e.target.value)} />
+            <Label htmlFor="inj-occurredAt">Occurred</Label>
+            <Input id="inj-occurredAt" type="date" value={form.occurredAt} onChange={(e) => set("occurredAt", e.target.value)} />
           </div>
           <div>
-            <Label>Location on body</Label>
-            <Input aria-label="Location on body" value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="left fore fetlock" />
+            <Label htmlFor="inj-location">Location on body</Label>
+            <Input id="inj-location" value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="left fore fetlock" />
           </div>
           <div>
-            <Label>Severity</Label>
-            <Select aria-label="Severity" value={form.severity} onChange={(e) => set("severity", e.target.value)}>
+            <Label htmlFor="inj-severity">Severity</Label>
+            <Select id="inj-severity" value={form.severity} onChange={(e) => set("severity", e.target.value)}>
               <option value="minor">Minor</option>
               <option value="moderate">Moderate</option>
               <option value="severe">Severe</option>
             </Select>
           </div>
           <div>
-            <Label>Cause</Label>
-            <Input aria-label="Cause" value={form.cause} onChange={(e) => set("cause", e.target.value)} placeholder="slipped on wet arena" />
+            <Label htmlFor="inj-cause">Cause</Label>
+            <Input id="inj-cause" value={form.cause} onChange={(e) => set("cause", e.target.value)} placeholder="slipped on wet arena" />
           </div>
           <div className="md:col-span-3">
-            <Label>Initial notes *</Label>
-            <Textarea aria-label="Initial notes"
+            <Label htmlFor="inj-initialNotes">Initial notes *</Label>
+            <Textarea id="inj-initialNotes"
               value={form.initialNotes}
               onChange={(e) => set("initialNotes", e.target.value)}
               placeholder="Visible swelling, slight lameness at walk. Cold-hosed 15 min, bute administered."
