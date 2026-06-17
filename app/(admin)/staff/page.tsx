@@ -11,6 +11,7 @@ import { Plus, Link2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { parsePaging } from "@/lib/paging";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 export const dynamic = "force-dynamic";
 
@@ -92,61 +93,43 @@ export default async function StaffPage({
           </form>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="pb-2">Name</th>
-                <th className="pb-2">Role</th>
-                <th className="pb-2">Email</th>
-                <th className="pb-2">Phone</th>
-                <th className="pb-2">Joined</th>
-                <th className="pb-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {staff.map((s) => (
-                <tr key={s.id} className="border-t">
-                  <td className="py-2 font-medium">
-                    {showProfileLink ? (
-                      <Link href={`/staff/${s.id}`} className="text-primary hover:underline">
-                        {s.user.name}
-                      </Link>
-                    ) : (
-                      s.user.name
-                    )}
-                  </td>
-                  <td className="py-2">
-                    <Badge variant="outline">{s.role.replaceAll("_", " ")}</Badge>
-                  </td>
-                  <td className="py-2">{s.user.email}</td>
-                  <td className="py-2">{s.user.phone ?? "—"}</td>
-                  <td className="py-2">{formatDate(s.joiningDate)}</td>
-                  <td className="py-2">
-                    <Badge variant={s.status === "active" ? "success" : "warning"}>{s.status}</Badge>
-                  </td>
-                </tr>
-              ))}
-              {staff.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-muted-foreground">
-                    {searchParams.q ? (
-                      <>No staff match “{searchParams.q}”.</>
-                    ) : (
-                      <>
-                        No staff yet.{" "}
-                        <Link href="/staff/new" className="text-primary underline">
-                          Add the first one
-                        </Link>
-                        .
-                      </>
-                    )}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          </div>
+          <ResponsiveTable
+            rows={staff}
+            getRowKey={(s) => s.id}
+            emptyMessage={
+              searchParams.q ? (
+                <>No staff match “{searchParams.q}”.</>
+              ) : (
+                <>
+                  No staff yet.{" "}
+                  <Link href="/staff/new" className="text-primary underline">
+                    Add the first one
+                  </Link>
+                  .
+                </>
+              )
+            }
+            columns={[
+              {
+                key: "name",
+                header: "Name",
+                primary: true,
+                cell: (s) =>
+                  showProfileLink ? (
+                    <Link href={`/staff/${s.id}`} className="text-primary hover:underline">
+                      {s.user.name}
+                    </Link>
+                  ) : (
+                    <span className="font-medium">{s.user.name}</span>
+                  ),
+              },
+              { key: "role", header: "Role", cell: (s) => <Badge variant="outline">{s.role.replaceAll("_", " ")}</Badge> },
+              { key: "email", header: "Email", cell: (s) => s.user.email },
+              { key: "phone", header: "Phone", cell: (s) => s.user.phone ?? "—" },
+              { key: "joined", header: "Joined", cell: (s) => formatDate(s.joiningDate) },
+              { key: "status", header: "Status", cell: (s) => <Badge variant={s.status === "active" ? "success" : "warning"}>{s.status}</Badge> },
+            ]}
+          />
           <Pagination total={total} page={page} pageSize={pageSize} />
         </CardContent>
       </Card>
