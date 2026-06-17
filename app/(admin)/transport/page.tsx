@@ -7,6 +7,7 @@ import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { NewTripForm } from "./new-trip";
 
 export const dynamic = "force-dynamic";
@@ -69,58 +70,69 @@ export default async function TransportPage() {
           <CardDescription>{trips.length} total</CardDescription>
         </CardHeader>
         <CardContent>
-          {trips.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              No trips yet — plan one above.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-                  <tr>
-                    <th className="pb-2">Event</th>
-                    <th className="pb-2">Venue</th>
-                    <th className="pb-2">Departure</th>
-                    <th className="pb-2 text-center">Loaded</th>
-                    <th className="pb-2 text-center">Returned</th>
-                    <th className="pb-2 text-center">Issues</th>
-                    <th className="pb-2">Status</th>
-                    <th className="pb-2" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {trips.map((t) => {
-                    const total = t.items.length;
-                    const out = t.items.filter((i) => i.checkedOut).length;
-                    const inn = t.items.filter((i) => i.checkedIn).length;
-                    const issues = t.items.filter(
-                      (i) => i.checkedIn && i.conditionIn && i.conditionIn !== "ok",
-                    ).length;
-                    return (
-                      <tr key={t.id} className="border-t">
-                        <td className="py-2 font-medium">{t.eventName}</td>
-                        <td className="py-2 text-xs">{t.venue}</td>
-                        <td className="py-2 text-xs">{formatDate(t.departureAt)}</td>
-                        <td className="py-2 text-center">{out}/{total}</td>
-                        <td className="py-2 text-center">{inn}/{total}</td>
-                        <td className={`py-2 text-center ${issues > 0 ? "font-semibold text-amber-700" : ""}`}>
-                          {issues || "—"}
-                        </td>
-                        <td className="py-2">
-                          <Badge variant={STATUS_VARIANT[t.status] ?? "outline"}>{t.status}</Badge>
-                        </td>
-                        <td className="py-2 text-right">
-                          <Link href={`/transport/${t.id}`} className="text-xs text-primary underline">
-                            Open →
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <ResponsiveTable
+            rows={trips}
+            getRowKey={(t) => t.id}
+            emptyMessage="No trips yet — plan one above."
+            columns={[
+              {
+                key: "event",
+                header: "Event",
+                primary: true,
+                cell: (t) => (
+                  <Link href={`/transport/${t.id}`} className="font-medium hover:underline">
+                    {t.eventName}
+                  </Link>
+                ),
+              },
+              { key: "venue", header: "Venue", cell: (t) => <span className="text-xs">{t.venue}</span> },
+              { key: "departure", header: "Departure", cell: (t) => <span className="text-xs">{formatDate(t.departureAt)}</span> },
+              {
+                key: "loaded",
+                header: "Loaded",
+                headerClassName: "text-center",
+                className: "text-center",
+                cell: (t) => `${t.items.filter((i) => i.checkedOut).length}/${t.items.length}`,
+              },
+              {
+                key: "returned",
+                header: "Returned",
+                headerClassName: "text-center",
+                className: "text-center",
+                cell: (t) => `${t.items.filter((i) => i.checkedIn).length}/${t.items.length}`,
+              },
+              {
+                key: "issues",
+                header: "Issues",
+                headerClassName: "text-center",
+                cell: (t) => {
+                  const issues = t.items.filter(
+                    (i) => i.checkedIn && i.conditionIn && i.conditionIn !== "ok",
+                  ).length;
+                  return (
+                    <span className={`text-center ${issues > 0 ? "font-semibold text-amber-700" : ""}`}>
+                      {issues || "—"}
+                    </span>
+                  );
+                },
+              },
+              {
+                key: "status",
+                header: "Status",
+                cell: (t) => <Badge variant={STATUS_VARIANT[t.status] ?? "outline"}>{t.status}</Badge>,
+              },
+              {
+                key: "open",
+                header: "",
+                hideOnMobile: true,
+                cell: (t) => (
+                  <Link href={`/transport/${t.id}`} className="text-xs text-primary underline">
+                    Open →
+                  </Link>
+                ),
+              },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>

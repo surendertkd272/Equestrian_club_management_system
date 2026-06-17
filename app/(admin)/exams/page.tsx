@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 export const dynamic = "force-dynamic";
 
@@ -131,68 +132,72 @@ export default async function ExamsPage({
           </form>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="pb-2">Date</th>
-                  <th className="pb-2">Time</th>
-                  <th className="pb-2">Rider</th>
-                  <th className="pb-2">Examiner</th>
-                  <th className="pb-2">Level</th>
-                  <th className="pb-2">Score</th>
-                  <th className="pb-2">Status</th>
-                  <th className="pb-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {exams.map((e) => (
-                  <tr key={e.id} className="border-t hover:bg-muted/40">
-                    <td className="py-2">{formatDate(e.date)}</td>
-                    <td className="py-2">{e.time}</td>
-                    <td className="py-2 font-medium">
-                      {e.rider.firstName} {e.rider.lastName}
-                    </td>
-                    <td className="py-2">{e.examinerName}</td>
-                    <td className="py-2">{levelLabel.get(e.level) ?? `L${e.level}`}</td>
-                    <td className="py-2">
-                      {e.totalScore !== null ? (
-                        <span className="font-mono">{e.totalScore}</span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                      {e.passed === true && <Badge variant="success" className="ml-2">Pass</Badge>}
-                      {e.passed === false && <Badge variant="destructive" className="ml-2">Fail</Badge>}
-                    </td>
-                    <td className="py-2">
-                      <Badge variant={STATUS_VARIANT[e.status] ?? "outline"}>{e.status.replace("_", " ")}</Badge>
-                    </td>
-                    <td className="py-2 text-right">
-                      <Link href={`/exams/${e.id}`} className="text-xs text-primary underline">
-                        Open →
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-                {exams.length === 0 && (
-                  <tr>
-                    <td colSpan={8} className="py-12 text-center text-muted-foreground">
-                      No exams yet.
-                      {canSchedule && (
-                        <>
-                          {" "}
-                          <Link href="/exams/sittings/new" className="text-primary underline">
-                            Schedule the first one
-                          </Link>
-                          .
-                        </>
-                      )}
-                    </td>
-                  </tr>
+          <ResponsiveTable
+            rows={exams}
+            getRowKey={(e) => e.id}
+            emptyMessage={
+              <>
+                No exams yet.
+                {canSchedule && (
+                  <>
+                    {" "}
+                    <Link href="/exams/sittings/new" className="text-primary underline">
+                      Schedule the first one
+                    </Link>
+                    .
+                  </>
                 )}
-              </tbody>
-            </table>
-          </div>
+              </>
+            }
+            columns={[
+              {
+                key: "rider",
+                header: "Rider",
+                primary: true,
+                cell: (e) => (
+                  <span className="font-medium">
+                    {e.rider.firstName} {e.rider.lastName}
+                  </span>
+                ),
+              },
+              { key: "date", header: "Date", cell: (e) => formatDate(e.date) },
+              { key: "time", header: "Time", cell: (e) => e.time },
+              { key: "examiner", header: "Examiner", cell: (e) => e.examinerName },
+              { key: "level", header: "Level", cell: (e) => levelLabel.get(e.level) ?? `L${e.level}` },
+              {
+                key: "score",
+                header: "Score",
+                cell: (e) => (
+                  <>
+                    {e.totalScore !== null ? (
+                      <span className="font-mono">{e.totalScore}</span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                    {e.passed === true && <Badge variant="success" className="ml-2">Pass</Badge>}
+                    {e.passed === false && <Badge variant="destructive" className="ml-2">Fail</Badge>}
+                  </>
+                ),
+              },
+              {
+                key: "status",
+                header: "Status",
+                cell: (e) => (
+                  <Badge variant={STATUS_VARIANT[e.status] ?? "outline"}>{e.status.replace("_", " ")}</Badge>
+                ),
+              },
+              {
+                key: "open",
+                header: "",
+                hideOnMobile: true,
+                cell: (e) => (
+                  <Link href={`/exams/${e.id}`} className="text-xs text-primary underline">
+                    Open →
+                  </Link>
+                ),
+              },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>

@@ -10,6 +10,7 @@ import { Phone } from "lucide-react";
 import { InjuriesClient } from "./injuries-client";
 import { arrayLength } from "@/lib/json-narrow";
 import { TruncationNotice } from "@/components/ui/truncation-notice";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 export const dynamic = "force-dynamic";
 
@@ -110,61 +111,65 @@ export default async function InjuriesPage() {
         </CardHeader>
         <CardContent>
           <TruncationNotice shown={rows.length} total={totalInjuries} noun="injuries" />
-          {rows.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No injuries logged. Hopefully it stays that way.
-            </p>
-          ) : (
-            <div className="overflow-x-auto"><table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-2 py-2">Subject</th>
-                  <th className="px-2 py-2">Occurred</th>
-                  <th className="px-2 py-2">Location</th>
-                  <th className="px-2 py-2">Severity</th>
-                  <th className="px-2 py-2">Status</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => {
+          <ResponsiveTable
+            rows={rows}
+            getRowKey={(r) => r.id}
+            emptyMessage="No injuries logged. Hopefully it stays that way."
+            columns={[
+              {
+                key: "subject",
+                header: "Subject",
+                primary: true,
+                cell: (r) => {
                   const subjectName =
                     r.subjectType === "horse"
                       ? horseById.get(r.subjectId)?.name ?? "Unknown horse"
                       : riderById.get(r.subjectId)
                         ? `${riderById.get(r.subjectId)!.firstName} ${riderById.get(r.subjectId)!.lastName}`
                         : "Unknown rider";
+                  return (
+                    <>
+                      <div className="font-medium">{subjectName}</div>
+                      <div className="text-[10px] uppercase text-muted-foreground">{r.subjectType}</div>
+                    </>
+                  );
+                },
+              },
+              { key: "occurred", header: "Occurred", cell: (r) => formatDate(r.occurredAt) },
+              { key: "location", header: "Location", cell: (r) => r.location ?? "—" },
+              {
+                key: "severity",
+                header: "Severity",
+                cell: (r) => (
+                  <Badge variant={r.severity === "severe" ? "destructive" : r.severity === "moderate" ? "warning" : "outline"}>
+                    {r.severity}
+                  </Badge>
+                ),
+              },
+              {
+                key: "status",
+                header: "Status",
+                cell: (r) => {
                   const treatments = arrayLength(r.treatmentJson);
                   return (
-                    <tr key={r.id} className="border-t align-top">
-                      <td className="px-2 py-2">
-                        <div className="font-medium">{subjectName}</div>
-                        <div className="text-[10px] uppercase text-muted-foreground">{r.subjectType}</div>
-                      </td>
-                      <td className="px-2 py-2">{formatDate(r.occurredAt)}</td>
-                      <td className="px-2 py-2">{r.location ?? "—"}</td>
-                      <td className="px-2 py-2">
-                        <Badge variant={r.severity === "severe" ? "destructive" : r.severity === "moderate" ? "warning" : "outline"}>
-                          {r.severity}
-                        </Badge>
-                      </td>
-                      <td className="px-2 py-2">
-                        <Badge variant={r.status === "recovered" ? "success" : r.status === "chronic" ? "warning" : "outline"}>
-                          {r.status}
-                        </Badge>
-                        <div className="mt-1 text-[10px] text-muted-foreground">
-                          {treatments} treatment{treatments === 1 ? "" : "s"}
-                        </div>
-                      </td>
-                      <td className="px-2 py-2 text-right">
-                        <InjuryRowActions id={r.id} status={r.status} />
-                      </td>
-                    </tr>
+                    <>
+                      <Badge variant={r.status === "recovered" ? "success" : r.status === "chronic" ? "warning" : "outline"}>
+                        {r.status}
+                      </Badge>
+                      <div className="mt-1 text-[10px] text-muted-foreground">
+                        {treatments} treatment{treatments === 1 ? "" : "s"}
+                      </div>
+                    </>
                   );
-                })}
-              </tbody>
-            </table></div>
-          )}
+                },
+              },
+              {
+                key: "actions",
+                header: "",
+                cell: (r) => <InjuryRowActions id={r.id} status={r.status} />,
+              },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>

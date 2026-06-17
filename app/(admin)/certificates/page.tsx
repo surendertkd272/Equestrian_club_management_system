@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { BulkIssuePanel } from "./bulk-issue-panel";
 import { RevokeButton } from "./revoke-button";
 import { SendResultButton } from "./[id]/send-result-button";
@@ -122,79 +123,85 @@ export default async function CertificatesPage({
           </form>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="pb-2">Issued</th>
-                  <th className="pb-2">Rider</th>
-                  <th className="pb-2">Type</th>
-                  <th className="pb-2">Level / Title</th>
-                  <th className="pb-2">Serial</th>
-                  <th className="pb-2">Batch</th>
-                  <th className="pb-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {certs.map((c) => (
-                  <tr key={c.id} className={`border-t hover:bg-muted/40 ${c.revokedAt ? "opacity-60" : ""}`}>
-                    <td className="py-2">{formatDate(c.issuedAt)}</td>
-                    <td className="py-2 font-medium">
-                      {c.rider.firstName} {c.rider.lastName}
-                    </td>
-                    <td className="py-2">
-                      <Badge variant="outline">{c.type}</Badge>
-                      {c.revokedAt && <Badge variant="destructive" className="ml-1">REVOKED</Badge>}
-                    </td>
-                    <td className="py-2">{c.levelName ?? "—"}</td>
-                    <td className="py-2 font-mono text-xs">{c.serialNo}</td>
-                    <td className="py-2 text-[10px] font-mono text-muted-foreground">
-                      {c.batchTag ? (
-                        <Link
-                          href={`/certificates?batch=${encodeURIComponent(c.batchTag)}`}
-                          className="hover:underline"
-                          title="Filter by this batch"
-                        >
-                          {c.batchTag.slice(0, 24)}…
-                        </Link>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="py-2 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {canSendResult && c.examId && !c.revokedAt && (
-                          <SendResultButton
-                            certId={c.id}
-                            alreadySentAt={c.resultEmailSentAt?.toISOString() ?? null}
-                            parentEmail={c.rider.email}
-                          />
-                        )}
-                        <Link href={`/certificates/${c.id}`} className="text-xs text-primary underline">
-                          Print
-                        </Link>
-                        <Link
-                          href={`/verify/${c.serialNo}`}
-                          className="text-xs text-primary underline"
-                          target="_blank"
-                        >
-                          Verify ↗
-                        </Link>
-                        {canBulk && !c.revokedAt && <RevokeButton id={c.id} />}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {certs.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center text-muted-foreground">
-                      No certificates yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable
+            rows={certs}
+            getRowKey={(c) => c.id}
+            emptyMessage="No certificates yet."
+            columns={[
+              {
+                key: "rider",
+                header: "Rider",
+                primary: true,
+                cell: (c) => (
+                  <span className={`font-medium ${c.revokedAt ? "opacity-60" : ""}`}>
+                    {c.rider.firstName} {c.rider.lastName}
+                  </span>
+                ),
+              },
+              { key: "issued", header: "Issued", cell: (c) => formatDate(c.issuedAt) },
+              {
+                key: "type",
+                header: "Type",
+                cell: (c) => (
+                  <>
+                    <Badge variant="outline">{c.type}</Badge>
+                    {c.revokedAt && <Badge variant="destructive" className="ml-1">REVOKED</Badge>}
+                  </>
+                ),
+              },
+              { key: "level", header: "Level / Title", cell: (c) => c.levelName ?? "—" },
+              {
+                key: "serial",
+                header: "Serial",
+                cell: (c) => <span className="font-mono text-xs">{c.serialNo}</span>,
+              },
+              {
+                key: "batch",
+                header: "Batch",
+                cell: (c) => (
+                  <span className="text-[10px] font-mono text-muted-foreground">
+                    {c.batchTag ? (
+                      <Link
+                        href={`/certificates?batch=${encodeURIComponent(c.batchTag)}`}
+                        className="hover:underline"
+                        title="Filter by this batch"
+                      >
+                        {c.batchTag.slice(0, 24)}…
+                      </Link>
+                    ) : (
+                      "—"
+                    )}
+                  </span>
+                ),
+              },
+              {
+                key: "actions",
+                header: "",
+                cell: (c) => (
+                  <div className="flex items-center justify-end gap-2">
+                    {canSendResult && c.examId && !c.revokedAt && (
+                      <SendResultButton
+                        certId={c.id}
+                        alreadySentAt={c.resultEmailSentAt?.toISOString() ?? null}
+                        parentEmail={c.rider.email}
+                      />
+                    )}
+                    <Link href={`/certificates/${c.id}`} className="text-xs text-primary underline">
+                      Print
+                    </Link>
+                    <Link
+                      href={`/verify/${c.serialNo}`}
+                      className="text-xs text-primary underline"
+                      target="_blank"
+                    >
+                      Verify ↗
+                    </Link>
+                    {canBulk && !c.revokedAt && <RevokeButton id={c.id} />}
+                  </div>
+                ),
+              },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>

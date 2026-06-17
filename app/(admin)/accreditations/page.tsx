@@ -6,6 +6,7 @@ import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { formatDate } from "@/lib/utils";
 import Link from "next/link";
 
@@ -127,53 +128,43 @@ export default async function AccreditationsListPage({
           </form>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="pb-2">Rider</th>
-                  <th className="pb-2">Body</th>
-                  <th className="pb-2">Title</th>
-                  <th className="pb-2">Discipline</th>
-                  <th className="pb-2">Issued</th>
-                  <th className="pb-2">Expires</th>
-                  <th className="pb-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {accs.map((a) => (
-                  <tr key={a.id} className="border-t">
-                    <td className="py-2">
-                      <Link href={`/riders/${a.rider.id}`} className="hover:underline">
-                        {a.rider.firstName} {a.rider.lastName}
-                      </Link>
-                    </td>
-                    <td className="py-2 font-medium">{a.body}</td>
-                    <td className="py-2">{a.title}</td>
-                    <td className="py-2 text-xs">{a.discipline ?? "—"}</td>
-                    <td className="py-2">{formatDate(a.issuedAt)}</td>
-                    <td className="py-2">{a.expiresAt ? formatDate(a.expiresAt) : "—"}</td>
-                    <td className="py-2">
-                      <Badge
-                        variant={
-                          a.status === "active" ? "success" : a.status === "expired" ? "warning" : "destructive"
-                        }
-                      >
-                        {a.status}
-                      </Badge>
-                    </td>
-                  </tr>
-                ))}
-                {accs.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="py-12 text-center text-muted-foreground">
-                      No accreditations recorded yet. Add them from a rider&apos;s profile.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable
+            rows={accs}
+            getRowKey={(a) => a.id}
+            emptyMessage={
+              <>No accreditations recorded yet. Add them from a rider&apos;s profile.</>
+            }
+            columns={[
+              {
+                key: "rider",
+                header: "Rider",
+                primary: true,
+                cell: (a) => (
+                  <Link href={`/riders/${a.rider.id}`} className="hover:underline">
+                    {a.rider.firstName} {a.rider.lastName}
+                  </Link>
+                ),
+              },
+              { key: "body", header: "Body", className: "font-medium", cell: (a) => a.body },
+              { key: "title", header: "Title", cell: (a) => a.title },
+              { key: "discipline", header: "Discipline", className: "text-xs", cell: (a) => a.discipline ?? "—" },
+              { key: "issued", header: "Issued", cell: (a) => formatDate(a.issuedAt) },
+              { key: "expires", header: "Expires", cell: (a) => (a.expiresAt ? formatDate(a.expiresAt) : "—") },
+              {
+                key: "status",
+                header: "Status",
+                cell: (a) => (
+                  <Badge
+                    variant={
+                      a.status === "active" ? "success" : a.status === "expired" ? "warning" : "destructive"
+                    }
+                  >
+                    {a.status}
+                  </Badge>
+                ),
+              },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>
