@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { postJson } from "@/lib/client/post-json";
 
 export function SeparationResponseForm({
   noticeId,
@@ -24,15 +25,10 @@ export function SeparationResponseForm({
       return;
     }
     setBusy(true);
-    const res = await fetch("/api/separation/respond", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ noticeId, responseText: text.trim() }),
-    });
+    const res = await postJson("/api/separation/respond", { noticeId, responseText: text.trim() });
     setBusy(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success(

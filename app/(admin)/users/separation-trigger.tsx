@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { postJson } from "@/lib/client/post-json";
 
 // Drop-down on a user row for HQ admins to issue a termination /
 // resignation_request notice. The user receives it on /account/separation
@@ -34,19 +35,14 @@ export function SeparationTrigger({
       return;
     }
     setBusy(true);
-    const res = await fetch(`/api/users/${userId}/separation`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        kind,
-        noticeText: noticeText.trim(),
-        effectiveAt: effectiveAt ? new Date(effectiveAt).toISOString() : undefined,
-      }),
+    const res = await postJson(`/api/users/${userId}/separation`, {
+      kind,
+      noticeText: noticeText.trim(),
+      effectiveAt: effectiveAt ? new Date(effectiveAt).toISOString() : undefined,
     });
     setBusy(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success(`Notice issued to ${userName}`);

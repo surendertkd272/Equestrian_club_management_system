@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { patchJson } from "@/lib/client/post-json";
 import { Badge } from "@/components/ui/badge";
 import { NEXT_STATUS, type SkillStatus } from "@/lib/schemas/progress";
 import { cn } from "@/lib/utils";
@@ -38,16 +39,12 @@ export function SkillChecklist({
     const next = NEXT_STATUS[current];
     setLocal((s) => ({ ...s, [skill.id]: next }));
     setBusy(skill.id);
-    const res = await fetch(`/api/riders/${riderId}/skills/${skill.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: next }),
-    });
+    const res = await patchJson(`/api/riders/${riderId}/skills/${skill.id}`, { status: next });
     setBusy(null);
     if (!res.ok) {
       // Roll back optimistic update
       setLocal((s) => ({ ...s, [skill.id]: current }));
-      toast.error("Failed");
+      toast.error(res.message);
       return;
     }
     if (next === "mastered") toast.success(`${skill.name} · mastered`);

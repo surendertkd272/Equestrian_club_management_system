@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { patchJson } from "@/lib/client/post-json";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,15 +67,10 @@ export function EditEventForm({ eventId, initial }: { eventId: string; initial: 
       externalVenue: isExternal ? form.externalVenue || null : null,
       externalHostOrg: isExternal ? form.externalHostOrg || null : null,
     };
-    const res = await fetch(`/api/events/${eventId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await patchJson(`/api/events/${eventId}`, payload);
     setSaving(false);
     if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
-      toast.error(d.error ?? "Failed to save");
+      toast.error(res.message);
       return;
     }
     toast.success("Event updated");

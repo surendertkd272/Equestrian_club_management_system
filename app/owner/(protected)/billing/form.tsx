@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { patchJson } from "@/lib/client/post-json";
 
 type Config = {
   legalName: string;
@@ -35,15 +36,10 @@ export function BillingConfigForm({ initial }: { initial: Config }) {
 
   async function save() {
     setBusy(true);
-    const res = await fetch("/api/owner/platform-billing", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
+    const res = await patchJson("/api/owner/platform-billing", form);
     setBusy(false);
-    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error(data.message ?? data.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success("Saved.");

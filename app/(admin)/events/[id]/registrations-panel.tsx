@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { postJson, patchJson, deleteJson } from "@/lib/client/post-json";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
@@ -44,20 +45,15 @@ export function RegistrationsPanel({
     e.preventDefault();
     if (!newRiderId) return;
     setAdding(true);
-    const res = await fetch(`/api/events/${eventId}/registrations`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ riderId: newRiderId }),
-    });
+    const res = await postJson(`/api/events/${eventId}/registrations`, { riderId: newRiderId });
     setAdding(false);
     if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
       toast.error(
-        d.error === "ALREADY_REGISTERED"
+        res.code === "ALREADY_REGISTERED"
           ? "Rider already registered."
-          : d.error === "FULL"
+          : res.code === "FULL"
             ? "Event is full."
-            : d.error ?? "Failed",
+            : res.message,
       );
       return;
     }
@@ -66,11 +62,7 @@ export function RegistrationsPanel({
   }
 
   async function patch(regId: string, body: Record<string, unknown>, msg?: string) {
-    const res = await fetch(`/api/events/${eventId}/registrations/${regId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const res = await patchJson(`/api/events/${eventId}/registrations/${regId}`, body);
     if (!res.ok) {
       toast.error("Save failed");
       return;
@@ -86,7 +78,7 @@ export function RegistrationsPanel({
       confirmLabel: "Cancel",
     });
     if (!ok) return;
-    const res = await fetch(`/api/events/${eventId}/registrations/${regId}`, { method: "DELETE" });
+    const res = await deleteJson(`/api/events/${eventId}/registrations/${regId}`);
     if (!res.ok) {
       toast.error("Failed");
       return;

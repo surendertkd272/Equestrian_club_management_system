@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { postJson } from "@/lib/client/post-json";
 
 const SEVERITIES = ["info", "success", "warning", "maintenance"] as const;
 
@@ -33,24 +34,19 @@ export function NewAnnouncementForm() {
       return;
     }
     setBusy(true);
-    const res = await fetch("/api/owner/announcements", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: form.title,
-        body: form.body,
-        severity: form.severity,
-        ctaLabel: form.ctaLabel || null,
-        ctaHref: form.ctaHref || null,
-        planFilter: form.planFilter || null,
-        roleFilter: form.roleFilter || null,
-        expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : null,
-      }),
+    const res = await postJson("/api/owner/announcements", {
+      title: form.title,
+      body: form.body,
+      severity: form.severity,
+      ctaLabel: form.ctaLabel || null,
+      ctaHref: form.ctaHref || null,
+      planFilter: form.planFilter || null,
+      roleFilter: form.roleFilter || null,
+      expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : null,
     });
     setBusy(false);
-    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error(data.message ?? data.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success("Published.");

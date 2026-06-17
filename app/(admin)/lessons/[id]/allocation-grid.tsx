@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { postJson } from "@/lib/client/post-json";
 
 type Rider = { id: string; firstName: string; lastName: string };
 type Horse = { id: string; name: string; stableNo: string | null };
@@ -47,26 +48,21 @@ export function AllocationGrid({
       return;
     }
     setBusy(true);
-    const res = await fetch(`/api/lessons/${lessonId}/allocations`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        pairings: filled.map((p) => ({ riderId: p.riderId, horseId: p.horseId, notes: p.notes || null })),
-      }),
+    const res = await postJson<{ count: number }>(`/api/lessons/${lessonId}/allocations`, {
+      pairings: filled.map((p) => ({ riderId: p.riderId, horseId: p.horseId, notes: p.notes || null })),
     });
     setBusy(false);
-    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      if (data.error === "HORSE_DOUBLE_BOOKED") {
+      if (res.code === "HORSE_DOUBLE_BOOKED") {
         toast.error("One or more horses are already booked in another lesson at this time.");
-      } else if (data.error === "DUPLICATE_HORSE" || data.error === "DUPLICATE_RIDER") {
-        toast.error(data.message ?? "Duplicate entry.");
+      } else if (res.code === "DUPLICATE_HORSE" || res.code === "DUPLICATE_RIDER") {
+        toast.error(res.message);
       } else {
-        toast.error(data.message ?? data.error ?? "Failed");
+        toast.error(res.message);
       }
       return;
     }
-    toast.success(`${data.count} rider${data.count === 1 ? "" : "s"} saved.`);
+    toast.success(`${res.data.count} rider${res.data.count === 1 ? "" : "s"} saved.`);
     router.refresh();
   }
 

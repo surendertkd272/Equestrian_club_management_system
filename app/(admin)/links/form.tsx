@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { postJson } from "@/lib/client/post-json";
 
 const KINDS = [
   { value: "injury", label: "Report a horse injury", needsHorse: true, targetHint: "/injuries/new" },
@@ -53,22 +54,17 @@ export function NewShortLinkForm({ horses }: { horses: { id: string; name: strin
           : undefined;
 
     setSaving(true);
-    const res = await fetch("/api/short-links", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        kind,
-        targetPath,
-        params: Object.keys(params).length > 0 ? params : undefined,
-        label: label.trim() || undefined,
-        expiresInDays: Number(expiresInDays),
-        singleUse,
-      }),
+    const res = await postJson("/api/short-links", {
+      kind,
+      targetPath,
+      params: Object.keys(params).length > 0 ? params : undefined,
+      label: label.trim() || undefined,
+      expiresInDays: Number(expiresInDays),
+      singleUse,
     });
     setSaving(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success("Link created");

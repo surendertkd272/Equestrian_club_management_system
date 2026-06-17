@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { safeNextPath } from "@/lib/safe-redirect";
+import { postJson } from "@/lib/client/post-json";
 
 export function OwnerLoginForm({ next, devMode = false }: { next: string; devMode?: boolean }) {
   const router = useRouter();
@@ -28,35 +29,30 @@ export function OwnerLoginForm({ next, devMode = false }: { next: string; devMod
       if (useRecovery) payload.recoveryCode = recoveryCode;
       else payload.totp = totp;
     }
-    const res = await fetch("/api/owner/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json().catch(() => ({}));
+    const res = await postJson<{ redirect?: string }>("/api/owner/auth/login", payload);
     setLoading(false);
     if (!res.ok) {
-      if (data.error === "TOTP_REQUIRED") {
+      if (res.code === "TOTP_REQUIRED") {
         setNeedTotp(true);
         return;
       }
-      if (data.error === "TOTP_INVALID") {
+      if (res.code === "TOTP_INVALID") {
         toast.error("Wrong code. Re-check your authenticator and try again.");
         return;
       }
-      if (data.error === "TOTP_REPLAY") {
+      if (res.code === "TOTP_REPLAY") {
         toast.error("This code was already used. Wait for the next one in your app.");
         return;
       }
-      if (data.error === "RECOVERY_INVALID") {
+      if (res.code === "RECOVERY_INVALID") {
         toast.error("Recovery code not recognised — each is single-use.");
         return;
       }
-      toast.error(data.message ?? data.error ?? "Invalid credentials");
+      toast.error(res.message);
       return;
     }
-    const requested = next !== "/owner" ? next : (data.redirect ?? "/owner");
-    const target = safeNextPath(requested, data.redirect ?? "/owner");
+    const requested = next !== "/owner" ? next : (res.data.redirect ?? "/owner");
+    const target = safeNextPath(requested, res.data.redirect ?? "/owner");
     router.push(target);
     router.refresh();
   }

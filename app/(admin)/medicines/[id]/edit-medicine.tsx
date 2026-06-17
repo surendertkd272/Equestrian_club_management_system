@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { patchJson } from "@/lib/client/post-json";
 
 export type EditableMedicine = {
   id: string;
@@ -55,15 +56,10 @@ export function EditMedicineForm({ med }: { med: EditableMedicine }) {
     setSaving(true);
     const payload: Record<string, unknown> = { ...form };
     if (!form.mfgDate) delete payload.mfgDate;
-    const res = await fetch(`/api/medicines/${med.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await patchJson(`/api/medicines/${med.id}`, payload);
     setSaving(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Failed to update");
+      toast.error(res.message);
       return;
     }
     toast.success("Medicine updated");

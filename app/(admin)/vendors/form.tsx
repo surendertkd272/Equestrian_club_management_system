@@ -15,6 +15,7 @@ import {
   FARRIER_SPECIALISATIONS,
   WEEKDAYS,
 } from "@/lib/schemas/vendor";
+import { postJson } from "@/lib/client/post-json";
 
 // Sprint 3.6: vendor form now renders category-specific extra fields
 // for Vet Doctor + Farrier. The base fields (name / contact / phone /
@@ -132,19 +133,14 @@ export function NewVendorForm({
       return;
     }
     setBusy(true);
-    const res = await fetch("/api/vendors", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        email: form.email || undefined,
-        categorySpecific: buildCategorySpecific(),
-      }),
+    const res = await postJson("/api/vendors", {
+      ...form,
+      email: form.email || undefined,
+      categorySpecific: buildCategorySpecific(),
     });
     setBusy(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success("Vendor added");

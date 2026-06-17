@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { patchJson, deleteJson } from "@/lib/client/post-json";
 import { Button } from "@/components/ui/button";
 import { ScoringEngine } from "@/components/scoring/scoring-engine";
 import type { RubricCategory } from "@/lib/schemas/exam";
@@ -79,28 +80,22 @@ export function ExamScorer({
 
   async function save(final: boolean) {
     setBusy(final ? "submit" : "draft");
-    const res = await fetch(`/api/exams/${examId}/score`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        scores,
-        final,
-        ...(judgeId ? { judgeId } : {}),
-        ...(canEditAdjustments ? { deductions, timeFaults } : {}),
-      }),
+    const res = await patchJson<{ passed?: boolean }>(`/api/exams/${examId}/score`, {
+      scores,
+      final,
+      ...(judgeId ? { judgeId } : {}),
+      ...(canEditAdjustments ? { deductions, timeFaults } : {}),
     });
     setBusy(null);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Save failed");
+      toast.error(res.message);
       return;
     }
-    const data = await res.json();
     setSavedSnapshot({ scores: { ...scores }, deductions, timeFaults });
     setLastSavedAt(new Date());
     if (final) {
       toast.success(
-        data.passed === true ? "Submitted — PASS" : data.passed === false ? "Submitted — fail" : "Submitted",
+        res.data.passed === true ? "Submitted — PASS" : res.data.passed === false ? "Submitted — fail" : "Submitted",
       );
       router.push("/exams");
     } else {
@@ -118,10 +113,10 @@ export function ExamScorer({
     });
     if (!ok) return;
     setBusy("reset");
-    const res = await fetch(`/api/exams/${examId}/score`, { method: "DELETE" });
+    const res = await deleteJson(`/api/exams/${examId}/score`);
     setBusy(null);
     if (!res.ok) {
-      toast.error("Reset failed");
+      toast.error(res.message);
       return;
     }
     toast.success("Draft reset");

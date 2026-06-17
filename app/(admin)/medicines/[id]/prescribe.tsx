@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { postJson } from "@/lib/client/post-json";
 
 export function PrescribeForm({
   medicineId,
@@ -40,18 +41,16 @@ export function PrescribeForm({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const res = await fetch(`/api/medicines/${medicineId}/usage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, requestKey }),
-    });
+    const res = await postJson<{ newQty: number; withdrawalUntil?: string | null; lowStock?: boolean }>(
+      `/api/medicines/${medicineId}/usage`,
+      { ...form, requestKey },
+    );
     setSaving(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.message ?? err.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
-    const data = await res.json();
+    const data = res.data;
     const parts = [`Stock now ${data.newQty}`];
     if (data.withdrawalUntil) parts.push(`Horse on rest until ${new Date(data.withdrawalUntil).toLocaleDateString("en-IN")}`);
     if (data.lowStock) parts.push("LOW STOCK — reorder");

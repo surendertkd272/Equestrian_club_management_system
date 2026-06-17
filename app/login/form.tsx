@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { safeNextPath } from "@/lib/safe-redirect";
+import { postJson } from "@/lib/client/post-json";
 
 // Seeded test accounts shown as quick-pick chips during development so a
 // reviewer can switch between roles without remembering each email. The
@@ -50,27 +51,22 @@ export function LoginForm({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json().catch(() => ({}));
+    const res = await postJson<{ redirect?: string }>("/api/auth/login", { email, password });
     setLoading(false);
     if (!res.ok) {
-      if (data.error === "ACCOUNT_SUSPENDED") {
-        toast.error(data.message ?? "This tenant has been suspended.", { duration: 10_000 });
+      if (res.code === "ACCOUNT_SUSPENDED") {
+        toast.error(res.message, { duration: 10_000 });
         return;
       }
-      toast.error(data.message ?? data.error ?? "Invalid credentials");
+      toast.error(res.message);
       return;
     }
     // If the caller passed an explicit ?next= we honour it; otherwise use the role-aware
     // redirect the API returned (parents → /parent, staff → /dashboard).
     // Validate ?next= so a crafted /login?next=https://phishy.com link
     // can't redirect post-auth. Falls back to the role-aware redirect.
-    const requested = next !== "/dashboard" ? next : (data.redirect ?? "/dashboard");
-    const target = safeNextPath(requested, data.redirect ?? "/dashboard");
+    const requested = next !== "/dashboard" ? next : (res.data.redirect ?? "/dashboard");
+    const target = safeNextPath(requested, res.data.redirect ?? "/dashboard");
     router.push(target);
     router.refresh();
   }

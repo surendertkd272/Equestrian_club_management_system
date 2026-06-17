@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { patchJson } from "@/lib/client/post-json";
 
 type Row = {
   key: string;
@@ -31,25 +32,20 @@ export function PricingForm({ initial }: { initial: Row }) {
 
   async function save() {
     setBusy(true);
-    const res = await fetch(`/api/owner/pricing/${initial.key}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        label: form.label,
-        tagline: form.tagline,
-        monthlyInr: Number(form.monthlyInr),
-        annualInrPerMonth: Number(form.annualInrPerMonth),
-        highlight: form.highlight,
-        isVisible: form.isVisible,
-        razorpayPlanIdMonthly: form.razorpayPlanIdMonthly || null,
-        razorpayPlanIdAnnual: form.razorpayPlanIdAnnual || null,
-        sortOrder: Number(form.sortOrder),
-      }),
+    const res = await patchJson(`/api/owner/pricing/${initial.key}`, {
+      label: form.label,
+      tagline: form.tagline,
+      monthlyInr: Number(form.monthlyInr),
+      annualInrPerMonth: Number(form.annualInrPerMonth),
+      highlight: form.highlight,
+      isVisible: form.isVisible,
+      razorpayPlanIdMonthly: form.razorpayPlanIdMonthly || null,
+      razorpayPlanIdAnnual: form.razorpayPlanIdAnnual || null,
+      sortOrder: Number(form.sortOrder),
     });
     setBusy(false);
-    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error(data.message ?? data.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success("Saved.");

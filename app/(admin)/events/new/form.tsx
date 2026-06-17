@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { postJson } from "@/lib/client/post-json";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,20 +67,14 @@ export function NewEventForm() {
     if (form.contactName) payload.contactName = form.contactName;
     if (form.contactPhone) payload.contactPhone = form.contactPhone;
 
-    const res = await fetch("/api/events", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await postJson<{ id: string }>("/api/events", payload);
     setSaving(false);
     if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
-      toast.error(d.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
-    const d = await res.json();
     toast.success("Event created");
-    router.push(`/events/${d.id}`);
+    router.push(`/events/${res.data.id}`);
     router.refresh();
   }
 

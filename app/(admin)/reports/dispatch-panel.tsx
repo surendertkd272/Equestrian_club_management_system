@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { postJson } from "@/lib/client/post-json";
 
 export function DispatchPanel() {
   const router = useRouter();
@@ -13,14 +14,15 @@ export function DispatchPanel() {
   async function trigger() {
     setBusy(true);
     setResult(null);
-    const res = await fetch("/api/reports/monthly-dispatch", { method: "POST" });
+    const res = await postJson<{ result: { notified: number; skipped: number; scanned: number } }>(
+      "/api/reports/monthly-dispatch",
+    );
     setBusy(false);
-    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error(data.message ?? data.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
-    const r = data.result;
+    const r = res.data.result;
     setResult({ notified: r.notified, skipped: r.skipped, scanned: r.scanned });
     toast.success(`Sent ${r.notified} report${r.notified === 1 ? "" : "s"}, skipped ${r.skipped}.`);
     router.refresh();

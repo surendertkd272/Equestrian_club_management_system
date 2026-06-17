@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { postJson } from "@/lib/client/post-json";
 import { Check, CheckCheck } from "lucide-react";
 
 export function MarkRead({ id }: { id: string }) {
@@ -10,7 +11,7 @@ export function MarkRead({ id }: { id: string }) {
   const [busy, setBusy] = useState(false);
   async function onClick() {
     setBusy(true);
-    await fetch(`/api/notifications/${id}/read`, { method: "POST" });
+    await postJson(`/api/notifications/${id}/read`);
     setBusy(false);
     router.refresh();
   }
@@ -33,11 +34,10 @@ export function MarkAllRead() {
   const [busy, setBusy] = useState(false);
   async function onClick() {
     setBusy(true);
-    const res = await fetch("/api/notifications/read-all", { method: "POST" });
+    const res = await postJson<{ count: number }>("/api/notifications/read-all");
     setBusy(false);
     if (res.ok) {
-      const data = await res.json();
-      toast.success(`Marked ${data.count} read`);
+      toast.success(`Marked ${res.data.count} read`);
       router.refresh();
     }
   }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { openConfirm } from "@/components/ui/confirm-dialog";
+import { postJson } from "@/lib/client/post-json";
 
 export function SignOutEverywhereButton() {
   const router = useRouter();
@@ -20,10 +21,10 @@ export function SignOutEverywhereButton() {
     if (!ok) return;
 
     setBusy(true);
-    const res = await fetch("/api/account/sign-out-everywhere", { method: "POST" });
+    const res = await postJson("/api/account/sign-out-everywhere");
     setBusy(false);
     if (!res.ok) {
-      toast.error("Failed — try again.");
+      toast.error(res.message);
       return;
     }
     toast.success("All sessions ended.");

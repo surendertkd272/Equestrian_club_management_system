@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2 } from "lucide-react";
+import { postJson } from "@/lib/client/post-json";
 
 type Item = { name: string; qty: string; unit: string; estimatedUnitCost: string; notes: string };
 
@@ -63,22 +64,18 @@ export function NewRequisitionForm({
     // SUPER_ADMIN must include centreId; centre-scoped users omit it and
     // the API uses session.centreId instead.
     if (centres.length > 0) payload.centreId = centreId;
-    const res = await fetch("/api/requisitions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await postJson("/api/requisitions", payload);
     setSaving(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
       // Surface Zod's per-field complaints when the API returns them — the
       // generic "VALIDATION" string alone made it impossible to tell which
       // field was off (saw this with single-char item names).
-      const flat = err?.details?.fieldErrors as Record<string, string[]> | undefined;
+      const flat = (res.data as { details?: { fieldErrors?: Record<string, string[]> } })
+        ?.details?.fieldErrors;
       const firstFieldMsg = flat
         ? Object.entries(flat).flatMap(([k, v]) => v.map((m) => `${k}: ${m}`))[0]
         : undefined;
-      toast.error(firstFieldMsg ?? err.error ?? "Failed");
+      toast.error(firstFieldMsg ?? res.message);
       return;
     }
     toast.success("Requisition submitted");
