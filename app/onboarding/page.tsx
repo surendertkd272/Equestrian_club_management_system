@@ -1,6 +1,9 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { OnboardingWizard } from "./wizard";
 import { bindRlsBypass } from "@/lib/tenant-context";
+import { getSession } from "@/lib/auth";
+import { scopeCentre } from "@/lib/tenancy";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +17,27 @@ export default async function OnboardingPage({
   const centre = slug ? await prisma.centre.findUnique({ where: { slug } }) : null;
 
   if (!centre) {
+    // A signed-in staff member who reached this page WITHOUT a slug (e.g. via a
+    // dashboard / riders "Onboard a rider" CTA) shouldn't dead-end — send them
+    // to their own centre's registration form. HQ on "all centres" (no centre
+    // resolved) and public visitors (no session) fall through to the message.
+    if (!slug) {
+      const session = await getSession();
+      let ownSlug: string | null = null;
+      if (session) {
+        try {
+          const sCentreId = scopeCentre(session);
+          if (sCentreId) {
+            const own = await prisma.centre.findUnique({ where: { id: sCentreId }, select: { slug: true } });
+            ownSlug = own?.slug ?? null;
+          }
+        } catch {
+          // scopeCentre throws for a centre-less non-HQ user — fall through to the message.
+        }
+      }
+      // redirect() throws NEXT_REDIRECT, so it must stay outside the try/catch above.
+      if (ownSlug) redirect(`/onboarding?centre=${ownSlug}`);
+    }
     // SECURITY: this page is public + RLS-bypassed and reached via an
     // unguessable per-centre link (?centre=<slug>). It must NEVER enumerate
     // centres — doing so leaks every tenant's club list to any visitor. With no
