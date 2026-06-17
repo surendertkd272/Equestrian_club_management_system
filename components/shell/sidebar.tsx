@@ -207,6 +207,7 @@ export function Sidebar({
                   <li key={it.href}>
                     <Link
                       href={it.href}
+                      aria-current={active ? "page" : undefined}
                       className={cn(
                         "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm",
                         active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"
