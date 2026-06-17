@@ -36,6 +36,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormField } from "@/components/ui/form-field";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
@@ -133,14 +134,12 @@ function Field<T extends FieldValues>({
   // direct read is safe. Cast through unknown because FieldErrors's value
   // type is recursive and TS can't infer the leaf shape here.
   const err = (formState.errors[name] as { message?: string } | undefined)?.message;
+  // FormField wires the label↔input id + aria-invalid/aria-describedby/role=alert
+  // for the inline error, so a screen reader announces the validation message.
   return (
-    <div className="space-y-1.5">
-      <Label htmlFor={name}>
-        {label} {required && <span className="text-destructive">*</span>}
-      </Label>
-      <Input id={name} type={type} inputMode={inputMode} placeholder={placeholder} {...register(name)} />
-      {err && <p className="text-xs text-destructive">{err}</p>}
-    </div>
+    <FormField label={label} error={err} required={required}>
+      {(p) => <Input type={type} inputMode={inputMode} placeholder={placeholder} {...p} {...register(name)} />}
+    </FormField>
   );
 }
 
