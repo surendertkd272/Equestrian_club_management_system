@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Plus, Link2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { Pagination } from "@/components/ui/pagination";
+import { parsePaging } from "@/lib/paging";
 
 export const dynamic = "force-dynamic";
 
@@ -19,26 +21,44 @@ function canViewProfile(role: string): boolean {
   return role === "SUPER_ADMIN" || role === "ADMIN";
 }
 
-export default async function StaffPage() {
+export default async function StaffPage({
+  searchParams,
+}: {
+  searchParams: { q?: string; page?: string; pageSize?: string };
+}) {
   const session = (await getSession())!;
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/dashboard");
   const centreId = scopeCentre(session);
-  const where = tenantWhere(centreId, orgId);
+  const where: any = { ...tenantWhere(centreId, orgId) };
+  if (searchParams.q) {
+    where.OR = [
+      { user: { name: { contains: searchParams.q } } },
+      { user: { email: { contains: searchParams.q } } },
+      { user: { phone: { contains: searchParams.q } } },
+      { role: { contains: searchParams.q } },
+    ];
+  }
   const showProfileLink = canViewProfile(session.role);
 
-  const staff = await prisma.staff.findMany({
-    where,
-    include: { user: { select: { name: true, email: true, phone: true, status: true } } },
-    orderBy: { joiningDate: "desc" },
-  });
+  const { page, pageSize, skip, take } = parsePaging(searchParams, { pageSize: 25 });
+  const [total, staff] = await Promise.all([
+    prisma.staff.count({ where }),
+    prisma.staff.findMany({
+      where,
+      include: { user: { select: { name: true, email: true, phone: true, status: true } } },
+      orderBy: { joiningDate: "desc" },
+      skip,
+      take,
+    }),
+  ]);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Staff</h1>
-          <p className="text-sm text-muted-foreground">{staff.length} member{staff.length === 1 ? "" : "s"}</p>
+          <p className="text-sm text-muted-foreground">{total} member{total === 1 ? "" : "s"}</p>
         </div>
         <div className="flex items-center gap-2">
           {CAN_ONBOARD.includes(session.role) && (
@@ -59,6 +79,17 @@ export default async function StaffPage() {
       <Card>
         <CardHeader>
           <CardTitle>All Staff</CardTitle>
+          <form className="mt-2 flex gap-2">
+            <input
+              type="search"
+              name="q"
+              aria-label="Search staff by name, email, phone, or role"
+              defaultValue={searchParams.q ?? ""}
+              placeholder="Search name, email, phone, role"
+              className="flex h-9 w-full max-w-sm rounded-md border border-input bg-background px-3 text-base md:text-sm"
+            />
+            <Button type="submit" variant="outline" size="sm">Search</Button>
+          </form>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -99,17 +130,24 @@ export default async function StaffPage() {
               {staff.length === 0 && (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-muted-foreground">
-                    No staff yet.{" "}
-                    <Link href="/staff/new" className="text-primary underline">
-                      Add the first one
-                    </Link>
-                    .
+                    {searchParams.q ? (
+                      <>No staff match “{searchParams.q}”.</>
+                    ) : (
+                      <>
+                        No staff yet.{" "}
+                        <Link href="/staff/new" className="text-primary underline">
+                          Add the first one
+                        </Link>
+                        .
+                      </>
+                    )}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
           </div>
+          <Pagination total={total} page={page} pageSize={pageSize} />
         </CardContent>
       </Card>
     </div>
