@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { toast } from "sonner";
+import { postJson } from "@/lib/client/post-json";
 
 type Log = {
   id: string;
@@ -57,14 +58,9 @@ export function HealthLogPanel({
       return;
     }
 
-    const res = await fetch(`/api/horses/${horseId}/health`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json().catch(() => ({}));
+    const res = await postJson(`/api/horses/${horseId}/health`, payload);
     if (!res.ok) {
-      toast.error(data.message ?? data.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success("Reading saved");

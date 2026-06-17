@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { postJson } from "@/lib/client/post-json";
 
 const TEMPLATES = [
   { label: "Muck out stalls", desc: "Clean all stalls and refresh bedding.", time: "06:00", rec: "daily" },
@@ -69,21 +70,17 @@ export function NewTaskForm({
     // session's pin instead.
     if (centres.length > 0) payload.centreId = form.centreId;
 
-    const res = await fetch("/api/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await postJson("/api/tasks", payload);
     setSaving(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
       // Same trick as the requisition form — surface Zod's per-field errors
       // so a 400 doesn't become an opaque "Failed".
-      const flat = err?.details?.fieldErrors as Record<string, string[]> | undefined;
+      const err = res.data as { details?: { fieldErrors?: Record<string, string[]> } };
+      const flat = err?.details?.fieldErrors;
       const firstFieldMsg = flat
         ? Object.entries(flat).flatMap(([k, v]) => v.map((m) => `${k}: ${m}`))[0]
         : undefined;
-      toast.error(firstFieldMsg ?? err.error ?? "Failed");
+      toast.error(firstFieldMsg ?? res.message);
       return;
     }
     toast.success("Task created");

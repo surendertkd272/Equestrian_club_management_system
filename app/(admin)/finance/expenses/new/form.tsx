@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { postJson } from "@/lib/client/post-json";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -73,15 +74,10 @@ export function NewExpenseForm({
       payload.paidAt = form.paidAt;
       payload.method = form.method;
     }
-    const res = await fetch("/api/expenses", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await postJson("/api/expenses", payload);
     setSaving(false);
     if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
-      toast.error(d.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success("Expense booked");

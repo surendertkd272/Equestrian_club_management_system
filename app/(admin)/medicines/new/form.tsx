@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { postJson } from "@/lib/client/post-json";
 
 type Centre = { id: string; name: string };
 
@@ -52,20 +53,14 @@ export function NewMedicineForm({
     const payload: any = { ...form };
     if (!form.mfgDate) delete payload.mfgDate;
     if (!payload.centreId) delete payload.centreId;
-    const res = await fetch("/api/medicines", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await postJson<{ id: string }>("/api/medicines", payload);
     setSaving(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
-    const data = await res.json();
     toast.success("Medicine added");
-    router.push(`/medicines/${data.id}`);
+    router.push(`/medicines/${res.data.id}`);
     router.refresh();
   }
 

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { postJson } from "@/lib/client/post-json";
 
 export function NewAllocationForm({
   horseId,
@@ -35,20 +36,15 @@ export function NewAllocationForm({
     setSaving(true);
     const startAt = `${form.date}T${form.startTime}`;
     const endAt = `${form.date}T${form.endTime}`;
-    const res = await fetch(`/api/horses/${horseId}/allocations`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        riderId: form.riderId || null,
-        purpose: form.purpose,
-        startAt,
-        endAt,
-      }),
+    const res = await postJson(`/api/horses/${horseId}/allocations`, {
+      riderId: form.riderId || null,
+      purpose: form.purpose,
+      startAt,
+      endAt,
     });
     setSaving(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.message ?? err.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success("Allocation added");

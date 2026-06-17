@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, IndianRupee } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { postJson } from "@/lib/client/post-json";
 
 type Repayment = { id: string; amount: number; deductedAt: string; notes: string | null };
 type AdvanceRow = {
@@ -46,20 +47,15 @@ export function AdvancesPanel({
     if (!issuingFor) return toast.error("Pick a recipient.");
     if (Number(amount) <= 0) return toast.error("Amount must be positive.");
     setBusy(true);
-    const res = await fetch("/api/advances", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: issuingFor,
-        amount: Number(amount),
-        reason: reason.trim(),
-        notes: notes.trim() || undefined,
-      }),
+    const res = await postJson("/api/advances", {
+      userId: issuingFor,
+      amount: Number(amount),
+      reason: reason.trim(),
+      notes: notes.trim() || undefined,
     });
     setBusy(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success("Advance recorded");
@@ -163,15 +159,13 @@ function AdvanceRowDisplay({ row }: { row: AdvanceRow }) {
     if (amt <= 0) return toast.error("Amount must be positive.");
     if (amt > row.remaining + 0.01) return toast.error("Cannot exceed remaining balance.");
     setBusy(true);
-    const res = await fetch(`/api/advances/${row.id}/repay`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: amt, notes: repayNotes.trim() || undefined }),
+    const res = await postJson(`/api/advances/${row.id}/repay`, {
+      amount: amt,
+      notes: repayNotes.trim() || undefined,
     });
     setBusy(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success("Repayment recorded");

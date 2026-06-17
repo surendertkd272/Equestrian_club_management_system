@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { patchJson } from "@/lib/client/post-json";
 
 const NEXT: Record<string, { label: string; status: string; variant?: "default" | "outline" | "destructive" }[]> = {
   scheduled: [
@@ -21,15 +22,10 @@ export function LessonStatusPanel({ lessonId, status }: { lessonId: string; stat
 
   async function transition(next: string) {
     setBusy(true);
-    const res = await fetch(`/api/lessons/${lessonId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: next }),
-    });
+    const res = await patchJson(`/api/lessons/${lessonId}`, { status: next });
     setBusy(false);
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      toast.error(data.message ?? data.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success(`Lesson marked ${next}.`);

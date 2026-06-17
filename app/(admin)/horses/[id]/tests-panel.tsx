@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { postJson } from "@/lib/client/post-json";
 
 export type HorseTestDTO = {
   id: string;
@@ -70,27 +71,21 @@ export function HorseTestsPanel({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const res = await fetch(`/api/horses/${horseId}/tests`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        testType,
-        result,
-        testedAt: testedAt ? new Date(testedAt).toISOString() : undefined,
-        nextDueAt: nextDueAt ? new Date(nextDueAt).toISOString() : null,
-        labName: labName.trim() || undefined,
-        reportUrl: reportUrl.trim() || undefined,
-        notes: notes.trim() || undefined,
-      }),
+    const res = await postJson<{ test: HorseTestDTO }>(`/api/horses/${horseId}/tests`, {
+      testType,
+      result,
+      testedAt: testedAt ? new Date(testedAt).toISOString() : undefined,
+      nextDueAt: nextDueAt ? new Date(nextDueAt).toISOString() : null,
+      labName: labName.trim() || undefined,
+      reportUrl: reportUrl.trim() || undefined,
+      notes: notes.trim() || undefined,
     });
     setSaving(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
-    const data = await res.json();
-    setTests((rows) => [data.test, ...rows]);
+    setTests((rows) => [res.data.test, ...rows]);
     resetForm();
     setAdding(false);
     toast.success("Test recorded");

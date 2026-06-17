@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
+import { postJson } from "@/lib/client/post-json";
 
 export type RequisitionDTO = {
   id: string;
@@ -101,15 +102,13 @@ function RequisitionRow({ row, mode }: { row: RequisitionDTO; mode: "manager" | 
 
   async function decide(decision: "approve" | "reject") {
     setBusy(decision);
-    const res = await fetch(`/api/requisitions/${row.id}/decide`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ decision, notes: decisionNotes.trim() || undefined }),
+    const res = await postJson(`/api/requisitions/${row.id}/decide`, {
+      decision,
+      notes: decisionNotes.trim() || undefined,
     });
     setBusy(null);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success(decision === "approve" ? "Approved" : "Rejected");

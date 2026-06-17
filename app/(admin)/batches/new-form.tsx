@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { postJson } from "@/lib/client/post-json";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,17 +36,14 @@ export function NewBatchForm({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const res = await fetch("/api/batches", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      // Send centreId in the body so HQ admins (no session.centreId)
-      // still POST against the centre they've picked via the topbar.
-      body: JSON.stringify({ ...form, centreId }),
-    });
+    // Send centreId in the body so HQ admins (no session.centreId)
+    // still POST against the centre they've picked via the topbar.
+    const res = await postJson("/api/batches", { ...form, centreId });
     setSaving(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.details ? "Check the fields — invalid format." : err.error ?? "Failed");
+      toast.error(
+        (res.data as { details?: unknown })?.details ? "Check the fields — invalid format." : res.message,
+      );
       return;
     }
     toast.success("Batch created");

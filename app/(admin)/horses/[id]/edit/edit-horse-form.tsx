@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { patchJson } from "@/lib/client/post-json";
 
 export type EditHorseInitial = {
   name: string;
@@ -47,15 +48,10 @@ export function EditHorseForm({ horseId, initial }: { horseId: string; initial: 
     for (const k of ["ageYears", "heightHh", "insurancePremium"]) {
       if (payload[k] === "") delete payload[k];
     }
-    const res = await fetch(`/api/horses/${horseId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    const res = await patchJson(`/api/horses/${horseId}`, payload);
     setSaving(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Failed to save");
+      toast.error(res.message);
       return;
     }
     toast.success("Horse updated");

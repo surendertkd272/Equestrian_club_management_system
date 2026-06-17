@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { patchJson } from "@/lib/client/post-json";
 
 export function AssignBatch({
   riderId,
@@ -20,15 +21,10 @@ export function AssignBatch({
     const next = e.target.value || null;
     if (next === currentBatchId) return;
     setSaving(true);
-    const res = await fetch(`/api/riders/${riderId}/batch`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ batchId: next }),
-    });
+    const res = await patchJson(`/api/riders/${riderId}/batch`, { batchId: next });
     setSaving(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Update failed");
+      toast.error(res.message);
       return;
     }
     toast.success(next ? "Assigned to batch" : "Removed from batch");

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
+import { deleteJson } from "@/lib/client/post-json";
 
 export function DeleteAllocation({ horseId, allocId }: { horseId: string; allocId: string }) {
   const router = useRouter();
@@ -14,10 +15,10 @@ export function DeleteAllocation({ horseId, allocId }: { horseId: string; allocI
     const ok = await openConfirm({ title: "Remove this allocation?", destructive: true, confirmLabel: "Remove" });
     if (!ok) return;
     setBusy(true);
-    const res = await fetch(`/api/horses/${horseId}/allocations/${allocId}`, { method: "DELETE" });
+    const res = await deleteJson(`/api/horses/${horseId}/allocations/${allocId}`);
     setBusy(false);
     if (!res.ok) {
-      toast.error("Failed");
+      toast.error(res.message);
       return;
     }
     toast.success("Removed");

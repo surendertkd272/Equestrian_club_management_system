@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { AlertTriangle, ArrowRight, Check, RotateCcw, Trash2 } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
+import { patchJson, deleteJson } from "@/lib/client/post-json";
 
 type TaskWithMeta = {
   id: string;
@@ -35,15 +36,10 @@ export function TaskCard({
 
   async function patch(status: "open" | "in_progress" | "done") {
     setBusy(true);
-    const res = await fetch(`/api/tasks/${task.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
+    const res = await patchJson(`/api/tasks/${task.id}`, { status });
     setBusy(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success(`Task → ${status.replace("_", " ")}`);
@@ -54,10 +50,10 @@ export function TaskCard({
     const ok = await openConfirm({ title: "Delete this task?", destructive: true, confirmLabel: "Delete" });
     if (!ok) return;
     setBusy(true);
-    const res = await fetch(`/api/tasks/${task.id}`, { method: "DELETE" });
+    const res = await deleteJson(`/api/tasks/${task.id}`);
     setBusy(false);
     if (!res.ok) {
-      toast.error("Failed");
+      toast.error(res.message);
       return;
     }
     toast.success("Deleted");

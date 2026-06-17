@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { openConfirm } from "@/components/ui/confirm-dialog";
+import { postJson, deleteJson } from "@/lib/client/post-json";
 
 type Initial = {
   status: string;
@@ -44,15 +45,13 @@ export function OffboardPanel({
     });
     if (!ok) return;
     setBusy(true);
-    const res = await fetch(`/api/owner/tenants/${tenantId}/offboard`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ graceDays: Number(graceDays), notes: notes.trim() || null }),
+    const res = await postJson(`/api/owner/tenants/${tenantId}/offboard`, {
+      graceDays: Number(graceDays),
+      notes: notes.trim() || null,
     });
     setBusy(false);
-    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error(data.message ?? data.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success("Closure scheduled. Customer notified.");
@@ -68,11 +67,10 @@ export function OffboardPanel({
     });
     if (!ok) return;
     setBusy(true);
-    const res = await fetch(`/api/owner/tenants/${tenantId}/offboard`, { method: "DELETE" });
+    const res = await deleteJson(`/api/owner/tenants/${tenantId}/offboard`);
     setBusy(false);
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      toast.error(data.message ?? data.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success("Restored.");

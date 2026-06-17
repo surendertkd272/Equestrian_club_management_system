@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { postJson } from "@/lib/client/post-json";
 
 type Batch = { id: string; name: string; startTime: string; endTime: string };
 
@@ -38,21 +39,16 @@ export function NewLessonForm({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    const res = await fetch("/api/lessons", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        batchId: batchId || null,
-        centreId,
-        date: new Date(`${date}T${start}`).toISOString(),
-        endAt: new Date(`${date}T${end}`).toISOString(),
-        notes: notes.trim() || null,
-      }),
+    const res = await postJson("/api/lessons", {
+      batchId: batchId || null,
+      centreId,
+      date: new Date(`${date}T${start}`).toISOString(),
+      endAt: new Date(`${date}T${end}`).toISOString(),
+      notes: notes.trim() || null,
     });
     setBusy(false);
-    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      toast.error(data.message ?? data.error ?? "Failed");
+      toast.error(res.message);
       return;
     }
     toast.success("Lesson scheduled.");

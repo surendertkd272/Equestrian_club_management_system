@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Plus, Trash2 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { postJson } from "@/lib/client/post-json";
 
 type Prescription = {
   id?: string;
@@ -123,24 +124,18 @@ export function VetVisitsPanel({
       }));
 
     setSaving(true);
-    const res = await fetch(`/api/horses/${horseId}/vet-visits`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        reason: reason.trim() || null,
-        notes: notes.trim(),
-        followUpAt: followUpAt ? new Date(followUpAt).toISOString() : null,
-        prescriptions: cleaned,
-      }),
+    const res = await postJson<{ visit: VetVisitDTO }>(`/api/horses/${horseId}/vet-visits`, {
+      reason: reason.trim() || null,
+      notes: notes.trim(),
+      followUpAt: followUpAt ? new Date(followUpAt).toISOString() : null,
+      prescriptions: cleaned,
     });
     setSaving(false);
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.error ?? "Failed to save");
+      toast.error(res.message);
       return;
     }
-    const data = await res.json();
-    setVisits((v) => [data.visit, ...v]);
+    setVisits((v) => [res.data.visit, ...v]);
     resetForm();
     setAdding(false);
     toast.success("Visit recorded");

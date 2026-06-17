@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { patchJson } from "@/lib/client/post-json";
 
 export function StatusSelect({ horseId, currentStatus }: { horseId: string; currentStatus: string }) {
   const router = useRouter();
@@ -12,14 +13,10 @@ export function StatusSelect({ horseId, currentStatus }: { horseId: string; curr
     const next = e.target.value;
     if (next === currentStatus) return;
     setSaving(true);
-    const res = await fetch(`/api/horses/${horseId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: next }),
-    });
+    const res = await patchJson(`/api/horses/${horseId}`, { status: next });
     setSaving(false);
     if (!res.ok) {
-      toast.error("Failed");
+      toast.error(res.message);
       return;
     }
     toast.success(`Status → ${next}`);
