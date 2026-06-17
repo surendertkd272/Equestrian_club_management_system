@@ -10,6 +10,7 @@ import { TopBar } from "@/components/shell/topbar";
 import { ReadOnlyBanner } from "@/components/shell/read-only-banner";
 import { ImpersonationBanner } from "@/components/shell/impersonation-banner";
 import { ConfirmHost } from "@/components/ui/confirm-dialog";
+import { PromptHost } from "@/components/ui/prompt-dialog";
 import { PwaInstallPrompt } from "@/components/shell/pwa-install-prompt";
 import { getFeaturesForSession, getOrgIdForSession } from "@/lib/features-gate";
 import { getStatusForSession } from "@/lib/readonly-gate";
@@ -99,6 +100,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         )}
         <main className="flex-1 bg-muted/40 p-3 sm:p-4 md:p-6 pb-20 md:pb-6">{children}</main>
         <ConfirmHost />
+        <PromptHost />
         <PwaInstallPrompt />
       </div>
     </div>

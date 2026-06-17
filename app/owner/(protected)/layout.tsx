@@ -4,6 +4,7 @@ import { getOwnerSession } from "@/lib/owner-auth";
 import { OwnerLogoutButton } from "./logout-button";
 import { OwnerThemeToggle } from "./owner-theme-toggle";
 import { ConfirmHost } from "@/components/ui/confirm-dialog";
+import { PromptHost } from "@/components/ui/prompt-dialog";
 import { Toaster } from "sonner";
 
 // Server-side guard for everything under /owner/*. Owner sessions ride a
@@ -46,6 +47,7 @@ export default async function OwnerProtectedLayout({ children }: { children: Rea
       </header>
       <main className="mx-auto max-w-6xl px-6 py-8">{children}</main>
       <ConfirmHost />
+      <PromptHost />
       <Toaster richColors closeButton />
     </div>
   );

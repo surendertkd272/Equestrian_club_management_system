@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { openConfirm } from "@/components/ui/confirm-dialog";
+import { openPrompt } from "@/components/ui/prompt-dialog";
+import { patchJson } from "@/lib/client/post-json";
 
 type Horse = { id: string; name: string; stableNo: string | null };
 type Rider = { id: string; firstName: string; lastName: string };
@@ -144,14 +146,9 @@ export function InjuryRowActions({ id, status }: { id: string; status: string })
   async function patch(payload: any, success: string) {
     setBusy(true);
     try {
-      const res = await fetch(`/api/injuries/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json().catch(() => ({}));
+      const res = await patchJson(`/api/injuries/${id}`, payload);
       if (!res.ok) {
-        toast.error(data.message ?? data.error ?? "Failed");
+        toast.error(res.message);
         return;
       }
       toast.success(success);
@@ -166,8 +163,14 @@ export function InjuryRowActions({ id, status }: { id: string; status: string })
       <button
         type="button"
         disabled={busy}
-        onClick={() => {
-          const t = window.prompt("Treatment / care notes:");
+        onClick={async () => {
+          const t = await openPrompt({
+            title: "Add treatment",
+            label: "Treatment / care notes",
+            multiline: true,
+            required: true,
+            confirmLabel: "Add",
+          });
           if (!t) return;
           patch({ treatment: t }, "Treatment added");
         }}
