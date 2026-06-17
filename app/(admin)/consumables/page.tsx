@@ -6,6 +6,7 @@ import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { Boxes } from "lucide-react";
 import { ConsumablesClient } from "./consumables-client";
 
@@ -70,59 +71,79 @@ export default async function ConsumablesPage() {
               body="Bandages, dressings, hygiene supplies, disposable tools — track stock here so the medicine cabinet auto-warns when you're running low. Use the form above to add the first item."
             />
           ) : (
-            <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-2 py-2">Item</th>
-                  <th className="px-2 py-2">Category</th>
-                  <th className="px-2 py-2 text-right">Stock</th>
-                  <th className="px-2 py-2 text-right">Reorder at</th>
-                  <th className="px-2 py-2">Storage</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => {
-                  const lowFlag = r.qty <= r.reorderThreshold;
-                  const out = r.qty === 0;
-                  return (
-                    <tr key={r.id} className="border-t">
-                      <td className="px-2 py-2">
-                        <div className="font-medium">{r.name}</div>
-                        {r.supplier && <div className="text-[10px] text-muted-foreground">{r.supplier}</div>}
-                      </td>
-                      <td className="px-2 py-2 text-xs capitalize">{r.category}</td>
-                      <td className={`px-2 py-2 text-right ${out ? "font-bold text-rose-600" : lowFlag ? "font-semibold text-amber-700" : ""}`}>
+            <ResponsiveTable
+              rows={rows}
+              getRowKey={(r) => r.id}
+              columns={[
+                {
+                  key: "item",
+                  header: "Item",
+                  primary: true,
+                  cell: (r) => (
+                    <>
+                      <div className="font-medium">{r.name}</div>
+                      {r.supplier && <div className="text-[10px] text-muted-foreground">{r.supplier}</div>}
+                    </>
+                  ),
+                },
+                {
+                  key: "category",
+                  header: "Category",
+                  className: "text-xs capitalize",
+                  cell: (r) => r.category,
+                },
+                {
+                  key: "stock",
+                  header: "Stock",
+                  headerClassName: "text-right",
+                  cell: (r) => {
+                    const lowFlag = r.qty <= r.reorderThreshold;
+                    const out = r.qty === 0;
+                    return (
+                      <div className={`text-right ${out ? "font-bold text-rose-600" : lowFlag ? "font-semibold text-amber-700" : ""}`}>
                         {r.qty} <span className="text-[10px] uppercase text-muted-foreground">{r.unit}</span>
                         {out && <Badge variant="destructive" className="ml-2 text-[10px]">OUT</Badge>}
                         {!out && lowFlag && <Badge variant="warning" className="ml-2 text-[10px]">LOW</Badge>}
-                      </td>
-                      <td className="px-2 py-2 text-right text-xs text-muted-foreground">{r.reorderThreshold}</td>
-                      <td className="px-2 py-2 text-xs text-muted-foreground">{r.storageLocation ?? "—"}</td>
-                      <td className="px-2 py-2 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <MoveButtons id={r.id} unit={r.unit} />
-                          <EditConsumable
-                            row={{
-                              id: r.id,
-                              name: r.name,
-                              category: r.category,
-                              unit: r.unit,
-                              qty: r.qty,
-                              reorderThreshold: r.reorderThreshold,
-                              supplier: r.supplier,
-                              storageLocation: r.storageLocation,
-                            }}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            </div>
+                      </div>
+                    );
+                  },
+                },
+                {
+                  key: "reorder",
+                  header: "Reorder at",
+                  headerClassName: "text-right",
+                  className: "text-right text-xs text-muted-foreground",
+                  cell: (r) => r.reorderThreshold,
+                },
+                {
+                  key: "storage",
+                  header: "Storage",
+                  className: "text-xs text-muted-foreground",
+                  cell: (r) => r.storageLocation ?? "—",
+                },
+                {
+                  key: "actions",
+                  header: "",
+                  cell: (r) => (
+                    <div className="flex items-center justify-end gap-1">
+                      <MoveButtons id={r.id} unit={r.unit} />
+                      <EditConsumable
+                        row={{
+                          id: r.id,
+                          name: r.name,
+                          category: r.category,
+                          unit: r.unit,
+                          qty: r.qty,
+                          reorderThreshold: r.reorderThreshold,
+                          supplier: r.supplier,
+                          storageLocation: r.storageLocation,
+                        }}
+                      />
+                    </div>
+                  ),
+                },
+              ]}
+            />
           )}
         </CardContent>
       </Card>

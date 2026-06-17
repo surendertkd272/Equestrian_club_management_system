@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { TruncationNotice } from "@/components/ui/truncation-notice";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { VaccinationsClient } from "./vaccinations-client";
 
 export const dynamic = "force-dynamic";
@@ -68,53 +69,63 @@ export default async function VaccinationsPage() {
         </CardHeader>
         <CardContent>
           <TruncationNotice shown={rows.length} total={totalSchedules} noun="schedules" />
-          {rows.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No vaccination schedules yet — add one above for any of the {horses.length} horses.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-2 py-2">Horse</th>
-                  <th className="px-2 py-2">Vaccine</th>
-                  <th className="px-2 py-2">Last given</th>
-                  <th className="px-2 py-2">Next due</th>
-                  <th className="px-2 py-2">Interval</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => {
+          <ResponsiveTable
+            rows={rows}
+            getRowKey={(r) => r.id}
+            emptyMessage={`No vaccination schedules yet — add one above for any of the ${horses.length} horses.`}
+            columns={[
+              {
+                key: "horse",
+                header: "Horse",
+                primary: true,
+                cell: (r) => (
+                  <>
+                    <div className="font-medium">{r.horse.name}</div>
+                    <div className="text-[11px] text-muted-foreground">{r.horse.stableNo ?? ""}</div>
+                  </>
+                ),
+              },
+              {
+                key: "vaccine",
+                header: "Vaccine",
+                cell: (r) => (
+                  <>
+                    <div>{r.vaccineLabel}</div>
+                    <Badge variant="outline" className="text-[10px] uppercase">{r.vaccineKey}</Badge>
+                  </>
+                ),
+              },
+              {
+                key: "lastGiven",
+                header: "Last given",
+                cell: (r) => (r.lastGivenAt ? formatDate(r.lastGivenAt) : "—"),
+              },
+              {
+                key: "nextDue",
+                header: "Next due",
+                cell: (r) => {
                   const isOverdue = r.nextDueAt < now;
                   const isSoon = !isOverdue && r.nextDueAt <= within30;
                   return (
-                    <tr key={r.id} className="border-t">
-                      <td className="px-2 py-2">
-                        <div className="font-medium">{r.horse.name}</div>
-                        <div className="text-[11px] text-muted-foreground">{r.horse.stableNo ?? ""}</div>
-                      </td>
-                      <td className="px-2 py-2">
-                        <div>{r.vaccineLabel}</div>
-                        <Badge variant="outline" className="text-[10px] uppercase">{r.vaccineKey}</Badge>
-                      </td>
-                      <td className="px-2 py-2">{r.lastGivenAt ? formatDate(r.lastGivenAt) : "—"}</td>
-                      <td className={`px-2 py-2 ${isOverdue ? "font-semibold text-rose-600" : isSoon ? "font-semibold text-amber-700" : ""}`}>
-                        {formatDate(r.nextDueAt)}
-                        {isOverdue ? " · overdue" : isSoon ? " · soon" : ""}
-                      </td>
-                      <td className="px-2 py-2 text-xs text-muted-foreground">{r.intervalDays} days</td>
-                      <td className="px-2 py-2 text-right">
-                        <RecordDoseButton id={r.id} />
-                      </td>
-                    </tr>
+                    <span className={isOverdue ? "font-semibold text-rose-600" : isSoon ? "font-semibold text-amber-700" : ""}>
+                      {formatDate(r.nextDueAt)}
+                      {isOverdue ? " · overdue" : isSoon ? " · soon" : ""}
+                    </span>
                   );
-                })}
-              </tbody>
-            </table>
-            </div>
-          )}
+                },
+              },
+              {
+                key: "interval",
+                header: "Interval",
+                cell: (r) => <span className="text-xs text-muted-foreground">{r.intervalDays} days</span>,
+              },
+              {
+                key: "action",
+                header: "",
+                cell: (r) => <RecordDoseButton id={r.id} />,
+              },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>

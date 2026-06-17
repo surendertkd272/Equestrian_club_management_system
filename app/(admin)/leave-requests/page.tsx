@@ -7,6 +7,7 @@ import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { LeaveRequestActions, NewLeaveRequestForm } from "./client";
 
 export const dynamic = "force-dynamic";
@@ -92,59 +93,70 @@ function Table({
   isApprover: boolean;
   selfUserId: string;
 }) {
-  if (rows.length === 0) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">Nothing here.</p>;
-  }
   return (
-    <div className="overflow-x-auto"><table className="w-full text-sm">
-      <thead className="text-left text-xs uppercase text-muted-foreground">
-        <tr>
-          <th className="pb-2">Staff</th>
-          <th className="pb-2">Window</th>
-          <th className="pb-2">Reason</th>
-          <th className="pb-2">Status</th>
-          <th className="pb-2">Notes</th>
-          <th className="pb-2 text-right">Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={r.id} className="border-t align-top">
-            <td className="py-2 font-medium">
+    <ResponsiveTable
+      rows={rows}
+      getRowKey={(r) => r.id}
+      emptyMessage="Nothing here."
+      columns={[
+        {
+          key: "staff",
+          header: "Staff",
+          primary: true,
+          cell: (r) => (
+            <span className="font-medium">
               {r.user.name}
               <div className="text-xs text-muted-foreground">{r.user.role.replaceAll("_", " ")}</div>
-            </td>
-            <td className="py-2 whitespace-nowrap">
+            </span>
+          ),
+        },
+        {
+          key: "window",
+          header: "Window",
+          cell: (r) => (
+            <span className="whitespace-nowrap">
               {formatDate(r.startDate)} → {formatDate(r.endDate)}
-            </td>
-            <td className="py-2">{r.reason}</td>
-            <td className="py-2">
-              <Badge
-                variant={
-                  r.status === "approved"
-                    ? "success"
-                    : r.status === "rejected"
-                      ? "destructive"
-                      : r.status === "cancelled"
-                        ? "outline"
-                        : "warning"
-                }
-              >
-                {r.status}
-              </Badge>
-            </td>
-            <td className="py-2 text-xs text-muted-foreground">{r.reviewNotes ?? "—"}</td>
-            <td className="py-2 text-right">
-              <LeaveRequestActions
-                id={r.id}
-                status={r.status}
-                isApprover={isApprover}
-                isRequester={r.userId === selfUserId}
-              />
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table></div>
+            </span>
+          ),
+        },
+        { key: "reason", header: "Reason", cell: (r) => r.reason },
+        {
+          key: "status",
+          header: "Status",
+          cell: (r) => (
+            <Badge
+              variant={
+                r.status === "approved"
+                  ? "success"
+                  : r.status === "rejected"
+                    ? "destructive"
+                    : r.status === "cancelled"
+                      ? "outline"
+                      : "warning"
+              }
+            >
+              {r.status}
+            </Badge>
+          ),
+        },
+        {
+          key: "notes",
+          header: "Notes",
+          cell: (r) => <span className="text-xs text-muted-foreground">{r.reviewNotes ?? "—"}</span>,
+        },
+        {
+          key: "action",
+          header: "Action",
+          cell: (r) => (
+            <LeaveRequestActions
+              id={r.id}
+              status={r.status}
+              isApprover={isApprover}
+              isRequester={r.userId === selfUserId}
+            />
+          ),
+        },
+      ]}
+    />
   );
 }

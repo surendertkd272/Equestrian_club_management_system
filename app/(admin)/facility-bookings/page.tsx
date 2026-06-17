@@ -6,6 +6,7 @@ import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { BookingsClient } from "./bookings-client";
 
 export const dynamic = "force-dynamic";
@@ -80,53 +81,56 @@ export default async function FacilityBookingsPage() {
           <CardTitle>Schedule</CardTitle>
         </CardHeader>
         <CardContent>
-          {rows.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No bookings on the books — start a new one above.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="px-2 py-2">When</th>
-                  <th className="px-2 py-2">Facility</th>
-                  <th className="px-2 py-2">Purpose</th>
-                  <th className="px-2 py-2">Title</th>
-                  <th className="px-2 py-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => {
+          <ResponsiveTable
+            rows={rows}
+            getRowKey={(r) => r.id}
+            emptyMessage="No bookings on the books — start a new one above."
+            columns={[
+              {
+                key: "when",
+                header: "When",
+                primary: true,
+                cell: (r) => (
+                  <div className="text-xs">
+                    <div className="font-medium">{new Date(r.startAt).toLocaleString()}</div>
+                    <div className="text-muted-foreground">
+                      → {new Date(r.endAt).toLocaleString()}
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: "facility",
+                header: "Facility",
+                cell: (r) => {
                   const fac = facById.get(r.facilityId);
+                  return (
+                    <>
+                      <div className="font-medium">{fac?.name ?? "—"}</div>
+                      <div className="text-[10px] text-muted-foreground">{fac?.type ?? ""}</div>
+                    </>
+                  );
+                },
+              },
+              { key: "purpose", header: "Purpose", cell: (r) => <span className="text-xs capitalize">{r.purpose}</span> },
+              { key: "title", header: "Title", cell: (r) => <span className="text-sm">{r.title}</span> },
+              {
+                key: "status",
+                header: "Status",
+                cell: (r) => {
                   const past = r.endAt < now;
                   const inProgress = r.startAt <= now && r.endAt >= now;
                   return (
-                    <tr key={r.id} className="border-t">
-                      <td className="px-2 py-2 text-xs">
-                        <div className="font-medium">{new Date(r.startAt).toLocaleString()}</div>
-                        <div className="text-muted-foreground">
-                          → {new Date(r.endAt).toLocaleString()}
-                        </div>
-                      </td>
-                      <td className="px-2 py-2">
-                        <div className="font-medium">{fac?.name ?? "—"}</div>
-                        <div className="text-[10px] text-muted-foreground">{fac?.type ?? ""}</div>
-                      </td>
-                      <td className="px-2 py-2 text-xs capitalize">{r.purpose}</td>
-                      <td className="px-2 py-2 text-sm">{r.title}</td>
-                      <td className="px-2 py-2">
-                        {inProgress && <Badge variant="success">in progress</Badge>}
-                        {past && <Badge variant="outline">past</Badge>}
-                        {!past && !inProgress && <Badge variant="warning">scheduled</Badge>}
-                      </td>
-                    </tr>
+                    <>
+                      {inProgress && <Badge variant="success">in progress</Badge>}
+                      {past && <Badge variant="outline">past</Badge>}
+                      {!past && !inProgress && <Badge variant="warning">scheduled</Badge>}
+                    </>
                   );
-                })}
-              </tbody>
-            </table>
-            </div>
-          )}
+                },
+              },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>

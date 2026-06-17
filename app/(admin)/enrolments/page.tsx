@@ -6,6 +6,7 @@ import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { EnrolmentActions } from "./enrolment-actions";
 
 export const dynamic = "force-dynamic";
@@ -59,46 +60,45 @@ export default async function EnrolmentsPage() {
           <CardDescription>{pending.length} waiting</CardDescription>
         </CardHeader>
         <CardContent>
-          {pending.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              Nothing waiting. New self-enrolments will appear here.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
-                  <tr>
-                    <th className="pb-2">Name</th>
-                    <th className="pb-2">Contact</th>
-                    <th className="pb-2">School</th>
-                    {!centreId && <th className="pb-2">Centre</th>}
-                    <th className="pb-2">Signed up</th>
-                    <th className="pb-2 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pending.map((r) => (
-                    <tr key={r.id} className="border-t align-top">
-                      <td className="py-2">
-                        <div className="font-medium">{r.firstName} {r.lastName}</div>
-                        <div className="text-[11px] text-muted-foreground">DOB {formatDate(r.dob)}</div>
-                      </td>
-                      <td className="py-2">
-                        <div>{r.mobile}</div>
-                        {r.email && <div className="text-[11px] text-muted-foreground">{r.email}</div>}
-                      </td>
-                      <td className="py-2 text-xs">{r.school ?? "—"}</td>
-                      {!centreId && <td className="py-2 text-xs">{r.centre.name}</td>}
-                      <td className="py-2 text-xs">{formatDate(r.createdAt)}</td>
-                      <td className="py-2 text-right">
-                        <EnrolmentActions riderId={r.id} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <ResponsiveTable
+            rows={pending}
+            getRowKey={(r) => r.id}
+            emptyMessage="Nothing waiting. New self-enrolments will appear here."
+            columns={[
+              {
+                key: "name",
+                header: "Name",
+                primary: true,
+                cell: (r) => (
+                  <>
+                    <div className="font-medium">{r.firstName} {r.lastName}</div>
+                    <div className="text-[11px] text-muted-foreground">DOB {formatDate(r.dob)}</div>
+                  </>
+                ),
+              },
+              {
+                key: "contact",
+                header: "Contact",
+                cell: (r) => (
+                  <>
+                    <div>{r.mobile}</div>
+                    {r.email && <div className="text-[11px] text-muted-foreground">{r.email}</div>}
+                  </>
+                ),
+              },
+              { key: "school", header: "School", cell: (r) => <span className="text-xs">{r.school ?? "—"}</span> },
+              ...(!centreId
+                ? [{ key: "centre", header: "Centre", cell: (r: (typeof pending)[number]) => <span className="text-xs">{r.centre.name}</span> }]
+                : []),
+              { key: "signedUp", header: "Signed up", cell: (r) => <span className="text-xs">{formatDate(r.createdAt)}</span> },
+              {
+                key: "action",
+                header: "Action",
+                headerClassName: "text-right",
+                cell: (r) => <EnrolmentActions riderId={r.id} />,
+              },
+            ]}
+          />
         </CardContent>
       </Card>
 

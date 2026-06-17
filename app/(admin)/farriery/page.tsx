@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { TruncationNotice } from "@/components/ui/truncation-notice";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { FarrierClient } from "./farrier-client";
 
 export const dynamic = "force-dynamic";
@@ -67,55 +68,64 @@ export default async function FarrieryPage() {
         </CardHeader>
         <CardContent>
           <TruncationNotice shown={visits.length} total={totalVisits} noun="farrier visits" />
-          <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="px-2 py-2 text-left">Horse</th>
-                <th className="px-2 py-2 text-left">Scheduled</th>
-                <th className="px-2 py-2 text-left">Work</th>
-                <th className="px-2 py-2 text-left">Status</th>
-                <th className="px-2 py-2 text-left">Next due</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {visits.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="py-6 text-center text-muted-foreground">
-                    No visits yet — schedule one above.
-                  </td>
-                </tr>
-              )}
-              {visits.map((v) => {
-                const isOverdue =
-                  v.status === "completed" && v.nextDueAt && v.nextDueAt < now;
-                return (
-                  <tr key={v.id} className="border-t">
-                    <td className="px-2 py-2">
-                      <div className="font-medium">{v.horse.name}</div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {v.horse.stableNo ?? ""}
-                      </div>
-                    </td>
-                    <td className="px-2 py-2 text-sm">{formatDate(v.scheduledAt)}</td>
-                    <td className="px-2 py-2 text-xs capitalize">{v.workType.replace("_", " ")}</td>
-                    <td className="px-2 py-2">
-                      <Badge variant={v.status === "completed" ? "success" : v.status === "scheduled" ? "outline" : "warning"}>
-                        {v.status}
-                      </Badge>
-                    </td>
-                    <td className={`px-2 py-2 text-sm ${isOverdue ? "font-semibold text-amber-700" : ""}`}>
+          <ResponsiveTable
+            rows={visits}
+            getRowKey={(v) => v.id}
+            emptyMessage="No visits yet — schedule one above."
+            columns={[
+              {
+                key: "horse",
+                header: "Horse",
+                primary: true,
+                cell: (v) => (
+                  <>
+                    <div className="font-medium">{v.horse.name}</div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {v.horse.stableNo ?? ""}
+                    </div>
+                  </>
+                ),
+              },
+              {
+                key: "scheduled",
+                header: "Scheduled",
+                cell: (v) => <span className="text-sm">{formatDate(v.scheduledAt)}</span>,
+              },
+              {
+                key: "work",
+                header: "Work",
+                cell: (v) => <span className="text-xs capitalize">{v.workType.replace("_", " ")}</span>,
+              },
+              {
+                key: "status",
+                header: "Status",
+                cell: (v) => (
+                  <Badge variant={v.status === "completed" ? "success" : v.status === "scheduled" ? "outline" : "warning"}>
+                    {v.status}
+                  </Badge>
+                ),
+              },
+              {
+                key: "nextDue",
+                header: "Next due",
+                cell: (v) => {
+                  const isOverdue =
+                    v.status === "completed" && v.nextDueAt && v.nextDueAt < now;
+                  return (
+                    <span className={`text-sm ${isOverdue ? "font-semibold text-amber-700" : ""}`}>
                       {v.nextDueAt ? formatDate(v.nextDueAt) : "—"}
                       {isOverdue && <span className="ml-1 text-[10px] uppercase">overdue</span>}
-                    </td>
-                    <td className="px-2 py-2 text-right">
-                      {v.status === "scheduled" && <CompleteButton id={v.id} />}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table></div>
+                    </span>
+                  );
+                },
+              },
+              {
+                key: "action",
+                header: "",
+                cell: (v) => (v.status === "scheduled" ? <CompleteButton id={v.id} /> : null),
+              },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>
