@@ -5,6 +5,24 @@ import { getSession } from "@/lib/auth";
 import { updateCentreSchema } from "@/lib/schemas/centre";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { getOrgIdForSession } from "@/lib/features-gate";
+
+// SUPER_ADMIN is the platform owner (any centre); a per-tenant ADMIN may only
+// touch centres in their OWN org. Centre is a permissive-RLS identity table
+// (USING(true)) with no DB-level org backstop, so this must be enforced here —
+// otherwise an ADMIN of org A could rename/delete org B's club by id. Returns
+// 404 (not 403) so a foreign centre's existence isn't confirmed.
+async function blockIfForeignCentre(
+  session: { role: string },
+  centreOrgId: string | null,
+): Promise<NextResponse | null> {
+  if (session.role === "SUPER_ADMIN") return null;
+  const callerOrg = await getOrgIdForSession(session as Parameters<typeof getOrgIdForSession>[0]);
+  if (!callerOrg || centreOrgId !== callerOrg) {
+    return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  }
+  return null;
+}
 
 // PATCH /api/centres/[id] — edit a club's name / address / GST.
 // HQ-only: even centre managers shouldn't rename their own club from inside it,
@@ -29,6 +47,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const existing = await prisma.centre.findUnique({ where: { id: params.id } });
   if (!existing) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  const foreign = await blockIfForeignCentre(session, existing.orgId);
+  if (foreign) return foreign;
 
   const updated = await prisma.centre.update({
     where: { id: existing.id },
@@ -84,6 +104,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     },
   });
   if (!existing) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  const foreign = await blockIfForeignCentre(session, existing.orgId);
+  if (foreign) return foreign;
 
   const c = existing._count;
   const total =

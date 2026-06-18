@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { blockIfFeatureOff } from "@/lib/features-gate";
+import { blockIfFeatureOff, getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
@@ -44,8 +44,33 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
-  const centreId = session.centreId ?? (body?.centreId as string | undefined);
-  if (!centreId) return NextResponse.json({ error: "NO_CENTRE" }, { status: 400 });
+  // Derive the cert's centre from the TARGET user, never from a body-supplied
+  // centreId (issueCertSchema has no centreId field, so body.centreId was
+  // unvalidated Zod-bypassed input). Also enforce that the caller may issue to
+  // this user: centre-scoped callers only within their centre; HQ within org.
+  const target = await prisma.user.findUnique({
+    where: { id: parsed.data.userId },
+    select: { centreId: true },
+  });
+  if (!target || !target.centreId) {
+    return NextResponse.json({ error: "USER_NOT_FOUND" }, { status: 404 });
+  }
+  if (session.role !== "SUPER_ADMIN") {
+    if (session.centreId) {
+      if (target.centreId !== session.centreId) {
+        return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+      }
+    } else {
+      const [callerOrg, targetOrg] = await Promise.all([
+        getOrgIdForSession(session),
+        getOrgIdForCentre(target.centreId),
+      ]);
+      if (!callerOrg || targetOrg !== callerOrg) {
+        return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+      }
+    }
+  }
+  const centreId = target.centreId;
 
   const row = await prisma.staffCertification.create({
     data: {
