@@ -64,9 +64,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     where: { id: row.id },
     data: {
       status: parsed.data.status,
+      // Stamp recoveredAt when moving to recovered, but never wipe an existing
+      // one on a reopen — recovery history must survive a status change.
       recoveredAt: parsed.data.status === "recovered"
-        ? (parsed.data.recoveredAt ? new Date(parsed.data.recoveredAt) : new Date())
-        : null,
+        ? (parsed.data.recoveredAt ? new Date(parsed.data.recoveredAt) : (row.recoveredAt ?? new Date()))
+        : row.recoveredAt,
     },
   });
   await audit({
