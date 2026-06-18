@@ -29,6 +29,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
   }
 
+  // Cross-field date sanity (mirrors events #133): the create schema refines
+  // expiresAt >= issuedAt, but this PATCH applies each independently, so a
+  // one-sided edit could leave expiry before issue. Merge incoming over stored.
+  const effIssued = parsed.data.issuedAt !== undefined ? new Date(parsed.data.issuedAt) : before.issuedAt;
+  const effExpires =
+    parsed.data.expiresAt !== undefined
+      ? (parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null)
+      : before.expiresAt;
+  if (effExpires && effExpires < effIssued) {
+    return NextResponse.json({ error: "INVALID_DATE_RANGE", message: "expiresAt must be on/after issuedAt" }, { status: 400 });
+  }
+
   const updated = await prisma.accreditation.update({
     where: { id: before.id },
     data: {

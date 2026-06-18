@@ -26,6 +26,7 @@ vi.mock("next/headers", () => ({
 
 const { PATCH: eventPatch } = await import("@/app/api/events/[id]/route");
 const { PATCH: lessonPatch } = await import("@/app/api/lessons/[id]/route");
+const { PATCH: accreditationPatch } = await import("@/app/api/accreditations/[id]/route");
 const { PATCH: examScore } = await import("@/app/api/exams/[id]/score/route");
 const { POST: injuryPost } = await import("@/app/api/injuries/route");
 const { PATCH: injuryPatch } = await import("@/app/api/injuries/[id]/route");
@@ -71,6 +72,32 @@ describe("event PATCH cross-field date guard", () => {
 
     // A valid widening edit succeeds.
     const ok = await eventPatch(jsonReq(`http://localhost/api/events/${ev.id}`, { endDate: "2026-06-22" }), { params: { id: ev.id } });
+    expect(ok.status).toBe(200);
+  });
+});
+
+describe("accreditation PATCH expiry-before-issue guard", () => {
+  it("rejects a one-sided edit that puts expiresAt before issuedAt", async () => {
+    const org = await mkOrg();
+    const centre = await mkCentre({ orgId: org.id });
+    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id, name: "SU" });
+    const rider = await mkRider({ centreId: centre.id });
+    const acc = await prisma.accreditation.create({
+      data: { riderId: rider.id, body: "EFI", title: "Membership", issuedAt: new Date("2026-06-10T00:00:00Z"), expiresAt: new Date("2027-06-10T00:00:00Z") },
+    });
+    await login(su);
+
+    // Pull expiry before the stored issue date → 400.
+    const r1 = await accreditationPatch(jsonReq(`http://localhost/api/accreditations/${acc.id}`, { expiresAt: "2026-06-01" }), { params: { id: acc.id } });
+    expect(r1.status).toBe(400);
+    expect((await r1.json()).error).toBe("INVALID_DATE_RANGE");
+
+    // Push issue past the stored expiry (expiresAt absent) → 400.
+    const r2 = await accreditationPatch(jsonReq(`http://localhost/api/accreditations/${acc.id}`, { issuedAt: "2027-07-01" }), { params: { id: acc.id } });
+    expect(r2.status).toBe(400);
+
+    // A valid later expiry succeeds.
+    const ok = await accreditationPatch(jsonReq(`http://localhost/api/accreditations/${acc.id}`, { expiresAt: "2028-01-01" }), { params: { id: acc.id } });
     expect(ok.status).toBe(200);
   });
 });
