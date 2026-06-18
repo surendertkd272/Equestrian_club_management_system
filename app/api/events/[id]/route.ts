@@ -45,6 +45,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: "ILLEGAL_TRANSITION", from: before.status, to: parsed.data.status }, { status: 409 });
   }
 
+  // Cross-field date sanity. The update schema can't enforce end>=start (either
+  // field may be absent on a PATCH), so a one-sided edit — moving endDate before
+  // the stored startDate, or startDate past the stored endDate — would create an
+  // inverted window that the create path already rejects. Merge incoming over
+  // stored and re-check.
+  const effStart = parsed.data.startDate !== undefined ? new Date(parsed.data.startDate) : before.startDate;
+  const effEnd = parsed.data.endDate !== undefined ? new Date(parsed.data.endDate) : before.endDate;
+  if (effEnd < effStart) {
+    return NextResponse.json({ error: "INVALID_DATE_RANGE", message: "endDate must be on/after startDate" }, { status: 400 });
+  }
+
   const updated = await prisma.event.update({
     where: { id: before.id },
     data: {

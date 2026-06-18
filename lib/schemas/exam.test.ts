@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   parseRubric,
   computeTotal,
+  findScoreViolations,
   rubricSchema,
   createExamSchema,
   updateExamScoreSchema,
@@ -115,6 +116,52 @@ describe("computeTotal", () => {
 
   it("returns zeros for empty rubric", () => {
     expect(computeTotal([], {})).toEqual({ total: 0, max: 0 });
+  });
+});
+
+describe("findScoreViolations", () => {
+  const NESTED: RubricCategory[] = [
+    {
+      name: "Flatwork",
+      items: [
+        { name: "Walk", max_score: 10 },
+        { name: "Canter", max_score: null, subitems: [{ name: "Left", max_score: 5 }] },
+        { name: "Comments", max_score: null, type: "text" },
+      ],
+    },
+    { name: "Miscellaneous Questions", items: [{ name: "Q1", max_score: 100 }] },
+  ];
+
+  it("flags a per-item score above its max", () => {
+    expect(findScoreViolations(SAMPLE, { "Position & Seat_balance": 100 })).toEqual([
+      { key: "Position & Seat_balance", value: 100, max: 10 },
+    ]);
+  });
+
+  it("flags a negative score", () => {
+    expect(findScoreViolations(SAMPLE, { "Aids_leg": -1 })).toEqual([
+      { key: "Aids_leg", value: -1, max: 5 },
+    ]);
+  });
+
+  it("flags an over-max subitem (keyed cat_item_sub)", () => {
+    expect(findScoreViolations(NESTED, { "Flatwork_Canter_Left": 9 })).toEqual([
+      { key: "Flatwork_Canter_Left", value: 9, max: 5 },
+    ]);
+  });
+
+  it("passes in-range scores and ignores text items + Miscellaneous Questions", () => {
+    const scores = {
+      "Flatwork_Walk": 10,
+      "Flatwork_Canter_Left": 5,
+      "Flatwork_Comments": "good", // text — not range-checked
+      "Miscellaneous Questions_Q1": 9999, // excluded category — not checked
+    };
+    expect(findScoreViolations(NESTED, scores)).toEqual([]);
+  });
+
+  it("returns [] when nothing is out of range", () => {
+    expect(findScoreViolations(SAMPLE, { "Position & Seat_balance": 10, "Aids_hand": 0 })).toEqual([]);
   });
 });
 

@@ -60,16 +60,24 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!parsed.success) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
+  // Stamp recoveredAt when moving to recovered, but never wipe an existing one
+  // on a reopen — recovery history must survive a status change.
+  const recoveredAt = parsed.data.status === "recovered"
+    ? (parsed.data.recoveredAt ? new Date(parsed.data.recoveredAt) : (row.recoveredAt ?? new Date()))
+    : row.recoveredAt;
+  // Date sanity on a fresh recovery date: can't predate the injury, can't be in
+  // the future (1-day grace absorbs date-only timezone-boundary parsing).
+  if (parsed.data.status === "recovered" && parsed.data.recoveredAt) {
+    if (recoveredAt!.getTime() < row.occurredAt.getTime()) {
+      return NextResponse.json({ error: "RECOVERED_BEFORE_OCCURRED", message: "Recovery date can't be before the injury date." }, { status: 400 });
+    }
+    if (recoveredAt!.getTime() > Date.now() + 86_400_000) {
+      return NextResponse.json({ error: "RECOVERED_IN_FUTURE", message: "Recovery date can't be in the future." }, { status: 400 });
+    }
+  }
   await prisma.injuryLog.update({
     where: { id: row.id },
-    data: {
-      status: parsed.data.status,
-      // Stamp recoveredAt when moving to recovered, but never wipe an existing
-      // one on a reopen — recovery history must survive a status change.
-      recoveredAt: parsed.data.status === "recovered"
-        ? (parsed.data.recoveredAt ? new Date(parsed.data.recoveredAt) : (row.recoveredAt ?? new Date()))
-        : row.recoveredAt,
-    },
+    data: { status: parsed.data.status, recoveredAt },
   });
   await audit({
     userId: session.userId,
