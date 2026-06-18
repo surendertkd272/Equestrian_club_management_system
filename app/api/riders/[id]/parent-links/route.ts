@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { createParentLinkSchema } from "@/lib/schemas/parent-link";
+import { userIsInForeignOrg } from "@/lib/authz-org";
 import { audit } from "@/lib/audit";
 import { hashPassword } from "@/lib/auth";
 import crypto from "node:crypto";
@@ -40,6 +41,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const u = await prisma.user.findUnique({ where: { id: d.parentUserId }, select: { id: true, role: true } });
     if (!u) return NextResponse.json({ error: "PARENT_USER_NOT_FOUND" }, { status: 404 });
     if (u.role !== "PARENT") return NextResponse.json({ error: "NOT_PARENT_ROLE" }, { status: 400 });
+    // Don't let a parent already belonging to ANOTHER org be attached here.
+    // An unlinked parent (no org yet) is fine — this link establishes it.
+    if (await userIsInForeignOrg(session, u.id)) {
+      return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+    }
     parentUserId = u.id;
   } else {
     // Inline create. Email must be unique — collisions are noisy but legitimate.

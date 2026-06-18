@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { blockIfFeatureOff } from "@/lib/features-gate";
+import { blockIfFeatureOff, getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
+import { scopeCentre } from "@/lib/tenancy";
 import { renderPrintable, pdfHeader, escapeHtml } from "@/lib/pdf";
 
 // GET /api/certificates/[id]/pdf — return print-ready HTML for the cert.
@@ -21,6 +22,17 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     },
   });
   if (!cert) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+
+  // Tenant scope (RLS is org-level only, so guard centre here): a centre-scoped
+  // user only sees their centre's cert; an HQ user (centreId=null) is bound to
+  // their own org. Mirrors the certificate detail page.
+  const centreId = scopeCentre(session);
+  if (centreId) {
+    if (cert.centreId !== centreId) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  } else {
+    const [callerOrg, certOrg] = await Promise.all([getOrgIdForSession(session), getOrgIdForCentre(cert.centreId)]);
+    if (!callerOrg || certOrg !== callerOrg) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  }
 
   const issued = cert.issuedAt.toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" });
 

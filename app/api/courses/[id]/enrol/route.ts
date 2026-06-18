@@ -64,8 +64,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const enrolmentId = (body?.enrolmentId as string | undefined) ?? "";
   if (!enrolmentId) return NextResponse.json({ error: "enrolmentId required" }, { status: 400 });
 
-  const e = await prisma.courseEnrolment.findUnique({ where: { id: enrolmentId } });
+  const e = await prisma.courseEnrolment.findUnique({
+    where: { id: enrolmentId },
+    include: { course: { select: { centreId: true } } },
+  });
   if (!e || e.courseId !== params.id) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  // Same cross-centre guard as POST — the enrolment's course must be in scope.
+  if (session.role !== "SUPER_ADMIN" && e.course.centreId !== session.centreId) {
+    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  }
 
   const updated = await prisma.courseEnrolment.update({
     where: { id: e.id },
