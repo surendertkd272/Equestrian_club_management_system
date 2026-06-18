@@ -55,6 +55,14 @@ export async function POST(req: NextRequest) {
   }
   const d = parsed.data;
 
+  // Date sanity: an injury can't be logged as having occurred in the future.
+  // Allow a 1-day grace so a date-only entry near a timezone boundary (the
+  // string parses to UTC midnight) isn't falsely rejected.
+  const occurredAt = new Date(d.occurredAt);
+  if (occurredAt.getTime() > Date.now() + 86_400_000) {
+    return NextResponse.json({ error: "OCCURRED_IN_FUTURE", message: "Injury date can't be in the future." }, { status: 400 });
+  }
+
   // Resolve the subject's centreId so the row carries the right tenancy scope.
   let centreId: string | null = null;
   let horseSubjectId: string | null = null;
@@ -87,7 +95,7 @@ export async function POST(req: NextRequest) {
       subjectType: d.subjectType,
       subjectId: d.subjectId,
       horseSubjectId,
-      occurredAt: new Date(d.occurredAt),
+      occurredAt,
       location: d.location ?? null,
       severity: d.severity,
       cause: d.cause ?? null,

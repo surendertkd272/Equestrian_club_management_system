@@ -109,3 +109,38 @@ export function computeTotal(categories: RubricCategory[], scores: Record<string
   }
   return { total, max };
 }
+
+// Find numeric scores that fall outside their rubric item's [0, max_score]
+// range. Without this an examiner (or a hand-rolled request) can submit a
+// per-item score above the item's max — inflating the total past `max` and
+// flipping a fail into a pass. Traversal mirrors computeTotal exactly so the
+// same keys/skip rules apply (text/select items and "Miscellaneous Questions"
+// are not scored, so they're never range-checked).
+export function findScoreViolations(
+  categories: RubricCategory[],
+  scores: Record<string, number | string>,
+): Array<{ key: string; value: number; max: number }> {
+  const out: Array<{ key: string; value: number; max: number }> = [];
+  const check = (key: string, maxScore: number | null) => {
+    const v = scores[key];
+    if (typeof v !== "number") return;
+    const max = maxScore ?? 0;
+    if (v < 0 || v > max) out.push({ key, value: v, max });
+  };
+  for (const cat of categories) {
+    if (cat.type && cat.type !== "numeric") continue;
+    if (cat.name === "Miscellaneous Questions") continue;
+    for (const item of cat.items) {
+      if (item.type && item.type !== "numeric") continue;
+      if (Array.isArray(item.subitems) && item.subitems.length > 0) {
+        for (const sub of item.subitems) {
+          if (sub.type && sub.type !== "numeric") continue;
+          check(`${cat.name}_${item.name}_${sub.name}`, sub.max_score);
+        }
+      } else {
+        check(`${cat.name}_${item.name}`, item.max_score);
+      }
+    }
+  }
+  return out;
+}

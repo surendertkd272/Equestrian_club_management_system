@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
-import { updateExamScoreSchema, parseRubric, computeTotal } from "@/lib/schemas/exam";
+import { updateExamScoreSchema, parseRubric, computeTotal, findScoreViolations } from "@/lib/schemas/exam";
 import { audit } from "@/lib/audit";
 import { generateUniqueSerial, verifyUrl } from "@/lib/cert";
 import { notifyCentreManager, notify, notifyRiderAndParents } from "@/lib/notify";
@@ -64,6 +64,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   // scoring rules under the examiner's feet. The live template still
   // contributes passThreshold + levelName.
   const rubric = parseRubric(exam.rubricSnapshotJson ?? template.categoriesJson);
+
+  // Reject any per-item score outside its rubric [0, max] before aggregating —
+  // an over-max entry would inflate the total past `max` and could flip a fail
+  // into a pass (and auto-issue a certificate).
+  const violations = findScoreViolations(rubric, scores);
+  if (violations.length > 0) {
+    return NextResponse.json({ error: "SCORE_OUT_OF_RANGE", violations }, { status: 400 });
+  }
 
   // Per-judge subtotal first.
   const { total: thisJudgeTotal, max } = computeTotal(rubric, scores);
