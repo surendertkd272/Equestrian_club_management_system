@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useUnsavedChanges } from "@/lib/use-unsaved-changes";
 
 type Initial = { name: string; address: string; gstNo: string };
 
@@ -18,6 +19,7 @@ export function CentreEditForm({ id, initial }: { id: string; initial: Initial }
 
   const dirty =
     name !== initial.name || address !== initial.address || gstNo !== initial.gstNo;
+  useUnsavedChanges(dirty && !busy);
 
   async function save() {
     if (!dirty) return;

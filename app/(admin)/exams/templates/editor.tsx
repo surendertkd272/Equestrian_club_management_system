@@ -76,6 +76,13 @@ export function TemplateEditor({ existing }: { existing: ExistingTemplate[] }) {
       } catch {
         setJson(typeof e.categoriesJson === "string" ? e.categoriesJson : "");
       }
+    } else {
+      // No saved template for this level yet — reset to a blank starter so the
+      // editor never silently carries the previously-selected level's rubric,
+      // name and threshold into a brand-new level (which would then be saved).
+      setLevelName(`Level ${key}`);
+      setPassThreshold(70);
+      setJson(EXAMPLE);
     }
   }
 

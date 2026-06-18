@@ -22,10 +22,10 @@ const NEXT_STATE: Record<AttendanceStatus, AttendanceStatus> = {
 };
 
 const STATUS_META: Record<AttendanceStatus, { label: string; short: string; cls: string; icon: any }> = {
-  present: { label: "Present", short: "P", cls: "bg-emerald-100 text-emerald-800 border-emerald-300", icon: Check },
-  absent: { label: "Absent", short: "A", cls: "bg-red-100 text-red-800 border-red-300", icon: X },
-  late: { label: "Late", short: "L", cls: "bg-amber-100 text-amber-800 border-amber-300", icon: Clock },
-  excused: { label: "Excused", short: "E", cls: "bg-blue-100 text-blue-800 border-blue-300", icon: ShieldAlert },
+  present: { label: "Present", short: "P", cls: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30", icon: Check },
+  absent: { label: "Absent", short: "A", cls: "bg-red-100 text-red-800 border-red-300 dark:bg-red-500/15 dark:text-red-300 dark:border-red-500/30", icon: X },
+  late: { label: "Late", short: "L", cls: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30", icon: Clock },
+  excused: { label: "Excused", short: "E", cls: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30", icon: ShieldAlert },
 };
 
 export function AttendanceMarker({

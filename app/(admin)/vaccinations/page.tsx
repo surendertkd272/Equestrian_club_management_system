@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
+import { startOfDayInTz } from "@/lib/tz";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -38,10 +39,18 @@ export default async function VaccinationsPage() {
     prisma.vaccinationSchedule.count({ where }),
   ]);
 
-  const now = new Date();
-  const within30 = new Date(now.getTime() + 30 * 86400000);
-  const overdue = rows.filter((r) => r.nextDueAt < now);
-  const dueSoon = rows.filter((r) => r.nextDueAt >= now && r.nextDueAt <= within30);
+  // "Overdue" means the due *day* has fully passed in the centre's local zone,
+  // not that the stored instant is behind the server clock — otherwise a dose
+  // due today flips to "overdue" the moment the server's UTC time passes the
+  // due time-of-day. Single-centre views use that centre's zone; the HQ
+  // all-centres aggregate falls back to IST (the app default).
+  const tz = centreId
+    ? (await prisma.centre.findUnique({ where: { id: centreId }, select: { timezone: true } }))?.timezone ?? "Asia/Kolkata"
+    : "Asia/Kolkata";
+  const todayStart = startOfDayInTz(new Date(), tz);
+  const within30 = new Date(todayStart.getTime() + 30 * 86400000);
+  const overdue = rows.filter((r) => r.nextDueAt < todayStart);
+  const dueSoon = rows.filter((r) => r.nextDueAt >= todayStart && r.nextDueAt <= within30);
 
   return (
     <div className="space-y-6">
@@ -104,7 +113,7 @@ export default async function VaccinationsPage() {
                 key: "nextDue",
                 header: "Next due",
                 cell: (r) => {
-                  const isOverdue = r.nextDueAt < now;
+                  const isOverdue = r.nextDueAt < todayStart;
                   const isSoon = !isOverdue && r.nextDueAt <= within30;
                   return (
                     <span className={isOverdue ? "font-semibold text-rose-600" : isSoon ? "font-semibold text-amber-700" : ""}>

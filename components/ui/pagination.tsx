@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -31,6 +32,16 @@ export function Pagination({
     if (nextSize) sp.set("pageSize", String(nextSize));
     return `${pathname}?${sp.toString()}`;
   }
+
+  // Clamp a stale / out-of-range ?page= (typed by hand, or left dangling after
+  // rows were deleted or a filter narrowed the set) back to the last real page,
+  // so the list doesn't render an empty body under "Showing 51–50 of 50".
+  useEffect(() => {
+    if (total > 0 && page > totalPages) {
+      router.replace(href(totalPages));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [total, page, totalPages]);
 
   const prevDisabled = page <= 1;
   const nextDisabled = page >= totalPages;

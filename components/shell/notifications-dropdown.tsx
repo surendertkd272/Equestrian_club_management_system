@@ -25,19 +25,24 @@ export function NotificationsDropdown({ initialUnread }: { initialUnread: number
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [unread, setUnread] = useState(initialUnread);
 
   // Lazy-load the list — only fetch when the user actually opens it.
   useEffect(() => {
     if (!open) return;
     setLoading(true);
+    setLoadError(false);
     fetch("/api/notifications?unreadOnly=1&limit=20")
-      .then((r) => r.json())
-      .then((d) => {
-        if (Array.isArray(d.rows)) setItems(d.rows);
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
       })
+      .then((d) => setItems(Array.isArray(d.rows) ? d.rows : []))
+      .catch(() => setLoadError(true)) // don't fall through to a false "all caught up"
       .finally(() => setLoading(false));
-  }, [open]);
+  }, [open, reloadKey]);
 
   // Subscribe to SSE for live unread counts; fall back to 60s polling if the
   // EventSource API isn't available or the connection drops.
@@ -100,7 +105,7 @@ export function NotificationsDropdown({ initialUnread }: { initialUnread: number
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} aria-hidden />
-          <div className="absolute right-4 top-14 z-40 w-96 max-w-[calc(100vw-2rem)] rounded-lg border bg-card shadow-xl">
+          <div role="dialog" aria-label="Notifications" className="absolute right-4 top-14 z-40 w-96 max-w-[calc(100vw-2rem)] rounded-lg border bg-card shadow-xl">
             <div className="flex items-center justify-between border-b px-3 py-2">
               <div className="text-sm font-semibold">Notifications</div>
               <div className="flex items-center gap-2">
@@ -124,17 +129,40 @@ export function NotificationsDropdown({ initialUnread }: { initialUnread: number
               </div>
             </div>
 
-            <div className="max-h-[70vh] overflow-y-auto">
+            <div role="list" className="max-h-[70vh] overflow-y-auto">
               {loading && (
                 <div className="px-3 py-4 text-xs text-muted-foreground">Loading…</div>
               )}
-              {!loading && items.length === 0 && (
+              {/* Fetch failed — never let an empty list read as "all caught up". */}
+              {!loading && loadError && (
+                <div className="px-3 py-6 text-center text-sm">
+                  <p className="text-muted-foreground">Couldn’t load notifications.</p>
+                  <button
+                    onClick={() => setReloadKey((k) => k + 1)}
+                    className="mt-2 rounded border px-2 py-0.5 text-xs hover:bg-muted"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+              {/* Genuinely empty: list returned nothing AND the live counter agrees. */}
+              {!loading && !loadError && items.length === 0 && unread === 0 && (
                 <div className="px-3 py-6 text-center text-sm text-muted-foreground">
                   All caught up 🎉
                 </div>
               )}
+              {/* Counter says unread but the list came back empty (e.g. >20, or a
+                  read elsewhere raced the fetch) — point to the full list. */}
+              {!loading && !loadError && items.length === 0 && unread > 0 && (
+                <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                  {unread} unread notification{unread === 1 ? "" : "s"}.{" "}
+                  <Link href="/notifications?filter=unread" onClick={() => setOpen(false)} className="text-primary hover:underline">
+                    View all →
+                  </Link>
+                </div>
+              )}
               {items.map((n) => (
-                <div key={n.id} className="border-t px-3 py-2 hover:bg-muted/40">
+                <div key={n.id} role="listitem" className="border-t px-3 py-2 hover:bg-muted/40">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="text-sm font-medium">{n.title}</div>

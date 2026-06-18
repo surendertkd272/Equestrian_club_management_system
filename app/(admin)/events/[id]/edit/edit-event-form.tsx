@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useUnsavedChanges } from "@/lib/use-unsaved-changes";
 
 const TYPES = [
   { value: "clinic", label: "Clinic (guest coach)" },
@@ -47,6 +48,8 @@ export function EditEventForm({ eventId, initial }: { eventId: string; initial: 
     setForm((f) => ({ ...f, [k]: v }));
   }
   const isExternal = form.type === "external_show";
+  const dirty = JSON.stringify(form) !== JSON.stringify(initial);
+  useUnsavedChanges(dirty && !saving);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();

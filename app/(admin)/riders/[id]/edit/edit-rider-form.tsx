@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { useUnsavedChanges } from "@/lib/use-unsaved-changes";
 
 // Every value is a string on the form (Input gives us strings; numbers
 // get coerced on the server). Empty string means "clear this field" for
@@ -42,6 +43,7 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
     return Object.keys(state).filter((k) => state[k] !== initial[k]);
   }, [state, initial]);
   const dirty = dirtyKeys.length > 0;
+  useUnsavedChanges(dirty && !busy);
 
   function update<K extends string>(key: K, value: string) {
     setState((s) => ({ ...s, [key]: value }));
