@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
+import { startOfDayInTz } from "@/lib/tz";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatTile } from "@/components/ui/stat-tile";
@@ -166,6 +167,13 @@ export async function VetDashboard({ centreId, features }: { centreId: string | 
   const now = new Date();
   const thirty = new Date(now.getTime() + 30 * 86400000);
   const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000);
+  // Overdue coloring uses the centre-local day boundary (matches /vaccinations),
+  // so a dose due today isn't shown overdue once the server's UTC clock passes
+  // its time-of-day. HQ all-centres view → IST default.
+  const tz = centreId
+    ? (await prisma.centre.findUnique({ where: { id: centreId }, select: { timezone: true } }))?.timezone ?? "Asia/Kolkata"
+    : "Asia/Kolkata";
+  const todayStart = startOfDayInTz(now, tz);
 
   const [vaccDueSoon, expiringMeds, recentInjuries, lowStockMeds] = await Promise.all([
     prisma.vaccinationSchedule.findMany({
@@ -232,7 +240,7 @@ export async function VetDashboard({ centreId, features }: { centreId: string | 
                       <span className="font-medium">{v.horse.name}</span>
                       <span className="ml-2 text-xs text-muted-foreground">{v.vaccineLabel}</span>
                     </span>
-                    <span className={`text-xs ${v.nextDueAt < now ? "font-semibold text-rose-600" : "text-muted-foreground"}`}>
+                    <span className={`text-xs ${v.nextDueAt < todayStart ? "font-semibold text-rose-600" : "text-muted-foreground"}`}>
                       {formatDateIndia(v.nextDueAt)}
                     </span>
                   </li>

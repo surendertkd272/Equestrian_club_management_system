@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
+import { startOfDayInTz } from "@/lib/tz";
 import { DEFAULT_WORKLOAD_CAP_MIN } from "@/lib/schemas/horse";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +39,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
   const horse = await prisma.horse.findUnique({
     where: { id: params.id },
     include: {
-      centre: { select: { name: true } },
+      centre: { select: { name: true, timezone: true } },
     },
   });
   if (!horse) notFound();
@@ -48,6 +49,8 @@ export default async function HorseProfile({ params }: { params: { id: string } 
   if ((await getOrgIdForCentre(horse.centreId)) !== orgId) notFound();
 
   const canManage = can(session.role, "horse.manage");
+  // Centre-local "today" for due-date coloring (matches /vaccinations).
+  const todayStart = startOfDayInTz(new Date(), horse.centre.timezone);
 
   // Today's allocations + a window of upcoming.
   const dayStart = new Date();
@@ -343,7 +346,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
               </thead>
               <tbody>
                 {vaccinationSchedules.map((v) => {
-                  const overdue = v.nextDueAt < new Date();
+                  const overdue = v.nextDueAt < todayStart;
                   return (
                     <tr key={v.id} className="border-t">
                       <td className="px-2 py-1">{v.vaccineLabel}</td>
