@@ -50,6 +50,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
   const d = parsed.data;
 
+  // Cross-field date sanity. The create schema refines endAt > date, but this
+  // PATCH applies each field independently, so a one-sided edit (move endAt
+  // before the stored date, or date past the stored endAt) would invert the
+  // window. Merge incoming over stored and re-check — same fix as events (#133).
+  const effDate = d.date !== undefined ? new Date(d.date) : lesson.date;
+  const effEnd = d.endAt !== undefined ? new Date(d.endAt) : lesson.endAt;
+  if (effEnd && !(effEnd > effDate)) {
+    return NextResponse.json({ error: "INVALID_DATE_RANGE", message: "endAt must be after the lesson start" }, { status: 400 });
+  }
+
   // Cancelling a lesson must release its horses: otherwise the lesson's
   // HorseAllocation rows linger and keep blocking those horses (overlap) and
   // consuming their daily cap — ghost bookings. Drop them in the same tx.
