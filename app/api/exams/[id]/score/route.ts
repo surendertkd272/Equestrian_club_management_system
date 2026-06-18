@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { updateExamScoreSchema, parseRubric, computeTotal } from "@/lib/schemas/exam";
 import { audit } from "@/lib/audit";
 import { generateUniqueSerial, verifyUrl } from "@/lib/cert";
@@ -15,6 +16,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (!can(session.role, "exam.score")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const body = await req.json().catch(() => null);
   const parsed = updateExamScoreSchema.safeParse(body);
@@ -248,6 +252,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (!can(session.role, "exam.score")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const exam = await prisma.exam.findUnique({ where: { id: params.id } });
   if (!exam) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });

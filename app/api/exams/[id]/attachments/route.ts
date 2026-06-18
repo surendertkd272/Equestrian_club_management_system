@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 const schema = z.object({
   url: z.string().url(),
@@ -34,6 +35,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH"].includes(session.role) && !isExaminer) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+
+  const block = await blockIfReadOnly(session);
+  if (block) return block;
 
   const row = await prisma.examAttachment.create({
     data: {
