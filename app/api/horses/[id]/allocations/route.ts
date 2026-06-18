@@ -5,14 +5,8 @@ import { can } from "@/lib/permissions";
 import { createAllocationSchema, DEFAULT_WORKLOAD_CAP_MIN } from "@/lib/schemas/horse";
 import { audit } from "@/lib/audit";
 import { AllocConflict } from "@/lib/allocation-guard";
-import { startOfDayInTz, endOfDayInTz, sameLocalDay } from "@/lib/tz";
+import { startOfDayInTz, endOfDayInTz, sameLocalDay, parseWallTimeInTz } from "@/lib/tz";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
-
-function parseLocalDate(s: string): Date {
-  // Accept "YYYY-MM-DDTHH:MM" (local) or full ISO; treat plain form as local time.
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)) return new Date(s);
-  return new Date(s);
-}
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -62,8 +56,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   const tz = horse.centre.timezone; // day-bucketing in the centre's local zone
-  const startAt = parseLocalDate(d.startAt);
-  const endAt = parseLocalDate(d.endAt);
+  // Parse the zoneless "YYYY-MM-DDTHH:MM" against the CENTRE's timezone — not
+  // the server's (UTC on Vercel) — so a 6 AM IST slot isn't stored as 6 AM UTC.
+  const startAt = parseWallTimeInTz(d.startAt, tz);
+  const endAt = parseWallTimeInTz(d.endAt, tz);
   if (!(endAt > startAt)) {
     return NextResponse.json({ error: "INVALID_TIME", message: "endAt must be after startAt" }, { status: 400 });
   }
