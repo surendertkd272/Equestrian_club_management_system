@@ -15,6 +15,7 @@ import { PwaInstallPrompt } from "@/components/shell/pwa-install-prompt";
 import { getFeaturesForSession, getOrgIdForSession } from "@/lib/features-gate";
 import { getStatusForSession } from "@/lib/readonly-gate";
 import { parseEmergencyContacts } from "@/lib/json-narrow";
+import { startOfDayInTz } from "@/lib/tz";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -40,7 +41,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     session.centreId
       ? prisma.centre.findUnique({
           where: { id: session.centreId },
-          select: { id: true, name: true, slug: true, emergencyContactsJson: true },
+          select: { id: true, name: true, slug: true, emergencyContactsJson: true, timezone: true },
         })
       : Promise.resolve(null),
     session.role === "SUPER_ADMIN" || session.role === "ADMIN"
@@ -57,7 +58,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const myPending = myOnboarding
     ? pendingItems(myOnboarding as unknown as Record<string, unknown>, parseWaived(myOnboarding.waivedItemsJson))
     : [];
-  const docsOverdue = myOnboarding?.documentsDueAt ? myOnboarding.documentsDueAt < new Date() : false;
+  // "Overdue" keys off the centre-local day so it doesn't flip at server-UTC midnight.
+  const todayStart = startOfDayInTz(new Date(), centreFull?.timezone ?? "Asia/Kolkata");
+  const docsOverdue = myOnboarding?.documentsDueAt ? myOnboarding.documentsDueAt < todayStart : false;
 
   const centre = centreFull
     ? { id: centreFull.id, name: centreFull.name, slug: centreFull.slug }

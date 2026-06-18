@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
+import { startOfTodayForCentre } from "@/lib/centre-tz";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,9 @@ export default async function FinancePage() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const yearStart = new Date(now.getFullYear(), 0, 1);
+  // An invoice is "overdue" once its due *day* has passed in the centre's local
+  // zone — not the moment the server's UTC clock crosses the stored due instant.
+  const todayStart = await startOfTodayForCentre(centreId);
 
   const [
     paidThisMonth,
@@ -86,7 +90,7 @@ export default async function FinancePage() {
       _sum: { amount: true },
       _count: true,
     }),
-    prisma.invoice.count({ where: { ...where, status: "due", dueDate: { lt: now } } }),
+    prisma.invoice.count({ where: { ...where, status: "due", dueDate: { lt: todayStart } } }),
     prisma.invoice.findMany({
       where,
       include: { rider: { select: { firstName: true, lastName: true } } },
@@ -107,7 +111,7 @@ export default async function FinancePage() {
       _sum: { amount: true },
     }),
     prisma.invoice.findMany({
-      where: { ...where, status: "due", dueDate: { gte: now, lte: new Date(now.getTime() + 14 * 86400000) } },
+      where: { ...where, status: "due", dueDate: { gte: todayStart, lte: new Date(todayStart.getTime() + 14 * 86400000) } },
       include: { rider: { select: { firstName: true, lastName: true } } },
       orderBy: { dueDate: "asc" },
       take: 10,

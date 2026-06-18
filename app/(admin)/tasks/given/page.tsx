@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
+import { startOfTodayForCentre } from "@/lib/centre-tz";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +54,7 @@ export default async function GivenTasksPage({
     select: { id: true, name: true, role: true },
   });
   const userMap = new Map(users.map((u) => [u.id, u]));
+  const todayStart = await startOfTodayForCentre(centreId); // centre-local overdue boundary
 
   const completed = tasks.filter((t) => t.status === "done");
   const outstanding = tasks.filter((t) => t.status !== "done");
@@ -98,7 +100,7 @@ export default async function GivenTasksPage({
           {outstanding.length === 0 ? (
             <div className="py-4 text-center text-sm text-muted-foreground">Nothing outstanding. 🎉</div>
           ) : (
-            <TaskTable tasks={outstanding} userMap={userMap} showCompleted={false} />
+            <TaskTable tasks={outstanding} userMap={userMap} showCompleted={false} todayStart={todayStart} />
           )}
         </CardContent>
       </Card>
@@ -111,7 +113,7 @@ export default async function GivenTasksPage({
           {completed.length === 0 ? (
             <div className="py-4 text-center text-sm text-muted-foreground">None completed yet.</div>
           ) : (
-            <TaskTable tasks={completed} userMap={userMap} showCompleted />
+            <TaskTable tasks={completed} userMap={userMap} showCompleted todayStart={todayStart} />
           )}
         </CardContent>
       </Card>
@@ -123,12 +125,13 @@ function TaskTable({
   tasks,
   userMap,
   showCompleted,
+  todayStart,
 }: {
   tasks: { id: string; title: string; assigneeId: string | null; dueAt: Date | null; status: string; completedAt: Date | null; recurrence: string | null }[];
   userMap: Map<string, { id: string; name: string; role: string }>;
   showCompleted: boolean;
+  todayStart: Date;
 }) {
-  const now = new Date();
   return (
     <ResponsiveTable
       rows={tasks}
@@ -168,7 +171,7 @@ function TaskTable({
           key: "when",
           header: showCompleted ? "Completed" : "Due",
           cell: (t) => {
-            const overdue = !showCompleted && t.dueAt && t.dueAt < now;
+            const overdue = !showCompleted && t.dueAt && t.dueAt < todayStart;
             return (
               <span className={`text-xs ${overdue ? "font-semibold text-amber-700" : ""}`}>
                 {showCompleted

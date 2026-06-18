@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { startOfTodayForCentre } from "@/lib/centre-tz";
 import { pendingItems, parseWaived } from "@/lib/onboarding-items";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
@@ -28,7 +29,8 @@ export default async function MyDocumentsPage() {
 
   const waived = parseWaived(ob.waivedItemsJson);
   const pending = pendingItems(ob as unknown as Record<string, unknown>, waived);
-  const overdue = ob.documentsDueAt ? ob.documentsDueAt < new Date() : false;
+  const todayStart = await startOfTodayForCentre(session.centreId);
+  const overdue = ob.documentsDueAt ? ob.documentsDueAt < todayStart : false;
 
   return (
     <div className="space-y-6">
