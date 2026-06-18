@@ -6,6 +6,7 @@ import { blockIfFeatureOff } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { parseWallTimeInTz } from "@/lib/tz";
 import { createBookingSchema } from "@/lib/schemas/facility-booking";
 
 // GET — list upcoming bookings, optionally filtered by ?facilityId.
@@ -52,15 +53,18 @@ export async function POST(req: NextRequest) {
 
   const facility = await prisma.facility.findUnique({
     where: { id: d.facilityId },
-    select: { id: true, centreId: true, name: true },
+    select: { id: true, centreId: true, name: true, centre: { select: { timezone: true } } },
   });
   if (!facility) return NextResponse.json({ error: "FACILITY_NOT_FOUND" }, { status: 404 });
   if (session.role !== "SUPER_ADMIN" && facility.centreId !== session.centreId) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
   }
 
-  const startAt = new Date(d.startAt);
-  const endAt = new Date(d.endAt);
+  // The form sends a zoneless wall-clock (datetime-local), so parse it in the
+  // facility's centre timezone — not the server's UTC — or a 2 PM IST slot
+  // would be stored as 2 PM UTC (= 7:30 PM IST). Same fix as horse allocations.
+  const startAt = parseWallTimeInTz(d.startAt, facility.centre.timezone);
+  const endAt = parseWallTimeInTz(d.endAt, facility.centre.timezone);
   if (!(startAt < endAt)) {
     return NextResponse.json({ error: "INVALID_TIME_RANGE" }, { status: 400 });
   }
