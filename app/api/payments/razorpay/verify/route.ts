@@ -82,22 +82,31 @@ export async function POST(req: NextRequest) {
   const existing = await prisma.payment.findFirst({ where: { txnRef: d.razorpay_payment_id } });
   if (existing) return NextResponse.json({ ok: true, alreadyApplied: true });
 
+  // Record only the OUTSTANDING balance (the order was minted for it), and flip
+  // to paid only when cumulative payments cover amount+GST. Mirrors the webhook
+  // so a prior partial/cash payment isn't double-counted and the parent isn't
+  // over-charged. (The order route now charges outstanding, so `remaining`
+  // equals the captured amount in the normal flow.)
+  const target = invoice.amount + invoice.gstAmount;
+  const priorPaid = (await prisma.payment.aggregate({ where: { invoiceId: invoice.id }, _sum: { amount: true } }))._sum.amount ?? 0;
+  const remaining = Math.max(0, target - priorPaid);
+  const fullyPaid = priorPaid + remaining >= target - 0.001;
+
   try {
     await prisma.$transaction([
       prisma.payment.create({
         data: {
           invoiceId: invoice.id,
-          amount: invoice.amount + invoice.gstAmount,
+          amount: remaining,
           method: "razorpay",
           txnRef: d.razorpay_payment_id,
           clearedAt: new Date(),
         },
       }),
-      prisma.invoice.update({ where: { id: invoice.id }, data: { status: "paid" } }),
-      prisma.rider.update({
-        where: { id: invoice.riderId },
-        data: invoice.kind === "registration" ? { registrationPaid: true, status: "active" } : {},
-      }),
+      prisma.invoice.update({ where: { id: invoice.id }, data: { status: fullyPaid ? "paid" : "due" } }),
+      ...(fullyPaid && invoice.kind === "registration"
+        ? [prisma.rider.update({ where: { id: invoice.riderId }, data: { registrationPaid: true, status: "active" } })]
+        : []),
     ]);
   } catch (e: any) {
     // Race: the webhook inserted the same txnRef first → unique violation (P2002).

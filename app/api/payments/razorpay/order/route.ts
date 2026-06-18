@@ -54,7 +54,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ALREADY_PAID" }, { status: 409 });
   }
 
-  const amountPaise = Math.round((invoice.amount + invoice.gstAmount) * 100);
+  // Charge only the OUTSTANDING balance. An invoice can carry prior partial
+  // payments (e.g. cash recorded manually) while still "due"; minting a
+  // full-amount order would over-charge the parent at the gateway AND
+  // over-count income once recorded.
+  const target = invoice.amount + invoice.gstAmount;
+  const priorPaid = (await prisma.payment.aggregate({ where: { invoiceId: invoice.id }, _sum: { amount: true } }))._sum.amount ?? 0;
+  const outstanding = target - priorPaid;
+  if (outstanding <= 0) {
+    return NextResponse.json({ error: "ALREADY_PAID" }, { status: 409 });
+  }
+  const amountPaise = Math.round(outstanding * 100);
   if (amountPaise <= 0) return NextResponse.json({ error: "INVALID_AMOUNT" }, { status: 400 });
 
   let order;
