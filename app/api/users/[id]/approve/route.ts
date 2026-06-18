@@ -10,6 +10,7 @@ import { getSession, hashPassword } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { callerSharesOrgWithUser } from "@/lib/authz-org";
 
 const schema = z.object({
   action: z.enum(["approve", "reject"]),
@@ -52,6 +53,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     select: { id: true, name: true, email: true, centreId: true, status: true, role: true },
   });
   if (!target) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  if (!(await callerSharesOrgWithUser(session, target.id))) {
+    return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+  }
   if (target.status !== "pending_approval") {
     return NextResponse.json({ error: "NOT_PENDING", status: target.status }, { status: 409 });
   }

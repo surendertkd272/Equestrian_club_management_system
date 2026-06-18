@@ -9,6 +9,7 @@ import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { approveOnboardingSchema } from "@/lib/schemas/onboarding-staff";
+import { ASSIGNABLE_STAFF_ROLES } from "@/lib/schemas/staff";
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -23,6 +24,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
   const d = parsed.data;
+
+  // Privilege-escalation guard: only centre-tier staff roles may be minted here.
+  // ASSIGNABLE_STAFF_ROLES excludes SUPER_ADMIN/ADMIN (HQ), RIDER, PARENT,
+  // EXAMINER — so a CENTRE_MANAGER can't approve an onboarding into an HQ account.
+  if (!ASSIGNABLE_STAFF_ROLES.includes(d.role)) {
+    return NextResponse.json({ error: "INVALID_ROLE" }, { status: 400 });
+  }
 
   const ob = await prisma.employeeOnboarding.findUnique({ where: { id: params.id } });
   if (!ob) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });

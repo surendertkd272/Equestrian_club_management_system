@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession, hashPassword } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { callerSharesOrgWithUser } from "@/lib/authz-org";
 
 // POST /api/users/[id]/reset-password — HQ generates a fresh temporary password
 // for a user (typical scenario: parent lost their first-login password).
@@ -20,6 +21,9 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
   const target = await prisma.user.findUnique({ where: { id: params.id }, select: { id: true, email: true } });
   if (!target) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  if (!(await callerSharesOrgWithUser(session, target.id))) {
+    return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+  }
 
   // 12 bytes base64url ≈ 16 chars; safe to copy/paste in WhatsApp/email.
   const tempPassword = crypto.randomBytes(12).toString("base64url");

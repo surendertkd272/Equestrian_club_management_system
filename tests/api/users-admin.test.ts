@@ -165,7 +165,8 @@ describe("PATCH /api/users/[id]", () => {
   });
 
   it("LAST_SUPER_ADMIN: refuses to demote the only super admin", async () => {
-    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null });
+    const org = await mkOrg();
+    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id });
     await loginAs({ userId: su.id, role: "SUPER_ADMIN", centreId: null, name: su.name });
     const r = await patch(su.id, { role: "COACH" });
     expect(r.status).toBe(409);
@@ -173,8 +174,9 @@ describe("PATCH /api/users/[id]", () => {
   });
 
   it("LAST_SUPER_ADMIN: refuses to suspend the only super admin", async () => {
-    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null });
-    const other = await mkUser({ role: "SUPER_ADMIN", centreId: null });
+    const org = await mkOrg();
+    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id });
+    const other = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id });
     // Suspend the OTHER one — now su is the last active super admin.
     await prisma.user.update({ where: { id: other.id }, data: { status: "suspended" } });
     await loginAs({ userId: su.id, role: "SUPER_ADMIN", centreId: null, name: su.name });
@@ -185,8 +187,9 @@ describe("PATCH /api/users/[id]", () => {
   });
 
   it("with multiple super admins, one can be demoted", async () => {
-    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null });
-    const other = await mkUser({ role: "SUPER_ADMIN", centreId: null });
+    const org = await mkOrg();
+    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id });
+    const other = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id });
     await loginAs({ userId: su.id, role: "SUPER_ADMIN", centreId: null, name: su.name });
 
     const r = await patch(other.id, { role: "ACCOUNTANT" });
@@ -196,8 +199,9 @@ describe("PATCH /api/users/[id]", () => {
   });
 
   it("CANNOT_DEMOTE_SELF: blocks suspending yourself even with backups", async () => {
-    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null });
-    await mkUser({ role: "SUPER_ADMIN", centreId: null }); // backup admin
+    const org = await mkOrg();
+    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id });
+    await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id }); // backup admin
     await loginAs({ userId: su.id, role: "SUPER_ADMIN", centreId: null, name: su.name });
 
     const r = await patch(su.id, { status: "suspended" });
