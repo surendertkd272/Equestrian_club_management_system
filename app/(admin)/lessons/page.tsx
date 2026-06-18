@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
+import { startOfDayInTz, endOfDayInTz } from "@/lib/tz";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,8 +26,15 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
   if (!orgId) redirect("/dashboard");
 
   const date = searchParams.date ?? new Date().toISOString().slice(0, 10);
-  const dayStart = new Date(`${date}T00:00:00`);
-  const dayEnd = new Date(`${date}T23:59:59`);
+  // Bucket by the centre's local day, not the server's UTC day — matches
+  // GET /api/lessons (#132). A noon-UTC anchor pins the right calendar date
+  // before bucketing for IST-like (positive-offset) zones.
+  const safeDate = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : new Date().toISOString().slice(0, 10);
+  const centre = await prisma.centre.findUnique({ where: { id: centreId }, select: { timezone: true } });
+  const tz = centre?.timezone ?? "Asia/Kolkata";
+  const ref = new Date(`${safeDate}T12:00:00Z`);
+  const dayStart = startOfDayInTz(ref, tz);
+  const dayEnd = endOfDayInTz(ref, tz);
 
   const [lessons, batches] = await Promise.all([
     prisma.lesson.findMany({

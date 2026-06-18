@@ -190,7 +190,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
                     {horse.insuranceValidTo ? (
                       <span
                         className={
-                          horse.insuranceValidTo < new Date()
+                          horse.insuranceValidTo < todayStart
                             ? "font-semibold text-destructive"
                             : horse.insuranceValidTo.getTime() - Date.now() < 30 * 86400000
                               ? "font-semibold text-amber-700"
@@ -198,8 +198,8 @@ export default async function HorseProfile({ params }: { params: { id: string } 
                         }
                       >
                         {formatDate(horse.insuranceValidTo)}
-                        {horse.insuranceValidTo < new Date() ? " · EXPIRED" : ""}
-                        {horse.insuranceValidTo >= new Date() &&
+                        {horse.insuranceValidTo < todayStart ? " · EXPIRED" : ""}
+                        {horse.insuranceValidTo >= todayStart &&
                           horse.insuranceValidTo.getTime() - Date.now() < 30 * 86400000
                           ? " · expiring"
                           : ""}

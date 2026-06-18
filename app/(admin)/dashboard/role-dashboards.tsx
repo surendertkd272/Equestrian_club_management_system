@@ -11,7 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
-import { startOfDayInTz } from "@/lib/tz";
+import { startOfDayInTz, endOfDayInTz } from "@/lib/tz";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatTile } from "@/components/ui/stat-tile";
@@ -296,8 +296,12 @@ export async function StableManagerDashboard({ centreId, features }: { centreId:
   const fTasks = features.has("tasks");
   const fConsumables = features.has("consumables");
   const fInjuries = features.has("injuries");
-  const dayStart = new Date(new Date().setHours(0, 0, 0, 0));
-  const dayEnd = new Date(new Date().setHours(23, 59, 59, 999));
+  // "Today" in the centre's local zone (server runs UTC). HQ aggregate → IST.
+  const tz = centreId
+    ? (await prisma.centre.findUnique({ where: { id: centreId }, select: { timezone: true } }))?.timezone ?? "Asia/Kolkata"
+    : "Asia/Kolkata";
+  const dayStart = startOfDayInTz(new Date(), tz);
+  const dayEnd = endOfDayInTz(new Date(), tz);
 
   const [horses, todayAllocs, openTasks, lowConsumables, recentInjuries] = await Promise.all([
     prisma.horse.count({ where: { ...where, status: "active" } }),
@@ -355,9 +359,12 @@ export async function GroomDashboard({ centreId, userId, features }: { centreId:
   const where = tenantWhere(centreId, orgId);
   const fTasks = features.has("tasks");
   const fHorses = features.has("horse-management");
-  const now = new Date();
-  const dayStart = new Date(now.setHours(0, 0, 0, 0));
-  const dayEnd = new Date(new Date().setHours(23, 59, 59, 999));
+  // "Today" in the centre's local zone (server runs UTC). HQ aggregate → IST.
+  const tz = centreId
+    ? (await prisma.centre.findUnique({ where: { id: centreId }, select: { timezone: true } }))?.timezone ?? "Asia/Kolkata"
+    : "Asia/Kolkata";
+  const dayStart = startOfDayInTz(new Date(), tz);
+  const dayEnd = endOfDayInTz(new Date(), tz);
 
   const [myTasks, todayAllocs, horses] = await Promise.all([
     prisma.task.findMany({
