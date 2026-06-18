@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { updateRegistrationSchema } from "@/lib/schemas/event";
 import { audit } from "@/lib/audit";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 export async function PATCH(
   req: NextRequest,
@@ -14,6 +15,9 @@ export async function PATCH(
   if (!can(session.role, "event.manage")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+
+  const block = await blockIfReadOnly(session);
+  if (block) return block;
 
   const body = await req.json().catch(() => null);
   const parsed = updateRegistrationSchema.safeParse(body);
@@ -61,6 +65,9 @@ export async function DELETE(
   if (!can(session.role, "event.manage")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+
+  const block = await blockIfReadOnly(session);
+  if (block) return block;
 
   const reg = await prisma.eventRegistration.findUnique({
     where: { id: params.regId },

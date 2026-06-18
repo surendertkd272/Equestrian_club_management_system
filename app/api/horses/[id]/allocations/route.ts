@@ -6,6 +6,7 @@ import { createAllocationSchema, DEFAULT_WORKLOAD_CAP_MIN } from "@/lib/schemas/
 import { audit } from "@/lib/audit";
 import { AllocConflict } from "@/lib/allocation-guard";
 import { startOfDayInTz, endOfDayInTz, sameLocalDay } from "@/lib/tz";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 function parseLocalDate(s: string): Date {
   // Accept "YYYY-MM-DDTHH:MM" (local) or full ISO; treat plain form as local time.
@@ -17,6 +18,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (!can(session.role, "horse.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const body = await req.json().catch(() => null);
   const parsed = createAllocationSchema.safeParse(body);

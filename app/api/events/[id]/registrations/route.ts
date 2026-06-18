@@ -5,6 +5,7 @@ import { can } from "@/lib/permissions";
 import { createRegistrationSchema } from "@/lib/schemas/event";
 import { audit } from "@/lib/audit";
 import { isFeatureEnabledForCentre } from "@/lib/features-gate";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 // POST — register a rider for an event. Auto-creates an invoice when
 // Event.fee > 0 so the finance module picks up event income alongside
@@ -15,6 +16,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!can(session.role, "event.manage")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+
+  const block = await blockIfReadOnly(session);
+  if (block) return block;
 
   const body = await req.json().catch(() => null);
   const parsed = createRegistrationSchema.safeParse(body);

@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { blockIfFeatureOff } from "@/lib/features-gate";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 const schema = z.object({
   reason: z.string().min(2).max(300),
@@ -21,6 +22,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!can(session.role, "certificate.bulk")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
@@ -64,6 +67,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (session.role !== "SUPER_ADMIN") {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const cert = await prisma.certificate.findUnique({ where: { id: params.id } });
   if (!cert) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { createParentLinkSchema } from "@/lib/schemas/parent-link";
 import { audit } from "@/lib/audit";
 import { hashPassword } from "@/lib/auth";
@@ -15,6 +16,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (!can(session.role, "rider.write")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const rider = await prisma.rider.findUnique({ where: { id: params.id }, select: { id: true, centreId: true } });
   if (!rider) return NextResponse.json({ error: "RIDER_NOT_FOUND" }, { status: 404 });

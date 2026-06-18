@@ -7,6 +7,7 @@ import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { createExpenseSchema } from "@/lib/schemas/finance";
 import { audit } from "@/lib/audit";
 import { blockIfFeatureOff, getOrgIdForSession } from "@/lib/features-gate";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 // GET — list expenses with optional date range. Used by the finance
 // dashboard and the expenses page.
@@ -48,6 +49,8 @@ export async function POST(req: NextRequest) {
   if (!can(session.role, "expense.manage")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
   const featureBlock = await blockIfFeatureOff(session, "expenses");
   if (featureBlock) return featureBlock;
   const body = await req.json().catch(() => null);

@@ -5,11 +5,14 @@ import { can } from "@/lib/permissions";
 import { updateHorseSchema } from "@/lib/schemas/horse";
 import { audit } from "@/lib/audit";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (!can(session.role, "horse.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const body = await req.json().catch(() => null);
   const parsed = updateHorseSchema.safeParse(body);

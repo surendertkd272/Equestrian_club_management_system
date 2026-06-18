@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { audit } from "@/lib/audit";
 
 export async function DELETE(
@@ -26,6 +27,9 @@ export async function DELETE(
     row.uploadedBy === session.userId ||
     row.exam.examinerId === session.userId;
   if (!canRemove) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   await prisma.examAttachment.delete({ where: { id: row.id } });
   await audit({

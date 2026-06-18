@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { audit } from "@/lib/audit";
 import { ONBOARDING_ITEM_KEYS, parseWaived, pendingItems } from "@/lib/onboarding-items";
 
@@ -18,6 +19,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (!can(session.role, "staff.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+
+  const block = await blockIfReadOnly(session);
+  if (block) return block;
 
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body ?? {});

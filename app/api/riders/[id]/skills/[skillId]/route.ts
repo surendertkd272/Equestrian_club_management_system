@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { blockIfFeatureOff } from "@/lib/features-gate";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { can } from "@/lib/permissions";
 import { updateSkillStatusSchema } from "@/lib/schemas/progress";
 import { audit } from "@/lib/audit";
@@ -17,6 +18,9 @@ export async function PATCH(
   if (!can(session.role, "progress.write")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const body = await req.json().catch(() => null);
   const parsed = updateSkillStatusSchema.safeParse(body);

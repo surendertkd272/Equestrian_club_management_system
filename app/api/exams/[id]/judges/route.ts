@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { audit } from "@/lib/audit";
 
 const addSchema = z.object({ judgeId: z.string().min(1) });
@@ -14,6 +15,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!["SUPER_ADMIN", "CENTRE_MANAGER"].includes(session.role)) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
+
   const body = await req.json().catch(() => null);
   const parsed = addSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "VALIDATION" }, { status: 400 });

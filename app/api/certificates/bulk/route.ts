@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { blockIfFeatureOff } from "@/lib/features-gate";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { generateUniqueSerial, verifyUrl } from "@/lib/cert";
 import { audit } from "@/lib/audit";
 
@@ -40,6 +41,8 @@ export async function POST(req: NextRequest) {
   if (!can(session.role, "certificate.bulk")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
