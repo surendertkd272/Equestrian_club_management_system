@@ -23,7 +23,7 @@ export async function PATCH(
 
   const item = await prisma.tripChecklistItem.findUnique({
     where: { id: params.itemId },
-    include: { trip: { select: { centreId: true } } },
+    include: { trip: { select: { centreId: true, status: true } } },
   });
   if (!item || item.tripId !== params.id) {
     return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
@@ -31,6 +31,11 @@ export async function PATCH(
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
   if (!isHQ && session.centreId !== item.trip.centreId) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  }
+  // A cancelled/returned trip is closed — its inventory check timestamps must
+  // not be backfilled or altered after the fact.
+  if (item.trip.status === "cancelled" || item.trip.status === "returned") {
+    return NextResponse.json({ error: "TRIP_CLOSED", status: item.trip.status }, { status: 409 });
   }
 
   const body = await req.json().catch(() => null);
@@ -78,7 +83,7 @@ export async function DELETE(
   }
   const item = await prisma.tripChecklistItem.findUnique({
     where: { id: params.itemId },
-    include: { trip: { select: { centreId: true } } },
+    include: { trip: { select: { centreId: true, status: true } } },
   });
   if (!item || item.tripId !== params.id) {
     return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
@@ -86,6 +91,9 @@ export async function DELETE(
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
   if (!isHQ && session.centreId !== item.trip.centreId) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  }
+  if (item.trip.status === "cancelled" || item.trip.status === "returned") {
+    return NextResponse.json({ error: "TRIP_CLOSED", status: item.trip.status }, { status: 409 });
   }
   await prisma.tripChecklistItem.delete({ where: { id: item.id } });
   return NextResponse.json({ ok: true });

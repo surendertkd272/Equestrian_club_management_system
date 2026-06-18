@@ -6,6 +6,17 @@ import { updateEventSchema } from "@/lib/schemas/event";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 
+// Allowed event status transitions. completed + cancelled are terminal — the
+// edit form must not silently revert a finished/cancelled event (its finance +
+// registration trail is why DELETE already protects those states).
+const EVENT_NEXT: Record<string, string[]> = {
+  draft: ["open", "cancelled"],
+  open: ["live", "cancelled"],
+  live: ["completed", "cancelled"],
+  completed: [],
+  cancelled: [],
+};
+
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
@@ -25,6 +36,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!before) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   if (session.role !== "SUPER_ADMIN" && before.centreId !== session.centreId) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  }
+
+  // Reject illegal status transitions (e.g. reopening a completed/cancelled
+  // event). Same-status edits and non-status field edits pass through.
+  if (parsed.data.status !== undefined && parsed.data.status !== before.status &&
+      !(EVENT_NEXT[before.status] ?? []).includes(parsed.data.status)) {
+    return NextResponse.json({ error: "ILLEGAL_TRANSITION", from: before.status, to: parsed.data.status }, { status: 409 });
   }
 
   const updated = await prisma.event.update({
