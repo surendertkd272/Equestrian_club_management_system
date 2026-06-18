@@ -25,6 +25,7 @@ vi.mock("next/headers", () => ({
 }));
 
 const { PATCH: eventPatch } = await import("@/app/api/events/[id]/route");
+const { PATCH: lessonPatch } = await import("@/app/api/lessons/[id]/route");
 const { PATCH: examScore } = await import("@/app/api/exams/[id]/score/route");
 const { POST: injuryPost } = await import("@/app/api/injuries/route");
 const { PATCH: injuryPatch } = await import("@/app/api/injuries/[id]/route");
@@ -70,6 +71,36 @@ describe("event PATCH cross-field date guard", () => {
 
     // A valid widening edit succeeds.
     const ok = await eventPatch(jsonReq(`http://localhost/api/events/${ev.id}`, { endDate: "2026-06-22" }), { params: { id: ev.id } });
+    expect(ok.status).toBe(200);
+  });
+});
+
+describe("lesson PATCH cross-field date guard", () => {
+  it("rejects a one-sided edit that inverts the lesson start/end window", async () => {
+    const org = await mkOrg();
+    const centre = await mkCentre({ orgId: org.id });
+    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id, name: "SU" });
+    const lesson = await prisma.lesson.create({
+      data: { centreId: centre.id, date: new Date("2026-06-10T10:00:00Z"), endAt: new Date("2026-06-10T11:00:00Z"), status: "scheduled" },
+    });
+    await login(su);
+
+    // Move endAt before the stored start → 400.
+    const r1 = await lessonPatch(jsonReq(`http://localhost/api/lessons/${lesson.id}`, { endAt: "2026-06-10T09:00:00Z" }), { params: { id: lesson.id } });
+    expect(r1.status).toBe(400);
+    expect((await r1.json()).error).toBe("INVALID_DATE_RANGE");
+
+    // Move the start past the stored endAt (endAt absent) → 400.
+    const r2 = await lessonPatch(jsonReq(`http://localhost/api/lessons/${lesson.id}`, { date: "2026-06-10T12:00:00Z" }), { params: { id: lesson.id } });
+    expect(r2.status).toBe(400);
+
+    // Row unchanged after the rejected edits.
+    const after = await prisma.lesson.findUniqueOrThrow({ where: { id: lesson.id } });
+    expect(after.date.toISOString()).toBe("2026-06-10T10:00:00.000Z");
+    expect(after.endAt.toISOString()).toBe("2026-06-10T11:00:00.000Z");
+
+    // A valid extension succeeds.
+    const ok = await lessonPatch(jsonReq(`http://localhost/api/lessons/${lesson.id}`, { endAt: "2026-06-10T12:00:00Z" }), { params: { id: lesson.id } });
     expect(ok.status).toBe(200);
   });
 });
