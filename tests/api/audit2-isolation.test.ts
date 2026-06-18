@@ -22,6 +22,9 @@ vi.mock("next/headers", () => ({
 
 const { GET: certPdf } = await import("@/app/api/certificates/[id]/pdf/route");
 const { PATCH: examLevelPatch } = await import("@/app/api/exam-levels/[id]/route");
+const { PATCH: centrePatch } = await import("@/app/api/centres/[id]/route");
+const { POST: staffCertPost } = await import("@/app/api/staff-certifications/route");
+const { POST: enrolPost } = await import("@/app/api/courses/[id]/enrol/route");
 
 async function login(u: { id: string; role: string; centreId: string | null; name: string }) {
   cookieJar.clear();
@@ -56,6 +59,69 @@ describe("certificate PDF cross-centre isolation", () => {
     await login(coachX);
     const ok = await certPdf(mockReq(`http://localhost/api/certificates/${certX.id}/pdf`), { params: { id: certX.id } });
     expect(ok.status).toBe(200);
+  });
+});
+
+describe("centre cross-org write lockdown", () => {
+  it("a per-tenant ADMIN cannot edit another org's centre; same-org + SUPER_ADMIN can", async () => {
+    const orgA = await mkOrg("Org A");
+    const orgB = await mkOrg("Org B");
+    const centreA = await mkCentre({ orgId: orgA.id });
+    const centreB = await mkCentre({ orgId: orgB.id });
+    const adminA = await mkUser({ role: "ADMIN", centreId: null, orgId: orgA.id, name: "Admin A" });
+    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: orgA.id, name: "SU" });
+
+    const patch = (id: string, name: string) =>
+      centrePatch(
+        mockReq(`http://localhost/api/centres/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) }),
+        { params: { id } },
+      );
+
+    // ADMIN of org A → org B's centre is invisible (404) and unchanged.
+    await login(adminA);
+    const denied = await patch(centreB.id, "Hijacked");
+    expect(denied.status).toBe(404);
+    expect((await prisma.centre.findUniqueOrThrow({ where: { id: centreB.id } })).name).not.toBe("Hijacked");
+
+    // ADMIN of org A → own org's centre is editable.
+    await login(adminA);
+    expect((await patch(centreA.id, "Renamed A")).status).toBe(200);
+    expect((await prisma.centre.findUniqueOrThrow({ where: { id: centreA.id } })).name).toBe("Renamed A");
+
+    // SUPER_ADMIN (platform owner) → any centre, including org B.
+    await login(su);
+    expect((await patch(centreB.id, "Renamed B")).status).toBe(200);
+    expect((await prisma.centre.findUniqueOrThrow({ where: { id: centreB.id } })).name).toBe("Renamed B");
+  });
+});
+
+describe("staff foreign-id write lockdown", () => {
+  it("staff-cert + course-enrol reject a user from another centre (and ignore body.centreId)", async () => {
+    const org = await mkOrg();
+    const cX = await mkCentre({ orgId: org.id });
+    const cY = await mkCentre({ orgId: org.id });
+    const mgr = await mkUser({ role: "CENTRE_MANAGER", centreId: cX.id, name: "Mgr X" });
+    const userX = await mkUser({ role: "COACH", centreId: cX.id, name: "Coach X" });
+    const userY = await mkUser({ role: "COACH", centreId: cY.id, name: "Coach Y" });
+    const courseX = await prisma.course.create({ data: { centreId: cX.id, title: "First Aid" } });
+
+    // staff-cert: issuing to a user in another centre is rejected even though the
+    // body claims the caller's own centreId; own-centre user succeeds.
+    await login(mgr);
+    const certBad = await staffCertPost(mockReq("http://localhost/api/staff-certifications", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: userY.id, title: "BHS", centreId: cX.id }) }));
+    expect(certBad.status).toBe(403);
+    await login(mgr);
+    const certOk = await staffCertPost(mockReq("http://localhost/api/staff-certifications", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: userX.id, title: "BHS" }) }));
+    expect(certOk.status).toBe(200);
+    expect((await prisma.staffCertification.findFirstOrThrow({ where: { userId: userX.id } })).centreId).toBe(cX.id);
+
+    // enrol: a user from another centre can't be enrolled into cX's course.
+    await login(mgr);
+    const enrolBad = await enrolPost(mockReq(`http://localhost/api/courses/${courseX.id}/enrol`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: userY.id }) }), { params: { id: courseX.id } });
+    expect(enrolBad.status).toBe(403);
+    await login(mgr);
+    const enrolOk = await enrolPost(mockReq(`http://localhost/api/courses/${courseX.id}/enrol`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: userX.id }) }), { params: { id: courseX.id } });
+    expect(enrolOk.status).toBe(200);
   });
 });
 

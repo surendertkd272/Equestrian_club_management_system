@@ -30,6 +30,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
   }
 
+  // The enrolled user must belong to the course's centre — a course is
+  // centre-specific, so don't trust a body-supplied userId from another centre.
+  const target = await prisma.user.findUnique({
+    where: { id: parsed.data.userId },
+    select: { centreId: true },
+  });
+  if (!target) return NextResponse.json({ error: "USER_NOT_FOUND" }, { status: 404 });
+  if (target.centreId !== course.centreId) {
+    return NextResponse.json({ error: "USER_CROSS_CENTRE" }, { status: 403 });
+  }
+
   const row = await prisma.courseEnrolment.upsert({
     where: { courseId_userId: { courseId: course.id, userId: parsed.data.userId } },
     create: { courseId: course.id, userId: parsed.data.userId },
