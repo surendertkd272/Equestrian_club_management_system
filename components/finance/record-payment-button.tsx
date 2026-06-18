@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Wallet } from "lucide-react";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 // Modal-style record-payment button. Drops onto any invoice row. On
 // success, the parent route refreshes so the new payment shows up in the
@@ -29,6 +30,8 @@ export function RecordPaymentButton({
   const [method, setMethod] = useState<"cash" | "cheque" | "upi" | "bank" | "card">("cash");
   const [txnRef, setTxnRef] = useState("");
   const [busy, setBusy] = useState(false);
+  const dialogRef = useRef<HTMLFormElement>(null);
+  useFocusTrap(dialogRef, open);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -83,8 +86,14 @@ export function RecordPaymentButton({
         <div className="fixed inset-0 z-40">
           <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} aria-hidden />
           <form
+            ref={dialogRef}
             onSubmit={submit}
-            className="absolute left-1/2 top-1/4 z-50 w-full max-w-sm -translate-x-1/2 space-y-3 rounded-lg border bg-card p-4 shadow-xl"
+            onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Record payment"
+            tabIndex={-1}
+            className="absolute left-1/2 top-1/4 z-50 w-full max-w-sm -translate-x-1/2 space-y-3 rounded-lg border bg-card p-4 shadow-xl outline-none"
           >
             <h2 className="text-base font-semibold">Record payment</h2>
             <div className="text-xs text-muted-foreground">
