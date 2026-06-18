@@ -182,8 +182,8 @@ describe("DELETE /api/users/[id]", () => {
   });
 
   it("USER_LINKED_TO_RIDER refuses when target owns a rider portal account", async () => {
-    await loginAsHQ();
-    const c = await mkCentre();
+    const { orgId } = await loginAsHQ();
+    const c = await mkCentre({ orgId: orgId ?? undefined });
     const target = await mkUser({ role: "RIDER", centreId: c.id });
     const rider = await mkRider({ centreId: c.id });
     await prisma.rider.update({ where: { id: rider.id }, data: { userId: target.id } });
@@ -196,8 +196,8 @@ describe("DELETE /api/users/[id]", () => {
   });
 
   it("USER_IS_CENTRE_MANAGER refuses when target manages a centre", async () => {
-    await loginAsHQ();
-    const c = await mkCentre();
+    const { orgId } = await loginAsHQ();
+    const c = await mkCentre({ orgId: orgId ?? undefined });
     const target = await mkUser({ role: "CENTRE_MANAGER", centreId: c.id });
     await prisma.centre.update({ where: { id: c.id }, data: { managerId: target.id } });
 
@@ -209,8 +209,8 @@ describe("DELETE /api/users/[id]", () => {
   });
 
   it("USER_HAS_PARENT_LINKS refuses when target has linked riders as a parent", async () => {
-    await loginAsHQ();
-    const c = await mkCentre();
+    const { orgId } = await loginAsHQ();
+    const c = await mkCentre({ orgId: orgId ?? undefined });
     const target = await mkUser({ role: "PARENT" });
     const rider = await mkRider({ centreId: c.id });
     await prisma.parentLink.create({
@@ -225,8 +225,8 @@ describe("DELETE /api/users/[id]", () => {
   });
 
   it("happy path: deletes a clean user + writes audit row", async () => {
-    await loginAsHQ();
-    const c = await mkCentre();
+    const { orgId } = await loginAsHQ();
+    const c = await mkCentre({ orgId: orgId ?? undefined });
     const target = await mkUser({ role: "COACH", centreId: c.id, name: "Drop Me", email: "drop@x.test" });
 
     const r = await deleteUser(mockReq("http://localhost", { method: "DELETE" }), {
@@ -246,8 +246,8 @@ describe("Cross-role: SUPER_ADMIN posts medicine with explicit centreId", () => 
   // Sanity check that the existing POST /api/medicines accepts body.centreId
   // for SUPER_ADMIN — which is what the new UI relies on.
   it("uses body.centreId when session.centreId is null", async () => {
-    await loginAsHQ();
-    const c = await mkCentre();
+    const { orgId } = await loginAsHQ();
+    const c = await mkCentre({ orgId: orgId ?? undefined });
     const { POST: createMedicine } = await import("@/app/api/medicines/route");
     const r = await createMedicine(
       mockReq("http://localhost", {

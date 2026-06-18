@@ -10,6 +10,7 @@ import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { callerSharesOrgWithUser } from "@/lib/authz-org";
 
 const issueSchema = z.object({
   kind: z.enum(["termination", "resignation_request"]),
@@ -40,6 +41,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     select: { id: true, name: true, centreId: true, status: true, role: true },
   });
   if (!target) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  if (!(await callerSharesOrgWithUser(session, target.id))) {
+    return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+  }
   // Refuse to issue separation against active SUPER_ADMIN / ADMIN — those
   // require a separate HQ-team handoff. Centre-tier staff are fine.
   if (target.role === "SUPER_ADMIN" || target.role === "ADMIN") {

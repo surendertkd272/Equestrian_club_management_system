@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { updateUserSchema } from "@/lib/schemas/user-admin";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { callerSharesOrgWithUser } from "@/lib/authz-org";
 
 // PATCH /api/users/[id] — HQ user edit.
 // Guards against locking yourself out:
@@ -28,6 +29,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const target = await prisma.user.findUnique({ where: { id: params.id } });
   if (!target) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+
+  // Cross-org guard: User is RLS-permissive, so an HQ admin of another org
+  // could otherwise edit this user. Bind the target to the caller's org.
+  if (!(await callerSharesOrgWithUser(session, target.id))) {
+    return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+  }
 
   // ADMIN may manage everyone except the SUPER_ADMIN tier — can't edit a
   // super-admin nor promote anyone INTO super-admin (no privilege escalation).
@@ -128,6 +135,10 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     select: { id: true, role: true, status: true, name: true, email: true },
   });
   if (!target) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+
+  if (!(await callerSharesOrgWithUser(session, target.id))) {
+    return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+  }
 
   // ADMIN can't delete a SUPER_ADMIN account.
   if (session.role === "ADMIN" && target.role === "SUPER_ADMIN") {
