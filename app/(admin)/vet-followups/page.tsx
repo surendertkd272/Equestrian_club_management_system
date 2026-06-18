@@ -10,6 +10,7 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
+import { startOfDayInTz } from "@/lib/tz";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -27,8 +28,13 @@ export default async function VetFollowupsPage() {
   if (!orgId) redirect("/dashboard");
   const centreId = scopeCentre(session);
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  // Partition by the centre's local day, not the server's UTC instant — a
+  // follow-up due today shouldn't read as "overdue". Single-centre → that
+  // centre's zone; HQ all-centres aggregate → IST default.
+  const tz = centreId
+    ? (await prisma.centre.findUnique({ where: { id: centreId }, select: { timezone: true } }))?.timezone ?? "Asia/Kolkata"
+    : "Asia/Kolkata";
+  const todayStart = startOfDayInTz(new Date(), tz);
   const horizon = new Date(Date.now() + 60 * 86400000); // 60d ahead window
 
   const visits = await prisma.vetVisit.findMany({
@@ -44,10 +50,9 @@ export default async function VetFollowupsPage() {
     orderBy: { followUpAt: "asc" },
   });
 
-  const now = new Date();
-  const weekEnd = new Date(now.getTime() + 7 * 86400000);
-  const overdue = visits.filter((v) => v.followUpAt! < now);
-  const thisWeek = visits.filter((v) => v.followUpAt! >= now && v.followUpAt! <= weekEnd);
+  const weekEnd = new Date(todayStart.getTime() + 7 * 86400000);
+  const overdue = visits.filter((v) => v.followUpAt! < todayStart);
+  const thisWeek = visits.filter((v) => v.followUpAt! >= todayStart && v.followUpAt! <= weekEnd);
   const later = visits.filter((v) => v.followUpAt! > weekEnd);
 
   return (

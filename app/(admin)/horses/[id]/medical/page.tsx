@@ -68,7 +68,7 @@ export default async function HorseMedicalPage({ params }: { params: { id: strin
   const now = new Date();
   // Centre-local "today" for due-date coloring (matches /vaccinations + /farriery).
   const todayStart = startOfDayInTz(now, horse.centre.timezone);
-  const insuranceExpired = horse.insuranceValidTo && horse.insuranceValidTo < now;
+  const insuranceExpired = horse.insuranceValidTo && horse.insuranceValidTo < todayStart;
   const insuranceExpiring =
     horse.insuranceValidTo &&
     !insuranceExpired &&
