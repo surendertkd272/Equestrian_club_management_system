@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { updateEventSchema } from "@/lib/schemas/event";
 import { audit } from "@/lib/audit";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -11,6 +12,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!can(session.role, "event.manage")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const body = await req.json().catch(() => null);
   const parsed = updateEventSchema.safeParse(body);
@@ -61,6 +64,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (!can(session.role, "event.manage")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const ev = await prisma.event.findUnique({ where: { id: params.id } });
   if (!ev) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });

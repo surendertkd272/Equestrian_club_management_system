@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { audit } from "@/lib/audit";
 
 const schema = z.object({ examinerId: z.string().min(1).optional() });
@@ -28,6 +29,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (session.role !== "SUPER_ADMIN" && exam.centreId !== session.centreId) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
   }
+
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
+
   if (!exam.sitting) {
     return NextResponse.json({ error: "NOT_A_SITTING_EXAM" }, { status: 400 });
   }

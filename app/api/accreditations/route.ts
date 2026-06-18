@@ -7,6 +7,7 @@ import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { createAccreditationSchema } from "@/lib/schemas/accreditation";
 import { audit } from "@/lib/audit";
 import { blockIfFeatureOff, getOrgIdForSession } from "@/lib/features-gate";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 // GET — list accreditations. Filter by ?riderId= for a single rider, or
 // query the whole centre (SUPER_ADMIN sees platform-wide).
@@ -43,6 +44,8 @@ export async function POST(req: NextRequest) {
   }
   const featureBlock = await blockIfFeatureOff(session, "accreditations");
   if (featureBlock) return featureBlock;
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
   const body = await req.json().catch(() => null);
   const parsed = createAccreditationSchema.safeParse(body);
   if (!parsed.success) {

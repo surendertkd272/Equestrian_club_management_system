@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { audit } from "@/lib/audit";
 
 // DELETE /api/riders/[id]/parent-links/[linkId] — unlink a parent from a rider.
@@ -13,6 +14,9 @@ export async function DELETE(
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (!can(session.role, "rider.write")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const link = await prisma.parentLink.findUnique({
     where: { id: params.linkId },

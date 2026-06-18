@@ -3,11 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { updateExamLevelSchema } from "@/lib/schemas/exam-level";
 import { audit } from "@/lib/audit";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const body = await req.json().catch(() => null);
   const parsed = updateExamLevelSchema.safeParse(body);
@@ -56,6 +60,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const row = await prisma.examLevel.findUnique({
     where: { id: params.id },

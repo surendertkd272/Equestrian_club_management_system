@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { updateScoringTemplateSchema } from "@/lib/schemas/exam";
 import { audit } from "@/lib/audit";
 
@@ -11,6 +12,9 @@ export async function PUT(req: NextRequest, { params }: { params: { level: strin
   if (!can(session.role, "exam.template_edit")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const body = await req.json().catch(() => null);
   const parsed = updateScoringTemplateSchema.safeParse(body);

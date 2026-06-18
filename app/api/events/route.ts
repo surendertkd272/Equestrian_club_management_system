@@ -7,6 +7,7 @@ import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { createEventSchema } from "@/lib/schemas/event";
 import { audit } from "@/lib/audit";
 import { blockIfFeatureOff, getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 // POST — create a new event (clinic, schooling, fundraiser, etc.). Status
 // starts at draft. Slug, if supplied, must be globally unique because the
@@ -19,6 +20,8 @@ export async function POST(req: NextRequest) {
   }
   const featureBlock = await blockIfFeatureOff(session, "events");
   if (featureBlock) return featureBlock;
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const body = await req.json().catch(() => null);
   const parsed = createEventSchema.safeParse(body);

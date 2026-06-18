@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { audit } from "@/lib/audit";
 
 // DELETE — remove a co-judge from an exam. The lead examiner is never on
@@ -15,6 +16,9 @@ export async function DELETE(
   if (!["SUPER_ADMIN", "CENTRE_MANAGER"].includes(session.role)) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const row = await prisma.examJudge.findUnique({
     where: { id: params.judgeRowId },

@@ -15,6 +15,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfFeatureOff } from "@/lib/features-gate";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { sendEmail, renderEmail } from "@/lib/email";
 import { renderExamBreakdownHtml } from "@/lib/exam-email-breakdown";
 
@@ -34,6 +35,8 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   if (!ALLOWED_ROLES.has(session.role)) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const cert = await prisma.certificate.findUnique({
     where: { id: params.id },

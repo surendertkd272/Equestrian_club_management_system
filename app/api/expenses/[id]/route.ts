@@ -5,6 +5,7 @@ import { can } from "@/lib/permissions";
 import { updateExpenseSchema } from "@/lib/schemas/finance";
 import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -12,6 +13,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!can(session.role, "expense.manage")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
   const body = await req.json().catch(() => null);
   const parsed = updateExpenseSchema.safeParse(body);
   if (!parsed.success) {
@@ -75,6 +78,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   if (!can(session.role, "expense.manage")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
 
   const row = await prisma.expense.findUnique({ where: { id: params.id } });
   if (!row) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });

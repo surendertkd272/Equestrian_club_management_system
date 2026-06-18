@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { parseDateOnly } from "@/lib/schemas/attendance";
 import { audit } from "@/lib/audit";
+import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 // Bulk-schedule a sitting: one date + level, N riders, and a POOL of examiners.
 // Creates the ExamSitting + the examiner pool (ExamSittingExaminer) + one
@@ -27,6 +28,9 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (!can(session.role, "exam.schedule")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+
+  const block = await blockIfReadOnly(session);
+  if (block) return block;
 
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
