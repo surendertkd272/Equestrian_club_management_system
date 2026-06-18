@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
+import { startOfTodayForCentre } from "@/lib/centre-tz";
 import { ROLES } from "@/lib/roles";
 import { FileText } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,6 +56,8 @@ export default async function StaffOnboardingPage() {
     take: 100,
     include: { centre: { select: { name: true } } },
   });
+  // Document-due "overdue" keys off the centre-local day (HQ aggregate → IST).
+  const todayStart = await startOfTodayForCentre(scopeId);
 
   const submitted = rows.filter((r) => r.status === "submitted");
   // Approved hires who still have blank, non-waived items.
@@ -154,7 +157,7 @@ export default async function StaffOnboardingPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {awaiting.map(({ r, pending }) => {
-              const overdue = r.documentsDueAt ? r.documentsDueAt < new Date() : false;
+              const overdue = r.documentsDueAt ? r.documentsDueAt < todayStart : false;
               return (
                 <div key={r.id} className="rounded-md border p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">

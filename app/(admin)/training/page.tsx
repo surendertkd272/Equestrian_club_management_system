@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
+import { startOfTodayForCentre } from "@/lib/centre-tz";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +49,9 @@ export default async function TrainingPage() {
 
   // Highlight certs expiring within 60 days.
   const expiringCutoff = new Date(Date.now() + 60 * 86400000);
-  const now = new Date();
+  // Expiry coloring keys off the centre-local day, so a cert valid through today
+  // isn't shown "expired" once the server's UTC clock passes midnight.
+  const todayStart = await startOfTodayForCentre(centreId);
 
   return (
     <div className="space-y-6">
@@ -69,12 +72,12 @@ export default async function TrainingPage() {
         />
         <Kpi
           label="Expiring (60d)"
-          value={certs.filter((c) => c.validUntil && c.validUntil >= now && c.validUntil <= expiringCutoff).length}
+          value={certs.filter((c) => c.validUntil && c.validUntil >= todayStart && c.validUntil <= expiringCutoff).length}
           tone="amber"
         />
         <Kpi
           label="Expired"
-          value={certs.filter((c) => c.validUntil && c.validUntil < now).length}
+          value={certs.filter((c) => c.validUntil && c.validUntil < todayStart).length}
           tone="rose"
         />
       </div>
@@ -141,7 +144,7 @@ export default async function TrainingPage() {
                 key: "validUntil",
                 header: "Valid until",
                 cell: (c) => {
-                  const expired = c.validUntil && c.validUntil < now;
+                  const expired = c.validUntil && c.validUntil < todayStart;
                   const expSoon = c.validUntil && !expired && c.validUntil <= expiringCutoff;
                   return (
                     <span className={`text-xs ${expired ? "font-semibold text-rose-600" : expSoon ? "font-semibold text-amber-700" : ""}`}>

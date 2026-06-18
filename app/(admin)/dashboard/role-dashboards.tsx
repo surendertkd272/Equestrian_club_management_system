@@ -452,7 +452,7 @@ export async function GroomDashboard({ centreId, userId, features }: { centreId:
                       {t.kind && <Badge variant="outline" className="ml-2 text-[10px]">{t.kind.replace("_", " ")}</Badge>}
                     </span>
                     {t.dueAt && (
-                      <span className={`text-xs ${t.dueAt < new Date() ? "text-rose-600" : "text-muted-foreground"}`}>
+                      <span className={`text-xs ${t.dueAt < dayStart ? "text-rose-600" : "text-muted-foreground"}`}>
                         {timeAgo(t.dueAt)}
                       </span>
                     )}
