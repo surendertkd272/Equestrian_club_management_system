@@ -22,10 +22,14 @@ type Entry = {
 type Props = {
   horseId: string;
   canWrite: boolean;
+  // Start-of-today in the centre's timezone (ms), computed server-side so the
+  // "overdue" boundary matches the other health screens regardless of the
+  // viewer's browser timezone.
+  todayStartMs: number;
   entries: Entry[];
 };
 
-export function DewormingPanel({ horseId, canWrite, entries }: Props) {
+export function DewormingPanel({ horseId, canWrite, todayStartMs, entries }: Props) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [form, setForm] = useState<{
@@ -89,8 +93,6 @@ export function DewormingPanel({ horseId, canWrite, entries }: Props) {
       setBusy(null);
     }
   }
-
-  const now = new Date();
 
   return (
     <div className="space-y-4">
@@ -165,7 +167,7 @@ export function DewormingPanel({ horseId, canWrite, entries }: Props) {
             <tbody>
               {entries.map((e) => {
                 const next = e.nextDueAt ? new Date(e.nextDueAt) : null;
-                const overdue = next && next < now && !e.givenAt;
+                const overdue = next && next.getTime() < todayStartMs && !e.givenAt;
                 return (
                   <tr key={e.id} className="border-t">
                     <td className="py-2 font-medium">{e.product}</td>

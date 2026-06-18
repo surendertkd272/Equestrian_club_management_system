@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
+import { startOfDayInTz } from "@/lib/tz";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ export default async function HorseMedicalPage({ params }: { params: { id: strin
 
   const horse = await prisma.horse.findUnique({
     where: { id: params.id },
-    include: { centre: { select: { name: true } } },
+    include: { centre: { select: { name: true, timezone: true } } },
   });
   if (!horse) notFound();
   if (centreId && horse.centreId !== centreId) notFound();
@@ -65,6 +66,8 @@ export default async function HorseMedicalPage({ params }: { params: { id: strin
   ]);
 
   const now = new Date();
+  // Centre-local "today" for due-date coloring (matches /vaccinations + /farriery).
+  const todayStart = startOfDayInTz(now, horse.centre.timezone);
   const insuranceExpired = horse.insuranceValidTo && horse.insuranceValidTo < now;
   const insuranceExpiring =
     horse.insuranceValidTo &&
@@ -98,6 +101,7 @@ export default async function HorseMedicalPage({ params }: { params: { id: strin
             tabs={{
               vaccination: (
                 <VaccinationsPanel
+                  todayStart={todayStart}
                   rows={vaccinations.map((v) => ({
                     id: v.id,
                     label: v.vaccineLabel,
@@ -112,6 +116,7 @@ export default async function HorseMedicalPage({ params }: { params: { id: strin
                 <DewormingPanel
                   horseId={horse.id}
                   canWrite={canWriteMedical}
+                  todayStartMs={todayStart.getTime()}
                   entries={deworming.map((d) => ({
                     id: d.id,
                     product: d.product,
@@ -143,6 +148,7 @@ export default async function HorseMedicalPage({ params }: { params: { id: strin
               ),
               farrier: (
                 <FarrierPanel
+                  todayStart={todayStart}
                   rows={farrierVisits.map((f) => ({
                     id: f.id,
                     scheduledAt: f.scheduledAt,
@@ -175,8 +181,10 @@ export default async function HorseMedicalPage({ params }: { params: { id: strin
 
 function VaccinationsPanel({
   rows,
+  todayStart,
 }: {
   rows: { id: string; label: string; key: string; lastGivenAt: Date | null; nextDueAt: Date; intervalDays: number }[];
+  todayStart: Date;
 }) {
   if (rows.length === 0) {
     return (
@@ -186,7 +194,6 @@ function VaccinationsPanel({
       </div>
     );
   }
-  const now = new Date();
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -200,7 +207,7 @@ function VaccinationsPanel({
         </thead>
         <tbody>
           {rows.map((v) => {
-            const overdue = v.nextDueAt < now;
+            const overdue = v.nextDueAt < todayStart;
             return (
               <tr key={v.id} className="border-t">
                 <td className="py-2">{v.label}</td>
@@ -261,8 +268,10 @@ function InjuriesPanel({
 
 function FarrierPanel({
   rows,
+  todayStart,
 }: {
   rows: { id: string; scheduledAt: Date; completedAt: Date | null; workType: string; status: string; nextDueAt: Date | null; farrierName: string }[];
+  todayStart: Date;
 }) {
   if (rows.length === 0) {
     return (
@@ -272,7 +281,6 @@ function FarrierPanel({
       </div>
     );
   }
-  const now = new Date();
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -287,7 +295,7 @@ function FarrierPanel({
         </thead>
         <tbody>
           {rows.map((f) => {
-            const overdue = f.nextDueAt && f.nextDueAt < now;
+            const overdue = f.nextDueAt && f.nextDueAt < todayStart;
             return (
               <tr key={f.id} className="border-t">
                 <td className="py-2">{formatDate(f.scheduledAt)}</td>
