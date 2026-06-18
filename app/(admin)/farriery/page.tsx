@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
+import { startOfDayInTz } from "@/lib/tz";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -38,10 +39,16 @@ export default async function FarrieryPage() {
     prisma.farrierVisit.count({ where }),
   ]);
 
-  const now = new Date();
+  // Overdue = the due day has passed in the centre's local zone (see the
+  // vaccinations page for the rationale). Single-centre → that centre's zone;
+  // HQ all-centres aggregate → IST default.
+  const tz = centreId
+    ? (await prisma.centre.findUnique({ where: { id: centreId }, select: { timezone: true } }))?.timezone ?? "Asia/Kolkata"
+    : "Asia/Kolkata";
+  const todayStart = startOfDayInTz(new Date(), tz);
   const scheduled = visits.filter((v) => v.status === "scheduled");
   const completed = visits.filter((v) => v.status === "completed");
-  const overdue = completed.filter((v) => v.nextDueAt && v.nextDueAt < now);
+  const overdue = completed.filter((v) => v.nextDueAt && v.nextDueAt < todayStart);
 
   return (
     <div className="space-y-6">
@@ -110,7 +117,7 @@ export default async function FarrieryPage() {
                 header: "Next due",
                 cell: (v) => {
                   const isOverdue =
-                    v.status === "completed" && v.nextDueAt && v.nextDueAt < now;
+                    v.status === "completed" && v.nextDueAt && v.nextDueAt < todayStart;
                   return (
                     <span className={`text-sm ${isOverdue ? "font-semibold text-amber-700" : ""}`}>
                       {v.nextDueAt ? formatDate(v.nextDueAt) : "—"}

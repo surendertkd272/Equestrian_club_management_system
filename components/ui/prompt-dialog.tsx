@@ -11,6 +11,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 type PromptOptions = {
   title: string;
@@ -41,6 +42,8 @@ export function PromptHost() {
   const [state, setState] = useState<{ opts: PromptOptions; resolve: (v: string | null) => void } | null>(null);
   const [val, setVal] = useState("");
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, !!state);
 
   useEffect(() => {
     openFn = (opts) =>
@@ -85,6 +88,7 @@ export function PromptHost() {
     <>
       <div className="fixed inset-0 z-40 bg-black/30" onClick={() => close(null)} aria-hidden />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={opts.title}

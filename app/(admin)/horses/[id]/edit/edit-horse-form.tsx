@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { patchJson } from "@/lib/client/post-json";
+import { useUnsavedChanges } from "@/lib/use-unsaved-changes";
 
 export type EditHorseInitial = {
   name: string;
@@ -35,6 +36,8 @@ export function EditHorseForm({ horseId, initial }: { horseId: string; initial: 
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(initial);
+  const dirty = JSON.stringify(form) !== JSON.stringify(initial);
+  useUnsavedChanges(dirty && !saving);
 
   function set<K extends keyof EditHorseInitial>(k: K, v: string) {
     setForm((f) => ({ ...f, [k]: v }));

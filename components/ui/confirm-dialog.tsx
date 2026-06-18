@@ -4,8 +4,9 @@
 // nicer keyboard UX (Esc cancels, Enter confirms) and destructive-action
 // styling. Imperative API via openConfirm() avoids prop-drilling state.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 type ConfirmOptions = {
   title: string;
@@ -38,6 +39,8 @@ export function ConfirmHost() {
     { opts: ConfirmOptions; resolve: (v: boolean) => void } | null
   >(null);
   const [typed, setTyped] = useState("");
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, !!state);
 
   useEffect(() => {
     openFn = (opts) =>
@@ -76,7 +79,7 @@ export function ConfirmHost() {
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/30" onClick={() => { state.resolve(false); setState(null); }} />
-      <div role="alertdialog" aria-modal="true" className="fixed left-1/2 top-1/3 z-50 w-full max-w-sm -translate-x-1/2 rounded-lg border bg-card p-5 shadow-2xl">
+      <div ref={dialogRef} tabIndex={-1} role="alertdialog" aria-modal="true" aria-label={opts.title} className="fixed left-1/2 top-1/3 z-50 w-full max-w-sm -translate-x-1/2 rounded-lg border bg-card p-5 shadow-2xl outline-none">
         <h2 className="text-base font-semibold">{opts.title}</h2>
         {opts.body && <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{opts.body}</p>}
         {needsType && (

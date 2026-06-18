@@ -61,8 +61,16 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
   const gross = form.grossOverride ? Number(form.grossOverride) : preview?.gross ?? 0;
   const attendanceDed = preview?.attendanceDeducted ?? 0;
   const other = Number(form.otherDeductions) || 0;
-  const advance = Number(form.advanceDeduction) || 0;
-  const net = Math.max(0, gross - attendanceDed - other - advance);
+  const advanceRequested = Number(form.advanceDeduction) || 0;
+  // Mirror the server's recovery cap (app/api/salary/route.ts): you can't
+  // recover more advance than is outstanding, nor more than the take-home left
+  // after attendance + other deductions. Without this the preview promised a
+  // lower net than the server actually recorded when the user over-typed the
+  // advance.
+  const takeHomeBeforeAdvance = Math.max(0, gross - attendanceDed - other);
+  const advance = Math.min(advanceRequested, preview?.advanceOutstanding ?? advanceRequested, takeHomeBeforeAdvance);
+  const advanceCapped = advance < advanceRequested;
+  const net = Math.max(0, takeHomeBeforeAdvance - advance);
 
   async function submit() {
     if (!form.userId) return toast.error("Pick a staff member.");
@@ -182,7 +190,12 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
                   tone="amber"
                 />
               ))}
-              {advance > 0 && <Line label="− Advance recovery" value={-advance} tone="amber" />}
+              {advance > 0 && <Line label={`− Advance recovery${advanceCapped ? " (capped)" : ""}`} value={-advance} tone="amber" />}
+              {advanceCapped && (
+                <p className="text-[11px] text-amber-700">
+                  Advance capped to ₹{Math.round(advance).toLocaleString("en-IN")} — limited by what’s outstanding and the take-home pay.
+                </p>
+              )}
               {other > 0 && <Line label="− Other deductions" value={-other} tone="amber" />}
               <div className="mt-1 border-t pt-1">
                 <Line label="Net payable" value={net} bold />
