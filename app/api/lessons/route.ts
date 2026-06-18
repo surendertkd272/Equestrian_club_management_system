@@ -5,6 +5,7 @@ import { can } from "@/lib/permissions";
 import { createLessonSchema } from "@/lib/schemas/lesson";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { startOfDayInTz, endOfDayInTz } from "@/lib/tz";
 
 // GET /api/lessons?date=YYYY-MM-DD — lessons for that calendar day,
 // scoped to the caller's centre (SUPER_ADMIN can pass ?centreId=).
@@ -20,8 +21,14 @@ export async function GET(req: NextRequest) {
     : session.centreId;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE" }, { status: 400 });
 
-  const dayStart = new Date(`${dateStr}T00:00:00`);
-  const dayEnd = new Date(`${dateStr}T23:59:59`);
+  // Bucket by the CENTRE's local day, not the server's (UTC) — otherwise a
+  // lesson late in the local evening lands on the wrong day near midnight IST.
+  const safeDate = /^\d{4}-\d{2}-\d{2}$/.test(dateStr) ? dateStr : new Date().toISOString().slice(0, 10);
+  const centre = await prisma.centre.findUnique({ where: { id: centreId }, select: { timezone: true } });
+  const tz = centre?.timezone ?? "Asia/Kolkata";
+  const ref = new Date(`${safeDate}T12:00:00Z`); // noon UTC anchors the right calendar date for IST-like zones
+  const dayStart = startOfDayInTz(ref, tz);
+  const dayEnd = endOfDayInTz(ref, tz);
 
   const lessons = await prisma.lesson.findMany({
     where: { centreId, date: { gte: dayStart, lte: dayEnd } },

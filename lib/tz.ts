@@ -51,3 +51,21 @@ export function endOfDayInTz(at: Date, timeZone: string): Date {
 export function sameLocalDay(a: Date, b: Date, timeZone: string): boolean {
   return startOfDayInTz(a, timeZone).getTime() === startOfDayInTz(b, timeZone).getTime();
 }
+
+// Parse a ZONELESS wall-clock string ("YYYY-MM-DD", "YYYY-MM-DDTHH:MM[:SS]") as
+// local time in `timeZone`, returning the correct UTC instant. A bare
+// `new Date("2026-06-18T06:00")` is parsed in the SERVER zone (UTC on Vercel),
+// which stores a centre's 6 AM as 6 AM UTC = 11:30 AM IST — this fixes that.
+// Strings already carrying a zone (Z or ±HH:MM) are unambiguous and returned as-is.
+export function parseWallTimeInTz(s: string, timeZone: string): Date {
+  if (/[zZ]$|[+-]\d{2}:\d{2}$/.test(s)) return new Date(s);
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (!m) return new Date(s); // unexpected shape — let the caller's validation handle it
+  const [, y, mo, d, H = "0", Mi = "0", S = "0"] = m;
+  const provisional = Date.UTC(+y, +mo - 1, +d, +H, +Mi, +S);
+  // Subtract the zone offset to get the true UTC instant; refine once so a DST
+  // boundary (where the offset differs side-to-side) resolves correctly.
+  let off = zoneOffsetMs(new Date(provisional), timeZone);
+  off = zoneOffsetMs(new Date(provisional - off), timeZone);
+  return new Date(provisional - off);
+}

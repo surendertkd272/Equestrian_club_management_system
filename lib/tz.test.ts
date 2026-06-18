@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { startOfDayInTz, endOfDayInTz, sameLocalDay } from "./tz";
+import { startOfDayInTz, endOfDayInTz, sameLocalDay, parseWallTimeInTz } from "./tz";
 
 const IST = "Asia/Kolkata"; // +05:30, no DST
 
@@ -29,5 +29,20 @@ describe("tz day boundaries (IST)", () => {
     const b = new Date("2026-06-02T02:00:00.000Z");
     expect(a.getUTCDate()).not.toBe(b.getUTCDate()); // different UTC days
     expect(sameLocalDay(a, b, IST)).toBe(true); // same IST day
+  });
+});
+
+describe("parseWallTimeInTz", () => {
+  it("parses a zoneless local datetime against the centre zone (6 AM IST = 00:30 UTC)", () => {
+    expect(parseWallTimeInTz("2026-06-18T06:00", IST).toISOString()).toBe("2026-06-18T00:30:00.000Z");
+  });
+  it("treats a date-only string as local midnight (18 Jun 00:00 IST = 17 Jun 18:30 UTC)", () => {
+    expect(parseWallTimeInTz("2026-06-18", IST).toISOString()).toBe("2026-06-17T18:30:00.000Z");
+  });
+  it("respects an explicit zone in the string", () => {
+    expect(parseWallTimeInTz("2026-06-18T06:00:00Z", IST).toISOString()).toBe("2026-06-18T06:00:00.000Z");
+  });
+  it("is identity for the UTC zone", () => {
+    expect(parseWallTimeInTz("2026-06-18T06:00", "UTC").toISOString()).toBe("2026-06-18T06:00:00.000Z");
   });
 });

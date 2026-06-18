@@ -6,6 +6,7 @@ import { audit } from "@/lib/audit";
 import { blockIfFeatureOff } from "@/lib/features-gate";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { recordDoseSchema } from "@/lib/schemas/vaccination";
+import { parseWallTimeInTz } from "@/lib/tz";
 
 // POST /api/vaccinations/[id]/dose — record that the dose was administered
 // today (or on the supplied givenAt date). Re-stamps lastGivenAt and rolls
@@ -31,7 +32,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
   }
 
-  const givenAt = parsed.data.givenAt ? new Date(parsed.data.givenAt) : new Date();
+  // Parse a supplied date-only givenAt against the centre's zone so "given
+  // today" doesn't land on the previous calendar day (UTC midnight = prior
+  // evening locally for IST-like zones).
+  const centre = await prisma.centre.findUnique({ where: { id: row.centreId }, select: { timezone: true } });
+  const tz = centre?.timezone ?? "Asia/Kolkata";
+  const givenAt = parsed.data.givenAt ? parseWallTimeInTz(parsed.data.givenAt, tz) : new Date();
   const nextDueAt = new Date(givenAt.getTime() + row.intervalDays * 86400000);
 
   await prisma.vaccinationSchedule.update({
