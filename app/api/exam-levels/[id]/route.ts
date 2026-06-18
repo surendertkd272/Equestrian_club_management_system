@@ -8,7 +8,11 @@ import { blockIfReadOnly } from "@/lib/readonly-gate";
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  // ExamLevel is a SHARED platform-wide catalog (no org column, RLS USING(true))
+  // whose name/passThreshold flow into every tenant's certificates + scoring.
+  // Restrict writes to SUPER_ADMIN only — a per-tenant ADMIN must not edit the
+  // global catalog. (Proper long-term home: a platform-owner-only surface.)
+  if (session.role !== "SUPER_ADMIN") return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
 
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
@@ -59,7 +63,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  // ExamLevel is a SHARED platform-wide catalog (no org column, RLS USING(true))
+  // whose name/passThreshold flow into every tenant's certificates + scoring.
+  // Restrict writes to SUPER_ADMIN only — a per-tenant ADMIN must not edit the
+  // global catalog. (Proper long-term home: a platform-owner-only surface.)
+  if (session.role !== "SUPER_ADMIN") return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
 
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
