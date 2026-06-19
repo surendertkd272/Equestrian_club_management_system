@@ -21,22 +21,16 @@ export default async function InspectionsPage() {
   const session = (await getSession())!;
   if (!CAN_INSPECT.includes(session.role)) redirect("/dashboard");
 
-  const centreId = scopeCentre(session);
-  if (!centreId) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Inspections &amp; Audit</h1>
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            Pick a centre from the top-bar filter to run an inspection.
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
+  // Resolve the org FIRST so the no-centre path stays org-bound. HQ users
+  // (SUPER_ADMIN / ADMIN) who haven't picked a centre get centreId=null, which
+  // tenantWhere turns into an org-wide { centre: { orgId } } filter — so they
+  // see every centre's audit runs (the HQ overview) instead of an empty page.
+  // RLS independently re-bounds the query to the caller's org. Centre-scoped
+  // roles (INSPECTION_OFFICER, CENTRE_MANAGER) are always pinned to their own
+  // centre by scopeCentre, so this never widens their view.
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/dashboard");
+  const centreId = scopeCentre(session);
 
   const runs = await prisma.auditRun.findMany({
     where: tenantWhere(centreId, orgId),
@@ -55,12 +49,23 @@ export default async function InspectionsPage() {
         </p>
       </div>
 
-      <StartInspection />
+      {centreId ? (
+        <StartInspection />
+      ) : (
+        <Card>
+          <CardContent className="py-4 text-center text-sm text-muted-foreground">
+            Showing audit runs across all centres in your organisation. Pick a centre from the
+            top-bar filter to start a new inspection.
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
           <CardTitle>Audit runs</CardTitle>
-          <CardDescription>{runs.length} total</CardDescription>
+          <CardDescription>
+            {runs.length} total{centreId ? "" : " · all centres"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveTable
