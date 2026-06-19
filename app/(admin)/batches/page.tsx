@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,7 +47,13 @@ export default async function BatchesPage() {
       })
     : [];
 
-  const canCreate = !!centreId;
+  // batch.manage holders: SUPER_ADMIN, ADMIN, CENTRE_MANAGER, HEAD_COACH, COACH.
+  // Read access to the list is open to everyone the sidebar lets in; only
+  // write controls (create form + delete) are gated on the permission so a
+  // non-manager who reaches the page by direct URL doesn't see controls that
+  // would 403 at the API.
+  const canManage = can(session.role, "batch.manage");
+  const canCreate = !!centreId && canManage;
 
   return (
     <div className="space-y-6">
@@ -58,7 +65,7 @@ export default async function BatchesPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className={canManage ? "lg:col-span-2" : "lg:col-span-3"}>
           <Card>
             <CardHeader>
               <CardTitle>All Batches</CardTitle>
@@ -83,7 +90,9 @@ export default async function BatchesPage() {
                         <Link className="text-xs text-primary underline" href={`/attendance?batch=${b.id}`}>
                           Mark attendance →
                         </Link>
-                        <BatchDeleteButton id={b.id} name={b.name} riderCount={b._count.riders} />
+                        {canManage && (
+                          <BatchDeleteButton id={b.id} name={b.name} riderCount={b._count.riders} />
+                        )}
                       </div>
                     ),
                   },
@@ -93,21 +102,23 @@ export default async function BatchesPage() {
           </Card>
         </div>
 
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>New Batch</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <NewBatchForm coaches={coaches} disabled={!canCreate} centreId={centreId} />
-              {!canCreate && (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Pick a centre from the topbar filter to create batches.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        {canManage && (
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle>New Batch</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <NewBatchForm coaches={coaches} disabled={!canCreate} centreId={centreId} />
+                {!canCreate && (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Pick a centre from the topbar filter to create batches.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

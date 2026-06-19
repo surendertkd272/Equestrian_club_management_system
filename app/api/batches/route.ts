@@ -9,7 +9,7 @@ import { blockIfReadOnly } from "@/lib/readonly-gate";
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  if (!can(session.role, "staff.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  if (!can(session.role, "batch.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
   // HQ roles (SUPER_ADMIN, ADMIN) have no session.centreId — they pick a

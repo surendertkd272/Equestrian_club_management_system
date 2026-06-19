@@ -1,10 +1,13 @@
 // DELETE /api/batches/[id] — hard-delete a batch.
 //
 // Refuses if any rider is still assigned to the batch (FK on Rider.batchId)
-// — the UI surfaces a 'reassign first' nudge for that case. Attendance rows
-// cascade-delete with the batch per the schema. Only roles that already
-// have staff.manage (the create permission) can delete; centre-scoped users
-// can only delete their own centre's batches.
+// — the UI surfaces a 'reassign first' nudge for that case. Attendance and
+// batch-shift-request rows are ON DELETE RESTRICT (not cascade), so a batch
+// that carries attendance history or is referenced by a shift request can't
+// be deleted even with zero current riders — we translate that FK violation
+// into a clean 409 rather than letting it surface as a 500. Gated on
+// batch.manage (the same permission as create); centre-scoped users can only
+// delete their own centre's batches.
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -16,7 +19,7 @@ import { blockIfReadOnly } from "@/lib/readonly-gate";
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  if (!can(session.role, "staff.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  if (!can(session.role, "batch.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
 
@@ -47,7 +50,24 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     );
   }
 
-  await prisma.batch.delete({ where: { id: batch.id } });
+  try {
+    await prisma.batch.delete({ where: { id: batch.id } });
+  } catch (e: any) {
+    // P2003 = FK violation. Attendance.batch and BatchShiftRequest.toBatch are
+    // ON DELETE RESTRICT, so a batch with attendance history or a referencing
+    // shift request can't be removed — return a clean 409 instead of a 500.
+    if (e?.code === "P2003") {
+      return NextResponse.json(
+        {
+          error: "BATCH_HAS_LINKED_RECORDS",
+          message:
+            "This batch has attendance history or shift requests linked to it and can't be deleted.",
+        },
+        { status: 409 },
+      );
+    }
+    throw e;
+  }
   await audit({
     userId: session.userId,
     action: "batch.delete",

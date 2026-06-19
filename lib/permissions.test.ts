@@ -18,12 +18,16 @@ describe("can", () => {
     expect(can("CENTRE_MANAGER", "audit.read")).toBe(false);
   });
 
-  it("COACH is limited to read/attendance/progress (plus self-leave)", () => {
+  it("COACH is limited to read/attendance/progress (plus self-leave + batches)", () => {
     expect(can("COACH", "attendance.mark")).toBe(true);
     expect(can("COACH", "progress.write")).toBe(true);
     expect(can("COACH", "rider.read")).toBe(true);
     expect(can("COACH", "task.complete")).toBe(true);
     expect(can("COACH", "leave.request")).toBe(true);
+    // Coaches manage their own batches (batch.manage), but this must NOT be
+    // staff.manage — that gates staff USER-ACCOUNT creation (escalation hole).
+    expect(can("COACH", "batch.manage")).toBe(true);
+    expect(can("COACH", "staff.manage")).toBe(false);
     expect(can("COACH", "rider.write")).toBe(false);
     expect(can("COACH", "exam.score")).toBe(false);
     expect(can("COACH", "finance.read")).toBe(false);
@@ -132,6 +136,7 @@ describe("permissionsFor", () => {
       "expense.submit",
       "requisition.submit",
       "lesson.write",
+      "batch.manage",
     ]);
   });
   it("returns [] for unknown role", () => {
