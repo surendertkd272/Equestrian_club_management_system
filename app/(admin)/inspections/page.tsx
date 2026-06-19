@@ -1,9 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre, tenantWhere } from "@/lib/tenancy";
-import { getOrgIdForSession } from "@/lib/features-gate";
+import { loadInspectionRuns } from "@/lib/inspections";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -21,23 +19,12 @@ export default async function InspectionsPage() {
   const session = (await getSession())!;
   if (!CAN_INSPECT.includes(session.role)) redirect("/dashboard");
 
-  // Resolve the org FIRST so the no-centre path stays org-bound. HQ users
-  // (SUPER_ADMIN / ADMIN) who haven't picked a centre get centreId=null, which
-  // tenantWhere turns into an org-wide { centre: { orgId } } filter — so they
-  // see every centre's audit runs (the HQ overview) instead of an empty page.
-  // RLS independently re-bounds the query to the caller's org. Centre-scoped
-  // roles (INSPECTION_OFFICER, CENTRE_MANAGER) are always pinned to their own
-  // centre by scopeCentre, so this never widens their view.
-  const orgId = await getOrgIdForSession(session);
+  // Data-fetching (org resolution + centre scope + the org-wide-when-no-centre
+  // query) lives in loadInspectionRuns so the visibility rule is unit-testable
+  // without an RSC render. HQ with no centre picked → org-wide; centre-scoped
+  // roles stay pinned to their own centre. See lib/inspections.ts.
+  const { orgId, centreId, runs } = await loadInspectionRuns(session);
   if (!orgId) redirect("/dashboard");
-  const centreId = scopeCentre(session);
-
-  const runs = await prisma.auditRun.findMany({
-    where: tenantWhere(centreId, orgId),
-    orderBy: { startedAt: "desc" },
-    take: 60,
-    include: { items: { select: { result: true } } },
-  });
 
   return (
     <div className="space-y-6">
