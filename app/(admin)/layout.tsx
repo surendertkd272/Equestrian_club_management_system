@@ -17,7 +17,9 @@ import { getStatusForSession } from "@/lib/readonly-gate";
 import { parseEmergencyContacts } from "@/lib/json-narrow";
 import { startOfDayInTz } from "@/lib/tz";
 import { buildRoleGuide, profileFor } from "@/lib/onboarding/role-guide";
+import { buildChecklist } from "@/lib/onboarding/checklist";
 import { TourHost } from "@/components/onboarding/tour-host";
+import { OnboardingChecklist } from "@/components/onboarding/checklist-card";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -86,6 +88,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .slice(0, 3)
     .map((it) => it.label);
 
+  // Personal "Getting started" checklist (staff roles only; admins use the
+  // SetupChecklist). Manual ticks + the dismiss flag persist in onboardingJson.
+  const obState = ob && typeof ob === "object" && !Array.isArray(ob) ? (ob as Record<string, unknown>) : {};
+  const savedChecklist =
+    obState.checklist && typeof obState.checklist === "object" && !Array.isArray(obState.checklist)
+      ? (obState.checklist as Record<string, boolean>)
+      : {};
+  const checklistTasks = buildChecklist(session.role);
+
   return (
     <div className="flex min-h-screen">
       <Sidebar role={session.role} features={[...features]} />
@@ -113,7 +124,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             {myOnboarding?.documentsDueAt ? ` · due ${formatDate(myOnboarding.documentsDueAt)}` : ""} — complete your documents →
           </Link>
         )}
-        <main className="flex-1 bg-muted/40 p-3 sm:p-4 md:p-6 pb-20 md:pb-6">{children}</main>
+        <main className="flex-1 bg-muted/40 p-3 sm:p-4 md:p-6 pb-20 md:pb-6">
+          <OnboardingChecklist
+            tasks={checklistTasks}
+            autoDone={{ tour: tourDone, photo: !!userPhoto?.photoUrl }}
+            savedChecklist={savedChecklist}
+            dismissed={!!obState.checklistDismissedAt}
+          />
+          {children}
+        </main>
         <ConfirmHost />
         <PromptHost />
         <PwaInstallPrompt />

@@ -11,6 +11,7 @@ import { getSession } from "@/lib/auth";
 type OnboardingState = {
   tourCompletedAt?: string;
   checklist?: Record<string, boolean>;
+  checklistDismissedAt?: string;
   dismissedTips?: string[];
 };
 
@@ -29,6 +30,10 @@ const patchSchema = z
   .object({
     // Marks the guided tour finished/skipped; the server stamps the timestamp.
     tourCompleted: z.boolean().optional(),
+    // Activation-checklist item toggles, merged into existing state.
+    checklist: z.record(z.boolean()).optional(),
+    // Hide the checklist card for good; the server stamps the timestamp.
+    dismissChecklist: z.boolean().optional(),
   })
   .strict();
 
@@ -43,7 +48,10 @@ export async function PATCH(req: NextRequest) {
 
   const current = await prisma.user.findUnique({ where: { id: session.userId }, select: { onboardingJson: true } });
   const next = readState(current?.onboardingJson);
-  if (parsed.data.tourCompleted) next.tourCompletedAt = new Date().toISOString();
+  const d = parsed.data;
+  if (d.tourCompleted) next.tourCompletedAt = new Date().toISOString();
+  if (d.checklist) next.checklist = { ...(next.checklist ?? {}), ...d.checklist };
+  if (d.dismissChecklist) next.checklistDismissedAt = new Date().toISOString();
 
   await prisma.user.update({ where: { id: session.userId }, data: { onboardingJson: next } });
   return NextResponse.json({ ok: true, onboarding: next });
