@@ -23,7 +23,7 @@ const SECTIONS = [
     title: "Getting started",
     articles: [
       { slug: "first-day-checklist", title: "Your first day with Equiwings", summary: "Set up centres, batches, and your first 10 riders in under an hour." },
-      { slug: "invite-staff", title: "Invite coaches, vets, and grooms", summary: "Role-based access for the 17 staff roles we support." },
+      { slug: "invite-staff", title: "Invite coaches, vets, and grooms", summary: "Role-based access for the 16 staff roles we support." },
       { slug: "rider-onboarding", title: "Onboarding parents + riders", summary: "Share your centre's signup link, or import a CSV." },
     ],
   },

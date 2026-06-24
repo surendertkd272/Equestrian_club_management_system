@@ -250,7 +250,7 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
         <span className="text-muted-foreground">{rows.length} level{rows.length === 1 ? "" : "s"}</span>
       </div>
 
-      <div className="overflow-hidden rounded-md border">
+      <div className="overflow-x-auto rounded-md border">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
             <tr>

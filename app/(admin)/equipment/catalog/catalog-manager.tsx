@@ -192,7 +192,7 @@ export function CatalogManager({ initial }: { initial: Item[] }) {
       {Array.from(byCategory.entries()).map(([cat, rows]) => (
         <div key={cat}>
           <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">{cat}</h3>
-          <div className="overflow-hidden rounded-md border">
+          <div className="overflow-x-auto rounded-md border">
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
                 <tr>
