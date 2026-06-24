@@ -6,6 +6,7 @@ import { assertRoute } from "@/lib/route-guard";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
+import { FeatureEmptyState } from "@/components/onboarding/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -126,7 +127,7 @@ export default async function CertificatesPage({
           <ResponsiveTable
             rows={certs}
             getRowKey={(c) => c.id}
-            emptyMessage="No certificates yet."
+            emptyMessage={<FeatureEmptyState feature="/certificates" />}
             columns={[
               {
                 key: "rider",

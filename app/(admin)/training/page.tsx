@@ -6,6 +6,7 @@ import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { startOfTodayForCentre } from "@/lib/centre-tz";
 import { can } from "@/lib/permissions";
+import { FeatureEmptyState } from "@/components/onboarding/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -105,7 +106,7 @@ export default async function TrainingPage() {
           <ResponsiveTable
             rows={certs}
             getRowKey={(c) => c.id}
-            emptyMessage="No certifications recorded yet."
+            emptyMessage={<FeatureEmptyState feature="/training" />}
             columns={[
               {
                 key: "staff",

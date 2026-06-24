@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { LogOut, Phone } from "lucide-react";
+import { LogOut, Phone, HelpCircle } from "lucide-react";
 import type { SessionPayload } from "@/lib/auth";
 import { CommandPalette } from "./cmdk";
 import { NotificationsDropdown } from "./notifications-dropdown";
@@ -69,6 +69,14 @@ export function TopBar({
           <CommandPalette />
           <ThemeToggle />
           <NotificationsDropdown initialUnread={unreadCount} />
+          <Link
+            href="/help"
+            className="grid h-9 w-9 place-items-center rounded-md hover:bg-accent/10"
+            title="Help & guide"
+            aria-label="Help & guide"
+          >
+            <HelpCircle className="h-5 w-5" />
+          </Link>
           <Link href="/account" className="flex items-center gap-2 text-right text-sm hover:underline" title="Account settings">
             {photoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element

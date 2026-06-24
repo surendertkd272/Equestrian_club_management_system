@@ -1,10 +1,17 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { getSession } from "@/lib/auth";
+import { isRole } from "@/lib/roles";
+import { getFeaturesForSession } from "@/lib/features-gate";
+import { buildRoleGuide, profileFor, PORTAL_ROLES, type RoleProfile, type GuideGroup } from "@/lib/onboarding/role-guide";
 
 export const metadata = {
   title: "Help · Equiwings",
   description: "How-to guides and FAQs for using Equiwings.",
 };
+
+// Reads the signed-in user's cookie to tailor the guide → dynamic render.
+export const dynamic = "force-dynamic";
 
 // Public help index. Articles live as static MDX/markdown files at
 // /help/<slug>/page.tsx; this is the landing page that organises them
@@ -53,7 +60,18 @@ const SECTIONS = [
   },
 ];
 
-export default function HelpIndex() {
+export default async function HelpIndex() {
+  // Tailor the top of the page to the signed-in user's role. Logged-out
+  // visitors just see the general how-to articles below.
+  const session = await getSession();
+  let guide: { profile: RoleProfile; portalNote?: string; groups: GuideGroup[] } | null = null;
+  if (session && isRole(session.role)) {
+    const role = session.role;
+    const portalNote = PORTAL_ROLES[role];
+    const groups = portalNote ? [] : buildRoleGuide(role, await getFeaturesForSession(session));
+    guide = { profile: profileFor(role), portalNote, groups };
+  }
+
   return (
     <main className="min-h-screen bg-muted/40">
       <header className="border-b bg-card">
@@ -76,6 +94,45 @@ export default function HelpIndex() {
             we read every message.
           </p>
         </div>
+
+        {guide && (
+          <div className="mt-10">
+            <h2 className="text-2xl font-bold">Your guide · {guide.profile.title}</h2>
+            <p className="mt-1 text-muted-foreground">{guide.profile.tagline}</p>
+
+            {guide.portalNote ? (
+              <Card className="mt-4 border bg-card">
+                <CardContent className="py-5 text-sm text-muted-foreground">{guide.portalNote}</CardContent>
+              </Card>
+            ) : (
+              <div className="mt-4 grid gap-6 md:grid-cols-2">
+                {guide.groups.map((g) => (
+                  <Card key={g.group} className="border bg-card">
+                    <CardHeader>
+                      <CardTitle className="text-base">{g.group}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-3 text-sm">
+                        {g.items.map((it) => (
+                          <li key={it.href}>
+                            <Link href={it.href} className="font-medium hover:text-primary">{it.label}</Link>
+                            <div className="text-muted-foreground">{it.blurb}</div>
+                            {it.help && <div className="mt-0.5 text-xs text-muted-foreground">{it.help}</div>}
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-12 border-t pt-8">
+              <h2 className="text-2xl font-bold">General how-to articles</h2>
+              <p className="mt-1 text-muted-foreground">Step-by-step guides for common tasks.</p>
+            </div>
+          </div>
+        )}
 
         <div className="mt-10 grid gap-6 md:grid-cols-2">
           {SECTIONS.map((section) => (
