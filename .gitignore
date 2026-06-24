@@ -20,3 +20,6 @@ claude-skills
 # Artifacts generated from Exam_Levels/*.pdf by pdftoppm/pdftotext
 Exam_Levels/*.png
 Exam_Levels/*.txt
+
+# Generated user-manual PDFs — regenerate from the .md sources, don't version the binaries
+docs/user-manuals/pdf/
