@@ -1,14 +1,18 @@
 // Personal "Getting started" activation checklist — role-aware first tasks for
 // a new staff member, shown on their dashboard until done or dismissed.
 //
-// Scope is deliberate: this complements (does NOT duplicate) the existing
-// auto-detected "Finish setting up your centre" SetupChecklist, which already
-// serves SUPER_ADMIN / ADMIN / CENTRE_MANAGER. So those admin roles return []
-// here. Portal roles (RIDER/PARENT/SCHOOL_ADMINISTRATOR) and INSPECTION_OFFICER
-// aren't in the staff dashboard, so they get nothing too. Everyone else gets a
-// short, role-specific starter list.
+// Scope is deliberate. SUPER_ADMIN and CENTRE_MANAGER already get the existing
+// auto-detected "Finish setting up your centre" SetupChecklist (gated to those
+// two roles in dashboard/page.tsx), so they return [] here. ADMIN — a single,
+// experienced delegated HQ operator — intentionally gets no starter card
+// either. Portal roles (RIDER/PARENT/SCHOOL_ADMINISTRATOR) and INSPECTION_OFFICER
+// aren't in the staff dashboard. Everyone else gets a short, role-specific list,
+// feature-gated to what the club has enabled — the same way the sidebar + Help
+// guide are.
 
 import type { Role } from "@/lib/roles";
+import type { FeatureKey } from "@/lib/features";
+import { NAV } from "@/components/shell/sidebar-nav";
 
 export type ChecklistTask = {
   key: string;
@@ -76,8 +80,17 @@ const STAFF_TASKS: Partial<Record<Role, ChecklistTask[]>> = {
  * Returns [] for roles that shouldn't see this card (admins, portal roles,
  * inspection officer) so the card simply doesn't render for them.
  */
-export function buildChecklist(role: Role): ChecklistTask[] {
+// href → required feature (if any), derived from the sidebar so the checklist
+// hides tasks pointing at modules the club hasn't enabled — matching exactly
+// what the user can navigate to.
+const FEATURE_BY_HREF = new Map<string, FeatureKey | undefined>();
+for (const g of NAV) for (const it of g.items) FEATURE_BY_HREF.set(it.href, it.feature);
+
+export function buildChecklist(role: Role, features: ReadonlySet<FeatureKey>): ChecklistTask[] {
   const roleTasks = STAFF_TASKS[role];
   if (!roleTasks) return [];
-  return [...UNIVERSAL, ...roleTasks];
+  return [...UNIVERSAL, ...roleTasks].filter((t) => {
+    const feat = FEATURE_BY_HREF.get(t.href.split("?")[0]);
+    return !feat || features.has(feat);
+  });
 }

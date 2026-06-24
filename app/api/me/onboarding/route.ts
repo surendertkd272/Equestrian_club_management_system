@@ -16,7 +16,7 @@ type OnboardingState = {
 };
 
 function readState(value: unknown): OnboardingState {
-  return value && typeof value === "object" ? (value as OnboardingState) : {};
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as OnboardingState) : {};
 }
 
 export async function GET() {
@@ -46,13 +46,26 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const current = await prisma.user.findUnique({ where: { id: session.userId }, select: { onboardingJson: true } });
-  const next = readState(current?.onboardingJson);
   const d = parsed.data;
-  if (d.tourCompleted) next.tourCompletedAt = new Date().toISOString();
-  if (d.checklist) next.checklist = { ...(next.checklist ?? {}), ...d.checklist };
-  if (d.dismissChecklist) next.checklistDismissedAt = new Date().toISOString();
+  const userId = session.userId;
+  const now = new Date().toISOString();
 
-  await prisma.user.update({ where: { id: session.userId }, data: { onboardingJson: next } });
-  return NextResponse.json({ ok: true, onboarding: next });
+  // Apply each field with an atomic jsonb merge so overlapping PATCHes (e.g. the
+  // auto-tour finishing while a checklist item is ticked) can't clobber one
+  // another. Postgres row-locks the UPDATE, so `||` / jsonb_set read the latest
+  // committed value: top-level keys shallow-merge via `||`; the nested checklist
+  // deep-merges so prior ticks survive. (These raw writes still carry the RLS
+  // tenant GUC — the prisma client extension wraps $executeRaw too.)
+  if (d.tourCompleted) {
+    await prisma.$executeRaw`UPDATE "User" SET "onboardingJson" = COALESCE("onboardingJson", '{}'::jsonb) || jsonb_build_object('tourCompletedAt', ${now}::text) WHERE id = ${userId}`;
+  }
+  if (d.dismissChecklist) {
+    await prisma.$executeRaw`UPDATE "User" SET "onboardingJson" = COALESCE("onboardingJson", '{}'::jsonb) || jsonb_build_object('checklistDismissedAt', ${now}::text) WHERE id = ${userId}`;
+  }
+  if (d.checklist) {
+    await prisma.$executeRaw`UPDATE "User" SET "onboardingJson" = jsonb_set(COALESCE("onboardingJson", '{}'::jsonb), '{checklist}', COALESCE("onboardingJson" -> 'checklist', '{}'::jsonb) || ${JSON.stringify(d.checklist)}::jsonb) WHERE id = ${userId}`;
+  }
+
+  const fresh = await prisma.user.findUnique({ where: { id: userId }, select: { onboardingJson: true } });
+  return NextResponse.json({ ok: true, onboarding: readState(fresh?.onboardingJson) });
 }

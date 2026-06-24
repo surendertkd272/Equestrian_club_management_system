@@ -95,7 +95,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     obState.checklist && typeof obState.checklist === "object" && !Array.isArray(obState.checklist)
       ? (obState.checklist as Record<string, boolean>)
       : {};
-  const checklistTasks = buildChecklist(session.role);
+  const checklistTasks = buildChecklist(session.role, features);
 
   return (
     <div className="flex min-h-screen">

@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import { buildTourSteps } from "@/lib/onboarding/tour";
 
 // Mounted once in the admin shell. Fires the first-run guided tour on the
-// Dashboard (when the user has never completed it) and on demand via a
-// `?tour=1` query param (the Help Center's "replay" link lands on
-// /dashboard?tour=1, which remounts this host). Everything is wrapped so a
-// failure is silent — the tour must never break a page.
+// Dashboard (when the user has never completed it) and on demand via `?tour=1`
+// — both the Help Center link (/dashboard?tour=1, a cross-layout navigation)
+// and the in-dashboard checklist tile (a query-only navigation). Because this
+// host lives in the persistent (admin) layout, the query-only case is handled
+// reactively via useSearchParams rather than a remount. Everything is wrapped
+// so a failure is silent — the tour must never break a page.
 export function TourHost({
   roleTitle,
   userName,
@@ -21,26 +24,34 @@ export function TourHost({
   topLabels: string[];
   autoStart: boolean;
 }) {
-  const ran = useRef(false);
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const firstRunFired = useRef(false);
+  const firing = useRef(false);
+
+  const onDashboard = pathname === "/dashboard";
+  const replay = searchParams.get("tour") === "1";
 
   useEffect(() => {
-    if (ran.current) return;
     try {
-      const params = new URLSearchParams(window.location.search);
-      const isReplay = params.get("tour") === "1";
-      const onDashboard = window.location.pathname === "/dashboard";
-      if (!isReplay && !(autoStart && onDashboard)) return;
-      ran.current = true;
+      // Replay is gated to the dashboard too, so a stray ?tour=1 on another
+      // page can't pop the tour out of context.
+      const shouldReplay = replay && onDashboard;
+      const shouldAuto = autoStart && onDashboard && !firstRunFired.current;
+      if (!shouldReplay && !shouldAuto) return;
+      if (firing.current) return;
+      firing.current = true;
+      if (shouldAuto) firstRunFired.current = true;
 
       const isMobile = window.innerWidth < 768;
       const steps = buildTourSteps({ roleTitle, userName, topLabels, isMobile })
-        // Drop spotlight steps whose target isn't on the page; keep centered steps.
         .filter((s) => !s.target || document.querySelector(s.target))
-        .map((s) => ({
-          ...(s.target ? { element: s.target } : {}),
-          popover: { title: s.title, description: s.body },
-        }));
-      if (steps.length === 0) return;
+        .map((s) => ({ ...(s.target ? { element: s.target } : {}), popover: { title: s.title, description: s.body } }));
+      if (steps.length === 0) {
+        firing.current = false;
+        return;
+      }
 
       const markDone = () => {
         fetch("/api/me/onboarding", {
@@ -48,10 +59,13 @@ export function TourHost({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ tourCompleted: true }),
         }).catch(() => {});
-        if (isReplay) {
-          const url = new URL(window.location.href);
-          url.searchParams.delete("tour");
-          window.history.replaceState({}, "", url.toString());
+        firing.current = false;
+        // Strip ?tour=1 so it doesn't linger / re-fire on the next render.
+        if (replay) {
+          const params = new URLSearchParams(Array.from(searchParams.entries()));
+          params.delete("tour");
+          const qs = params.toString();
+          router.replace(qs ? `${pathname}?${qs}` : pathname);
         }
       };
 
@@ -67,9 +81,9 @@ export function TourHost({
       });
       d.drive();
     } catch {
-      // Never let the tour break the app.
+      firing.current = false;
     }
-  }, [roleTitle, userName, topLabels, autoStart]);
+  }, [replay, onDashboard, autoStart, roleTitle, userName, topLabels, pathname, searchParams, router]);
 
   return null;
 }
