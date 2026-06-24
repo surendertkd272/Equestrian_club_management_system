@@ -16,6 +16,8 @@ import { getFeaturesForSession, getOrgIdForSession } from "@/lib/features-gate";
 import { getStatusForSession } from "@/lib/readonly-gate";
 import { parseEmergencyContacts } from "@/lib/json-narrow";
 import { startOfDayInTz } from "@/lib/tz";
+import { buildRoleGuide, profileFor } from "@/lib/onboarding/role-guide";
+import { TourHost } from "@/components/onboarding/tour-host";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -50,7 +52,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     prisma.notification.count({ where: { userId: session.userId, readAt: null } }),
     getFeaturesForSession(session),
     getStatusForSession(session),
-    prisma.user.findUnique({ where: { id: session.userId }, select: { photoUrl: true } }),
+    prisma.user.findUnique({ where: { id: session.userId }, select: { photoUrl: true, onboardingJson: true } }),
     prisma.employeeOnboarding.findFirst({ where: { createdUserId: session.userId, status: "approved" } }),
   ]);
 
@@ -73,6 +75,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // read this via scopeCentre() — the cookie is the single source of truth.
   const hqCentreCookie = cookies().get("ew_hq_centre")?.value;
   const hqCentreFilter = hqCentreCookie && hqCentreCookie !== "all" ? hqCentreCookie : null;
+
+  // First-run guided tour fires when the user has never completed it. The
+  // "you'll mostly use…" line is role-aware, drawn from the same nav data.
+  const ob = userPhoto?.onboardingJson;
+  const tourDone = !!(ob && typeof ob === "object" && !Array.isArray(ob) && (ob as Record<string, unknown>).tourCompletedAt);
+  const tourTopLabels = buildRoleGuide(session.role, features)
+    .flatMap((g) => g.items)
+    .filter((it) => it.href !== "/dashboard" && it.href !== "/notifications")
+    .slice(0, 3)
+    .map((it) => it.label);
 
   return (
     <div className="flex min-h-screen">
@@ -105,6 +117,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <ConfirmHost />
         <PromptHost />
         <PwaInstallPrompt />
+        <TourHost
+          roleTitle={profileFor(session.role).title}
+          userName={session.name}
+          topLabels={tourTopLabels}
+          autoStart={!tourDone}
+        />
       </div>
     </div>
   );

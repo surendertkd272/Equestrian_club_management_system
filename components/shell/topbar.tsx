@@ -71,6 +71,7 @@ export function TopBar({
           <NotificationsDropdown initialUnread={unreadCount} />
           <Link
             href="/help"
+            data-tour="help"
             className="grid h-9 w-9 place-items-center rounded-md hover:bg-accent/10"
             title="Help & guide"
             aria-label="Help & guide"

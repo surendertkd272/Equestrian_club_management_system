@@ -135,6 +135,7 @@ export function Sidebar({
         type="button"
         onClick={() => setMobileOpen(true)}
         aria-label="Open menu"
+        data-tour="menu-button"
         className="fixed bottom-4 right-4 z-30 inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg md:hidden"
       >
         <Menu className="h-5 w-5" />
@@ -150,6 +151,7 @@ export function Sidebar({
       )}
 
       <aside
+        data-tour="sidebar"
         className={cn(
           "border-r bg-card",
           // Mobile: fixed slide-in drawer.

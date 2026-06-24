@@ -689,6 +689,10 @@ model User {
   //     quietHoursStart: "22:00", quietHoursEnd: "07:00" }
   // Missing fields fall back to safe defaults in lib/notify-prefs.ts.
   notifPrefsJson Json?
+  // In-app onboarding state — guided tour + (future) activation checklist.
+  // JSON shape: { tourCompletedAt?: ISO string, checklist?: { [key]: bool },
+  // dismissedTips?: string[] }. Null = brand-new user (first-run tour fires).
+  onboardingJson Json?
   // Avatar URL, served from the upload route. Empty falls back to initials.
   photoUrl     String?
   createdAt    DateTime @default(now())

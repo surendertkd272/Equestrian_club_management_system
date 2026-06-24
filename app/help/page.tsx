@@ -99,6 +99,11 @@ export default async function HelpIndex() {
           <div className="mt-10">
             <h2 className="text-2xl font-bold">Your guide · {guide.profile.title}</h2>
             <p className="mt-1 text-muted-foreground">{guide.profile.tagline}</p>
+            {!guide.portalNote && (
+              <Link href="/dashboard?tour=1" className="mt-2 inline-block text-sm font-medium text-primary hover:underline">
+                ▶ Take the 30-second guided tour
+              </Link>
+            )}
 
             {guide.portalNote ? (
               <Card className="mt-4 border bg-card">
