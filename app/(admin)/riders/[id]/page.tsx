@@ -82,7 +82,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-4">
           {rider.photoUrl ? (
             <img
@@ -105,7 +105,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {can(session.role, "rider.write") && !isReadOnly(session.role) && (
             <a
               href={`/riders/${rider.id}/edit`}

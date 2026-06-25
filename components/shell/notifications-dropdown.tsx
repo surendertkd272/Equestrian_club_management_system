@@ -112,7 +112,7 @@ export function NotificationsDropdown({ initialUnread }: { initialUnread: number
                 {unread > 0 && (
                   <button
                     onClick={markAll}
-                    className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] hover:bg-muted"
+                    className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px] hover:bg-muted"
                     title="Mark all read"
                   >
                     <CheckCheck className="h-3 w-3" /> Mark all read
@@ -139,7 +139,7 @@ export function NotificationsDropdown({ initialUnread }: { initialUnread: number
                   <p className="text-muted-foreground">Couldn’t load notifications.</p>
                   <button
                     onClick={() => setReloadKey((k) => k + 1)}
-                    className="mt-2 rounded border px-2 py-0.5 text-xs hover:bg-muted"
+                    className="mt-2 rounded border px-2 py-1 text-xs hover:bg-muted"
                   >
                     Retry
                   </button>
@@ -171,10 +171,10 @@ export function NotificationsDropdown({ initialUnread }: { initialUnread: number
                     </div>
                     <button
                       onClick={() => markOne(n.id)}
-                      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                      className="rounded p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
                       title="Mark read" aria-label="Mark read"
                     >
-                      <Check className="h-3 w-3" />
+                      <Check className="h-4 w-4" />
                     </button>
                   </div>
                   {n.link && (

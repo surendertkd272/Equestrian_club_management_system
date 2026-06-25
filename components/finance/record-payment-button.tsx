@@ -78,7 +78,7 @@ export function RecordPaymentButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1 rounded border bg-card px-2 py-0.5 text-xs hover:bg-muted"
+        className="inline-flex items-center gap-1 rounded border bg-card px-2.5 py-1.5 text-xs hover:bg-muted"
       >
         <Wallet className="h-3 w-3" /> {label}
       </button>

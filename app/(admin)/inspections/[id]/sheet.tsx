@@ -96,14 +96,14 @@ export function InspectionSheet({
               <li key={it.id} className="px-3 py-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="min-w-[180px] flex-1 text-sm">{it.label}</span>
-                  <div className="flex gap-1">
+                  <div className="flex gap-2">
                     {RESULTS.map((r) => (
                       <button
                         key={r.key}
                         type="button"
                         disabled={completed || busy === it.id}
                         onClick={() => mark(it.id, r.key, it.remarks ?? undefined)}
-                        className={`rounded-md border px-2 py-1 text-xs font-medium transition disabled:opacity-60 ${
+                        className={`rounded-md border px-3 py-1.5 text-sm font-medium transition disabled:opacity-60 ${
                           it.result === r.key ? r.cls : "border-input bg-background text-muted-foreground hover:bg-muted"
                         }`}
                       >
