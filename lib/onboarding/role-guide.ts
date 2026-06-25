@@ -14,7 +14,7 @@ export type RoleProfile = {
   tagline: string;
 };
 
-export type GuideItem = { href: string; label: string; blurb: string; help?: string };
+export type GuideItem = { href: string; label: string; blurb: string; help?: string; icon: string };
 export type GuideGroup = { group: string; items: GuideItem[] };
 
 // Per-role intro shown at the top of the Help Center. Record<Role,...> forces
@@ -64,7 +64,7 @@ export function buildRoleGuide(role: Role, features: ReadonlySet<FeatureKey>): G
       group: g.group,
       items: g.items.map((it) => {
         const guide = FEATURE_GUIDES[it.href];
-        return { href: it.href, label: it.label, blurb: guide?.blurb ?? "", help: guide?.help };
+        return { href: it.href, label: it.label, blurb: guide?.blurb ?? "", help: guide?.help, icon: it.iconName };
       }),
     }))
     .filter((g) => g.items.length > 0);

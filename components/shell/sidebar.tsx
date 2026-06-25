@@ -8,88 +8,7 @@ import type { Role } from "@/lib/roles";
 import type { FeatureKey } from "@/lib/features";
 import { filterSidebarNav } from "./sidebar-nav";
 import { Menu, X } from "lucide-react";
-import { Horse } from "@/components/icons/horse";
-import {
-  LayoutDashboard,
-  Users,
-  CalendarCheck2,
-  CalendarClock,
-  CalendarDays,
-  TrendingUp,
-  LineChart,
-  ClipboardList,
-  Trophy,
-  Users2,
-  ListChecks,
-  Package,
-  Pill,
-  CalendarRange,
-  Receipt,
-  FileText,
-  Award,
-  Bell,
-  Shield,
-  UserCheck,
-  CalendarX,
-  Building2,
-  UserCog,
-  Syringe,
-  Hammer,
-  Bandage,
-  GraduationCap,
-  FileCheck,
-  Building,
-  Flag,
-  ShoppingCart,
-  MessageCircle,
-  DoorOpen,
-  Boxes,
-  QrCode,
-} from "lucide-react";
-
-// Icon registry — referenced by name from sidebar-nav.ts so that file stays
-// JSX-free and importable from tests/RSC contexts.
-const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  LayoutDashboard,
-  Users,
-  CalendarCheck2,
-  CalendarClock,
-  CalendarDays,
-  TrendingUp,
-  LineChart,
-  ClipboardList,
-  Trophy,
-  Users2,
-  ListChecks,
-  Package,
-  Pill,
-  CalendarRange,
-  Receipt,
-  FileText,
-  Award,
-  Bell,
-  Shield,
-  UserCheck,
-  CalendarX,
-  Building2,
-  UserCog,
-  Syringe,
-  Hammer,
-  GraduationCap,
-  FileCheck,
-  Building,
-  Flag,
-  ShoppingCart,
-  MessageCircle,
-  DoorOpen,
-  Boxes,
-  QrCode,
-  // Custom horse silhouette (no equivalent in lucide-react).
-  Horse,
-  // lucide-react exports the icon as `Bandage`; sidebar-nav.ts references it
-  // as `BandageIcon` for clarity in nav definitions.
-  BandageIcon: Bandage,
-};
+import { NAV_ICONS } from "./nav-icons";
 
 export function Sidebar({
   role,
@@ -204,7 +123,7 @@ export function Sidebar({
             <ul className="space-y-0.5">
               {group.items.map((it) => {
                 const active = it.href === activeHref;
-                const Icon = ICONS[it.iconName];
+                const Icon = NAV_ICONS[it.iconName];
                 return (
                   <li key={it.href}>
                     <Link

@@ -73,6 +73,7 @@ export function TourHost({
         showProgress: true,
         allowClose: true,
         overlayOpacity: 0.6,
+        popoverClass: "ew-tour", // themed in globals.css to match the app
         nextBtnText: "Next",
         prevBtnText: "Back",
         doneBtnText: "Got it",
