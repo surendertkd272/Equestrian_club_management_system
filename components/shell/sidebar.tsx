@@ -102,7 +102,7 @@ export function Sidebar({
             </picture>
             <div>
               <div className="text-sm font-bold leading-none">Equiwings</div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Central Admin</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Central admin</div>
             </div>
           </div>
           <button

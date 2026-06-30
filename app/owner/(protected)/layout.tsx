@@ -22,7 +22,7 @@ export default async function OwnerProtectedLayout({ children }: { children: Rea
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-6">
             <Link href="/owner" className="text-sm font-semibold tracking-tight">
-              Platform Owner
+              Platform owner
             </Link>
             <nav className="flex items-center gap-4 text-sm text-muted-foreground">
               <Link href="/owner" className="hover:text-foreground">Dashboard</Link>

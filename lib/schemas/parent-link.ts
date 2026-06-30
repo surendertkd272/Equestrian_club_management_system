@@ -19,7 +19,7 @@ export const createParentLinkSchema = z
       .optional(),
   })
   .refine((d) => Boolean(d.parentUserId) !== Boolean(d.parent), {
-    message: "Provide exactly one of parentUserId or parent",
+    message: "Either link an existing parent account or enter new parent details — not both.",
     path: ["parentUserId"],
   });
 

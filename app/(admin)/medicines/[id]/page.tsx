@@ -117,7 +117,7 @@ export default async function MedicineDetail({ params }: { params: { id: string 
               <dd className="col-span-2 capitalize">{med.category}</dd>
               <dt className="text-muted-foreground">Batch #</dt>
               <dd className="col-span-2 font-mono text-xs">{med.batchNo}</dd>
-              <dt className="text-muted-foreground">Mfg / Exp</dt>
+              <dt className="text-muted-foreground">Mfg / exp</dt>
               <dd className="col-span-2">
                 {med.mfgDate ? formatDate(med.mfgDate) : "—"} → {formatDate(med.expDate)}
                 {!isExpired && <span className="ml-2 text-xs text-muted-foreground">({days}d)</span>}

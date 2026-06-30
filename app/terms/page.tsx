@@ -71,7 +71,7 @@ export default function TermsPage() {
         <p>
           We use industry-standard safeguards (HTTPS in transit, encryption
           at rest, hashed passwords, two-factor authentication for owner
-          access, principal-of-least-privilege roles). You are responsible
+          access, principle-of-least-privilege roles). You are responsible
           for safeguarding your own credentials.
         </p>
 

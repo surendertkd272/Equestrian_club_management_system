@@ -89,10 +89,10 @@ type StepKey = "personal" | "address" | "parents" | "medical" | "parental-consen
 const STEP_TITLES: Record<StepKey, string> = {
   personal: "Personal",
   address: "Address",
-  parents: "Parents & Emergency",
+  parents: "Parents & emergency",
   medical: "Medical",
-  "parental-consent": "Parental Consent",
-  indemnity: "Indemnity E-sign",
+  "parental-consent": "Parental consent",
+  indemnity: "Indemnity e-sign",
   submitted: "Submitted",
 };
 
@@ -471,7 +471,7 @@ function ParentalConsentStep({
         </div>
 
         <div className="max-h-56 overflow-y-auto rounded-md border bg-muted p-4 text-sm leading-relaxed">
-          <p className="font-semibold">Parental / Guardian Consent (DPDPA §9)</p>
+          <p className="font-semibold">Parental / guardian consent (DPDPA §9)</p>
           <p className="mt-2 whitespace-pre-line">{PARENTAL_CONSENT_TEXT}</p>
         </div>
 
@@ -512,7 +512,7 @@ function IndemnityStep({
     <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
       <div className="space-y-4">
         <div className="max-h-64 overflow-y-auto rounded-md border bg-muted p-4 text-sm leading-relaxed">
-          <p className="font-semibold">Horse Riding Indemnity & Liability Release</p>
+          <p className="font-semibold">Horse riding indemnity & liability release</p>
           <p className="mt-2">
             I acknowledge that horse riding is an inherently risky activity involving large unpredictable animals.
             I voluntarily assume all risks of injury, including but not limited to falls, kicks, bites, and equipment

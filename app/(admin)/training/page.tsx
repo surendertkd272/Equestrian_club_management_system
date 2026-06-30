@@ -57,7 +57,7 @@ export default async function TrainingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Staff Training & Certifications</h1>
+        <h1 className="text-2xl font-bold">Staff training & certifications</h1>
         <p className="text-sm text-muted-foreground">
           Internal courses your club runs, plus external certifications staff bring in
           (BHS, EFI, vet-tech, first-aid). Expiry-tracked so you don't get caught with

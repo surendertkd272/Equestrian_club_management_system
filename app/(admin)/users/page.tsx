@@ -150,7 +150,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
 
       <Card>
         <CardHeader>
-          <CardTitle>Search & Filter</CardTitle>
+          <CardTitle>Search & filter</CardTitle>
         </CardHeader>
         <CardContent>
           <UserSearchBar

@@ -17,7 +17,7 @@ export const createBatchShiftSchema = z.object({
   effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   reason: z.string().max(500).optional(),
 }).refine((d) => d.kind !== "single_day" || !!d.shiftDate, {
-  message: "Single-day shifts need a shiftDate.",
+  message: "Single-day shifts need a shift date.",
   path: ["shiftDate"],
 });
 

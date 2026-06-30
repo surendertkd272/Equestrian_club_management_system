@@ -71,7 +71,7 @@ export default async function RiderStatement({ params }: { params: { riderId: st
       <Card>
         <CardHeader>
           <CardTitle>
-            {rider.firstName} {rider.lastName} · Statement
+            {rider.firstName} {rider.lastName} · statement
           </CardTitle>
         </CardHeader>
         <CardContent>

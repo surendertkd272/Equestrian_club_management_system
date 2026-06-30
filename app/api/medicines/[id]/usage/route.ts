@@ -159,7 +159,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (newQty <= medicine.reorderThreshold && medicine.qty > medicine.reorderThreshold) {
     await notifyCentreManager(medicine.centreId, {
       type: "medicine.low_stock",
-      title: `Low stock: ${medicine.name}`,
+      title: `Low stock · ${medicine.name}`,
       body: `Stock dropped to ${newQty} (reorder at ${medicine.reorderThreshold}). Place a PO.`,
       link: `/medicines/${medicine.id}`,
       payload: { medicineId: medicine.id, qty: newQty },

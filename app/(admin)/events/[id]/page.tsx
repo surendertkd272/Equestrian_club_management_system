@@ -106,7 +106,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
             )}
             {ev.externalHostOrg && (
               <>
-                <dt className="text-muted-foreground">Host organisation</dt>
+                <dt className="text-muted-foreground">Hosting organisation</dt>
                 <dd className="md:col-span-3">{ev.externalHostOrg}</dd>
               </>
             )}

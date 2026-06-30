@@ -147,7 +147,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
             <dl className="grid grid-cols-3 gap-y-2 text-sm">
               <dt className="text-muted-foreground">Breed</dt>
               <dd className="col-span-2">{horse.breed ?? "—"}</dd>
-              <dt className="text-muted-foreground">Sex / Age</dt>
+              <dt className="text-muted-foreground">Sex / age</dt>
               <dd className="col-span-2">
                 {horse.sex ?? "—"} {horse.ageYears !== null ? `· ${horse.ageYears}y` : ""}
               </dd>

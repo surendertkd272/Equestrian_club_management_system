@@ -33,7 +33,7 @@ export default async function StudentHome() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Your Portal Isn't Set Up Yet</CardTitle>
+          <CardTitle>Your portal isn't set up yet</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           Your account isn't linked to a rider profile. Please contact your centre — a
@@ -98,7 +98,7 @@ export default async function StudentHome() {
       {detail && detail.notifications.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>What's New</CardTitle>
+            <CardTitle>What's new</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2 text-sm">
@@ -154,7 +154,7 @@ export default async function StudentHome() {
 
       <Card>
         <CardHeader>
-          <CardTitle>My Class</CardTitle>
+          <CardTitle>My class</CardTitle>
         </CardHeader>
         <CardContent className="text-sm">
           {rider.batch ? (
@@ -207,7 +207,7 @@ export default async function StudentHome() {
       {detail && detail.upcomingLessons.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Upcoming Lessons (next 2 weeks)</CardTitle>
+            <CardTitle>Upcoming lessons (next 2 weeks)</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="divide-y text-sm">
@@ -232,7 +232,7 @@ export default async function StudentHome() {
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Recent Attendance</CardTitle>
+              <CardTitle>Recent attendance</CardTitle>
             </CardHeader>
             <CardContent>
               {detail.attendance.length === 0 ? (
@@ -288,7 +288,7 @@ export default async function StudentHome() {
 
           <Card>
             <CardHeader>
-              <CardTitle>My Exams</CardTitle>
+              <CardTitle>My exams</CardTitle>
             </CardHeader>
             <CardContent>
               {detail.exams.length === 0 ? (
@@ -328,7 +328,7 @@ export default async function StudentHome() {
 
           <Card>
             <CardHeader>
-              <CardTitle>My Certificates</CardTitle>
+              <CardTitle>My certificates</CardTitle>
             </CardHeader>
             <CardContent>
               {detail.certificates.length === 0 ? (

@@ -92,7 +92,7 @@ export default async function RequisitionsPage() {
         </div>
         <Button asChild>
           <Link href="/requisitions/new">
-            <Plus className="mr-1 h-4 w-4" /> New Requisition
+            <Plus className="mr-1 h-4 w-4" /> New requisition
           </Link>
         </Button>
       </div>
@@ -115,7 +115,7 @@ export default async function RequisitionsPage() {
         <Card>
           <CardHeader>
             <CardTitle>
-              Pending your accountant signoff{" "}
+              Pending your accountant sign-off{" "}
               <span className="text-sm font-normal text-muted-foreground">({accQueue.length})</span>
             </CardTitle>
           </CardHeader>

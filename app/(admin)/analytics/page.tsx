@@ -129,7 +129,7 @@ export default async function AnalyticsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Performance Analytics</h1>
+        <h1 className="text-2xl font-bold">Performance analytics</h1>
         <p className="text-sm text-muted-foreground">
           {session.role === "SUPER_ADMIN" ? "HQ cross-centre view." : "Centre view."} Last 6 months of trends.
         </p>

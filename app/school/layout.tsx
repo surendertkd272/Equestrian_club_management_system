@@ -20,7 +20,7 @@ export default async function SchoolLayout({ children }: { children: React.React
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/equiwings-logo.png" alt="Equiwings" className="h-8 w-auto" />
             <div>
-              <div className="text-sm font-semibold">School Portal</div>
+              <div className="text-sm font-semibold">School portal</div>
               <div className="text-xs text-muted-foreground">{session.name}</div>
             </div>
           </div>

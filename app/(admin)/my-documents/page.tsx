@@ -17,7 +17,7 @@ export default async function MyDocumentsPage() {
   if (!ob) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold">My Documents</h1>
+        <h1 className="text-2xl font-bold">My documents</h1>
         <Card>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
             You have no pending onboarding documents.
@@ -35,7 +35,7 @@ export default async function MyDocumentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">My Documents</h1>
+        <h1 className="text-2xl font-bold">My documents</h1>
         <p className="text-sm text-muted-foreground">
           Complete the documents and details below to finish your registration.
         </p>

@@ -42,7 +42,7 @@ export default async function StaffAttendancePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Staff Attendance</h1>
+        <h1 className="text-2xl font-bold">Staff attendance</h1>
         <p className="text-sm text-muted-foreground">Last 30 days · {recent.length} rows</p>
       </div>
 
@@ -57,7 +57,7 @@ export default async function StaffAttendancePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Rows</CardTitle>
+          <CardTitle>Recent rows</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveTable

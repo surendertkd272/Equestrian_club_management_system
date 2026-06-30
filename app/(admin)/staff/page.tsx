@@ -65,13 +65,13 @@ export default async function StaffPage({
           {CAN_ONBOARD.includes(session.role) && (
             <Button asChild variant="outline">
               <Link href="/staff/onboarding">
-                <Link2 className="h-4 w-4" /> Onboard via Link
+                <Link2 className="h-4 w-4" /> Onboard via link
               </Link>
             </Button>
           )}
           <Button asChild>
             <Link href="/staff/new">
-              <Plus className="h-4 w-4" /> Add Staff
+              <Plus className="h-4 w-4" /> Add staff
             </Link>
           </Button>
         </div>
@@ -79,7 +79,7 @@ export default async function StaffPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>All Staff</CardTitle>
+          <CardTitle>All staff</CardTitle>
           <form className="mt-2 flex gap-2">
             <input
               type="search"

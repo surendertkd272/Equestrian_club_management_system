@@ -50,7 +50,7 @@ export default async function TeamsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Teams & Squads</h1>
+        <h1 className="text-2xl font-bold">Teams & squads</h1>
         <p className="text-sm text-muted-foreground">
           Named rider groups your club fields together — junior squad, senior show-jumping
           team, gymkhana side.

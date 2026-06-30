@@ -129,7 +129,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
                   </div>
                   <div className="flex items-center gap-2">
                     <Link href={`/lessons/${l.id}`} className="rounded border px-3 py-1 text-xs hover:bg-accent">
-                      Allocate / Edit
+                      Allocate / edit
                     </Link>
                     {can(session.role, "lesson.write") && (
                       <LessonDeleteButton

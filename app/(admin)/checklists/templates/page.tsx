@@ -21,7 +21,7 @@ export default async function ChecklistTemplatesPage() {
   if (!centreId) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Daily Checklist · Templates</h1>
+        <h1 className="text-2xl font-bold">Daily checklist · templates</h1>
         <Card>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
             Pick a centre from the top-bar filter to edit its templates.
@@ -53,7 +53,7 @@ export default async function ChecklistTemplatesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Daily Checklist · Templates</h1>
+        <h1 className="text-2xl font-bold">Daily checklist · templates</h1>
         <p className="text-sm text-muted-foreground">
           Edit the daily checks coaches see for <strong>{centre?.name ?? "this centre"}</strong>.
           Renaming an item preserves its identity (historic submissions keep their original wording);

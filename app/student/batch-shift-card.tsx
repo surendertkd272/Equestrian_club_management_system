@@ -84,7 +84,7 @@ export function BatchShiftCard({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle>Batch Shift Requests</CardTitle>
+          <CardTitle>Batch shift requests</CardTitle>
           <Button size="sm" variant="outline" onClick={() => setOpen((o) => !o)}>
             {open ? "Cancel" : "Request a shift"}
           </Button>

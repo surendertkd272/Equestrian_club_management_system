@@ -246,9 +246,9 @@ export default async function RiderProfile({ params }: { params: { id: string } 
                   </span>
                 )}
               </dd>
-              <dt className="text-muted-foreground">State Rider ID</dt>
+              <dt className="text-muted-foreground">State rider ID</dt>
               <dd className="font-mono text-xs">{rider.stateRiderId ?? "—"}</dd>
-              <dt className="text-muted-foreground">EFI Rider ID</dt>
+              <dt className="text-muted-foreground">EFI rider ID</dt>
               <dd className="font-mono text-xs">{rider.efiRiderId ?? "—"}</dd>
               <dt className="text-muted-foreground">Medical</dt>
               <dd>{rider.medicalNotes ?? "—"}</dd>

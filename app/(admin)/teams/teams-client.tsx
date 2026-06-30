@@ -55,7 +55,7 @@ export function TeamsClient({ canManage, riders }: { canManage: boolean; riders:
       </CardHeader>
       <CardContent>
         <div className="grid gap-2 sm:grid-cols-4">
-          <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Senior Show Jumping 2026" />
+          <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="Senior show jumping 2026" />
           <Input value={form.season} onChange={(e) => set("season", e.target.value)} placeholder="Season (2026)" />
           <Input value={form.discipline} onChange={(e) => set("discipline", e.target.value)} placeholder="Discipline (jumping, dressage…)" />
           <Button onClick={create} disabled={busy}>{busy ? "Creating…" : "+ Create"}</Button>

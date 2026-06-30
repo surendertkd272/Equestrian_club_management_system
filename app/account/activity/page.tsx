@@ -36,7 +36,7 @@ export default async function ActivityPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Account Activity</h1>
+        <h1 className="text-2xl font-bold">Account activity</h1>
         <p className="text-sm text-muted-foreground">
           Your last 50 sign-in events. If you see something you don't recognise, sign out everywhere
           and change your password.

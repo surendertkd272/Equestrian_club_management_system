@@ -68,7 +68,7 @@ export function BulkIssuePanel({
       <CardContent className="space-y-3">
         <div className="grid gap-3 md:grid-cols-3">
           <div>
-            <label className="text-xs uppercase text-muted-foreground">Source Kind</label>
+            <label className="text-xs uppercase text-muted-foreground">Source kind</label>
             <Select
               value={source}
               onChange={(e) => {

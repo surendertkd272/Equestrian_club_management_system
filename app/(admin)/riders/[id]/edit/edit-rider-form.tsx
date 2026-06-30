@@ -152,10 +152,10 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
             placeholder="/uploads/<file>"
           />
         </Field>
-        <Field label="State Rider ID">
+        <Field label="State rider ID">
           <Input value={state.stateRiderId} onChange={(e) => update("stateRiderId", e.target.value)} />
         </Field>
-        <Field label="EFI Rider ID">
+        <Field label="EFI rider ID">
           <Input value={state.efiRiderId} onChange={(e) => update("efiRiderId", e.target.value)} />
         </Field>
       </Section>

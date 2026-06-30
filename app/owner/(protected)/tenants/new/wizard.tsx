@@ -273,7 +273,7 @@ function Step1({
         >
           <option value="starter">Starter — 1 centre, basic ops</option>
           <option value="pro">Pro — up to 5 centres, parent + student portals</option>
-          <option value="enterprise">Enterprise — unlimited centres, exams + à-la-carte</option>
+          <option value="enterprise">Enterprise — unlimited centres, exams + à la carte</option>
         </select>
         <p className="mt-2 text-xs text-muted-foreground">
           {planFeatures.length} features will be enabled on creation.

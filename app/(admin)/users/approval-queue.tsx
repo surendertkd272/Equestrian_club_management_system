@@ -27,7 +27,7 @@ export function ApprovalQueue({ pending }: { pending: PendingUserDTO[] }) {
     <div className="rounded-md border-2 border-amber-300 bg-amber-50 p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="font-semibold text-amber-900">
-          Pending Approvals ({pending.length})
+          Pending approvals ({pending.length})
         </h3>
         <p className="text-xs text-amber-800">
           Staff who registered via an invite link and are waiting for you to activate.

@@ -84,7 +84,7 @@ export default async function EquipmentPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Tack &amp; Equipment</h1>
+          <h1 className="text-2xl font-bold">Tack &amp; equipment</h1>
           <p className="text-sm text-muted-foreground">
             {centre?.name ?? "Centre"} inventory. {lowCount > 0 && (
               <span className="text-rose-600">
@@ -138,11 +138,11 @@ export default async function EquipmentPage({
                     <tr>
                       <th className="pb-2">Item</th>
                       <th className="pb-2 w-16 text-center">Unused</th>
-                      <th className="pb-2 w-16 text-center">In Use</th>
-                      <th className="pb-2 w-16 text-center">For Repair</th>
+                      <th className="pb-2 w-16 text-center">In use</th>
+                      <th className="pb-2 w-16 text-center">For repair</th>
                       <th className="pb-2 w-16 text-center">Damaged</th>
                       <th className="pb-2 w-12 text-center">Total</th>
-                      <th className="pb-2 w-16 text-center">New Req</th>
+                      <th className="pb-2 w-16 text-center">New req</th>
                       <th className="pb-2 w-24">Owner</th>
                       <th className="pb-2 w-32">Comments</th>
                       <th className="pb-2 w-16">Reorder at</th>

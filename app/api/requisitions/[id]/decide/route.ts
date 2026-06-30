@@ -97,7 +97,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     await notifyMany(accountants.map((u) => u.id), {
       centreId: row.centreId,
       type: "requisition.pending_accountant",
-      title: "Requisition awaiting accountant signoff",
+      title: "Requisition awaiting accountant sign-off",
       body: `${session.name} (${session.role.replaceAll("_", " ").toLowerCase()}) approved a requisition for ₹${Math.round(row.totalEstimatedCost).toLocaleString("en-IN")}. Your turn.`,
       link: "/requisitions",
     });

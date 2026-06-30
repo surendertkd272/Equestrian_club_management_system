@@ -74,7 +74,7 @@ export default async function RequisitionPOPage({ params }: { params: { id: stri
           // Component can't bind an onClick directly, so we use a script.
           className="rounded-md bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground"
         >
-          Print / Save as PDF
+          Print / save as PDF
         </button>
         <script
           dangerouslySetInnerHTML={{
@@ -86,7 +86,7 @@ export default async function RequisitionPOPage({ params }: { params: { id: stri
       {/* Header band — vendor-facing letterhead */}
       <div className="mb-6 flex items-start justify-between border-b-2 border-black pb-4">
         <div>
-          <h1 className="text-2xl font-bold uppercase tracking-wide">Purchase Order</h1>
+          <h1 className="text-2xl font-bold uppercase tracking-wide">Purchase order</h1>
           <div className="mt-1 font-mono text-sm">#{poNumber}</div>
         </div>
         <div className="text-right">
@@ -121,8 +121,8 @@ export default async function RequisitionPOPage({ params }: { params: { id: stri
             <th className="px-2 py-1.5">Item</th>
             <th className="px-2 py-1.5 text-right">Qty</th>
             <th className="px-2 py-1.5">Unit</th>
-            <th className="px-2 py-1.5 text-right">Unit Cost</th>
-            <th className="px-2 py-1.5 text-right">Line Total</th>
+            <th className="px-2 py-1.5 text-right">Unit cost</th>
+            <th className="px-2 py-1.5 text-right">Line total</th>
           </tr>
         </thead>
         <tbody>
@@ -167,7 +167,7 @@ export default async function RequisitionPOPage({ params }: { params: { id: stri
           {req.managerNotes && <div className="mt-1 italic">"{req.managerNotes}"</div>}
         </div>
         <div className="rounded border p-3">
-          <div className="font-semibold uppercase tracking-wide text-gray-600">Accountant signoff</div>
+          <div className="font-semibold uppercase tracking-wide text-gray-600">Accountant sign-off</div>
           <div className="mt-1">
             {req.accountantDecidedByUserId && req.accountantDecidedAt
               ? `Signed off on ${formatDate(req.accountantDecidedAt)}`

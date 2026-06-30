@@ -88,14 +88,14 @@ export function PricingForm({ initial }: { initial: Row }) {
       </div>
 
       <Field
-        label="Razorpay plan id · Monthly"
+        label="Razorpay plan id · monthly"
         value={form.razorpayPlanIdMonthly ?? ""}
         onChange={(v) => set("razorpayPlanIdMonthly", v)}
         placeholder="plan_NCxxxxxxxxxxxx"
         mono
       />
       <Field
-        label="Razorpay plan id · Annual"
+        label="Razorpay plan id · annual"
         value={form.razorpayPlanIdAnnual ?? ""}
         onChange={(v) => set("razorpayPlanIdAnnual", v)}
         placeholder="plan_NCxxxxxxxxxxxx"

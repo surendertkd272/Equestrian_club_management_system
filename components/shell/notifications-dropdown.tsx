@@ -136,7 +136,7 @@ export function NotificationsDropdown({ initialUnread }: { initialUnread: number
               {/* Fetch failed — never let an empty list read as "all caught up". */}
               {!loading && loadError && (
                 <div className="px-3 py-6 text-center text-sm">
-                  <p className="text-muted-foreground">Couldn’t load notifications.</p>
+                  <p className="text-muted-foreground">Couldn't load notifications.</p>
                   <button
                     onClick={() => setReloadKey((k) => k + 1)}
                     className="mt-2 rounded border px-2 py-1 text-xs hover:bg-muted"

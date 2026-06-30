@@ -56,7 +56,7 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Vendor Contacts</h1>
+        <h1 className="text-2xl font-bold">Vendor contacts</h1>
         <p className="text-sm text-muted-foreground">
           Vet doctors, farriers, horse ambulance, truck, feed and tack suppliers.
           Tap a phone number to call or email to compose. {vendors.length} active.

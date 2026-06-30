@@ -68,7 +68,7 @@ export default async function BatchesPage() {
         <div className={canManage ? "lg:col-span-2" : "lg:col-span-3"}>
           <Card>
             <CardHeader>
-              <CardTitle>All Batches</CardTitle>
+              <CardTitle>All batches</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveTable
@@ -106,7 +106,7 @@ export default async function BatchesPage() {
           <div>
             <Card>
               <CardHeader>
-                <CardTitle>New Batch</CardTitle>
+                <CardTitle>New batch</CardTitle>
               </CardHeader>
               <CardContent>
                 <NewBatchForm coaches={coaches} disabled={!canCreate} centreId={centreId} />

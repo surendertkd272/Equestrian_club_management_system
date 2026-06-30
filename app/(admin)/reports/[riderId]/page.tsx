@@ -119,7 +119,7 @@ export default async function ReportCard({
         <div className="flex items-start justify-between border-b-2 border-primary pb-3">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">{rider.centre.name}</div>
-            <h1 className="mt-1 text-2xl font-extrabold">Monthly Report Card</h1>
+            <h1 className="mt-1 text-2xl font-extrabold">Monthly report card</h1>
             <p className="text-xs text-muted-foreground">{rider.centre.address ?? ""}</p>
           </div>
           <div className="text-right">
@@ -295,7 +295,7 @@ export default async function ReportCard({
               {certificates.map((c) => (
                 <li key={c.id} className="flex items-center justify-between border-b border-dashed pb-1">
                   <span>
-                    <b>{c.type === "promotion" ? "Level Promotion" : c.type}</b>
+                    <b>{c.type === "promotion" ? "Level promotion" : c.type}</b>
                     {c.levelName ? ` · ${c.levelName}` : ""}
                   </span>
                   <span className="font-mono text-[10px] text-muted-foreground">{c.serialNo}</span>

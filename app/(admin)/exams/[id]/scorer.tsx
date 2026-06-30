@@ -95,7 +95,7 @@ export function ExamScorer({
     setLastSavedAt(new Date());
     if (final) {
       toast.success(
-        res.data.passed === true ? "Submitted — PASS" : res.data.passed === false ? "Submitted — fail" : "Submitted",
+        res.data.passed === true ? "Submitted — pass" : res.data.passed === false ? "Submitted — fail" : "Submitted",
       );
       router.push("/exams");
     } else {
@@ -107,7 +107,7 @@ export function ExamScorer({
   async function reset() {
     const ok = await openConfirm({
       title: "Reset this draft?",
-      body: "All saved scores will be cleared and the exam will go back to Scheduled.",
+      body: "All saved scores will be cleared and the exam will go back to scheduled.",
       destructive: true,
       confirmLabel: "Reset draft",
     });

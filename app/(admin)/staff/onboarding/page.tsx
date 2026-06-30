@@ -70,7 +70,7 @@ export default async function StaffOnboardingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Employee Onboarding</h1>
+        <h1 className="text-2xl font-bold">Employee onboarding</h1>
         <p className="text-sm text-muted-foreground">
           Generate a self-registration link to share with a new hire. They fill the form + upload documents; you review
           and approve to create their staff record.
@@ -79,7 +79,7 @@ export default async function StaffOnboardingPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">New Registration Link</CardTitle>
+          <CardTitle className="text-base">New registration link</CardTitle>
           <CardDescription>One link per employee. Filled once, then it lands below for review.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -89,7 +89,7 @@ export default async function StaffOnboardingPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Pending Review ({submitted.length})</CardTitle>
+          <CardTitle className="text-base">Pending review ({submitted.length})</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {submitted.length === 0 ? (
@@ -152,7 +152,7 @@ export default async function StaffOnboardingPage() {
       {awaiting.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Awaiting Documents ({awaiting.length})</CardTitle>
+            <CardTitle className="text-base">Awaiting documents ({awaiting.length})</CardTitle>
             <CardDescription>Approved staff with items still pending. Waive any that don&apos;t apply.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -180,11 +180,11 @@ export default async function StaffOnboardingPage() {
 
       {others.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-base">All Links</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">All links</CardTitle></CardHeader>
           <CardContent>
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr><th className="pb-2">Candidate / Employee</th><th className="pb-2">Role</th><th className="pb-2">Created</th><th className="pb-2">Status</th></tr>
+                <tr><th className="pb-2">Candidate / employee</th><th className="pb-2">Role</th><th className="pb-2">Created</th><th className="pb-2">Status</th></tr>
               </thead>
               <tbody>
                 {others.map((r) => {

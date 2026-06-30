@@ -227,7 +227,7 @@ export function OnboardingForm({
           <div className="space-y-1 sm:col-span-2"><Label>Any other allowances agreed</Label><Input aria-label="Any other allowances agreed" value={f.otherAllowances} onChange={(e) => set("otherAllowances", e.target.value)} /></div>
           <label className="flex items-center gap-2 text-sm sm:col-span-2">
             <input type="checkbox" checked={pfEsicConsent} onChange={(e) => setPfEsicConsent(e.target.checked)} />
-            I agree to register at PF / ESIC
+            I agree to register for PF / ESIC
           </label>
           <div className="space-y-1 sm:col-span-2"><Label>Previous employment details</Label><Textarea aria-label="Previous employment details" rows={2} value={f.prevEmployment} onChange={(e) => set("prevEmployment", e.target.value)} placeholder="Employer, role, duration…" /></div>
           <Upload field="prevEmploymentUrl" label="Previous employment certificate (self-attested)" />

@@ -78,7 +78,7 @@ export default async function GivenTasksPage({
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold">Tasks Given &amp; Completed</h1>
+        <h1 className="text-2xl font-bold">Tasks given &amp; completed</h1>
         <p className="text-sm text-muted-foreground">
           {allScope ? "Every delegated task at this centre" : "Tasks you delegated"} ·{" "}
           {completed.length}/{tasks.length} completed ({completionRate}%).

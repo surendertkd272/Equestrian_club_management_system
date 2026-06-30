@@ -79,7 +79,7 @@ export default async function InjuriesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Injury Treatment Log</h1>
+          <h1 className="text-2xl font-bold">Injury treatment log</h1>
           <p className="text-sm text-muted-foreground">
             Track injuries for horses and riders. Append treatment entries as care happens,
             and mark recovered when the rider/horse is back to normal duty.
@@ -91,7 +91,7 @@ export default async function InjuriesPage() {
             className="inline-flex items-center gap-2 rounded-md border-2 border-destructive bg-destructive/10 px-4 py-2 text-sm font-semibold text-destructive hover:bg-destructive/20"
           >
             <Phone className="h-4 w-4" />
-            Call Doctor · {emergencyDial.label} <span className="font-mono">{emergencyDial.number}</span>
+            Call doctor · {emergencyDial.label} <span className="font-mono">{emergencyDial.number}</span>
           </a>
         )}
       </div>

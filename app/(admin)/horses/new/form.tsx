@@ -115,8 +115,8 @@ export function NewHorseForm() {
           <Input aria-label="Microchip" value={form.microchip} onChange={(e) => set("microchip", e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label>EFI Horse ID</Label>
-          <Input aria-label="EFI Horse ID"
+          <Label>EFI horse ID</Label>
+          <Input aria-label="EFI horse ID"
             value={form.efiHorseId}
             onChange={(e) => set("efiHorseId", e.target.value)}
             placeholder="National registration #"

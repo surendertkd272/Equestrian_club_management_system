@@ -110,7 +110,7 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Record a Salary Payment</CardTitle>
+        <CardTitle className="text-base">Record a salary payment</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 md:grid-cols-3">
@@ -193,7 +193,7 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
               {advance > 0 && <Line label={`− Advance recovery${advanceCapped ? " (capped)" : ""}`} value={-advance} tone="amber" />}
               {advanceCapped && (
                 <p className="text-[11px] text-amber-700">
-                  Advance capped to ₹{Math.round(advance).toLocaleString("en-IN")} — limited by what’s outstanding and the take-home pay.
+                  Advance capped to ₹{Math.round(advance).toLocaleString("en-IN")} — limited by what's outstanding and the take-home pay.
                 </p>
               )}
               {other > 0 && <Line label="− Other deductions" value={-other} tone="amber" />}

@@ -32,7 +32,7 @@ export default async function ChecklistsPage() {
   if (!centreId) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Daily Checklist</h1>
+        <h1 className="text-2xl font-bold">Daily checklist</h1>
         <Card>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
             Pick a centre from the top-bar filter to submit checklists.
@@ -81,7 +81,7 @@ export default async function ChecklistsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Daily Checklist</h1>
+          <h1 className="text-2xl font-bold">Daily checklist</h1>
           <p className="text-sm text-muted-foreground">
             Run through the daily ticks for horse health, feed, and per-horse care. Items come
             from the centre's template — admins can edit them at any time.

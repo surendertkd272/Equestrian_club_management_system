@@ -213,7 +213,7 @@ export default async function RiderAnalytics({ params }: { params: { id: string 
               {certificates.map((c) => (
                 <li key={c.id} className="flex items-center justify-between border-b border-dashed py-1">
                   <span>
-                    <b>{c.type === "promotion" ? "Level Promotion" : c.type}</b>
+                    <b>{c.type === "promotion" ? "Level promotion" : c.type}</b>
                     {c.levelName ? ` · ${c.levelName}` : ""}
                   </span>
                   <span className="font-mono text-[10px] text-muted-foreground">

@@ -31,7 +31,7 @@ export default async function TransportPage() {
   if (!centreId) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Event Transport</h1>
+        <h1 className="text-2xl font-bold">Event transport</h1>
         <Card>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
             Pick a centre from the top-bar filter to plan a trip.
@@ -55,7 +55,7 @@ export default async function TransportPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Event Transport &amp; Inventory</h1>
+        <h1 className="text-2xl font-bold">Event transport &amp; inventory</h1>
         <p className="text-sm text-muted-foreground">
           Plan a trip to a venue, build the manifest of horses + equipment, then check everything
           OUT before departure and IN on return — so anything lost or damaged is caught at once.

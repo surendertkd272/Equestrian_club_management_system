@@ -55,7 +55,7 @@ export default async function VerifyPage({ params }: { params: { serial: string 
 
               <dt className="col-span-1 text-muted-foreground">Award</dt>
               <dd className="col-span-2 font-semibold capitalize">
-                {cert.type === "promotion" ? "Level Promotion" : cert.type}
+                {cert.type === "promotion" ? "Level promotion" : cert.type}
                 {cert.levelName ? ` — ${cert.levelName}` : ""}
               </dd>
 
