@@ -81,7 +81,12 @@
       "Bash(nslookup aws-1-ap-south-1.pooler.supabase.com)",
       "Bash(nc -zv -w 6 aws-1-ap-south-1.pooler.supabase.com 6543)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git -C \"/Users/surenderyadav/Equiwings CMS\" diff)",
+      "Bash(git -C \"/Users/surenderyadav/Equiwings CMS\" status)",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/@prisma/client/package.json'\\).version\\)\")",
+      "Bash(timeout 300 npx vitest run tests/api/users-crud.test.ts)",
+      "Bash(echo \"---TSC EXIT: $?---\")"
     ],
     "additionalDirectories": [
       "/Users/surenderyadav/Equiwings CMS/app/api/exams/[id]",

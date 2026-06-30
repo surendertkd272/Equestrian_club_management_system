@@ -112,15 +112,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 // Several guards (defence in depth — the UI also confirms):
 //   1. Can't delete yourself (you'd lose the session mid-call).
 //   2. Can't delete the last active SUPER_ADMIN (org lockout).
-//   3. If the user is linked to a Rider via Rider.userId, refuse with
-//      USER_LINKED_TO_RIDER — caller should revoke portal access via
-//      /api/riders/[id]/portal-access first.
-//   4. If the user is a Centre.managerId, refuse with USER_IS_CENTRE_MANAGER —
-//      caller should reassign the centre's manager first.
-//   5. If the user is a parent (ParentLink rows exist), refuse with
-//      USER_HAS_PARENT_LINKS — caller should unlink first.
-// All other dependent rows (Notification, AuditLog.userId fk, StaffAttendance,
-// LeaveRequest, Staff) cascade or null out per their schema definitions.
+//   3. Rider link (Rider.userId) → USER_LINKED_TO_RIDER (revoke portal access first).
+//   4. Centre.managerId → USER_IS_CENTRE_MANAGER (reassign the manager first).
+//   5. Parent (ParentLink rows) → USER_HAS_PARENT_LINKS (unlink first).
+//   6. Operational / financial history → USER_HAS_RECORDS. Staff, Requisition,
+//      CoachDailyUpdate, VetVisit, SalaryPayment, EmployeeAdvance,
+//      SeparationNotice, StaffGateEvent and AuditRun all reference a user with
+//      ON DELETE RESTRICT, so a hard delete would be refused by the DB anyway —
+//      and these records must be kept. Suspend or offboard the user instead.
+//      A P2003 try/catch backstops any RESTRICT relation not pre-checked here.
+// Cascade / SET NULL relations (Notification, LeaveRequest, StaffAttendance,
+// AuditLog, Rider.userId, …) are cleaned up automatically by the DB.
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
@@ -186,7 +188,46 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     );
   }
 
-  // Audit before delete — we won't have the row afterwards.
+  // Guard 6 — operational / financial RESTRICT relations. These records must be
+  // kept, so the user can't be hard-deleted; the admin should suspend or
+  // offboard them. We name what's blocking so the UI can say so.
+  const [staffRec, reqs, coachUpdates, vetVisits, salary, advances, separations, gate, auditRuns] = await Promise.all([
+    prisma.staff.count({ where: { userId: target.id } }),
+    prisma.requisition.count({ where: { requestedByUserId: target.id } }),
+    prisma.coachDailyUpdate.count({ where: { coachUserId: target.id } }),
+    prisma.vetVisit.count({ where: { vetUserId: target.id } }),
+    prisma.salaryPayment.count({ where: { userId: target.id } }),
+    prisma.employeeAdvance.count({ where: { userId: target.id } }),
+    prisma.separationNotice.count({ where: { userId: target.id } }),
+    prisma.staffGateEvent.count({ where: { staffUserId: target.id } }),
+    prisma.auditRun.count({ where: { inspectorUserId: target.id } }),
+  ]);
+  const kinds: string[] = [];
+  if (staffRec) kinds.push("a staff record");
+  if (salary || advances) kinds.push("payroll/advance history");
+  if (reqs) kinds.push("requisitions");
+  if (coachUpdates) kinds.push("coach daily updates");
+  if (vetVisits) kinds.push("vet visits");
+  if (gate) kinds.push("gate logs");
+  if (separations) kinds.push("a separation record");
+  if (auditRuns) kinds.push("inspection runs");
+  if (kinds.length > 0) {
+    return NextResponse.json({ error: "USER_HAS_RECORDS", details: { kinds } }, { status: 409 });
+  }
+
+  try {
+    await prisma.user.delete({ where: { id: target.id } });
+  } catch (e: any) {
+    // Backstop: a RESTRICT relation not pre-checked above (or added later) —
+    // surface the same clear 409 instead of an opaque 500.
+    if (e?.code === "P2003") {
+      return NextResponse.json({ error: "USER_HAS_RECORDS", details: { kinds: ["linked records"] } }, { status: 409 });
+    }
+    throw e;
+  }
+
+  // Audit AFTER the delete succeeds — a blocked/failed delete must not log a
+  // phantom "user.delete" entry.
   await audit({
     userId: session.userId,
     action: "user.delete",
@@ -194,7 +235,5 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     rowId: target.id,
     before: { name: target.name, email: target.email, role: target.role, status: target.status },
   });
-
-  await prisma.user.delete({ where: { id: target.id } });
   return NextResponse.json({ ok: true });
 }

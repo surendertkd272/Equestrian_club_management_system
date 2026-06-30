@@ -240,6 +240,25 @@ describe("DELETE /api/users/[id]", () => {
     const log = await prisma.auditLog.findFirst({ where: { action: "user.delete", rowId: target.id } });
     expect(log).not.toBeNull();
   });
+
+  it("USER_HAS_RECORDS refuses (and writes no audit) when target has operational history", async () => {
+    const { orgId } = await loginAsHQ();
+    const c = await mkCentre({ orgId: orgId ?? undefined });
+    const target = await mkUser({ role: "INSPECTION_OFFICER", centreId: c.id });
+    // AuditRun.inspectorUserId is ON DELETE RESTRICT — a representative blocker.
+    await prisma.auditRun.create({ data: { centreId: c.id, inspectorUserId: target.id, scope: "inventory" } });
+
+    const r = await deleteUser(mockReq("http://localhost", { method: "DELETE" }), {
+      params: { id: target.id },
+    });
+    expect(r.status).toBe(409);
+    const body = await r.json();
+    expect(body.error).toBe("USER_HAS_RECORDS");
+    expect(body.details.kinds).toContain("inspection runs");
+    // The user must survive, and no phantom "user.delete" audit row may be written.
+    expect(await prisma.user.findUnique({ where: { id: target.id } })).not.toBeNull();
+    expect(await prisma.auditLog.findFirst({ where: { action: "user.delete", rowId: target.id } })).toBeNull();
+  });
 });
 
 describe("Cross-role: SUPER_ADMIN posts medicine with explicit centreId", () => {

@@ -254,7 +254,7 @@ export function UserActions({
     }
     const ok = await openConfirm({
       title: `Permanently delete ${user.name}?`,
-      body: `${user.email} — this cannot be undone. If the user is linked to a rider, centre, or parent relationship the request will be refused; clean those up first.`,
+      body: `${user.email} — this cannot be undone. Users with staff records, financial history, or rider/centre/parent links can't be deleted — suspend or offboard them instead.`,
       destructive: true,
       confirmLabel: "Delete user",
     });
@@ -270,6 +270,7 @@ export function UserActions({
           : data.error === "USER_LINKED_TO_RIDER" ? `Linked to rider ${data.details?.riderName} — revoke portal access first.`
           : data.error === "USER_IS_CENTRE_MANAGER" ? `Manager of ${data.details?.centreName} — reassign that centre's manager first.`
           : data.error === "USER_HAS_PARENT_LINKS" ? `Linked to ${data.details?.links} rider(s) as a parent — unlink first.`
+          : data.error === "USER_HAS_RECORDS" ? `${user.name} has ${(data.details?.kinds ?? ["linked records"]).join(", ")} that must be kept — suspend or offboard them instead of deleting.`
           : (data.error ?? "Failed");
         toast.error(msg);
         return;
