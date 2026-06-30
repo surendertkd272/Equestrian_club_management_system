@@ -35,7 +35,7 @@ export function ChartCard({
         className,
       )}
     >
-      <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-xs font-medium text-muted-foreground">{label}</div>
       <div className="flex items-end justify-between gap-3">
         <div className="flex items-center gap-3">
           {icon && (
@@ -101,7 +101,7 @@ export function HeroCard({
       <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
 
       <div className="relative">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/70">{kicker}</div>
+        <div className="text-[11px] font-semibold text-white/80">{kicker}</div>
         <div className="mt-1 text-xl font-bold leading-tight">{title}</div>
         {subtitle && <div className="mt-0.5 text-sm text-white/80">{subtitle}</div>}
       </div>
@@ -120,7 +120,7 @@ export function HeroCard({
           {stats.slice(0, 3).map((s) => (
             <div key={s.label}>
               <div className="text-base font-bold leading-none">{s.value}</div>
-              <div className="mt-1 text-[10px] uppercase tracking-wide text-white/70">{s.label}</div>
+              <div className="mt-1 text-[11px] text-white/70">{s.label}</div>
             </div>
           ))}
         </div>

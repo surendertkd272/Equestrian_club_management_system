@@ -80,7 +80,7 @@ export function StatTile({
         </div>
       )}
       <div className="min-w-0">
-        <div className={cn("text-[10px] font-medium uppercase tracking-wider", LABEL[variant])}>{label}</div>
+        <div className={cn("text-[11px] font-medium", LABEL[variant])}>{label}</div>
         <div className="mt-0.5 flex items-baseline gap-1.5">
           <span className={cn("text-2xl font-bold leading-none", VALUE_TONE[variant][tone])}>{value}</span>
           {delta && (

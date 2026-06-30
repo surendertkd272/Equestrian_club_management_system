@@ -157,7 +157,7 @@ export function RingGauge({
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
         {label && <span className="text-2xl font-bold leading-none text-foreground">{label}</span>}
-        {caption && <span className="mt-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{caption}</span>}
+        {caption && <span className="mt-1 text-[10px] font-medium text-muted-foreground">{caption}</span>}
       </div>
     </div>
   );
