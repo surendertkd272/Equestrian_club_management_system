@@ -90,11 +90,11 @@ export default async function OwnerInsightsPage() {
             <p className="text-sm text-muted-foreground">No signups yet.</p>
           ) : (
             <div className="overflow-x-auto"><table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <thead className="text-left text-xs tracking-wide text-muted-foreground">
                 <tr>
-                  <th className="pb-2">Signup month</th>
-                  <th className="pb-2 text-right">Signed up</th>
-                  <th className="pb-2 text-right">Still alive</th>
+                  <th className="pb-2">Signup Month</th>
+                  <th className="pb-2 text-right">Signed Up</th>
+                  <th className="pb-2 text-right">Still Alive</th>
                   <th className="pb-2 text-right">Retention</th>
                 </tr>
               </thead>
@@ -130,12 +130,12 @@ export default async function OwnerInsightsPage() {
             <p className="text-sm text-muted-foreground">No audit-log activity in the last 30 days.</p>
           ) : (
             <div className="overflow-x-auto"><table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <thead className="text-left text-xs tracking-wide text-muted-foreground">
                 <tr>
                   <th className="pb-2">Module</th>
                   <th className="pb-2 text-right">Events</th>
                   <th className="pb-2 text-right">Users</th>
-                  <th className="pb-2 text-right">Days active</th>
+                  <th className="pb-2 text-right">Days Active</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">

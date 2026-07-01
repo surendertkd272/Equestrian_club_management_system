@@ -158,7 +158,7 @@ export default async function HQDashboardPage() {
 
       <div className="overflow-x-auto rounded-lg border bg-card">
         <table className="w-full text-sm">
-          <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
+          <thead className="bg-muted/50 text-xs tracking-wide text-muted-foreground">
             <tr>
               <Th left>Centre</Th>
               <Th>Riders</Th>

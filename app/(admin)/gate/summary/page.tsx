@@ -181,7 +181,7 @@ export default async function GateSummaryPage({
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase text-muted-foreground">
+                <thead className="text-left text-xs text-muted-foreground">
                   <tr>
                     <th className="pb-2">Staff</th>
                     <th className="pb-2">Role</th>

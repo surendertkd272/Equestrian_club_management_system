@@ -143,7 +143,7 @@ export default async function RiderAnalytics({ params }: { params: { id: string 
                   </div>
                 </div>
                 <table className="w-full text-xs">
-                  <thead className="text-left text-[10px] uppercase text-muted-foreground">
+                  <thead className="text-left text-[10px] text-muted-foreground">
                     <tr>
                       <th className="pb-1">Date</th>
                       <th className="pb-1">Level</th>

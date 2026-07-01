@@ -105,7 +105,7 @@ export default async function PricingPage() {
           </p>
           <div className="mt-6 overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+              <thead className="text-left text-xs tracking-wider text-muted-foreground">
                 <tr>
                   <th className="pb-3 pr-4">Feature</th>
                   <th className="pb-3 pr-4 text-center">Starter</th>

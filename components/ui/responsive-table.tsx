@@ -56,7 +56,7 @@ export function ResponsiveTable<T>({
       {/* Desktop / tablet: a real table. */}
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase text-muted-foreground">
+          <thead className="text-left text-xs text-muted-foreground">
             <tr>
               {columns.map((c) => (
                 <th key={c.key} className={cn("pb-2 pr-3", c.headerClassName)}>

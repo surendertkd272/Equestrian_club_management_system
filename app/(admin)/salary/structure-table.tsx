@@ -78,11 +78,11 @@ export function SalaryStructureTable({ staff, canEdit }: { staff: StaffRow[]; ca
       <CardContent>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+            <thead className="text-left text-[10px] tracking-wide text-muted-foreground">
               <tr>
                 <th className="pb-2">Staff</th>
-                <th className="pb-2 text-right">Current salary</th>
-                <th className="pb-2">Effective from</th>
+                <th className="pb-2 text-right">Current Salary</th>
+                <th className="pb-2">Effective From</th>
                 <th className="pb-2 text-center">Revisions</th>
                 <th className="pb-2 text-right">Action</th>
               </tr>

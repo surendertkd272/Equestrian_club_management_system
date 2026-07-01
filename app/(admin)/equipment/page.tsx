@@ -134,18 +134,18 @@ export default async function EquipmentPage({
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <thead className="text-left text-[10px] tracking-wide text-muted-foreground">
                     <tr>
                       <th className="pb-2">Item</th>
                       <th className="pb-2 w-16 text-center">Unused</th>
-                      <th className="pb-2 w-16 text-center">In use</th>
-                      <th className="pb-2 w-16 text-center">For repair</th>
+                      <th className="pb-2 w-16 text-center">In Use</th>
+                      <th className="pb-2 w-16 text-center">For Repair</th>
                       <th className="pb-2 w-16 text-center">Damaged</th>
                       <th className="pb-2 w-12 text-center">Total</th>
-                      <th className="pb-2 w-16 text-center">New req</th>
+                      <th className="pb-2 w-16 text-center">New Req</th>
                       <th className="pb-2 w-24">Owner</th>
                       <th className="pb-2 w-32">Comments</th>
-                      <th className="pb-2 w-16">Reorder at</th>
+                      <th className="pb-2 w-16">Reorder At</th>
                       <th className="pb-2 w-16">Status</th>
                     </tr>
                   </thead>

@@ -153,7 +153,7 @@ export function FeedPlanPanel({
             )}
           </div>
           <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="text-left text-xs tracking-wide text-muted-foreground">
               <tr>
                 <th className="pb-1">Feed</th>
                 <th className="pb-1 w-24">Qty</th>

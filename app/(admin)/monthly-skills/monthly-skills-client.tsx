@@ -298,7 +298,7 @@ export function MonthlySkillsClient({ yearMonth, canEdit, skills, riders, initia
       ) : (
         <div className="overflow-x-auto rounded-md border">
           <table className="w-full text-sm">
-            <thead className="bg-muted/30 text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+            <thead className="bg-muted/30 text-left text-[10px] tracking-wide text-muted-foreground">
               <tr>
                 <th className="sticky left-0 z-10 bg-muted/30 px-3 py-2 w-48">Rider</th>
                 {activeSkills.map((s) => (

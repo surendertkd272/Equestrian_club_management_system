@@ -54,7 +54,7 @@ export default async function TenantInvoicePrintPage({ params }: { params: { id:
       </div>
 
       <table className="mt-8 w-full text-sm">
-        <thead className="border-b text-left text-xs uppercase tracking-wider text-slate-500">
+        <thead className="border-b text-left text-xs tracking-wider text-slate-500">
           <tr>
             <th className="pb-2">Description</th>
             <th className="pb-2 text-right">Amount (₹)</th>

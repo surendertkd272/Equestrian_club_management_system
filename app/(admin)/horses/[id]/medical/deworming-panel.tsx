@@ -154,12 +154,12 @@ export function DewormingPanel({ horseId, canWrite, todayStartMs, entries }: Pro
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+            <thead className="text-left text-[10px] tracking-wide text-muted-foreground">
               <tr>
                 <th className="pb-2">Product</th>
                 <th className="pb-2">Scheduled</th>
                 <th className="pb-2">Given</th>
-                <th className="pb-2">Next due</th>
+                <th className="pb-2">Next Due</th>
                 <th className="pb-2">Notes</th>
                 <th className="pb-2" />
               </tr>

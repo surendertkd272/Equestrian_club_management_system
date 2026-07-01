@@ -183,8 +183,8 @@ export default async function StaffOnboardingPage() {
           <CardHeader><CardTitle className="text-base">All Links</CardTitle></CardHeader>
           <CardContent>
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
-                <tr><th className="pb-2">Candidate / employee</th><th className="pb-2">Role</th><th className="pb-2">Created</th><th className="pb-2">Status</th></tr>
+              <thead className="text-left text-xs text-muted-foreground">
+                <tr><th className="pb-2">Candidate / Employee</th><th className="pb-2">Role</th><th className="pb-2">Created</th><th className="pb-2">Status</th></tr>
               </thead>
               <tbody>
                 {others.map((r) => {

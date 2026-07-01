@@ -21,7 +21,7 @@ const PRESERVE: Record<string, string> = {
 
 // Units of measure — always lowercase, even as first/last word.
 const UNITS = new Set([
-  "cm", "mm", "km", "kg", "mg", "ml", "hrs", "hr", "min", "mins",
+  "cm", "mm", "km", "kg", "mg", "ml", "hrs", "min", "mins",
   "sec", "kmph", "bpm", "cc", "ft", "l", "g",
 ]);
 

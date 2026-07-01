@@ -154,7 +154,7 @@ function RequisitionRow({ row, mode }: { row: RequisitionDTO; mode: "manager" | 
       {open && (
         <div className="mt-2 overflow-x-auto rounded-md border bg-muted/40">
           <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase text-muted-foreground">
+            <thead className="text-left text-xs text-muted-foreground">
               <tr>
                 <th className="px-3 py-2">Item</th>
                 <th className="px-3 py-2 text-right">Qty</th>

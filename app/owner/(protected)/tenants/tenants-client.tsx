@@ -81,7 +81,7 @@ export function TenantsClient({ initial }: { initial: Tenant[] }) {
 
       <div className="rounded-lg border border-border">
         <div className="overflow-x-auto"><table className="w-full text-sm">
-          <thead className="bg-card/60 text-xs uppercase tracking-wide text-muted-foreground">
+          <thead className="bg-card/60 text-xs tracking-wide text-muted-foreground">
             <tr>
               <Th>Tenant</Th>
               <Th>Plan</Th>

@@ -295,7 +295,7 @@ export default async function StudentHome() {
                 <p className="text-sm text-muted-foreground">No exams yet.</p>
               ) : (
                 <div className="overflow-x-auto"><table className="w-full text-sm">
-                  <thead className="text-left text-xs uppercase text-muted-foreground">
+                  <thead className="text-left text-xs text-muted-foreground">
                     <tr>
                       <th className="pb-2">Date</th>
                       <th className="pb-2">Level</th>

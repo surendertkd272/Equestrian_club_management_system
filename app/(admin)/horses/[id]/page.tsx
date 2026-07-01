@@ -336,11 +336,11 @@ export default async function HorseProfile({ params }: { params: { id: string } 
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto"><table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
+              <thead className="text-left text-xs text-muted-foreground">
                 <tr>
                   <th className="px-2 py-1">Vaccine</th>
-                  <th className="px-2 py-1">Last given</th>
-                  <th className="px-2 py-1">Next due</th>
+                  <th className="px-2 py-1">Last Given</th>
+                  <th className="px-2 py-1">Next Due</th>
                   <th className="px-2 py-1">Interval</th>
                 </tr>
               </thead>
@@ -377,7 +377,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
             <p className="py-4 text-center text-sm text-muted-foreground">Nothing scheduled today.</p>
           ) : (
             <div className="overflow-x-auto"><table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
+              <thead className="text-left text-xs text-muted-foreground">
                 <tr>
                   <th className="pb-2">Time</th>
                   <th className="pb-2">Purpose</th>

@@ -250,7 +250,7 @@ export default async function FinancePage() {
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
+              <thead className="text-left text-xs text-muted-foreground">
                 <tr>
                   <th className="pb-2">Rider</th>
                   <th className="pb-2">Kind</th>
@@ -318,7 +318,7 @@ export default async function FinancePage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase text-muted-foreground">
+                <thead className="text-left text-xs text-muted-foreground">
                   <tr>
                     <th className="pb-2">Date</th>
                     <th className="pb-2">Description</th>

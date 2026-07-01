@@ -151,7 +151,7 @@ export function HealthLogPanel({
         <details className="text-sm">
           <summary className="cursor-pointer text-muted-foreground">Recent readings ({logs.length})</summary>
           <table className="mt-2 w-full text-xs">
-            <thead className="text-[10px] uppercase text-muted-foreground">
+            <thead className="text-[10px] text-muted-foreground">
               <tr>
                 <th className="px-1 py-1 text-left">When</th>
                 <th className="px-1 py-1 text-right">Temp</th>

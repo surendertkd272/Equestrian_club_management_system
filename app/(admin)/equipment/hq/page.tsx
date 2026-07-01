@@ -75,7 +75,7 @@ export default async function HqEquipmentMatrix() {
             <CardContent>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
-                  <thead className="bg-muted/40 text-left uppercase text-muted-foreground">
+                  <thead className="bg-muted/40 text-left text-muted-foreground">
                     <tr>
                       <th className="px-2 py-2 sticky left-0 bg-muted/40">Item</th>
                       <th className="px-2 py-2 w-20">Reorder</th>

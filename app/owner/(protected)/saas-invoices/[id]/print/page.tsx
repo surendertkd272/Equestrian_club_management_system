@@ -85,7 +85,7 @@ export default async function SaasInvoicePrintPage({ params }: { params: { id: s
 
       {/* Line items */}
       <table className="mt-8 w-full text-sm">
-        <thead className="border-b text-left text-xs uppercase tracking-wider text-muted-foreground">
+        <thead className="border-b text-left text-xs tracking-wider text-muted-foreground">
           <tr>
             <th className="pb-2">Description</th>
             <th className="pb-2 text-center">HSN/SAC</th>

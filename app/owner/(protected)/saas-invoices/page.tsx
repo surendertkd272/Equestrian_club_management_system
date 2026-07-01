@@ -71,7 +71,7 @@ export default async function SaasInvoicesPage({ searchParams }: { searchParams:
             <p className="text-sm text-muted-foreground">No invoices match this filter.</p>
           ) : (
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+              <thead className="text-left text-xs tracking-wider text-muted-foreground">
                 <tr>
                   <th className="pb-2">Number</th>
                   <th className="pb-2">Tenant</th>

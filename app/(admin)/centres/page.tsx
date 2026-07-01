@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Building2 } from "lucide-react";
 import { CentreEditForm } from "./edit-form";
-import { NewCentreCard, CentreDeleteButton } from "./client";
+import { NewCentreCard, CentreDeleteButton, SignupLink } from "./client";
 import { EmergencyContactsPanel } from "./emergency-contacts-panel";
 import { parseEmergencyContacts } from "@/lib/json-narrow";
 
@@ -76,7 +76,7 @@ export default async function CentresPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <CardTitle>{c.name}</CardTitle>
-                    <CardDescription className="font-mono text-xs">slug: {c.slug}</CardDescription>
+                    <SignupLink slug={c.slug} />
                   </div>
                   <div className="flex flex-wrap items-start gap-1.5 text-[10px]">
                     <Badge variant="outline">{c._count.users} users</Badge>

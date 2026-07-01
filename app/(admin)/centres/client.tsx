@@ -9,6 +9,43 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
+import { Copy, Check } from "lucide-react";
+
+// The centre's public signup link. The slug stays lowercase (it's a URL), but
+// we present it as the actual shareable link with a copy button rather than a
+// bare "slug:" token, so it reads as a URL and is genuinely useful.
+export function SignupLink({ slug }: { slug: string }) {
+  const [copied, setCopied] = useState(false);
+  const path = `/onboarding?centre=${slug}`;
+
+  async function copy() {
+    const url = typeof window !== "undefined" ? window.location.origin + path : path;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("Signup link copied");
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Couldn't copy — select and copy it manually");
+    }
+  }
+
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-muted-foreground">
+      <span>Public signup:</span>
+      <code className="rounded bg-muted px-1.5 py-0.5 font-mono">{path}</code>
+      <button
+        type="button"
+        onClick={copy}
+        className="inline-flex items-center gap-1 text-primary hover:underline"
+        aria-label="Copy public signup link"
+      >
+        {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+        {copied ? "Copied" : "Copy link"}
+      </button>
+    </div>
+  );
+}
 
 function slugify(s: string): string {
   return s

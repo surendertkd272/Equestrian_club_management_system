@@ -85,7 +85,7 @@ function FeePlansCard({ feePlans, busy, call }: { feePlans: FeePlan[]; busy: boo
       <CardContent className="space-y-3">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+            <thead className="text-left text-[10px] tracking-wide text-muted-foreground">
               <tr><th className="pb-2">Level</th><th className="pb-2">Monthly ₹</th><th className="pb-2">Registration ₹</th><th /></tr>
             </thead>
             <tbody>

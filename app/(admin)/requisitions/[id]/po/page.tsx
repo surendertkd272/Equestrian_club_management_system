@@ -121,8 +121,8 @@ export default async function RequisitionPOPage({ params }: { params: { id: stri
             <th className="px-2 py-1.5">Item</th>
             <th className="px-2 py-1.5 text-right">Qty</th>
             <th className="px-2 py-1.5">Unit</th>
-            <th className="px-2 py-1.5 text-right">Unit cost</th>
-            <th className="px-2 py-1.5 text-right">Line total</th>
+            <th className="px-2 py-1.5 text-right">Unit Cost</th>
+            <th className="px-2 py-1.5 text-right">Line Total</th>
           </tr>
         </thead>
         <tbody>

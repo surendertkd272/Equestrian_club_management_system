@@ -197,11 +197,11 @@ function VaccinationsPanel({
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+        <thead className="text-left text-[10px] tracking-wide text-muted-foreground">
           <tr>
             <th className="pb-2">Vaccine</th>
-            <th className="pb-2">Last given</th>
-            <th className="pb-2">Next due</th>
+            <th className="pb-2">Last Given</th>
+            <th className="pb-2">Next Due</th>
             <th className="pb-2">Interval</th>
           </tr>
         </thead>
@@ -284,13 +284,13 @@ function FarrierPanel({
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+        <thead className="text-left text-[10px] tracking-wide text-muted-foreground">
           <tr>
             <th className="pb-2">Date</th>
             <th className="pb-2">Farrier</th>
             <th className="pb-2">Work</th>
             <th className="pb-2">Status</th>
-            <th className="pb-2">Next due</th>
+            <th className="pb-2">Next Due</th>
           </tr>
         </thead>
         <tbody>

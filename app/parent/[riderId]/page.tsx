@@ -91,7 +91,7 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
             <p className="text-sm text-muted-foreground">No attendance records yet.</p>
           ) : (
             <div className="overflow-x-auto"><table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
+              <thead className="text-left text-xs text-muted-foreground">
                 <tr>
                   <th className="pb-2">Date</th>
                   <th className="pb-2">Status</th>
@@ -206,7 +206,7 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
               <p className="text-sm text-muted-foreground">No invoices yet.</p>
             ) : (
               <div className="overflow-x-auto"><table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase text-muted-foreground">
+                <thead className="text-left text-xs text-muted-foreground">
                   <tr>
                     <th className="pb-2">Created</th>
                     <th className="pb-2">Kind</th>

@@ -194,7 +194,7 @@ export function CatalogManager({ initial }: { initial: Item[] }) {
           <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">{cat}</h3>
           <div className="overflow-x-auto rounded-md border">
             <table className="w-full text-sm">
-              <thead className="bg-muted/40 text-left text-xs uppercase text-muted-foreground">
+              <thead className="bg-muted/40 text-left text-xs text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2">Name</th>
                   <th className="px-3 py-2 w-32">Code</th>

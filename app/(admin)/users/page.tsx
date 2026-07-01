@@ -210,10 +210,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
                 className: "text-xs",
                 cell: (u) =>
                   u.centre ? (
-                    <>
-                      {u.centre.name}
-                      <div className="text-muted-foreground">/{u.centre.slug}</div>
-                    </>
+                    u.centre.name
                   ) : (
                     <span className="text-muted-foreground italic">HQ</span>
                   ),

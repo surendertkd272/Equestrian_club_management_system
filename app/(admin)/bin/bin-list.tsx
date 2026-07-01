@@ -66,12 +66,12 @@ export function BinList({
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+        <thead className="text-left text-[10px] tracking-wide text-muted-foreground">
           <tr>
             <th className="pb-2">Item</th>
             <th className="pb-2">Type</th>
             <th className="pb-2">Deleted</th>
-            <th className="pb-2">Auto-purge</th>
+            <th className="pb-2">Auto-Purge</th>
             <th className="pb-2 text-right">Actions</th>
           </tr>
         </thead>

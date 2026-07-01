@@ -115,12 +115,12 @@ export default async function SchoolDashboardPage() {
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-[10px] uppercase tracking-wide text-muted-foreground">
+                <thead className="text-left text-[10px] tracking-wide text-muted-foreground">
                   <tr>
                     <th className="pb-2">Name</th>
                     <th className="pb-2">Mobile</th>
                     <th className="pb-2">School</th>
-                    <th className="pb-2">Signed up</th>
+                    <th className="pb-2">Signed Up</th>
                     <th className="pb-2 text-right">Action</th>
                   </tr>
                 </thead>
@@ -154,13 +154,13 @@ export default async function SchoolDashboardPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase text-muted-foreground">
+                <thead className="text-left text-xs text-muted-foreground">
                   <tr>
                     <th className="pb-2">Name</th>
                     <th className="pb-2">School</th>
                     <th className="pb-2">Level</th>
                     <th className="pb-2">Joined</th>
-                    <th className="pb-2 text-right">Attended this month</th>
+                    <th className="pb-2 text-right">Attended This Month</th>
                   </tr>
                 </thead>
                 <tbody>

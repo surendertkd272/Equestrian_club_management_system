@@ -99,13 +99,13 @@ export default async function RiderStatement({ params }: { params: { riderId: st
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase text-muted-foreground">
+              <thead className="text-left text-xs text-muted-foreground">
                 <tr>
                   <th className="pb-2">Date</th>
                   <th className="pb-2">Kind</th>
                   <th className="pb-2">Amount</th>
                   <th className="pb-2">GST</th>
-                  <th className="pb-2">Paid via</th>
+                  <th className="pb-2">Paid Via</th>
                   <th className="pb-2">Status</th>
                   <th className="pb-2"></th>
                 </tr>
