@@ -362,8 +362,8 @@ export default async function DashboardPage() {
       {/* Feature row — hero, attendance dial, this-week timeline. */}
       <div className={`grid gap-4 ${hasExams ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}>
         <HeroCard
-          kicker="At a glance"
-          title={`${activeRiders} active riders`}
+          kicker="At a Glance"
+          title={`${activeRiders} Active Riders`}
           subtitle="Your roster snapshot"
           icon={<Trophy />}
           stats={[
@@ -372,7 +372,7 @@ export default async function DashboardPage() {
             { label: "Attendance", value: todayPct === null ? "—" : `${todayPct}%` },
           ]}
           href="/riders"
-          cta="View roster"
+          cta="View Roster"
         />
 
         <div className="flex flex-col rounded-2xl border border-border/60 bg-card p-5 shadow-sm">

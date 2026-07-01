@@ -87,7 +87,7 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
         <Stat label="Features On" value={`${enabledFeatures} / ${tenant.features.length}`} />
       </div>
 
-      <Panel title="Edit tenant">
+      <Panel title="Edit Tenant">
         <TenantEditForm
           id={tenant.id}
           initial={{
@@ -118,7 +118,7 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
             </ul>
           )}
         </Panel>
-        <Panel title="HQ super admins">
+        <Panel title="HQ Super Admins">
           {superAdmins.length === 0 ? (
             <div className="text-sm text-muted-foreground">No super admins yet.</div>
           ) : (
@@ -171,7 +171,7 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
         />
       </Panel>
 
-      <Panel title="Custom domain">
+      <Panel title="Custom Domain">
         <CustomDomainPanel
           tenantId={tenant.id}
           tenantSlug={tenant.slug}
@@ -207,7 +207,7 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
         ) : null}
       </Panel>
 
-      <Panel title="Decommission tenant">
+      <Panel title="Decommission Tenant">
         <OffboardPanel
           tenantId={tenant.id}
           tenantName={tenant.name}

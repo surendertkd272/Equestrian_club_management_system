@@ -324,7 +324,7 @@ export async function StableManagerDashboard({ centreId, features }: { centreId:
         hero={
           <HeroCard
             kicker="Stable"
-            title={`${horses} horses`}
+            title={`${horses} Horses`}
             subtitle="on the active roster"
             icon={<Boxes />}
             stats={[
@@ -390,7 +390,7 @@ export async function GroomDashboard({ centreId, userId, features }: { centreId:
       <HeroRow
         hero={
           <HeroCard
-            kicker="My day"
+            kicker="My Day"
             title={firstAlloc ? firstAlloc.horse.name : "Nothing scheduled"}
             subtitle={
               firstAlloc
@@ -592,7 +592,7 @@ export async function AccountantDashboard({ centreId }: { centreId: string | nul
               { label: "All-Time ₹", value: allTime.toLocaleString("en-IN") },
             ]}
             href="/finance"
-            cta="Open finance"
+            cta="Open Finance"
           />
         }
       >
@@ -659,7 +659,7 @@ export async function HeadCoachDashboard({ centreId, features }: { centreId: str
         hero={
           <HeroCard
             kicker="Coaching"
-            title={`${totalRiders} riders`}
+            title={`${totalRiders} Riders`}
             subtitle="across all coaches"
             icon={<Users />}
             progress={{ value: markedCount, max: Math.max(1, batches.length), label: `${markedCount}/${batches.length} batches marked today` }}
@@ -761,8 +761,8 @@ export async function CoachDashboard({ centreId, userId, features }: { centreId:
       <HeroRow
         hero={
           <HeroCard
-            kicker="My batches"
-            title={`${myBatches.length} batches`}
+            kicker="My Batches"
+            title={`${myBatches.length} Batches`}
             subtitle="assigned to you"
             icon={<ClipboardCheck />}
             progress={{ value: markedCount, max: Math.max(1, myBatches.length), label: `${markedCount}/${myBatches.length} marked today` }}

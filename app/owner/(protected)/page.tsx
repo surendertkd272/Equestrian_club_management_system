@@ -103,7 +103,7 @@ export default async function OwnerDashboardPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <HeroCard
           kicker="Platform"
-          title={`${orgs.length} tenants`}
+          title={`${orgs.length} Tenants`}
           subtitle="across Equiwings Cloud"
           icon={<Building2 />}
           stats={[
@@ -112,7 +112,7 @@ export default async function OwnerDashboardPage() {
             { label: "Users", value: userCount },
           ]}
           href="/owner/tenants"
-          cta="View tenants"
+          cta="View Tenants"
         />
         <ChartCard
           label={`Paid · ${now.toLocaleString("en-IN", { month: "short" })}`}
@@ -147,13 +147,13 @@ export default async function OwnerDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Panel title="By status">
+        <Panel title="By Status">
           <BreakdownRow label="Active" count={byStatus.active ?? 0} tone="green" />
           <BreakdownRow label="Trial" count={byStatus.trial ?? 0} tone="blue" />
           <BreakdownRow label="Past Due" count={byStatus.past_due ?? 0} tone="amber" />
           <BreakdownRow label="Suspended" count={byStatus.suspended ?? 0} tone="red" />
         </Panel>
-        <Panel title="By plan">
+        <Panel title="By Plan">
           <BreakdownRow label="Starter" count={byPlan.starter ?? 0} tone="slate" />
           <BreakdownRow label="Pro" count={byPlan.pro ?? 0} tone="blue" />
           <BreakdownRow label="Enterprise" count={byPlan.enterprise ?? 0} tone="violet" />
@@ -161,7 +161,7 @@ export default async function OwnerDashboardPage() {
       </div>
 
       {billingEvents.length > 0 && (
-        <Panel title="Tenants needing attention">
+        <Panel title="Tenants Needing Attention">
           <ul className="divide-y divide-border">
             {billingEvents.map((e) => {
               const org = e.orgId ? billingOrgById.get(e.orgId) : null;
@@ -196,7 +196,7 @@ export default async function OwnerDashboardPage() {
       <SystemStatusPanel />
 
       {recentInvoices.length > 0 && (
-        <Panel title="Recent SaaS invoices">
+        <Panel title="Recent SaaS Invoices">
           <ul className="divide-y divide-border">
             {recentInvoices.map((i) => (
               <li key={i.id} className="flex items-center justify-between py-2 text-sm">
@@ -223,7 +223,7 @@ export default async function OwnerDashboardPage() {
         </Panel>
       )}
 
-      <Panel title="Recent signups">
+      <Panel title="Recent Signups">
         {recent.length === 0 ? (
           <div className="text-sm text-muted-foreground">No tenants yet.</div>
         ) : (
@@ -303,7 +303,7 @@ async function SystemStatusPanel() {
   const emailColor = s.emailErrorCount24h > 5 ? "red" : s.emailErrorCount24h > 0 ? "amber" : "green";
   const smsColor = s.smsErrorCount24h > 5 ? "red" : s.smsErrorCount24h > 0 ? "amber" : "green";
   return (
-    <Panel title="System health · last 24h">
+    <Panel title="System Health · Last 24h">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Health
           label="Cron Sweep"

@@ -122,8 +122,8 @@ export default async function StudentHome() {
       <div className="grid gap-4 lg:grid-cols-3">
         <HeroCard
           className="lg:col-span-2"
-          kicker="My progress"
-          title={`${rider.firstName}'s journey`}
+          kicker="My Progress"
+          title={`${rider.firstName}'s Journey`}
           subtitle={`${rider.currentLevel ?? "Unranked"}${rider.batch ? ` · ${rider.batch.name}` : ""}`}
           icon={<Trophy />}
           progress={

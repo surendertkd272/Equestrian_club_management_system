@@ -121,8 +121,8 @@ export default async function HQDashboardPage() {
       {/* Charted headline band. */}
       <div className="grid gap-4 lg:grid-cols-3">
         <HeroCard
-          kicker="HQ roll-up"
-          title={`${totals.centres} centres`}
+          kicker="HQ Roll-Up"
+          title={`${totals.centres} Centres`}
           subtitle="across your organisation"
           icon={<Building2 />}
           stats={[
