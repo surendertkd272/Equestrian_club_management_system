@@ -5,7 +5,7 @@ import { getFeaturesForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function ParentDashboard() {
@@ -54,7 +54,7 @@ export default async function ParentDashboard() {
                 <Badge variant="outline">{c.relationship}</Badge>
               </div>
               <div className="text-xs text-muted-foreground">
-                {c.centreName} · level {c.currentLevel ?? "—"} · {c.status}
+                {c.centreName} · level {c.currentLevel ?? "—"} · {formatEnum(c.status)}
               </div>
             </CardHeader>
             <CardContent>

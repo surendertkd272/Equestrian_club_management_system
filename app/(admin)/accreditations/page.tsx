@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { formatDate } from "@/lib/utils";
 import Link from "next/link";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 // Centre-/HQ-wide list of every rider accreditation. Useful to verify
@@ -159,7 +159,7 @@ export default async function AccreditationsListPage({
                       a.status === "active" ? "success" : a.status === "expired" ? "warning" : "destructive"
                     }
                   >
-                    {a.status}
+                    {formatEnum(a.status)}
                   </Badge>
                 ),
               },

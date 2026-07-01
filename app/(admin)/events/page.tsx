@@ -12,7 +12,7 @@ import { Plus } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { TruncationNotice } from "@/components/ui/truncation-notice";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 const STATUS_VARIANT: Record<string, "outline" | "success" | "warning" | "destructive"> = {
@@ -166,7 +166,7 @@ export default async function EventsPage({
                   </>
                 ),
               },
-              { key: "status", header: "Status", cell: (e) => <Badge variant={STATUS_VARIANT[e.status] ?? "outline"}>{e.status}</Badge> },
+              { key: "status", header: "Status", cell: (e) => <Badge variant={STATUS_VARIANT[e.status] ?? "outline"}>{formatEnum(e.status)}</Badge> },
               {
                 key: "manage",
                 header: "",

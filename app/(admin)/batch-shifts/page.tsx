@@ -18,7 +18,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { CalendarRange } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { DecideButtons } from "./decide-buttons";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 function canView(role: string): boolean {
@@ -134,7 +134,7 @@ export default async function BatchShiftsPage() {
                     <b>{r.toBatch.name}</b>
                     {r.kind === "single_day" && r.shiftDate && <> on {formatDate(r.shiftDate)}</>}
                   </div>
-                  <Badge variant={r.status === "approved" ? "success" : "destructive"}>{r.status}</Badge>
+                  <Badge variant={r.status === "approved" ? "success" : "destructive"}>{formatEnum(r.status)}</Badge>
                 </li>
               ))}
             </ul>

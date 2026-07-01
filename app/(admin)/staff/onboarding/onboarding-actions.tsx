@@ -7,8 +7,8 @@ import { MessageCircle, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { roleLabel } from "@/lib/labels";
 
-const roleLabel = (r: string) => r.replaceAll("_", " ").toLowerCase();
 
 // Re-share an already-generated, still-active link (Copy + WhatsApp). Uses the
 // stored plaintext token to rebuild the URL — survives page refreshes, unlike
@@ -95,11 +95,11 @@ export function GenerateLinkButton({ roles }: { roles: string[] }) {
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">Link expires in</label>
           <Select value={expiresDays} onChange={(e) => setExpiresDays(e.target.value)} className="h-9">
-            <option value="3">3 days</option>
-            <option value="7">7 days</option>
-            <option value="14">14 days</option>
-            <option value="30">30 days</option>
-            <option value="60">60 days</option>
+            <option value="3">3 Days</option>
+            <option value="7">7 Days</option>
+            <option value="14">14 Days</option>
+            <option value="30">30 Days</option>
+            <option value="60">60 Days</option>
           </Select>
         </div>
       </div>

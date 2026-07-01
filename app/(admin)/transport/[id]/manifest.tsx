@@ -227,9 +227,9 @@ export function TripManifest({
                         value={it.conditionIn ?? "ok"}
                         onChange={(e) => check(it.id, "in", true, e.target.value)}
                       >
-                        <option value="ok">ok</option>
-                        <option value="damaged">damaged</option>
-                        <option value="missing">missing</option>
+                        <option value="ok">Ok</option>
+                        <option value="damaged">Damaged</option>
+                        <option value="missing">Missing</option>
                       </Select>
                     )}
                     {inIssue && <Badge variant="warning">{it.conditionIn}</Badge>}

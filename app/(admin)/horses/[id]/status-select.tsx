@@ -30,9 +30,9 @@ export function StatusSelect({ horseId, currentStatus }: { horseId: string; curr
       disabled={saving}
       className="h-8 rounded-md border border-input bg-background px-2 text-xs"
     >
-      <option value="active">active</option>
-      <option value="rest">rest</option>
-      <option value="retired">retired</option>
+      <option value="active">Active</option>
+      <option value="rest">Rest</option>
+      <option value="retired">Retired</option>
     </select>
   );
 }

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { postJson } from "@/lib/client/post-json";
-
+import { roleLabel } from "@/lib/labels";
 type Staff = { id: string; name: string; role: string };
 type Event = {
   id: string;
@@ -95,7 +95,7 @@ export function GatePanel({
               <div className="mb-2 flex items-center justify-between">
                 <div>
                   <div className="font-medium">{s.name}</div>
-                  <div className="text-xs text-muted-foreground">{s.role.replaceAll("_", " ")}</div>
+                  <div className="text-xs text-muted-foreground">{roleLabel(s.role)}</div>
                 </div>
                 {lastDir && (
                   <Badge variant={lastDir === "in" ? "success" : "outline"}>

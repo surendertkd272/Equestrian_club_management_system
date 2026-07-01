@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { PrintButton } from "./print-button";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 // Tenant-side invoice print view — riders/parents print their fee
@@ -63,7 +63,7 @@ export default async function TenantInvoicePrintPage({ params }: { params: { id:
         <tbody>
           <tr className="border-b">
             <td className="py-3">
-              <div className="font-medium capitalize">{invoice.kind.replace("_", " ")} fee</div>
+              <div className="font-medium capitalize">{formatEnum(invoice.kind)} fee</div>
             </td>
             <td className="py-3 text-right font-medium">₹{subtotal.toLocaleString("en-IN")}</td>
           </tr>
@@ -111,7 +111,7 @@ export default async function TenantInvoicePrintPage({ params }: { params: { id:
               <li key={p.id}>
                 {p.paidAt ? new Date(p.paidAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
                 {" · "}
-                <span className="capitalize">{p.method}</span>
+                <span className="capitalize">{formatEnum(p.method)}</span>
                 {" · "}
                 ₹{p.amount.toLocaleString("en-IN")}
                 {p.txnRef && <span className="text-slate-400"> · {p.txnRef.slice(-10)}</span>}

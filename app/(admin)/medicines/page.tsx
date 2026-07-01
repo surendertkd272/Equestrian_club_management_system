@@ -13,7 +13,7 @@ import { Plus, Snowflake } from "lucide-react";
 import { DeactivateButton } from "@/components/ui/deactivate-button";
 import { formatDate } from "@/lib/utils";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 const EXPIRY_BADGE: Record<string, { variant: "success" | "warning" | "destructive" | "outline"; label: string }> = {
@@ -106,7 +106,7 @@ export default async function MedicinesPage({
                 <option value="antibiotic">Antibiotic</option>
                 <option value="antihistamine">Antihistamine</option>
                 <option value="sedative">Sedative</option>
-                <option value="wound">Wound care</option>
+                <option value="wound">Wound Care</option>
                 <option value="eye">Eye</option>
                 <option value="gastric">Gastric</option>
                 <option value="electrolyte">Electrolyte</option>
@@ -166,7 +166,7 @@ export default async function MedicinesPage({
                   </>
                 ),
               },
-              { key: "category", header: "Category", cell: (m) => <span className="capitalize">{m.category}</span> },
+              { key: "category", header: "Category", cell: (m) => <span className="capitalize">{formatEnum(m.category)}</span> },
               { key: "batch", header: "Batch", cell: (m) => <span className="font-mono text-xs">{m.batchNo}</span> },
               {
                 key: "expiry",

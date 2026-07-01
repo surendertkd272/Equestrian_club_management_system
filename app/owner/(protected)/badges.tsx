@@ -1,5 +1,6 @@
 // Shared status / plan badges for the owner portal. Dark theme.
 
+import { formatEnum } from "@/lib/labels";
 const TONE: Record<string, string> = {
   green: "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300",
   blue: "bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-300",
@@ -11,7 +12,7 @@ const TONE: Record<string, string> = {
 
 export function PlanBadge({ plan }: { plan: string }) {
   const tone = plan === "enterprise" ? TONE.violet : plan === "pro" ? TONE.blue : TONE.slate;
-  return <span className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${tone}`}>{plan}</span>;
+  return <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide ${tone}`}>{formatEnum(plan)}</span>;
 }
 
 export function StatusBadge({ status }: { status: string }) {
@@ -21,5 +22,5 @@ export function StatusBadge({ status }: { status: string }) {
     : status === "past_due" ? TONE.amber
     : status === "suspended" ? TONE.red
     : TONE.slate;
-  return <span className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${tone}`}>{status}</span>;
+  return <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wide ${tone}`}>{formatEnum(status)}</span>;
 }

@@ -13,7 +13,7 @@ import { formatDate } from "@/lib/utils";
 import { EventStatusControl } from "./status-control";
 import { DeleteEntityButton } from "@/components/ui/delete-entity-button";
 import { RegistrationsPanel } from "./registrations-panel";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 const STATUS_VARIANT: Record<string, "outline" | "success" | "warning" | "destructive"> = {
@@ -63,7 +63,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
           </Link>
         </Button>
         <div className="flex items-center gap-2">
-          <Badge variant={STATUS_VARIANT[ev.status] ?? "outline"}>{ev.status}</Badge>
+          <Badge variant={STATUS_VARIANT[ev.status] ?? "outline"}>{formatEnum(ev.status)}</Badge>
           {canManage && (
             <Button asChild variant="outline" size="sm">
               <Link href={`/events/${ev.id}/edit`}>Edit</Link>
@@ -88,7 +88,7 @@ export default async function EventDetailPage({ params }: { params: { id: string
         <CardContent>
           <dl className="grid grid-cols-2 gap-y-2 text-sm md:grid-cols-4">
             <dt className="text-muted-foreground">Type</dt>
-            <dd>{ev.type.replaceAll("_", " ")}</dd>
+            <dd>{formatEnum(ev.type)}</dd>
             <dt className="text-muted-foreground">Dates</dt>
             <dd>
               {formatDate(ev.startDate)}

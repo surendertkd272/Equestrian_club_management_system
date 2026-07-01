@@ -12,7 +12,7 @@ import { formatDate } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { parsePaging } from "@/lib/paging";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
-
+import { formatEnum, roleLabel } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 const CAN_ONBOARD = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"];
@@ -123,11 +123,11 @@ export default async function StaffPage({
                     <span className="font-medium">{s.user.name}</span>
                   ),
               },
-              { key: "role", header: "Role", cell: (s) => <Badge variant="outline">{s.role.replaceAll("_", " ")}</Badge> },
+              { key: "role", header: "Role", cell: (s) => <Badge variant="outline">{roleLabel(s.role)}</Badge> },
               { key: "email", header: "Email", cell: (s) => s.user.email },
               { key: "phone", header: "Phone", cell: (s) => s.user.phone ?? "—" },
               { key: "joined", header: "Joined", cell: (s) => formatDate(s.joiningDate) },
-              { key: "status", header: "Status", cell: (s) => <Badge variant={s.status === "active" ? "success" : "warning"}>{s.status}</Badge> },
+              { key: "status", header: "Status", cell: (s) => <Badge variant={s.status === "active" ? "success" : "warning"}>{formatEnum(s.status)}</Badge> },
             ]}
           />
           <Pagination total={total} page={page} pageSize={pageSize} />

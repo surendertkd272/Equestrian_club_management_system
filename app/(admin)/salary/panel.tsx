@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { STATUS_LABEL } from "@/lib/schemas/payroll";
-
+import { roleLabel } from "@/lib/labels";
 type Staff = { id: string; name: string; role: string };
 type Preview = {
   gross: number;
@@ -120,7 +120,7 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
               {staff.length === 0 && <option value="">(no staff)</option>}
               {staff.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name} · {s.role.replace(/_/g, " ").toLowerCase()}
+                  {s.name} · {roleLabel(s.role)}
                 </option>
               ))}
             </Select>
@@ -163,7 +163,7 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
           <div>
             <Label>Method</Label>
             <Select aria-label="Method" value={form.method} onChange={(e) => set("method", e.target.value)}>
-              <option value="bank">Bank transfer</option>
+              <option value="bank">Bank Transfer</option>
               <option value="upi">UPI</option>
               <option value="cash">Cash</option>
               <option value="cheque">Cheque</option>

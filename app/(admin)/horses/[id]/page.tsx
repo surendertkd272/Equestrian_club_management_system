@@ -21,7 +21,7 @@ import { VetVisitsPanel } from "./vet-visits-panel";
 import { HorseTestsPanel } from "./tests-panel";
 import { ActivityFeed } from "@/components/shell/activity-feed";
 import { horseActivity } from "@/lib/activity";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 const STATUS_VARIANT: Record<string, "success" | "warning" | "outline"> = {
@@ -133,7 +133,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
           <Button asChild variant="outline" size="sm">
             <Link href={`/horses/${horse.id}/medical`}>Medical records →</Link>
           </Button>
-          <Badge variant={STATUS_VARIANT[horse.status] ?? "outline"}>{horse.status}</Badge>
+          <Badge variant={STATUS_VARIANT[horse.status] ?? "outline"}>{formatEnum(horse.status)}</Badge>
           {canManage && <StatusSelect horseId={horse.id} currentStatus={horse.status} />}
         </div>
       </div>
@@ -395,7 +395,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
                         {a.startAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} –{" "}
                         {a.endAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
                       </td>
-                      <td className="py-2 capitalize">{a.purpose}</td>
+                      <td className="py-2 capitalize">{formatEnum(a.purpose)}</td>
                       <td className="py-2">
                         {a.rider ? (
                           <Link href={`/riders/${a.rider.id}`} className="text-primary underline">
@@ -446,7 +446,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
                       minute: "2-digit",
                     })}
                     {" · "}
-                    <span className="capitalize">{a.purpose}</span>
+                    <span className="capitalize">{formatEnum(a.purpose)}</span>
                     {a.rider && ` · ${a.rider.firstName} ${a.rider.lastName}`}
                   </span>
                   {canManage && <DeleteAllocation horseId={horse.id} allocId={a.id} />}

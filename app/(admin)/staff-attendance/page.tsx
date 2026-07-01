@@ -9,7 +9,7 @@ import { formatDate } from "@/lib/utils";
 import { redirect } from "next/navigation";
 import { StaffAttendanceMarker } from "./marker";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
-
+import { formatEnum, roleLabel } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function StaffAttendancePage() {
@@ -75,7 +75,7 @@ export default async function StaffAttendancePage() {
               {
                 key: "role",
                 header: "Role",
-                cell: (r) => <Badge variant="outline">{r.user.role.replaceAll("_", " ")}</Badge>,
+                cell: (r) => <Badge variant="outline">{roleLabel(r.user.role)}</Badge>,
               },
               {
                 key: "status",
@@ -86,7 +86,7 @@ export default async function StaffAttendancePage() {
                       r.status === "present" ? "success" : r.status === "late" ? "warning" : r.status === "leave" ? "outline" : "destructive"
                     }
                   >
-                    {r.status}
+                    {formatEnum(r.status)}
                   </Badge>
                 ),
               },

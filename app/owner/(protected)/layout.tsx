@@ -6,7 +6,7 @@ import { OwnerThemeToggle } from "./owner-theme-toggle";
 import { ConfirmHost } from "@/components/ui/confirm-dialog";
 import { PromptHost } from "@/components/ui/prompt-dialog";
 import { Toaster } from "sonner";
-
+import { roleLabel } from "@/lib/labels";
 // Server-side guard for everything under /owner/*. Owner sessions ride a
 // separate cookie (ew_owner_session) so tenant middleware deliberately ignores
 // them; the gate lives here instead.
@@ -38,7 +38,7 @@ export default async function OwnerProtectedLayout({ children }: { children: Rea
           </div>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span>
-              {session.name} <span className="text-muted-foreground">· {session.role}</span>
+              {session.name} <span className="text-muted-foreground">· {roleLabel(session.role)}</span>
             </span>
             <OwnerThemeToggle />
             <OwnerLogoutButton />

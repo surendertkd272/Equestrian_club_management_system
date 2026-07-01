@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-
+import { roleLabel } from "@/lib/labels";
 type Staff = { id: string; name: string; role: string };
 
 export function StaffAttendanceMarker({ staff, defaultDate }: { staff: Staff[]; defaultDate: string }) {
@@ -69,7 +69,7 @@ export function StaffAttendanceMarker({ staff, defaultDate }: { staff: Staff[]; 
         >
           {staff.map((s) => (
             <option key={s.id} value={s.id}>
-              {s.name} — {s.role.replaceAll("_", " ")}
+              {s.name} — {roleLabel(s.role)}
             </option>
           ))}
         </select>
@@ -86,11 +86,11 @@ export function StaffAttendanceMarker({ staff, defaultDate }: { staff: Staff[]; 
           value={status}
           onChange={(e) => setStatus(e.target.value)}
         >
-          <option value="present">present</option>
-          <option value="late">late</option>
-          <option value="half_day">half day</option>
-          <option value="absent">absent</option>
-          <option value="leave">leave</option>
+          <option value="present">Present</option>
+          <option value="late">Late</option>
+          <option value="half_day">Half Day</option>
+          <option value="absent">Absent</option>
+          <option value="leave">Leave</option>
         </select>
       </div>
       <div>

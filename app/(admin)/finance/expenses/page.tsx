@@ -146,8 +146,8 @@ export default async function ExpensesPage({
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
               >
                 <option value="">All</option>
-                <option value="paid">Paid only</option>
-                <option value="due">Due only</option>
+                <option value="paid">Paid Only</option>
+                <option value="due">Due Only</option>
               </select>
             </div>
             <Button type="submit" size="sm" variant="outline">Filter</Button>

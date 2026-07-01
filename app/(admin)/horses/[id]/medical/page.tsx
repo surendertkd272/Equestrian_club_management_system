@@ -14,7 +14,7 @@ import { formatDate } from "@/lib/utils";
 import { MedicalTabs } from "./medical-tabs";
 import { DewormingPanel } from "./deworming-panel";
 import { TemperatureChart } from "./temperature-chart";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 // Unified medical-record view for one horse. Replaces the scrolling page
@@ -248,9 +248,9 @@ function InjuriesPanel({
         <div key={r.id} className="rounded-md border p-3 text-sm">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={r.status === "recovered" ? "success" : r.status === "active" ? "warning" : "outline"}>
-              {r.status}
+              {formatEnum(r.status)}
             </Badge>
-            <Badge variant="outline">{r.severity}</Badge>
+            <Badge variant="outline">{formatEnum(r.severity)}</Badge>
             <span className="font-mono text-xs text-muted-foreground">{formatDate(r.occurredAt)}</span>
             {r.location && <span className="text-xs text-muted-foreground">{r.location}</span>}
           </div>
@@ -300,10 +300,10 @@ function FarrierPanel({
               <tr key={f.id} className="border-t">
                 <td className="py-2">{formatDate(f.scheduledAt)}</td>
                 <td className="py-2">{f.farrierName}</td>
-                <td className="py-2 text-xs capitalize">{f.workType.replace("_", " ")}</td>
+                <td className="py-2 text-xs capitalize">{formatEnum(f.workType)}</td>
                 <td className="py-2">
                   <Badge variant={f.status === "completed" ? "success" : f.status === "scheduled" ? "outline" : "warning"}>
-                    {f.status}
+                    {formatEnum(f.status)}
                   </Badge>
                 </td>
                 <td className={`py-2 ${overdue ? "font-semibold text-amber-700" : ""}`}>

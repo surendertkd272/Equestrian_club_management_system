@@ -20,7 +20,7 @@ import { kpiIcon } from "@/lib/kpi-icon";
 import { formatDateIndia, timeAgo } from "@/lib/i18n";
 import { istTodayStr, coachUpdateDateKey, DAILY_UPDATE_ROLES } from "@/lib/coach-update";
 import { Hammer, Stethoscope, Boxes, Sparkles, GraduationCap, Trophy, Wallet, Users, ClipboardCheck } from "lucide-react";
-
+import { formatEnum } from "@/lib/labels";
 // Shared layout: an illustrated HeroCard on the left, the role's KPI tiles on
 // the right. Gives every role dashboard the same "designed" top band.
 function HeroRow({ hero, children }: { hero: React.ReactNode; children: React.ReactNode }) {
@@ -264,7 +264,7 @@ export async function VetDashboard({ centreId, features }: { centreId: string | 
                       <div className="text-[10px] text-muted-foreground">{i.initialNotes.slice(0, 60)}</div>
                     </div>
                     <Badge variant={i.severity === "severe" ? "destructive" : i.severity === "moderate" ? "warning" : "outline"}>
-                      {i.severity}
+                      {formatEnum(i.severity)}
                     </Badge>
                   </li>
                 ))}
@@ -426,7 +426,7 @@ export async function GroomDashboard({ centreId, userId, features }: { centreId:
                     <span>
                       <span className="font-medium">{a.horse.name}</span>
                       {a.horse.stableNo && <span className="ml-1 text-xs text-muted-foreground">({a.horse.stableNo})</span>}
-                      <span className="ml-2 text-[10px] uppercase text-muted-foreground">{a.purpose}</span>
+                      <span className="ml-2 text-[10px] text-muted-foreground">{formatEnum(a.purpose)}</span>
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {new Date(a.startAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false })}
@@ -449,7 +449,7 @@ export async function GroomDashboard({ centreId, userId, features }: { centreId:
                   <li key={t.id} className="flex items-center justify-between rounded border bg-muted/30 px-2 py-1">
                     <span>
                       <span className="font-medium">{t.title}</span>
-                      {t.kind && <Badge variant="outline" className="ml-2 text-[10px]">{t.kind.replace("_", " ")}</Badge>}
+                      {t.kind && <Badge variant="outline" className="ml-2 text-[10px]">{formatEnum(t.kind)}</Badge>}
                     </span>
                     {t.dueAt && (
                       <span className={`text-xs ${t.dueAt < dayStart ? "text-rose-600" : "text-muted-foreground"}`}>

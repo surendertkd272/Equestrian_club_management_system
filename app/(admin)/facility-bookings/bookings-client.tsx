@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-
+import { formatEnum } from "@/lib/labels";
 type Facility = { id: string; name: string; type: string; capacity: number | null };
 
 export function BookingsClient({
@@ -113,7 +113,7 @@ export function BookingsClient({
             <Select aria-label="Facility" value={form.facilityId} onChange={(e) => set("facilityId", e.target.value)}>
               {facilities.map((f) => (
                 <option key={f.id} value={f.id}>
-                  {f.name} ({f.type.replace("_", " ")})
+                  {f.name} ({formatEnum(f.type)})
                 </option>
               ))}
             </Select>

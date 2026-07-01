@@ -68,9 +68,9 @@ export function PlanChange({
             onChange={(e) => setPlan(e.target.value as PlanKey)}
             className="mt-1 h-10 rounded-md border border-border bg-background px-3 text-sm text-foreground"
           >
-            <option value="starter">Starter (max 1 centre)</option>
-            <option value="pro">Pro (max 5 centres)</option>
-            <option value="enterprise">Enterprise (unlimited)</option>
+            <option value="starter">Starter (Max 1 Centre)</option>
+            <option value="pro">Pro (Max 5 Centres)</option>
+            <option value="enterprise">Enterprise (Unlimited)</option>
           </select>
         </div>
         <Button onClick={save} disabled={!dirty || busy || wouldExceedCap}>

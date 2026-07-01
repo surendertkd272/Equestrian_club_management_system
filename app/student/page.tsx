@@ -13,7 +13,7 @@ import { ExamHistoryList } from "@/components/exams/exam-history-list";
 import { BmiBanner } from "./bmi-banner";
 import { BatchShiftCard } from "./batch-shift-card";
 import { prisma } from "@/lib/prisma";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 // Monthly-skill rating scale (MonthlySkillMark.rating): 0 not-yet · 1 needs-work
@@ -315,7 +315,7 @@ export default async function StudentHome() {
                           ) : e.passed === false ? (
                             <Badge variant="destructive">try again ({e.totalScore})</Badge>
                           ) : (
-                            <Badge variant="outline">{e.status}</Badge>
+                            <Badge variant="outline">{formatEnum(e.status)}</Badge>
                           )}
                         </td>
                       </tr>
@@ -338,7 +338,7 @@ export default async function StudentHome() {
                   {detail.certificates.map((c) => (
                     <li key={c.id} className="flex items-center justify-between border-b py-2">
                       <span>
-                        <Badge variant="outline">{c.type}</Badge> {c.levelName}
+                        <Badge variant="outline">{formatEnum(c.type)}</Badge> {c.levelName}
                       </span>
                       <span className="font-mono text-xs text-muted-foreground">
                         {c.serialNo} · {formatDate(c.issuedAt)}

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NewAnnouncementForm } from "./form";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function OwnerAnnouncementsPage() {
@@ -51,7 +51,7 @@ export default async function OwnerAnnouncementsPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{a.title}</span>
-                          <Badge variant="outline" className="text-[10px]">{a.severity}</Badge>
+                          <Badge variant="outline" className="text-[10px]">{formatEnum(a.severity)}</Badge>
                           {active ? (
                             <Badge variant="default" className="text-[10px]">live</Badge>
                           ) : a.expiresAt && a.expiresAt < now ? (

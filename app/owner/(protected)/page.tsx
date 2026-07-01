@@ -7,7 +7,7 @@ import { ChartCard, HeroCard } from "@/components/dashboard/visuals";
 import { Sparkline, MiniBars } from "@/components/ui/charts";
 import { kpiIcon } from "@/lib/kpi-icon";
 import { Building2, IndianRupee, Users } from "lucide-react";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function OwnerDashboardPage() {
@@ -209,7 +209,7 @@ export default async function OwnerDashboardPage() {
                 <div className="flex items-center gap-2 text-xs">
                   <span className="font-semibold text-foreground">₹{i.total.toLocaleString("en-IN")}</span>
                   <span className={`rounded px-2 py-0.5 ${i.status === "paid" ? "bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300" : i.status === "due" ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300" : "bg-muted text-foreground"}`}>
-                    {i.status}
+                    {formatEnum(i.status)}
                   </span>
                 </div>
               </li>

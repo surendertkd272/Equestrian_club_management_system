@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Paperclip, Trash2, ExternalLink } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
-
+import { formatEnum } from "@/lib/labels";
 type Attachment = {
   id: string;
   kind: string;
@@ -97,7 +97,7 @@ export function AttachmentsPanel({
                   <a href={a.url} target="_blank" rel="noopener" className="truncate text-primary hover:underline">
                     {a.caption || a.url.split("/").pop()}
                   </a>
-                  <span className="text-[10px] uppercase text-muted-foreground">{a.kind}</span>
+                  <span className="text-[10px] text-muted-foreground">{formatEnum(a.kind)}</span>
                   <ExternalLink className="h-3 w-3 text-muted-foreground" />
                 </div>
                 {canManage && (
@@ -119,7 +119,7 @@ export function AttachmentsPanel({
             <Select value={kind} onChange={(e) => setKind(e.target.value)}>
               <option value="video">Video</option>
               <option value="photo">Photo</option>
-              <option value="sheet">Sealed sheet</option>
+              <option value="sheet">Sealed Sheet</option>
               <option value="other">Other</option>
             </Select>
             <Input

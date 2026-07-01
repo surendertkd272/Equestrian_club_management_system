@@ -217,8 +217,8 @@ export function OnboardingForm({
             <Label>Employment type</Label>
             <Select aria-label="Employment type" value={f.employmentType} onChange={(e) => set("employmentType", e.target.value)}>
               <option value="">—</option>
-              <option value="full_time">Full employment</option>
-              <option value="trainee_stipend">Trainee on stipend</option>
+              <option value="full_time">Full Employment</option>
+              <option value="trainee_stipend">Trainee on Stipend</option>
             </Select>
           </div>
           <div className="space-y-1"><Label>Date of joining</Label><Input aria-label="Date of joining" type="date" value={f.dateOfJoining} onChange={(e) => set("dateOfJoining", e.target.value)} /></div>

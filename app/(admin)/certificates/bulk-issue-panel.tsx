@@ -76,8 +76,8 @@ export function BulkIssuePanel({
                 setSourceId("");
               }}
             >
-              <option value="exam_sitting">Exam sitting (passed riders → promotion)</option>
-              <option value="event">Event (attended riders → event_attendance)</option>
+              <option value="exam_sitting">Exam Sitting (Passed Riders → Promotion)</option>
+              <option value="event">Event (Attended Riders → event_attendance)</option>
             </Select>
           </div>
           <div className="md:col-span-2">

@@ -87,7 +87,7 @@ export function EditVendor({ vendor }: { vendor: EditableVendor }) {
       <div>
         <Label className="text-xs">Delivery coverage</Label>
         <Select aria-label="Delivery coverage" value={form.deliveryScope} onChange={(e) => set("deliveryScope", e.target.value)}>
-          <option value="centre">Centre-specific</option>
+          <option value="centre">Centre-Specific</option>
           <option value="national">All-India</option>
         </Select>
       </div>

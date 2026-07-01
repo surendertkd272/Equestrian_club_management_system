@@ -16,7 +16,7 @@ import { SupportStaffPanel } from "./support-staff-panel";
 import { AttachmentsPanel } from "./attachments-panel";
 import { ChevronLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function ExamPage({ params }: { params: { id: string } }) {
@@ -118,7 +118,7 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
             </a>
           </Button>
           <Badge variant={exam.status === "completed" ? "success" : exam.status === "in_progress" ? "warning" : "outline"}>
-            {exam.status.replace("_", " ")}
+            {formatEnum(exam.status)}
           </Badge>
         </div>
       </div>
@@ -217,7 +217,7 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
           <CardHeader>
             <CardTitle>Results</CardTitle>
             <CardDescription>
-              Status: <Badge variant={exam.status === "completed" ? "success" : "outline"}>{exam.status.replace("_", " ")}</Badge>
+              Status: <Badge variant={exam.status === "completed" ? "success" : "outline"}>{formatEnum(exam.status)}</Badge>
               {exam.totalScore !== null && (
                 <> · Total: <b>{exam.totalScore}</b> / pass {template.passThreshold}%</>
               )}

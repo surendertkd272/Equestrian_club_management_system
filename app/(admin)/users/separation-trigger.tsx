@@ -67,8 +67,8 @@ export function SeparationTrigger({
       <div className="space-y-1.5">
         <Label>Kind</Label>
         <Select aria-label="Kind" value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
-          <option value="resignation_request">Ask for resignation</option>
-          <option value="termination">Termination notice</option>
+          <option value="resignation_request">Ask for Resignation</option>
+          <option value="termination">Termination Notice</option>
         </Select>
       </div>
       <div className="space-y-1.5">

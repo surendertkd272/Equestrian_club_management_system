@@ -70,7 +70,7 @@ export function ConsumablesClient() {
           <div>
             <Label>Category</Label>
             <Select aria-label="Category" value={form.category} onChange={(e) => set("category", e.target.value)}>
-              <option value="bandage">Bandage / wrap</option>
+              <option value="bandage">Bandage / Wrap</option>
               <option value="dressing">Dressing</option>
               <option value="hygiene">Hygiene</option>
               <option value="tool">Tool</option>
@@ -229,7 +229,7 @@ export function EditConsumable({ row }: { row: EditableConsumable }) {
       <div>
         <Label className="text-xs">Category</Label>
         <Select aria-label="Category" value={form.category} onChange={(e) => set("category", e.target.value)}>
-          <option value="bandage">Bandage / wrap</option>
+          <option value="bandage">Bandage / Wrap</option>
           <option value="dressing">Dressing</option>
           <option value="hygiene">Hygiene</option>
           <option value="tool">Tool</option>

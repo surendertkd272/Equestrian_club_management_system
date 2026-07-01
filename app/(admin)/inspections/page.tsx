@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { StartInspection } from "./start-inspection";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 const CAN_INSPECT = ["INSPECTION_OFFICER", "SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"];
@@ -66,7 +66,7 @@ export default async function InspectionsPage() {
                 primary: true,
                 cell: (r) => <span className="text-xs">{formatDate(r.startedAt)}</span>,
               },
-              { key: "scope", header: "Scope", cell: (r) => <span className="capitalize">{r.scope.replace("_", " ")}</span> },
+              { key: "scope", header: "Scope", cell: (r) => <span className="capitalize">{formatEnum(r.scope)}</span> },
               {
                 key: "pass",
                 header: "Pass",
@@ -100,7 +100,7 @@ export default async function InspectionsPage() {
               {
                 key: "status",
                 header: "Status",
-                cell: (r) => <Badge variant={r.status === "completed" ? "success" : "warning"}>{r.status.replace("_", " ")}</Badge>,
+                cell: (r) => <Badge variant={r.status === "completed" ? "success" : "warning"}>{formatEnum(r.status)}</Badge>,
               },
               {
                 key: "open",

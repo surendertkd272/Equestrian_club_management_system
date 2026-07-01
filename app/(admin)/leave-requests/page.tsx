@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { LeaveRequestActions, NewLeaveRequestForm } from "./client";
-
+import { formatEnum, roleLabel } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function LeaveRequestsPage() {
@@ -106,7 +106,7 @@ function Table({
           cell: (r) => (
             <span className="font-medium">
               {r.user.name}
-              <div className="text-xs text-muted-foreground">{r.user.role.replaceAll("_", " ")}</div>
+              <div className="text-xs text-muted-foreground">{roleLabel(r.user.role)}</div>
             </span>
           ),
         },
@@ -135,7 +135,7 @@ function Table({
                       : "warning"
               }
             >
-              {r.status}
+              {formatEnum(r.status)}
             </Badge>
           ),
         },

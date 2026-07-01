@@ -142,7 +142,7 @@ export default async function InjuriesPage() {
                 header: "Severity",
                 cell: (r) => (
                   <Badge variant={r.severity === "severe" ? "destructive" : r.severity === "moderate" ? "warning" : "outline"}>
-                    {r.severity}
+                    {formatEnum(r.severity)}
                   </Badge>
                 ),
               },
@@ -154,7 +154,7 @@ export default async function InjuriesPage() {
                   return (
                     <>
                       <Badge variant={r.status === "recovered" ? "success" : r.status === "chronic" ? "warning" : "outline"}>
-                        {r.status}
+                        {formatEnum(r.status)}
                       </Badge>
                       <div className="mt-1 text-[10px] text-muted-foreground">
                         {treatments} treatment{treatments === 1 ? "" : "s"}
@@ -189,3 +189,4 @@ function Kpi({ label, value, tone }: { label: string; value: number; tone?: "amb
 }
 
 import { InjuryRowActions } from "./injuries-client";
+import { formatEnum } from "@/lib/labels";

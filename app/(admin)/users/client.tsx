@@ -83,7 +83,7 @@ export function UserSearchBar({
           onChange={(e) => setCentreId(e.target.value)}
         >
           <option value="">Any</option>
-          <option value="null">HQ (no centre)</option>
+          <option value="null">HQ (No Centre)</option>
           {centres.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -100,8 +100,8 @@ export function UserSearchBar({
           onChange={(e) => setStatus(e.target.value)}
         >
           <option value="">Any</option>
-          <option value="active">active</option>
-          <option value="suspended">suspended</option>
+          <option value="active">Active</option>
+          <option value="suspended">Suspended</option>
         </select>
       </div>
       <div className="sm:col-span-5 flex gap-2">
@@ -388,8 +388,8 @@ export function UserActions({
             onChange={(e) => setDraft({ ...draft, status: e.target.value })}
             disabled={isSelf}
           >
-            <option value="active">active</option>
-            <option value="suspended">suspended</option>
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
           </select>
           {isSelf && (
             <p className="mt-1 text-[10px] text-muted-foreground">Can't suspend yourself.</p>

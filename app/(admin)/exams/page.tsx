@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 const STATUS_VARIANT: Record<string, "success" | "warning" | "outline" | "destructive"> = {
@@ -107,7 +107,7 @@ export default async function ExamsPage({
               >
                 <option value="">All</option>
                 <option value="scheduled">Scheduled</option>
-                <option value="in_progress">In progress</option>
+                <option value="in_progress">In Progress</option>
                 <option value="completed">Completed</option>
               </select>
             </div>
@@ -183,7 +183,7 @@ export default async function ExamsPage({
                 key: "status",
                 header: "Status",
                 cell: (e) => (
-                  <Badge variant={STATUS_VARIANT[e.status] ?? "outline"}>{e.status.replace("_", " ")}</Badge>
+                  <Badge variant={STATUS_VARIANT[e.status] ?? "outline"}>{formatEnum(e.status)}</Badge>
                 ),
               },
               {

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2 } from "lucide-react";
-
+import { roleLabel } from "@/lib/labels";
 type Staff = { id: string; name: string; role: string };
 
 export function SupportStaffPanel({
@@ -97,7 +97,7 @@ export function SupportStaffPanel({
               <li key={s.id} className="flex items-center justify-between rounded border px-2 py-1.5">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{s.name}</span>
-                  <Badge variant="outline" className="text-[10px] uppercase">{s.role}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{roleLabel(s.role)}</Badge>
                 </div>
                 {canManage && (
                   <button
@@ -121,7 +121,7 @@ export function SupportStaffPanel({
                 .filter((u) => !pickedIds.includes(u.id))
                 .map((u) => (
                   <option key={u.id} value={u.id}>
-                    {u.name} · {u.role}
+                    {u.name} · {roleLabel(u.role)}
                   </option>
                 ))}
             </Select>

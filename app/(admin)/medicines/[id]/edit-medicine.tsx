@@ -90,16 +90,16 @@ export function EditMedicineForm({ med }: { med: EditableMedicine }) {
           <Label>Category *</Label>
           <Select aria-label="Category" value={form.category} onChange={(e) => set("category", e.target.value)}>
             <option value="nsaid">NSAID — pain/inflammation (Flunixin, Bute, Firocoxib)</option>
-            <option value="antibiotic">Antibiotic (incl. eye antibiotic)</option>
+            <option value="antibiotic">Antibiotic (Incl. Eye Antibiotic)</option>
             <option value="antihistamine">Antihistamine</option>
             <option value="sedative">Sedative</option>
-            <option value="wound">Wound care (silver spray, antiseptic)</option>
-            <option value="eye">Eye ointment / drops</option>
+            <option value="wound">Wound Care (Silver Spray, Antiseptic)</option>
+            <option value="eye">Eye Ointment / Drops</option>
             <option value="gastric">Gastric (Omeprazole)</option>
             <option value="electrolyte">Electrolyte</option>
             <option value="supplement">Supplement</option>
             <option value="vaccine">Vaccine</option>
-            <option value="antitoxin">Antitoxin (Tetanus antitoxin)</option>
+            <option value="antitoxin">Antitoxin (Tetanus Antitoxin)</option>
             <option value="dewormer">Dewormer</option>
             <option value="other">Other</option>
           </Select>

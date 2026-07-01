@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/utils";
-
+import { roleLabel } from "@/lib/labels";
 type StaffRow = {
   id: string;
   name: string;
@@ -93,7 +93,7 @@ export function SalaryStructureTable({ staff, canEdit }: { staff: StaffRow[]; ca
                   <tr className="border-t">
                     <td className="py-2">
                       <div className="font-medium">{row.name}</div>
-                      <div className="text-[11px] text-muted-foreground">{row.role.replace(/_/g, " ").toLowerCase()}</div>
+                      <div className="text-[11px] text-muted-foreground">{roleLabel(row.role)}</div>
                     </td>
                     <td className="py-2 text-right font-mono">
                       {row.monthlySalary != null ? `₹${Math.round(row.monthlySalary).toLocaleString("en-IN")}` : <span className="text-amber-700">not set</span>}

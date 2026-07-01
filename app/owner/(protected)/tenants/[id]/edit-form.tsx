@@ -115,7 +115,7 @@ export function TenantEditForm({ id, initial }: { id: string; initial: Initial }
         >
           <option value="active">Active</option>
           <option value="trial">Trial</option>
-          <option value="past_due">Past due</option>
+          <option value="past_due">Past Due</option>
           <option value="suspended">Suspended</option>
         </select>
         <p className="mt-1 text-xs text-muted-foreground">

@@ -68,16 +68,16 @@ export function LinkList({ links }: { links: LinkDTO[] }) {
           className="flex-1"
         />
         <Select value={kind} onChange={(e) => setKind(e.target.value)} className="sm:w-44">
-          <option value="all">All kinds</option>
+          <option value="all">All Kinds</option>
           {Object.entries(KIND_LABEL).map(([k, label]) => (
             <option key={k} value={k}>{label}</option>
           ))}
         </Select>
         <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:w-36">
-          <option value="all">All statuses</option>
-          <option value="active">Active only</option>
+          <option value="all">All Statuses</option>
+          <option value="active">Active Only</option>
           <option value="expired">Expired</option>
-          <option value="used">Used (single-use)</option>
+          <option value="used">Used (Single-Use)</option>
         </Select>
       </div>
       {filtered.length === 0 ? (

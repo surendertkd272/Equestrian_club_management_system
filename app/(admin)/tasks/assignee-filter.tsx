@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-
+import { roleLabel } from "@/lib/labels";
 type Assignee = { id: string; name: string; role: string };
 
 // Userwise filter for the task board. Navigates with ?assignee=<id> (or the
@@ -35,7 +35,7 @@ export function AssigneeFilter({ assignees }: { assignees: Assignee[] }) {
         <option value="unassigned">Unassigned</option>
         {assignees.map((u) => (
           <option key={u.id} value={u.id}>
-            {u.name} · {u.role.replace(/_/g, " ").toLowerCase()}
+            {u.name} · {roleLabel(u.role)}
           </option>
         ))}
       </select>

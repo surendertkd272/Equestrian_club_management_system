@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { AdvancesPanel } from "./panel";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 function canView(role: string): boolean {
@@ -107,7 +107,7 @@ export default async function AdvancesPage() {
                   </div>
                   <div className="flex items-center gap-2 text-xs">
                     <span className="font-mono">₹{Math.round(r.amount).toLocaleString("en-IN")}</span>
-                    <Badge variant="outline">{r.status.replaceAll("_", " ")}</Badge>
+                    <Badge variant="outline">{formatEnum(r.status)}</Badge>
                     <span className="text-muted-foreground">{formatDate(new Date(r.givenAt))}</span>
                   </div>
                 </li>

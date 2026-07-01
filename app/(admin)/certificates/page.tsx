@@ -15,7 +15,7 @@ import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { BulkIssuePanel } from "./bulk-issue-panel";
 import { RevokeButton } from "./revoke-button";
 import { SendResultButton } from "./[id]/send-result-button";
-
+import { formatEnum } from "@/lib/labels";
 const SEND_RESULT_ROLES = new Set([
   "SUPER_ADMIN",
   "ADMIN",
@@ -103,9 +103,9 @@ export default async function CertificatesPage({
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
               >
                 <option value="">All</option>
-                <option value="promotion">Promotion (exam)</option>
+                <option value="promotion">Promotion (Exam)</option>
                 <option value="participation">Participation</option>
-                <option value="event_attendance">Event attendance</option>
+                <option value="event_attendance">Event Attendance</option>
               </select>
             </div>
             <div>
@@ -116,8 +116,8 @@ export default async function CertificatesPage({
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
               >
                 <option value="">Both</option>
-                <option value="no">Active only</option>
-                <option value="yes">Revoked only</option>
+                <option value="no">Active Only</option>
+                <option value="yes">Revoked Only</option>
               </select>
             </div>
             <Button type="submit" size="sm" variant="outline">Filter</Button>
@@ -145,7 +145,7 @@ export default async function CertificatesPage({
                 header: "Type",
                 cell: (c) => (
                   <>
-                    <Badge variant="outline">{c.type}</Badge>
+                    <Badge variant="outline">{formatEnum(c.type)}</Badge>
                     {c.revokedAt && <Badge variant="destructive" className="ml-1">REVOKED</Badge>}
                   </>
                 ),

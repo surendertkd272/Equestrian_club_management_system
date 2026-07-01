@@ -13,7 +13,7 @@ import { ChevronLeft, AlertTriangle, Snowflake } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { PrescribeForm } from "./prescribe";
 import { EditMedicineForm } from "./edit-medicine";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function MedicineDetail({ params }: { params: { id: string } }) {
@@ -114,7 +114,7 @@ export default async function MedicineDetail({ params }: { params: { id: string 
               <dt className="text-muted-foreground">Generic</dt>
               <dd className="col-span-2">{med.generic ?? "—"}</dd>
               <dt className="text-muted-foreground">Category</dt>
-              <dd className="col-span-2 capitalize">{med.category}</dd>
+              <dd className="col-span-2 capitalize">{formatEnum(med.category)}</dd>
               <dt className="text-muted-foreground">Batch #</dt>
               <dd className="col-span-2 font-mono text-xs">{med.batchNo}</dd>
               <dt className="text-muted-foreground">Mfg / Exp</dt>

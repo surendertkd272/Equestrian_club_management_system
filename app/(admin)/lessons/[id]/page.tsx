@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AllocationGrid } from "./allocation-grid";
 import { LessonStatusPanel } from "./status-panel";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function LessonDetailPage({ params }: { params: { id: string } }) {
@@ -55,7 +55,7 @@ export default async function LessonDetailPage({ params }: { params: { id: strin
               <Badge variant="outline">Ad-hoc</Badge>
             )}
             <Badge variant={lesson.status === "completed" ? "default" : lesson.status === "cancelled" ? "destructive" : "secondary"}>
-              {lesson.status}
+              {formatEnum(lesson.status)}
             </Badge>
           </div>
           {lesson.notes ? <p className="mt-2 text-sm italic text-muted-foreground">{lesson.notes}</p> : null}

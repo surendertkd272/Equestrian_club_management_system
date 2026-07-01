@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { postJson } from "@/lib/client/post-json";
-
+import { roleLabel } from "@/lib/labels";
 const TEMPLATES = [
   { label: "Muck Out Stalls", desc: "Clean all stalls and refresh bedding.", time: "06:00", rec: "daily" },
   { label: "Morning Feed", desc: "Feed all horses per dietary chart.", time: "06:30", rec: "daily" },
@@ -143,7 +143,7 @@ export function NewTaskForm({
               )
               .map((u) => (
                 <option key={u.id} value={u.id}>
-                  {u.name} · {u.role.replaceAll("_", " ").toLowerCase()}
+                  {u.name} · {roleLabel(u.role)}
                 </option>
               ))}
           </Select>

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, ExternalLink, Pencil } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
-
+import { formatEnum } from "@/lib/labels";
 type Accred = {
   id: string;
   body: string;
@@ -153,7 +153,7 @@ export function AccreditationsPanel({
                     <Badge variant="outline" className="ml-2 text-[10px] uppercase">{a.body}</Badge>
                     {a.status !== "active" && (
                       <Badge variant={a.status === "expired" ? "warning" : "destructive"} className="ml-1">
-                        {a.status}
+                        {formatEnum(a.status)}
                       </Badge>
                     )}
                   </div>

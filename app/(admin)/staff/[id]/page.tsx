@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { loadEmployeeProfile, employeeFormRows } from "@/lib/employee-profile";
 import { PrintControl } from "./print-control";
-
+import { formatEnum, roleLabel } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 // Per the request, the profile + print packet are an admin / super-admin tool.
@@ -35,8 +35,8 @@ export default async function StaffProfilePage({ params }: { params: { id: strin
         <div>
           <h1 className="text-2xl font-bold">{staff.name}</h1>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-            <Badge variant="outline">{staff.role.replaceAll("_", " ")}</Badge>
-            <Badge variant={staff.status === "active" ? "success" : "warning"}>{staff.status}</Badge>
+            <Badge variant="outline">{roleLabel(staff.role)}</Badge>
+            <Badge variant={staff.status === "active" ? "success" : "warning"}>{formatEnum(staff.status)}</Badge>
             <span>· joined {formatDate(staff.joiningDate)}</span>
           </div>
         </div>

@@ -267,7 +267,7 @@ export function HqExpenseForm({
             <div>
               <Label className="!mb-1 !text-[10px]">Method</Label>
               <Select aria-label="Method" value={form.method} onChange={(e) => set("method", e.target.value)}>
-                <option value="bank">Bank transfer</option>
+                <option value="bank">Bank Transfer</option>
                 <option value="cash">Cash</option>
                 <option value="upi">UPI</option>
                 <option value="cheque">Cheque</option>

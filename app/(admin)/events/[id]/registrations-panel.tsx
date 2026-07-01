@@ -10,7 +10,7 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2 } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
-
+import { formatEnum } from "@/lib/labels";
 type Reg = {
   id: string;
   riderId: string;
@@ -116,13 +116,13 @@ export function RegistrationsPanel({
                         onChange={(e) => patch(r.id, { status: e.target.value }, "Status updated")}
                         className="h-8 text-xs"
                       >
-                        <option value="registered">registered</option>
-                        <option value="attended">attended</option>
-                        <option value="no_show">no-show</option>
-                        <option value="cancelled">cancelled</option>
+                        <option value="registered">Registered</option>
+                        <option value="attended">Attended</option>
+                        <option value="no_show">No-Show</option>
+                        <option value="cancelled">Cancelled</option>
                       </Select>
                     ) : (
-                      <Badge variant="outline">{r.status}</Badge>
+                      <Badge variant="outline">{formatEnum(r.status)}</Badge>
                     )}
                   </td>
                   <td className="py-2">

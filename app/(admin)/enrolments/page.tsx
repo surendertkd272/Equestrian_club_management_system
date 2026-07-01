@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { EnrolmentActions } from "./enrolment-actions";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 const APPROVER_ROLES = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "SCHOOL_ADMINISTRATOR"];
@@ -116,7 +116,7 @@ export default async function EnrolmentsPage() {
                     <Badge
                       variant={r.status === "rejected" ? "destructive" : r.status === "active" ? "success" : "outline"}
                     >
-                      {r.status.replace("_", " ")}
+                      {formatEnum(r.status)}
                     </Badge>
                     <span className="text-[11px] text-muted-foreground">
                       {r.approvedAt ? formatDate(r.approvedAt) : ""}

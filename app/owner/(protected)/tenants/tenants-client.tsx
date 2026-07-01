@@ -63,7 +63,7 @@ export function TenantsClient({ initial }: { initial: Tenant[] }) {
           <option value="">All statuses</option>
           <option value="active">Active</option>
           <option value="trial">Trial</option>
-          <option value="past_due">Past due</option>
+          <option value="past_due">Past Due</option>
           <option value="suspended">Suspended</option>
         </select>
         <select

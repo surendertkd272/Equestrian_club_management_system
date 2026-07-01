@@ -18,7 +18,7 @@ import { SalaryStructureTable } from "./structure-table";
 import { SalaryPanel } from "./panel";
 import { MarkPaidButton } from "./mark-paid-button";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
-
+import { roleLabel } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 function canView(role: string): boolean {
@@ -118,7 +118,7 @@ export default async function SalaryPage() {
                 cell: (p) => (
                   <>
                     <div className="font-medium">{p.user.name}</div>
-                    <div className="text-[11px] text-muted-foreground">{p.user.role.replace(/_/g, " ").toLowerCase()}</div>
+                    <div className="text-[11px] text-muted-foreground">{roleLabel(p.user.role)}</div>
                   </>
                 ),
               },

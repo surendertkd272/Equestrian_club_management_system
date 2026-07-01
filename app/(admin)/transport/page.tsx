@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { NewTripForm } from "./new-trip";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 const CAN_MANAGE = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER"];
@@ -119,7 +119,7 @@ export default async function TransportPage() {
               {
                 key: "status",
                 header: "Status",
-                cell: (t) => <Badge variant={STATUS_VARIANT[t.status] ?? "outline"}>{t.status}</Badge>,
+                cell: (t) => <Badge variant={STATUS_VARIANT[t.status] ?? "outline"}>{formatEnum(t.status)}</Badge>,
               },
               {
                 key: "open",

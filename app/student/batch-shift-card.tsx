@@ -17,7 +17,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-
+import { formatEnum } from "@/lib/labels";
 type Batch = { id: string; name: string; dayOfWeek: string; startTime: string; endTime: string };
 type Request = {
   id: string;
@@ -162,7 +162,7 @@ export function BatchShiftCard({
                           : "warning"
                     }
                   >
-                    {r.status}
+                    {formatEnum(r.status)}
                   </Badge>
                 </div>
               </li>

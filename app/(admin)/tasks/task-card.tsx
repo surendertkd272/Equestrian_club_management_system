@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { AlertTriangle, ArrowRight, Check, RotateCcw, Trash2 } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
 import { patchJson, deleteJson } from "@/lib/client/post-json";
-
+import { formatEnum, roleLabel } from "@/lib/labels";
 type TaskWithMeta = {
   id: string;
   title: string;
@@ -95,11 +95,11 @@ export function TaskCard({
             })}
           </span>
         )}
-        {task.recurrence && task.recurrence !== "once" && <span>· {task.recurrence}</span>}
+        {task.recurrence && task.recurrence !== "once" && <span>· {formatEnum(task.recurrence)}</span>}
         {task.assignee ? (
           <span>
             · {mine ? <b>you</b> : task.assignee.name}{" "}
-            <span className="opacity-60">({task.assignee.role.replaceAll("_", " ").toLowerCase()})</span>
+            <span className="opacity-60">({roleLabel(task.assignee.role)})</span>
           </span>
         ) : (
           <span>· unassigned</span>

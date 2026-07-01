@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { PayButton } from "./pay-button";
 import { bindRlsBypass } from "@/lib/tenant-context";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function PayPage({ params }: { params: { invoiceId: string } }) {
@@ -58,7 +58,7 @@ export default async function PayPage({ params }: { params: { invoiceId: string 
             <CardDescription>
               {invoice.rider.firstName} {invoice.rider.lastName}
               {" · "}
-              {invoice.kind.replace("_", " ")}
+              {formatEnum(invoice.kind)}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

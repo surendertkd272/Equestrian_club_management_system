@@ -8,7 +8,7 @@ import { ExamHistoryList } from "@/components/exams/exam-history-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function ParentChildPage({ params }: { params: { riderId: string } }) {
@@ -114,7 +114,7 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
                                 : "destructive"
                         }
                       >
-                        {a.status}
+                        {formatEnum(a.status)}
                       </Badge>
                     </td>
                     <td className="py-2 text-muted-foreground">{a.reason ?? "—"}</td>
@@ -152,7 +152,7 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
                               : "outline"
                         }
                       >
-                        {s.status}
+                        {formatEnum(s.status)}
                       </Badge>
                     </div>
                   ))}
@@ -184,7 +184,7 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
               {certificates.map((c) => (
                 <li key={c.id} className="flex items-center justify-between border-b py-2">
                   <span>
-                    <Badge variant="outline">{c.type}</Badge> {c.levelName}
+                    <Badge variant="outline">{formatEnum(c.type)}</Badge> {c.levelName}
                   </span>
                   <span className="font-mono text-xs text-muted-foreground">
                     {c.serialNo} · issued {formatDate(c.issuedAt)}
@@ -219,7 +219,7 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
                   {invoices.map((i) => (
                     <tr key={i.id} className="border-t">
                       <td className="py-2">{formatDate(i.createdAt)}</td>
-                      <td className="py-2">{i.kind.replace("_", " ")}</td>
+                      <td className="py-2">{formatEnum(i.kind)}</td>
                       <td className="py-2 font-semibold">₹{i.amount.toLocaleString("en-IN")}</td>
                       <td className="py-2">{formatDate(i.dueDate)}</td>
                       <td className="py-2">
@@ -232,7 +232,7 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
                                 : "warning"
                           }
                         >
-                          {i.status}
+                          {formatEnum(i.status)}
                         </Badge>
                       </td>
                     </tr>

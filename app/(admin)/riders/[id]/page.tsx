@@ -17,7 +17,7 @@ import { isReadOnly } from "@/lib/roles";
 import { bmiBand, bmiBandLabel, bmiBandTone, bmiNeedsAttention } from "@/lib/bmi";
 import { loadRiderExamHistory } from "@/lib/exam-history";
 import { ExamHistoryList } from "@/components/exams/exam-history-list";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 function AttendanceSummary({ attendances }: { attendances: { status: string }[] }) {
@@ -127,7 +127,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
           >
             Report card
           </a>
-          <Badge variant={rider.status === "active" ? "success" : "warning"}>{rider.status.replace("_", " ")}</Badge>
+          <Badge variant={rider.status === "active" ? "success" : "warning"}>{formatEnum(rider.status)}</Badge>
         </div>
       </div>
 
@@ -369,14 +369,14 @@ export default async function RiderProfile({ params }: { params: { id: string } 
             <tbody>
               {rider.invoices.map((inv) => (
                 <tr key={inv.id} className="border-t">
-                  <td className="py-2">{inv.kind}</td>
+                  <td className="py-2">{formatEnum(inv.kind)}</td>
                   <td className="py-2">₹{inv.amount.toLocaleString("en-IN")}</td>
                   <td className="py-2">{formatDate(inv.dueDate)}</td>
                   <td className="py-2">
                     <Badge
                       variant={inv.status === "paid" ? "success" : inv.status === "due" ? "warning" : "destructive"}
                     >
-                      {inv.status}
+                      {formatEnum(inv.status)}
                     </Badge>
                   </td>
                 </tr>

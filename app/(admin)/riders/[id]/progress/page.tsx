@@ -93,7 +93,7 @@ export default async function RiderProgressPage({
             defaultValue={selectedLevel ?? "all"}
             className="h-9 rounded-md border bg-card px-2 text-sm"
           >
-            <option value="all">All levels</option>
+            <option value="all">All Levels</option>
             {levels.map((l) => (
               <option key={l.id} value={l.name}>
                 {l.name}

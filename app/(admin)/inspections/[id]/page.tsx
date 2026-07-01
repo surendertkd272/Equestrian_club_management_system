@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { InspectionSheet } from "./sheet";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 const CAN_INSPECT = ["INSPECTION_OFFICER", "SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"];
@@ -41,11 +41,11 @@ export default async function InspectionDetailPage({ params }: { params: { id: s
             <ChevronLeft className="h-4 w-4" /> All audits
           </Link>
         </Button>
-        <Badge variant={run.status === "completed" ? "success" : "warning"}>{run.status.replace("_", " ")}</Badge>
+        <Badge variant={run.status === "completed" ? "success" : "warning"}>{formatEnum(run.status)}</Badge>
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold capitalize">{run.scope.replace("_", " ")} audit</h1>
+        <h1 className="text-2xl font-bold capitalize">{formatEnum(run.scope)} audit</h1>
         <p className="text-sm text-muted-foreground">
           {run.centre.name} · started {formatDate(run.startedAt)}
           {run.completedAt ? ` · completed ${formatDate(run.completedAt)}` : ""}

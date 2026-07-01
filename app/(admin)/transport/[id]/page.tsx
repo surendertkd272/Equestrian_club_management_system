@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { TripManifest } from "./manifest";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 const CAN_MANAGE = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER"];
@@ -49,7 +49,7 @@ export default async function TripDetailPage({ params }: { params: { id: string 
           Departure {formatDate(trip.departureAt)}
           {trip.returnAt ? ` · returned ${formatDate(trip.returnAt)}` : ""}
           {" · "}
-          <Badge variant="outline">{trip.status}</Badge>
+          <Badge variant="outline">{formatEnum(trip.status)}</Badge>
         </p>
         {trip.notes && <p className="mt-1 text-sm text-muted-foreground">{trip.notes}</p>}
       </div>

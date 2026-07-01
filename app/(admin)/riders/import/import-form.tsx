@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-
+import { roleLabel } from "@/lib/labels";
 type Preview = {
   dryRun: true;
   wouldCreate: number;
@@ -95,7 +95,7 @@ export function ImportForm({
             <option value="">— Don&apos;t schedule exams —</option>
             {examiners.map((u) => (
               <option key={u.id} value={u.id}>
-                Examiner: {u.name} · {u.role.replaceAll("_", " ")}
+                Examiner: {u.name} · {roleLabel(u.role)}
               </option>
             ))}
           </Select>

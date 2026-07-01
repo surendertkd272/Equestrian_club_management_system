@@ -11,7 +11,7 @@ import { CheckCheck } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { ReviewButtons } from "./approvals-client";
-
+import { formatEnum, roleLabel } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function ApprovalsPage() {
@@ -115,7 +115,7 @@ export default async function ApprovalsPage() {
                     return (
                       <>
                         {user?.name ?? "—"}
-                        {user && <div className="text-[10px] text-muted-foreground">{user.role}</div>}
+                        {user && <div className="text-[10px] text-muted-foreground">{roleLabel(user.role)}</div>}
                       </>
                     );
                   },
@@ -138,7 +138,7 @@ export default async function ApprovalsPage() {
                         : "warning"
                       }
                     >
-                      {r.status}
+                      {formatEnum(r.status)}
                     </Badge>
                   ),
                 },

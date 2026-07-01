@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { BookingsClient } from "./bookings-client";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function FacilityBookingsPage() {
@@ -112,7 +112,7 @@ export default async function FacilityBookingsPage() {
                   );
                 },
               },
-              { key: "purpose", header: "Purpose", cell: (r) => <span className="text-xs capitalize">{r.purpose}</span> },
+              { key: "purpose", header: "Purpose", cell: (r) => <span className="text-xs capitalize">{formatEnum(r.purpose)}</span> },
               { key: "title", header: "Title", cell: (r) => <span className="text-sm">{r.title}</span> },
               {
                 key: "status",

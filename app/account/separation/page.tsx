@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { SeparationResponseForm } from "./form";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function SeparationPage() {
@@ -76,7 +76,7 @@ export default async function SeparationPage() {
                 <li key={n.id} className="rounded-md border p-3 text-sm">
                   <div className="flex items-center justify-between">
                     <Badge variant={n.status === "submitted" ? "outline" : "destructive"}>
-                      {n.kind} · {n.status}
+                      {formatEnum(n.kind)} · {formatEnum(n.status)}
                     </Badge>
                     <span className="text-xs text-muted-foreground">{formatDate(n.issuedAt)}</span>
                   </div>

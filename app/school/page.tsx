@@ -17,7 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { EnrolmentActions } from "@/app/(admin)/enrolments/enrolment-actions";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function SchoolDashboardPage() {
@@ -208,7 +208,7 @@ export default async function SchoolDashboardPage() {
                           "outline"
                         }
                       >
-                        {e.status}
+                        {formatEnum(e.status)}
                       </Badge>
                     </div>
                   </li>
@@ -241,7 +241,7 @@ export default async function SchoolDashboardPage() {
                       "outline"
                     }
                   >
-                    {s.status.replaceAll("_", " ")}
+                    {formatEnum(s.status)}
                   </Badge>
                 </li>
               ))}

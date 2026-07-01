@@ -14,7 +14,7 @@ import { parsePaging } from "@/lib/paging";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExportCsvButton } from "@/components/ui/export-csv";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 const STATUS_VARIANT: Record<string, "success" | "warning" | "outline"> = {
@@ -123,7 +123,7 @@ export default async function HorsesPage({
               >
                 <option value="">All</option>
                 <option value="active">Active</option>
-                <option value="rest">On rest</option>
+                <option value="rest">On Rest</option>
                 <option value="retired">Retired</option>
               </select>
             </div>
@@ -164,7 +164,7 @@ export default async function HorsesPage({
               { key: "sex", header: "Sex", cell: (h) => h.sex ?? "—" },
               { key: "age", header: "Age", cell: (h) => h.ageYears ?? "—" },
               { key: "stable", header: "Stable", cell: (h) => h.stableNo ?? "—" },
-              { key: "status", header: "Status", cell: (h) => <Badge variant={STATUS_VARIANT[h.status] ?? "outline"}>{h.status}</Badge> },
+              { key: "status", header: "Status", cell: (h) => <Badge variant={STATUS_VARIANT[h.status] ?? "outline"}>{formatEnum(h.status)}</Badge> },
               {
                 key: "workload",
                 header: "Workload Today",

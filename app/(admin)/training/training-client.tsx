@@ -9,7 +9,7 @@ import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-
+import { roleLabel } from "@/lib/labels";
 type Course = {
   id: string;
   title: string;
@@ -207,7 +207,7 @@ function CertsPanel({
             <Select aria-label="Staff member" value={form.userId} onChange={(e) => set("userId", e.target.value)}>
               {staff.map((s) => (
                 <option key={s.id} value={s.id}>
-                  {s.name} ({s.role})
+                  {s.name} ({roleLabel(s.role)})
                 </option>
               ))}
             </Select>

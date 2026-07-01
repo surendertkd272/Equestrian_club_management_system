@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, IndianRupee } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { postJson } from "@/lib/client/post-json";
-
+import { formatEnum, roleLabel } from "@/lib/labels";
 type Repayment = { id: string; amount: number; deductedAt: string; notes: string | null };
 type AdvanceRow = {
   id: string;
@@ -88,7 +88,7 @@ export function AdvancesPanel({
                   <option value="">— pick —</option>
                   {eligibleUsers.map((u) => (
                     <option key={u.id} value={u.id}>
-                      {u.name} · {u.role.replaceAll("_", " ").toLowerCase()}
+                      {u.name} · {roleLabel(u.role)}
                     </option>
                   ))}
                 </Select>
@@ -179,9 +179,9 @@ function AdvanceRowDisplay({ row }: { row: AdvanceRow }) {
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <span className="font-semibold">{row.user.name}</span>
-          <span className="ml-2 text-xs text-muted-foreground">{row.user.role.replaceAll("_", " ")}</span>
+          <span className="ml-2 text-xs text-muted-foreground">{roleLabel(row.user.role)}</span>
           <Badge variant={row.status === "outstanding" ? "warning" : "outline"} className="ml-2">
-            {row.status.replaceAll("_", " ")}
+            {formatEnum(row.status)}
           </Badge>
         </div>
         <div className="flex items-center gap-3 text-xs">

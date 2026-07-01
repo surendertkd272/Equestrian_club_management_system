@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-
+import { roleLabel } from "@/lib/labels";
 export type PendingUserDTO = {
   id: string;
   name: string;
@@ -75,7 +75,7 @@ function PendingRow({ user }: { user: PendingUserDTO }) {
       <div className="min-w-0">
         <div className="font-medium">
           {user.name}{" "}
-          <Badge variant="outline">{user.role.replaceAll("_", " ")}</Badge>
+          <Badge variant="outline">{roleLabel(user.role)}</Badge>
         </div>
         <div className="text-xs text-muted-foreground">
           <span className="font-mono">{user.email}</span>

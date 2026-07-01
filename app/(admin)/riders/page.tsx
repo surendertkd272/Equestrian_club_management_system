@@ -15,7 +15,7 @@ import { parsePaging } from "@/lib/paging";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExportCsvButton } from "@/components/ui/export-csv";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 const statusVariant = (s: string) =>
@@ -119,7 +119,7 @@ export default async function RidersPage({
             >
               <option value="">All statuses</option>
               <option value="active">Active</option>
-              <option value="pending_payment">Pending payment</option>
+              <option value="pending_payment">Pending Payment</option>
               <option value="suspended">Suspended</option>
               <option value="cancelled">Cancelled</option>
             </select>
@@ -148,7 +148,7 @@ export default async function RidersPage({
               { key: "joined", header: "Joined", cell: (r) => formatDate(r.joiningDate) },
               { key: "batch", header: "Batch", cell: (r) => r.batch?.name ?? "—" },
               { key: "level", header: "Level", cell: (r) => r.currentLevel ?? "—" },
-              { key: "status", header: "Status", cell: (r) => <Badge variant={statusVariant(r.status) as any}>{r.status.replace("_", " ")}</Badge> },
+              { key: "status", header: "Status", cell: (r) => <Badge variant={statusVariant(r.status) as any}>{formatEnum(r.status)}</Badge> },
             ]}
           />
           <Pagination total={total} page={page} pageSize={pageSize} />

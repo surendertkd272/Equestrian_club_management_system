@@ -16,7 +16,7 @@ import { Plus, TrendingUp, TrendingDown, IndianRupee, Receipt } from "lucide-rea
 import { can } from "@/lib/permissions";
 import { BulkMarkPaid } from "./bulk-mark-paid";
 import { RecordPaymentButton } from "@/components/finance/record-payment-button";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 // Finance dashboard — income, expenses, P&L. Data sources:
@@ -225,7 +225,7 @@ export default async function FinancePage() {
                   <li key={i.id} className="flex items-center justify-between border-b py-1 last:border-0">
                     <span>
                       {i.rider.firstName} {i.rider.lastName}{" "}
-                      <span className="text-xs text-muted-foreground">· {i.kind}</span>
+                      <span className="text-xs text-muted-foreground">· {formatEnum(i.kind)}</span>
                     </span>
                     <span>
                       <span className="mr-2 text-xs text-muted-foreground">{formatDate(i.dueDate)}</span>
@@ -270,7 +270,7 @@ export default async function FinancePage() {
                           {inv.rider.firstName} {inv.rider.lastName}
                         </Link>
                       </td>
-                      <td className="py-2">{inv.kind}</td>
+                      <td className="py-2">{formatEnum(inv.kind)}</td>
                       <td className="py-2 font-mono">{inr(inv.amount)}</td>
                       <td className="py-2">{formatDate(inv.dueDate)}</td>
                       <td className="py-2">
@@ -279,7 +279,7 @@ export default async function FinancePage() {
                             inv.status === "paid" ? "success" : inv.status === "due" ? "warning" : "destructive"
                           }
                         >
-                          {inv.status}
+                          {formatEnum(inv.status)}
                         </Badge>
                       </td>
                       <td className="py-2">

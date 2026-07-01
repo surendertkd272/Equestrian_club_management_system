@@ -86,12 +86,12 @@ export function FarrierClient({ horses }: { horses: Horse[] }) {
           <div>
             <Label>Work</Label>
             <Select aria-label="Work" value={form.workType} onChange={(e) => set("workType", e.target.value)}>
-              <option value="trim">Trim only</option>
+              <option value="trim">Trim Only</option>
               <option value="hoofing">Hoofing</option>
-              <option value="new_horse_shoe">New horse shoe</option>
-              <option value="shoe_full">Shoe (full set)</option>
-              <option value="shoe_partial">Shoe (partial)</option>
-              <option value="reset">Reset existing shoes</option>
+              <option value="new_horse_shoe">New Horse Shoe</option>
+              <option value="shoe_full">Shoe (Full Set)</option>
+              <option value="shoe_partial">Shoe (Partial)</option>
+              <option value="reset">Reset Existing Shoes</option>
               <option value="other">Other</option>
             </Select>
           </div>

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
-
+import { formatEnum, roleLabel } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 // "Tasks Given and Tasks Completed" (client ask) — the delegation view. Shows
@@ -152,7 +152,7 @@ function TaskTable({
               <span>
                 {assignee.name}{" "}
                 <span className="text-[11px] text-muted-foreground">
-                  {assignee.role.replace(/_/g, " ").toLowerCase()}
+                  {roleLabel(assignee.role)}
                 </span>
               </span>
             ) : (
@@ -192,7 +192,7 @@ function TaskTable({
             <Badge
               variant={t.status === "done" ? "success" : t.status === "in_progress" ? "warning" : "outline"}
             >
-              {t.status.replace("_", " ")}
+              {formatEnum(t.status)}
             </Badge>
           ),
         },

@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NewLessonForm } from "./new-form";
 import { LessonDeleteButton } from "./delete-button";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 type SP = { date?: string };
@@ -114,7 +114,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
                         variant={l.status === "completed" ? "default" : l.status === "cancelled" ? "destructive" : "secondary"}
                         className="text-xs"
                       >
-                        {l.status}
+                        {formatEnum(l.status)}
                       </Badge>
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">

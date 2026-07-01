@@ -10,7 +10,7 @@ import { ChevronLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { PrintButton } from "./print-button";
 import { PeriodForm } from "./period-form";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 function parseDate(s: string | undefined, fallback: Date): Date {
@@ -264,13 +264,13 @@ export default async function ReportCard({
                 {invoices.map((inv) => (
                   <tr key={inv.id} className="border-t border-dashed">
                     <td className="py-1">{formatDate(inv.createdAt)}</td>
-                    <td className="py-1 capitalize">{inv.kind}</td>
+                    <td className="py-1 capitalize">{formatEnum(inv.kind)}</td>
                     <td className="py-1">₹{inv.amount.toLocaleString("en-IN")}</td>
                     <td className="py-1">
                       <Badge
                         variant={inv.status === "paid" ? "success" : inv.status === "due" ? "warning" : "destructive"}
                       >
-                        {inv.status}
+                        {formatEnum(inv.status)}
                       </Badge>
                     </td>
                   </tr>

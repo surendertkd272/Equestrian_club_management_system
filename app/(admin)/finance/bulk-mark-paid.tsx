@@ -105,7 +105,7 @@ export function BulkMarkPaid({
             <Select value={method} onChange={(e) => setMethod(e.target.value as any)}>
               <option value="cash">Cash</option>
               <option value="upi">UPI</option>
-              <option value="bank">Bank transfer</option>
+              <option value="bank">Bank Transfer</option>
               <option value="cheque">Cheque</option>
               <option value="card">Card</option>
             </Select>

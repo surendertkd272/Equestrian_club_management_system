@@ -5,7 +5,7 @@ import { getOrgIdForSession } from "@/lib/features-gate";
 import { formatDate } from "@/lib/utils";
 import { loadEmployeeProfile, employeeFormRows } from "@/lib/employee-profile";
 import { AutoPrint } from "./auto-print";
-
+import { roleLabel } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 const CAN_VIEW = ["SUPER_ADMIN", "ADMIN"];
@@ -99,7 +99,7 @@ export default async function StaffPrintPage({
         <section className="pkg-page">
           <h1 className="pkg-h">{profile.staff.name} — Employee Registration</h1>
           <p className="pkg-sub">
-            {profile.staff.role.replaceAll("_", " ")} · joined {formatDate(profile.staff.joiningDate)} · printed {printedOn}
+            {roleLabel(profile.staff.role)} · joined {formatDate(profile.staff.joiningDate)} · printed {printedOn}
           </p>
           <dl>
             {rows.map((r) => (

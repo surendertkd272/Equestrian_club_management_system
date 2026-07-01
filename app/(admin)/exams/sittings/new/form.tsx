@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-
+import { roleLabel } from "@/lib/labels";
 export function NewSittingForm({
   riders,
   examiners,
@@ -114,7 +114,7 @@ export function NewSittingForm({
               >
                 <input type="checkbox" checked={pool.has(u.id)} onChange={() => toggleSet(setPool, u.id)} />
                 <span>
-                  {u.name} <span className="text-[10px] text-muted-foreground">· {u.role}</span>
+                  {u.name} <span className="text-[10px] text-muted-foreground">· {roleLabel(u.role)}</span>
                 </span>
               </label>
             ))

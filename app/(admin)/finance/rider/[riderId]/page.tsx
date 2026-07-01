@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { RecordPaymentButton } from "@/components/finance/record-payment-button";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 // Per-rider statement of account. Aggregates every invoice + payment for
@@ -117,7 +117,7 @@ export default async function RiderStatement({ params }: { params: { riderId: st
                   return (
                     <tr key={inv.id} className="border-t">
                       <td className="py-2">{formatDate(inv.createdAt)}</td>
-                      <td className="py-2">{inv.kind}</td>
+                      <td className="py-2">{formatEnum(inv.kind)}</td>
                       <td className="py-2 font-mono">{inr(inv.amount)}</td>
                       <td className="py-2 font-mono">{inr(inv.gstAmount)}</td>
                       <td className="py-2 text-xs">
@@ -133,7 +133,7 @@ export default async function RiderStatement({ params }: { params: { riderId: st
                             inv.status === "paid" ? "success" : inv.status === "due" ? "warning" : "destructive"
                           }
                         >
-                          {inv.status}
+                          {formatEnum(inv.status)}
                         </Badge>
                       </td>
                       <td className="py-2">
@@ -169,7 +169,7 @@ export default async function RiderStatement({ params }: { params: { riderId: st
               {payments.map((p) => (
                 <li key={p.id} className="flex justify-between border-b py-1 last:border-0">
                   <span>
-                    {formatDate(p.paidAt)} · {p.method}
+                    {formatDate(p.paidAt)} · {formatEnum(p.method)}
                     {p.txnRef && <span className="ml-2 font-mono text-xs text-muted-foreground">{p.txnRef}</span>}
                   </span>
                   <span className="font-mono">{inr(p.amount)}</span>

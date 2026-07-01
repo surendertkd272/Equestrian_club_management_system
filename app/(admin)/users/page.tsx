@@ -13,7 +13,7 @@ import { ROLES } from "@/lib/roles";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { UserActions, UserSearchBar, NewUserCard } from "./client";
 import { ApprovalQueue } from "./approval-queue";
-
+import { formatEnum, roleLabel } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 type SearchParams = {
@@ -202,7 +202,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
               {
                 key: "role",
                 header: "Role",
-                cell: (u) => <Badge variant="outline">{u.role.replaceAll("_", " ")}</Badge>,
+                cell: (u) => <Badge variant="outline">{roleLabel(u.role)}</Badge>,
               },
               {
                 key: "centre",
@@ -223,7 +223,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
                 header: "Status",
                 cell: (u) => (
                   <Badge variant={u.status === "active" ? "success" : "destructive"}>
-                    {u.status}
+                    {formatEnum(u.status)}
                   </Badge>
                 ),
               },

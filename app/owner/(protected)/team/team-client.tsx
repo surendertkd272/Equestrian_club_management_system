@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-
+import { formatEnum } from "@/lib/labels";
 type OwnerRoleKey = "OWNER_ADMIN" | "OWNER_EDITOR" | "OWNER_BILLING";
 
 type Row = {
@@ -136,10 +136,10 @@ export function TeamClient({
                             : "bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 hover:brightness-110"
                         } disabled:cursor-not-allowed disabled:opacity-60`}
                       >
-                        {u.status}
+                        {formatEnum(u.status)}
                       </button>
                     ) : (
-                      <span className="text-foreground">{u.status}</span>
+                      <span className="text-foreground">{formatEnum(u.status)}</span>
                     )}
                   </td>
                   <td className="px-3 py-2 align-top text-muted-foreground">
@@ -227,9 +227,9 @@ function InviteCard({ onInvited }: { onInvited: (x: { email: string; tempPasswor
             onChange={(e) => setRole(e.target.value as OwnerRoleKey)}
             className="mt-1 h-10 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground"
           >
-            <option value="OWNER_ADMIN">Admin (full)</option>
-            <option value="OWNER_EDITOR">Editor (rename / contact)</option>
-            <option value="OWNER_BILLING">Billing (status / billing email)</option>
+            <option value="OWNER_ADMIN">Admin (Full)</option>
+            <option value="OWNER_EDITOR">Editor (Rename / Contact)</option>
+            <option value="OWNER_BILLING">Billing (Status / Billing Email)</option>
           </select>
         </div>
         <div className="flex items-end">

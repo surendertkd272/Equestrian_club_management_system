@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getOwnerSession } from "@/lib/owner-auth";
 import { redirect } from "next/navigation";
 import { PrintButton } from "./print-button";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 // Print-friendly SaaS invoice view. Owner opens this from the invoice
@@ -79,7 +79,7 @@ export default async function SaasInvoicePrintPage({ params }: { params: { id: s
             {new Date(invoice.periodEnd).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
           </div>
           <div className="mt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Status</div>
-          <div className="mt-1 text-sm capitalize">{invoice.status}</div>
+          <div className="mt-1 text-sm capitalize">{formatEnum(invoice.status)}</div>
         </div>
       </div>
 

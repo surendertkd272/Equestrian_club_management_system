@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 type SP = { status?: string; org?: string };
@@ -99,7 +99,7 @@ export default async function SaasInvoicesPage({ searchParams }: { searchParams:
                     <td className="py-2 text-right">₹{i.taxAmount.toLocaleString("en-IN")}</td>
                     <td className="py-2 text-right font-semibold">₹{i.total.toLocaleString("en-IN")}</td>
                     <td className="py-2">
-                      <Badge variant={STATUS_VARIANT[i.status] ?? "outline"} className="text-xs">{i.status}</Badge>
+                      <Badge variant={STATUS_VARIANT[i.status] ?? "outline"} className="text-xs">{formatEnum(i.status)}</Badge>
                     </td>
                     <td className="py-2 text-right">
                       <Link

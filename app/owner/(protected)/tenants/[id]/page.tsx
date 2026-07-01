@@ -14,7 +14,7 @@ import { FEATURE_KEYS, type FeatureKey } from "@/lib/features";
 import { isPlanKey, PLAN_REGISTRY, planAllowsOverrides, type PlanKey } from "@/lib/plans";
 import { getOwnerSession } from "@/lib/owner-auth";
 import { ownerCan } from "@/lib/owner-permissions";
-
+import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function TenantDetailPage({ params }: { params: { id: string } }) {
@@ -129,7 +129,7 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
                     <div className="font-medium">{u.name}</div>
                     <div className="text-xs text-muted-foreground">{u.email}</div>
                     {u.status !== "active" && (
-                      <div className="text-xs text-rose-700 dark:text-rose-400">{u.status}</div>
+                      <div className="text-xs text-rose-700 dark:text-rose-400">{formatEnum(u.status)}</div>
                     )}
                   </div>
                   {u.status === "active" && (

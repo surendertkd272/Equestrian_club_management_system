@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
 import { postJson } from "@/lib/client/post-json";
-
+import { roleLabel } from "@/lib/labels";
 export type RequisitionDTO = {
   id: string;
   stage: string;
@@ -71,9 +71,9 @@ export function RequisitionList({
           className="flex-1"
         />
         <Select value={stage} onChange={(e) => setStage(e.target.value)} className="sm:w-48">
-          <option value="all">All stages</option>
-          <option value="pending_manager">Pending manager</option>
-          <option value="pending_accountant">Pending accountant</option>
+          <option value="all">All Stages</option>
+          <option value="pending_manager">Pending Manager</option>
+          <option value="pending_accountant">Pending Accountant</option>
           <option value="approved">Approved</option>
           <option value="rejected">Rejected</option>
         </Select>
@@ -128,7 +128,7 @@ function RequisitionRow({ row, mode }: { row: RequisitionDTO; mode: "manager" | 
           </span>
         </div>
         <div className="text-xs text-muted-foreground">
-          {row.requestedBy.name} <span className="opacity-60">({row.requestedBy.role})</span>
+          {row.requestedBy.name} <span className="opacity-60">({roleLabel(row.requestedBy.role)})</span>
         </div>
       </div>
 

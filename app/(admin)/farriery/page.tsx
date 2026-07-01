@@ -101,14 +101,14 @@ export default async function FarrieryPage() {
               {
                 key: "work",
                 header: "Work",
-                cell: (v) => <span className="text-xs capitalize">{v.workType.replace("_", " ")}</span>,
+                cell: (v) => <span className="text-xs capitalize">{formatEnum(v.workType)}</span>,
               },
               {
                 key: "status",
                 header: "Status",
                 cell: (v) => (
                   <Badge variant={v.status === "completed" ? "success" : v.status === "scheduled" ? "outline" : "warning"}>
-                    {v.status}
+                    {formatEnum(v.status)}
                   </Badge>
                 ),
               },
@@ -153,3 +153,4 @@ function Kpi({ label, value, tone }: { label: string; value: number; tone?: "amb
 // Imported below — inlined as a server-side import would defeat the
 // "use client" boundary. The actual implementation lives in the client file.
 import { CompleteButton } from "./farrier-client";
+import { formatEnum } from "@/lib/labels";

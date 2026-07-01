@@ -9,7 +9,7 @@ import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Crown } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
-
+import { roleLabel } from "@/lib/labels";
 type Judge = {
   id: string;
   judgeId: string;
@@ -144,7 +144,7 @@ export function JudgesPanel({
                 .filter((u) => !coJudges.some((j) => j.judgeId === u.id))
                 .map((u) => (
                   <option key={u.id} value={u.id}>
-                    {u.name} · {u.role}
+                    {u.name} · {roleLabel(u.role)}
                   </option>
                 ))}
             </Select>

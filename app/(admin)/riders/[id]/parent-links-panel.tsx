@@ -157,9 +157,9 @@ export function ParentLinksPanel({
                 value={relationship}
                 onChange={(e) => setRelationship(e.target.value as any)}
               >
-                <option value="father">father</option>
-                <option value="mother">mother</option>
-                <option value="guardian">guardian</option>
+                <option value="father">Father</option>
+                <option value="mother">Mother</option>
+                <option value="guardian">Guardian</option>
               </select>
             </div>
           </div>

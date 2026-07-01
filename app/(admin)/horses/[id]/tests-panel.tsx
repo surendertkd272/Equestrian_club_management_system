@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { postJson } from "@/lib/client/post-json";
-
+import { formatEnum } from "@/lib/labels";
 export type HorseTestDTO = {
   id: string;
   testType: "coggins" | "glanders" | "urination";
@@ -115,7 +115,7 @@ export function HorseTestsPanel({
               <Select aria-label="Test type" value={testType} onChange={(e) => setTestType(e.target.value as HorseTestDTO["testType"])}>
                 <option value="coggins">Coggins (EIA)</option>
                 <option value="glanders">Glanders</option>
-                <option value="urination">Urination (urinalysis)</option>
+                <option value="urination">Urination (Urinalysis)</option>
               </Select>
             </div>
             <div className="space-y-1.5">
@@ -176,7 +176,7 @@ export function HorseTestsPanel({
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <div className="flex items-baseline gap-2">
                   <span className="font-semibold">{TYPE_LABEL[t.testType]}</span>
-                  <Badge variant={RESULT_VARIANT[t.result]}>{t.result}</Badge>
+                  <Badge variant={RESULT_VARIANT[t.result]}>{formatEnum(t.result)}</Badge>
                 </div>
                 <span className="text-sm font-medium">{formatDate(new Date(t.testedAt))}</span>
               </div>
