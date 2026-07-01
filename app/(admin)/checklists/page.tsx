@@ -32,7 +32,7 @@ export default async function ChecklistsPage() {
   if (!centreId) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Daily checklist</h1>
+        <h1 className="text-2xl font-bold">Daily Checklist</h1>
         <Card>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
             Pick a centre from the top-bar filter to submit checklists.
@@ -81,7 +81,7 @@ export default async function ChecklistsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Daily checklist</h1>
+          <h1 className="text-2xl font-bold">Daily Checklist</h1>
           <p className="text-sm text-muted-foreground">
             Run through the daily ticks for horse health, feed, and per-horse care. Items come
             from the centre's template — admins can edit them at any time.
@@ -97,7 +97,7 @@ export default async function ChecklistsPage() {
       {general && general.items.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>General daily checks</CardTitle>
+            <CardTitle>General Daily Checks</CardTitle>
             <CardDescription>
               Pick the shift, run through each section, tick the declaration, and submit.
             </CardDescription>
@@ -123,7 +123,7 @@ export default async function ChecklistsPage() {
       {perHorse && perHorse.items.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>Per-horse daily report</CardTitle>
+            <CardTitle>Per-Horse Daily Report</CardTitle>
             <CardDescription>
               Pick a horse, then tick its eight checks. Repeat for each horse.
             </CardDescription>
@@ -148,7 +148,7 @@ export default async function ChecklistsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent submissions</CardTitle>
+          <CardTitle>Recent Submissions</CardTitle>
           <CardDescription>Last 20 across both templates.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -212,7 +212,7 @@ export default async function ChecklistsPage() {
                 },
                 {
                   key: "signedOff",
-                  header: "Signed off",
+                  header: "Signed Off",
                   cell: (s) => (
                     <SignOffButton
                       submissionId={s.id}

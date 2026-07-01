@@ -19,7 +19,7 @@ export default async function DailyUpdatePage() {
   if (!session.centreId) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Daily coach update</h1>
+        <h1 className="text-2xl font-bold">Daily Coach Update</h1>
         <Card>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
             This quick update is filed against your own centre. HQ accounts don't have one.
@@ -56,7 +56,7 @@ export default async function DailyUpdatePage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold">Daily coach update</h1>
+          <h1 className="text-2xl font-bold">Daily Coach Update</h1>
           <p className="text-sm text-muted-foreground">
             A 60-second end-of-day note: what you covered, how many horses/riders, and anything to
             flag (injuries, concerns). One per day — saving again updates today's entry.
@@ -95,7 +95,7 @@ export default async function DailyUpdatePage() {
       {recent.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">My recent updates</CardTitle>
+            <CardTitle className="text-base">My Recent Updates</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-3 text-sm">

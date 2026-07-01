@@ -57,7 +57,7 @@ export function NotifPrefsPanel({ initial }: { initial: Prefs }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Notification preferences</CardTitle>
+        <CardTitle>Notification Preferences</CardTitle>
         <CardDescription>
           Pick which channels to receive normal notifications on. Critical alerts (severe injury,
           password reset) always land in your in-app inbox regardless.
@@ -65,7 +65,7 @@ export function NotifPrefsPanel({ initial }: { initial: Prefs }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-2 sm:grid-cols-2">
-          <Toggle label="In-app inbox" hint="The bell icon up top." checked={form.inApp} onChange={(v) => set("inApp", v)} />
+          <Toggle label="In-App Inbox" hint="The bell icon up top." checked={form.inApp} onChange={(v) => set("inApp", v)} />
           <Toggle label="Email" hint="Goes to the email on your account." checked={form.email} onChange={(v) => set("email", v)} />
           <Toggle label="SMS" hint="Costs ₹0.20–0.50 per message; opt in only if you really want it." checked={form.sms} onChange={(v) => set("sms", v)} />
           <Toggle label="WhatsApp" hint="Most reliable on Indian networks." checked={form.whatsapp} onChange={(v) => set("whatsapp", v)} />

@@ -8,11 +8,11 @@ import { patchJson } from "@/lib/client/post-json";
 
 const NEXT: Record<string, { label: string; status: string; variant?: "default" | "outline" | "destructive" }[]> = {
   scheduled: [
-    { label: "Mark complete", status: "completed" },
+    { label: "Mark Complete", status: "completed" },
     { label: "Cancel", status: "cancelled", variant: "destructive" },
   ],
-  completed: [{ label: "Re-open", status: "scheduled", variant: "outline" }],
-  cancelled: [{ label: "Re-schedule", status: "scheduled", variant: "outline" }],
+  completed: [{ label: "Re-Open", status: "scheduled", variant: "outline" }],
+  cancelled: [{ label: "Re-Schedule", status: "scheduled", variant: "outline" }],
   rescheduled: [],
 };
 

@@ -111,7 +111,7 @@ export default async function RiderProgressPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Mastery by level</CardTitle>
+          <CardTitle>Mastery by Level</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-3">

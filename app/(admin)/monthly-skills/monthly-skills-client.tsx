@@ -280,7 +280,7 @@ export function MonthlySkillsClient({ yearMonth, canEdit, skills, riders, initia
                   ? "Adding…"
                   : draftSkills.length > 0
                     ? `Add ${draftSkills.length}${draftInput.trim().length >= 2 ? "+1" : ""} skill${draftSkills.length === 1 && draftInput.trim().length < 2 ? "" : "s"}`
-                    : "Add skill"}
+                    : "Add Skill"}
               </Button>
             </div>
           </div>

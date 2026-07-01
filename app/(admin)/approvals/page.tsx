@@ -82,7 +82,7 @@ export default async function ApprovalsPage() {
             // action here. Empty state is informative, not a CTA.
             <EmptyState
               icon={<CheckCheck className="h-8 w-8" />}
-              title="Nothing waiting for your review"
+              title="Nothing Waiting for Your Review"
               body="When a rider self-enrols, a coach submits a requisition, or a leave request lands, it shows up here."
             />
           ) : (

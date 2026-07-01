@@ -29,15 +29,15 @@ const PRESET_GROUPS: { group: string; items: { key: string; label: string; inter
     group: "Deworming",
     items: [
       { key: "deworm_ivermectin", label: "Deworm · Ivermectin", interval: 90 },
-      { key: "deworm_strongid", label: "Deworm · Strongid (pyrantel)", interval: 60 },
-      { key: "deworm_panacur", label: "Deworm · Panacur (fenbendazole)", interval: 180 },
+      { key: "deworm_strongid", label: "Deworm · Strongid (Pyrantel)", interval: 60 },
+      { key: "deworm_panacur", label: "Deworm · Panacur (Fenbendazole)", interval: 180 },
     ],
   },
   {
     group: "Dental",
     items: [
-      { key: "dental_check", label: "Dental check", interval: 180 },
-      { key: "dental_float", label: "Dental float", interval: 365 },
+      { key: "dental_check", label: "Dental Check", interval: 180 },
+      { key: "dental_float", label: "Dental Float", interval: 365 },
     ],
   },
 ];
@@ -98,7 +98,7 @@ export function VaccinationsClient({ horses }: { horses: Horse[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Add / update schedule</CardTitle>
+        <CardTitle className="text-base">Add / Update Schedule</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 md:grid-cols-3">

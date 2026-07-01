@@ -43,7 +43,7 @@ export function StartInspection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Start an inspection</CardTitle>
+        <CardTitle className="text-base">Start an Inspection</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap items-end gap-3">

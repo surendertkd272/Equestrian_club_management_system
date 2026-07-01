@@ -45,7 +45,7 @@ export default async function RidersImportPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Import riders (CSV)</CardTitle>
+          <CardTitle>Import Riders (CSV)</CardTitle>
           <CardDescription>
             Bulk-create rider profiles from a spreadsheet. Run a dry preview first to catch
             duplicates and bad rows before anything is written.
@@ -58,7 +58,7 @@ export default async function RidersImportPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Column reference</CardTitle>
+          <CardTitle className="text-base">Column Reference</CardTitle>
           <CardDescription>
             Headers are case-insensitive; aliases shown in parentheses also work.
           </CardDescription>

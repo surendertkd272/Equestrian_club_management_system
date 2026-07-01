@@ -6,7 +6,7 @@ export default function NewStaffPage() {
     <div className="mx-auto max-w-xl">
       <Card>
         <CardHeader>
-          <CardTitle>Add staff</CardTitle>
+          <CardTitle>Add Staff</CardTitle>
           <CardDescription>
             Creates a user account (login enabled) and a staff record (employment metadata). Default password is{" "}
             <code>password123</code> — the user should change it on first login.

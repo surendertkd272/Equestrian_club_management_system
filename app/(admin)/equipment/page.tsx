@@ -84,7 +84,7 @@ export default async function EquipmentPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Tack &amp; equipment</h1>
+          <h1 className="text-2xl font-bold">Tack &amp; Equipment</h1>
           <p className="text-sm text-muted-foreground">
             {centre?.name ?? "Centre"} inventory. {lowCount > 0 && (
               <span className="text-rose-600">

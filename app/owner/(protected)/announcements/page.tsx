@@ -26,7 +26,7 @@ export default async function OwnerAnnouncementsPage() {
 
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-base">Publish new</CardTitle>
+          <CardTitle className="text-base">Publish New</CardTitle>
         </CardHeader>
         <CardContent>
           <NewAnnouncementForm />

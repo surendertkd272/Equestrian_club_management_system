@@ -18,7 +18,7 @@ const CATEGORY_VIEW = [
   { code: "vet_farrier", label: "Farrier" },
   { code: "feed_grain", label: "Fodder" },
   { code: "feed_hay", label: "Hay" },
-  { code: "vet_medicine", label: "Vet medicines" },
+  { code: "vet_medicine", label: "Vet Medicines" },
 ] as const;
 
 const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
@@ -65,7 +65,7 @@ export default async function ProcurementReportPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
         <div>
-          <h1 className="text-2xl font-bold">Procurement report</h1>
+          <h1 className="text-2xl font-bold">Procurement Report</h1>
           <p className="text-sm text-muted-foreground">
             Club-wise — the latest farrier, fodder, hay and vet-medicine purchase per club.
           </p>
@@ -74,7 +74,7 @@ export default async function ProcurementReportPage() {
       </div>
 
       <div className="hidden print:block">
-        <h1 className="text-xl font-bold">Procurement report — latest per category</h1>
+        <h1 className="text-xl font-bold">Procurement Report — Latest per Category</h1>
         <p className="text-xs text-muted-foreground">Generated {formatDate(new Date())}</p>
       </div>
 
@@ -93,7 +93,7 @@ export default async function ProcurementReportPage() {
                 <thead className="text-left text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="pb-2">Category</th>
-                    <th className="pb-2">Last date</th>
+                    <th className="pb-2">Last Date</th>
                     <th className="pb-2 text-right">Rate</th>
                     <th className="pb-2 text-right">Qty</th>
                     <th className="pb-2 text-right">Amount</th>

@@ -47,7 +47,7 @@ export default async function SittingDetail({ params }: { params: { id: string }
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Examiner pool</CardTitle>
+          <CardTitle className="text-base">Examiner Pool</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           {sitting.examiners.map((ex) => (

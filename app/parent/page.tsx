@@ -22,7 +22,7 @@ export default async function ParentDashboard() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>No children linked yet</CardTitle>
+          <CardTitle>No Children Linked Yet</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           Your account isn't linked to a rider yet. Please contact your centre — a manager
@@ -35,7 +35,7 @@ export default async function ParentDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Your children</h1>
+        <h1 className="text-2xl font-bold">Your Children</h1>
         <p className="text-sm text-muted-foreground">
           {children.length} rider{children.length === 1 ? "" : "s"} linked to your account
         </p>
@@ -68,17 +68,17 @@ export default async function ParentDashboard() {
                   }
                 />
                 <Stat
-                  label="Upcoming exam"
+                  label="Upcoming Exam"
                   value={c.upcomingExamAt ? formatDate(c.upcomingExamAt) : "—"}
                 />
                 <Stat
-                  label="Latest certificate"
+                  label="Latest Certificate"
                   value={c.latestCertificateSerial ?? "—"}
                   mono={!!c.latestCertificateSerial}
                 />
                 {showPayment && (
                   <Stat
-                    label="Unpaid invoices"
+                    label="Unpaid Invoices"
                     value={String(c.unpaidInvoiceCount)}
                     tone={c.unpaidInvoiceCount > 0 ? "warning" : "default"}
                   />

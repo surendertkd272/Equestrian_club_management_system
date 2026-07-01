@@ -45,7 +45,7 @@ export default async function StaffProfilePage({ params }: { params: { id: strin
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Registration form</CardTitle>
+          <CardTitle className="text-base">Registration Form</CardTitle>
           <CardDescription>
             {hasOnboarding
               ? "Submitted through the employee self-registration link."

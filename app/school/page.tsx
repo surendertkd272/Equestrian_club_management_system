@@ -29,7 +29,7 @@ export default async function SchoolDashboardPage() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>No club assigned</CardTitle>
+          <CardTitle>No Club Assigned</CardTitle>
           <CardDescription>
             Your account isn't linked to a club yet. Ask the centre admin to assign you to a centre.
           </CardDescription>
@@ -184,7 +184,7 @@ export default async function SchoolDashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent exams (last 60 days)</CardTitle>
+          <CardTitle>Recent Exams (Last 60 Days)</CardTitle>
         </CardHeader>
         <CardContent>
           {recentExams.length === 0 ? (
@@ -221,7 +221,7 @@ export default async function SchoolDashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Skill progress (latest updates)</CardTitle>
+          <CardTitle>Skill Progress (Latest Updates)</CardTitle>
         </CardHeader>
         <CardContent>
           {recentSkills.length === 0 ? (

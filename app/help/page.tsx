@@ -22,42 +22,42 @@ export const dynamic = "force-dynamic";
 
 const SECTIONS = [
   {
-    title: "Getting started",
+    title: "Getting Started",
     articles: [
-      { slug: "first-day-checklist", title: "Your first day with Equiwings", summary: "Set up centres, batches, and your first 10 riders in under an hour." },
-      { slug: "invite-staff", title: "Invite coaches, vets, and grooms", summary: "Role-based access for the 16 staff roles we support." },
-      { slug: "rider-onboarding", title: "Onboarding parents + riders", summary: "Share your centre's signup link, or import a CSV." },
+      { slug: "first-day-checklist", title: "Your First Day With Equiwings", summary: "Set up centres, batches, and your first 10 riders in under an hour." },
+      { slug: "invite-staff", title: "Invite Coaches, Vets, and Grooms", summary: "Role-based access for the 16 staff roles we support." },
+      { slug: "rider-onboarding", title: "Onboarding Parents + Riders", summary: "Share your centre's signup link, or import a CSV." },
     ],
   },
   {
-    title: "Training & exams",
+    title: "Training & Exams",
     articles: [
-      { slug: "schedule-lessons", title: "Scheduling lessons + horse allocation", summary: "Pair riders with horses, mark sessions complete." },
-      { slug: "track-skills", title: "Skill progress + level promotions", summary: "Per-rider heatmaps, mastery tracking, promotion criteria." },
-      { slug: "running-exams", title: "Running multi-judge exams", summary: "Rubric templates, score cards, certificates on pass." },
+      { slug: "schedule-lessons", title: "Scheduling Lessons + Horse Allocation", summary: "Pair riders with horses, mark sessions complete." },
+      { slug: "track-skills", title: "Skill Progress + Level Promotions", summary: "Per-rider heatmaps, mastery tracking, promotion criteria." },
+      { slug: "running-exams", title: "Running Multi-Judge Exams", summary: "Rubric templates, score cards, certificates on pass." },
     ],
   },
   {
     title: "Accreditations",
     articles: [
-      { slug: "accreditations", title: "Track EFI / BHS / FEI memberships", summary: "Federation credentials per rider with expiry alerts." },
+      { slug: "accreditations", title: "Track EFI / BHS / FEI Memberships", summary: "Federation credentials per rider with expiry alerts." },
     ],
   },
   {
-    title: "Horse care",
+    title: "Horse Care",
     articles: [
-      { slug: "horse-health-schedules", title: "Vaccinations, deworming, dental", summary: "One schedule, one due-date sweep, alerts before each lapse." },
-      { slug: "feed-plans", title: "Per-horse feeding plans", summary: "Time-slot rations, dietary notes for vet review." },
-      { slug: "insurance", title: "Horse insurance + expiry tracking", summary: "Policy fields and the expiry alert sweep." },
+      { slug: "horse-health-schedules", title: "Vaccinations, Deworming, Dental", summary: "One schedule, one due-date sweep, alerts before each lapse." },
+      { slug: "feed-plans", title: "Per-Horse Feeding Plans", summary: "Time-slot rations, dietary notes for vet review." },
+      { slug: "insurance", title: "Horse Insurance + Expiry Tracking", summary: "Policy fields and the expiry alert sweep." },
     ],
   },
   {
-    title: "Money & billing",
+    title: "Money & Billing",
     articles: [
-      { slug: "fee-plans", title: "Fee plans + automatic invoicing", summary: "Monthly fees, registration, exam fees." },
-      { slug: "razorpay-setup", title: "Razorpay subscription setup", summary: "Mandate authorisation flow for tenants on autopay." },
-      { slug: "saas-invoices", title: "Your platform invoices", summary: "Print/save the SaaS invoices we issue to you." },
-      { slug: "data-export", title: "Export your data (DPDPA)", summary: "One-click full-org export — JSON bundle." },
+      { slug: "fee-plans", title: "Fee Plans + Automatic Invoicing", summary: "Monthly fees, registration, exam fees." },
+      { slug: "razorpay-setup", title: "Razorpay Subscription Setup", summary: "Mandate authorisation flow for tenants on autopay." },
+      { slug: "saas-invoices", title: "Your Platform Invoices", summary: "Print/save the SaaS invoices we issue to you." },
+      { slug: "data-export", title: "Export Your Data (DPDPA)", summary: "One-click full-org export — JSON bundle." },
     ],
   },
 ];
@@ -89,7 +89,7 @@ export default async function HelpIndex() {
 
       <section className="container mx-auto max-w-5xl px-6 py-16">
         <div className="max-w-2xl">
-          <h1 className="text-4xl font-bold">Help & guides</h1>
+          <h1 className="text-4xl font-bold">Help & Guides</h1>
           <p className="mt-3 text-muted-foreground">
             Practical how-to articles for everyday Equiwings tasks. Can't find what you need?
             Email <a href="mailto:support@equiwings.example" className="text-primary underline">support@equiwings.example</a> —
@@ -101,7 +101,7 @@ export default async function HelpIndex() {
           <div className="mt-10">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-2xl font-bold tracking-tight">Your guide</h2>
+                <h2 className="text-2xl font-bold tracking-tight">Your Guide</h2>
                 <p className="mt-1 max-w-prose text-muted-foreground">{guide.profile.tagline}</p>
               </div>
               <span className="rounded-full bg-foreground px-3 py-1 text-xs font-semibold text-background">
@@ -114,7 +114,7 @@ export default async function HelpIndex() {
                 href="/dashboard?tour=1"
                 className="mt-4 inline-flex items-center gap-2 rounded-xl bg-accent px-3.5 py-2 text-sm font-semibold text-accent-foreground transition hover:opacity-90"
               >
-                <Play className="h-4 w-4 fill-current" /> Take the 30-second guided tour
+                <Play className="h-4 w-4 fill-current" /> Take the 30-Second Guided Tour
               </Link>
             )}
 
@@ -165,7 +165,7 @@ export default async function HelpIndex() {
             )}
 
             <div className="mt-12 border-t pt-8">
-              <h2 className="text-2xl font-bold">General how-to articles</h2>
+              <h2 className="text-2xl font-bold">General How-To Articles</h2>
               <p className="mt-1 text-muted-foreground">Step-by-step guides for common tasks.</p>
             </div>
           </div>

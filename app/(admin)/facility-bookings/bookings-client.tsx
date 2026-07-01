@@ -74,7 +74,7 @@ export function BookingsClient({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Reserve a facility</CardTitle>
+          <CardTitle className="text-base">Reserve a Facility</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
@@ -90,7 +90,7 @@ export function BookingsClient({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Reserve a facility</CardTitle>
+          <CardTitle className="text-base">Reserve a Facility</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
@@ -104,7 +104,7 @@ export function BookingsClient({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Reserve a facility</CardTitle>
+        <CardTitle className="text-base">Reserve a Facility</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 md:grid-cols-3">

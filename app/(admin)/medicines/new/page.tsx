@@ -20,7 +20,7 @@ export default async function NewMedicinePage() {
     <div className="mx-auto max-w-xl">
       <Card>
         <CardHeader>
-          <CardTitle>Add medicine batch</CardTitle>
+          <CardTitle>Add Medicine Batch</CardTitle>
           <CardDescription>
             One row per batch (so each lot has its own expiry & quantity). Reorder threshold defaults to 5 — when stock
             drops to or below this, the dashboard flags it.

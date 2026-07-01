@@ -115,7 +115,7 @@ export function NewStaffForm() {
         <div className="text-sm font-semibold">KYC documents <span className="text-xs font-normal text-muted-foreground">(optional — can be added later)</span></div>
         <div className="grid gap-4 md:grid-cols-2">
           <UploadRow
-            label="Aadhaar card"
+            label="Aadhaar Card"
             field="aadhaarUrl"
             url={form.aadhaarUrl}
             busy={uploading === "aadhaarUrl"}
@@ -123,7 +123,7 @@ export function NewStaffForm() {
             onClear={() => set("aadhaarUrl", "")}
           />
           <UploadRow
-            label="Police verification certificate"
+            label="Police Verification Certificate"
             field="policeVerificationUrl"
             url={form.policeVerificationUrl}
             busy={uploading === "policeVerificationUrl"}

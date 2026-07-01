@@ -27,8 +27,8 @@ export type RequisitionDTO = {
 };
 
 const STAGE_BADGE: Record<string, { label: string; variant: "warning" | "success" | "destructive" | "outline" }> = {
-  pending_manager: { label: "Pending manager", variant: "warning" },
-  pending_accountant: { label: "Pending accountant", variant: "warning" },
+  pending_manager: { label: "Pending Manager", variant: "warning" },
+  pending_accountant: { label: "Pending Accountant", variant: "warning" },
   approved: { label: "Approved", variant: "success" },
   rejected: { label: "Rejected", variant: "destructive" },
 };

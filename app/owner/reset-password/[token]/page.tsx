@@ -7,7 +7,7 @@ export default function OwnerResetPasswordPage({ params }: { params: { token: st
     <main className="flex min-h-screen items-center justify-center bg-slate-950 p-4 text-slate-100">
       <Card className="w-full max-w-sm border-slate-800 bg-slate-900 text-slate-100">
         <CardHeader>
-          <CardTitle>Pick a new owner password</CardTitle>
+          <CardTitle>Pick a New Owner Password</CardTitle>
           <CardDescription className="text-slate-400">
             Link is single-use and expires 30 minutes after it was sent.
           </CardDescription>

@@ -23,8 +23,8 @@ export function ReviewButtons({
     let reviewNotes = "";
     if (decision === "rejected") {
       const note = await openPrompt({
-        title: "Reject request",
-        label: "Reason for rejecting",
+        title: "Reject Request",
+        label: "Reason for Rejecting",
         body: "Shown to the requester.",
         multiline: true,
         confirmLabel: "Reject",
@@ -34,7 +34,7 @@ export function ReviewButtons({
     } else if (decision === "cancelled") {
       const ok = await openConfirm({
         title: "Cancel this request?",
-        confirmLabel: "Cancel request",
+        confirmLabel: "Cancel Request",
       });
       if (!ok) return;
     }

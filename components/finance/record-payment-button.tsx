@@ -16,7 +16,7 @@ import { useFocusTrap } from "@/lib/use-focus-trap";
 export function RecordPaymentButton({
   invoiceId,
   outstanding,
-  label = "Record payment",
+  label = "Record Payment",
 }: {
   invoiceId: string;
   // Outstanding amount in INR — used to default the input and stop
@@ -95,7 +95,7 @@ export function RecordPaymentButton({
             tabIndex={-1}
             className="absolute left-1/2 top-1/4 z-50 w-full max-w-sm -translate-x-1/2 space-y-3 rounded-lg border bg-card p-4 shadow-xl outline-none"
           >
-            <h2 className="text-base font-semibold">Record payment</h2>
+            <h2 className="text-base font-semibold">Record Payment</h2>
             <div className="text-xs text-muted-foreground">
               Outstanding: ₹{outstanding.toFixed(2)}
             </div>
@@ -116,13 +116,13 @@ export function RecordPaymentButton({
               <Select aria-label="Method" value={method} onChange={(e) => setMethod(e.target.value as any)}>
                 <option value="cash">Cash</option>
                 <option value="upi">UPI</option>
-                <option value="bank">Bank transfer</option>
+                <option value="bank">Bank Transfer</option>
                 <option value="cheque">Cheque</option>
                 <option value="card">Card</option>
               </Select>
             </div>
             <div>
-              <Label>Reference (optional)</Label>
+              <Label>Reference (Optional)</Label>
               <Input aria-label="Reference (optional)"
                 value={txnRef}
                 onChange={(e) => setTxnRef(e.target.value)}

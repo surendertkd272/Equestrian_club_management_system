@@ -111,7 +111,7 @@ export default async function GateSummaryPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold">Gate summary</h1>
+          <h1 className="text-2xl font-bold">Gate Summary</h1>
           <p className="text-sm text-muted-foreground">
             {rows.length} staff with events on {dateStr}
             {" · "}
@@ -138,7 +138,7 @@ export default async function GateSummaryPage({
       <div className="grid gap-3 sm:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">On premises now</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">On Premises Now</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{onPremisesCount}</div>
@@ -147,7 +147,7 @@ export default async function GateSummaryPage({
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Late arrivals</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Late Arrivals</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{lateCount}</div>
@@ -156,7 +156,7 @@ export default async function GateSummaryPage({
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Average hours</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Average Hours</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -170,7 +170,7 @@ export default async function GateSummaryPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>Per-staff timesheet</CardTitle>
+          <CardTitle>Per-Staff Timesheet</CardTitle>
           <CardDescription>
             Shifts are inferred by pairing each IN with the next OUT. Open shifts (no OUT yet) are clamped to "now" for the duration calc.
           </CardDescription>

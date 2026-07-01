@@ -34,7 +34,7 @@ export default async function ForcedRotatePage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-secondary p-4">
       <div className="w-full max-w-sm rounded-lg border bg-card p-6 shadow-sm">
-        <h1 className="text-lg font-semibold">Pick a new password</h1>
+        <h1 className="text-lg font-semibold">Pick a New Password</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Welcome, {me.name}. You're signed in with a temporary password —
           please set a permanent one before continuing.

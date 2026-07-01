@@ -105,7 +105,7 @@ export default async function ProgressPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Progress monitoring</h1>
+        <h1 className="text-2xl font-bold">Progress Monitoring</h1>
         <p className="text-sm text-muted-foreground">
           {riders.length} active riders · per-discipline mastery heatmap. Click a rider to drill in.
         </p>
@@ -121,7 +121,7 @@ export default async function ProgressPage({
                 defaultValue={searchParams.batch ?? ""}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
               >
-                <option value="">{session.role === "COACH" ? "My batches" : "All"}</option>
+                <option value="">{session.role === "COACH" ? "My Batches" : "All"}</option>
                 {batches.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
@@ -136,7 +136,7 @@ export default async function ProgressPage({
                 defaultValue={searchParams.level ?? ""}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
               >
-                <option value="">All levels</option>
+                <option value="">All Levels</option>
                 {levels.map((l) => (
                   <option key={l.id} value={l.name}>
                     {l.name}

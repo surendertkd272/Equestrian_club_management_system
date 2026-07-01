@@ -70,7 +70,7 @@ export function EditMedicineForm({ med }: { med: EditableMedicine }) {
   if (!open) {
     return (
       <Button variant="outline" onClick={() => setOpen(true)}>
-        <Pencil className="h-4 w-4" /> Edit details
+        <Pencil className="h-4 w-4" /> Edit Details
       </Button>
     );
   }
@@ -121,19 +121,19 @@ export function EditMedicineForm({ med }: { med: EditableMedicine }) {
           <Input aria-label="Supplier" value={form.supplier} onChange={(e) => set("supplier", e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label>Mfg date</Label>
+          <Label>Mfg Date</Label>
           <Input aria-label="Mfg date" type="date" value={form.mfgDate} onChange={(e) => set("mfgDate", e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label>Expiry date *</Label>
+          <Label>Expiry Date *</Label>
           <Input aria-label="Expiry date" required type="date" value={form.expDate} onChange={(e) => set("expDate", e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label>Qty in stock *</Label>
+          <Label>Qty in Stock *</Label>
           <Input aria-label="Qty in stock" required type="number" min={0} value={form.qty} onChange={(e) => set("qty", e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label>Reorder threshold *</Label>
+          <Label>Reorder Threshold *</Label>
           <Input aria-label="Reorder threshold"
             required
             type="number"
@@ -143,7 +143,7 @@ export function EditMedicineForm({ med }: { med: EditableMedicine }) {
           />
         </div>
         <div className="space-y-1.5">
-          <Label>Storage location</Label>
+          <Label>Storage Location</Label>
           <Input aria-label="Storage location" value={form.storageLocation} onChange={(e) => set("storageLocation", e.target.value)} />
         </div>
         <label className="mt-7 flex items-center gap-2 text-sm">
@@ -152,7 +152,7 @@ export function EditMedicineForm({ med }: { med: EditableMedicine }) {
         </label>
       </div>
       <div className="flex gap-2">
-        <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save changes"}</Button>
+        <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save Changes"}</Button>
         <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
       </div>
     </form>

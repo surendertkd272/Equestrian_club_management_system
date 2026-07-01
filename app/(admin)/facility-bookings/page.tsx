@@ -59,7 +59,7 @@ export default async function FacilityBookingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Facility bookings</h1>
+        <h1 className="text-2xl font-bold">Facility Bookings</h1>
         <p className="text-sm text-muted-foreground">
           Reserve arenas, classrooms, and stables. Overlapping bookings on the same facility
           are refused automatically — back-to-back slots (09:00→10:00 then 10:00→11:00) are
@@ -69,7 +69,7 @@ export default async function FacilityBookingsPage() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Kpi label="Facilities" value={facilities.length} />
-        <Kpi label="Bookings (last 7d + future)" value={rows.length} />
+        <Kpi label="Bookings (Last 7d + Future)" value={rows.length} />
         <Kpi label="Today" value={today.length} />
         <Kpi label="Upcoming" value={upcoming.length} />
       </div>

@@ -30,7 +30,7 @@ export default async function TeamDailyUpdatesPage({
   if (!centreId) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Team daily updates</h1>
+        <h1 className="text-2xl font-bold">Team Daily Updates</h1>
         <Card>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
             Pick a club from the top bar to see its coaches' daily updates. HQ accounts aren't tied
@@ -67,7 +67,7 @@ export default async function TeamDailyUpdatesPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Team daily updates</h1>
+          <h1 className="text-2xl font-bold">Team Daily Updates</h1>
           <p className="text-sm text-muted-foreground">
             Every coach's end-of-day note for the selected day.
           </p>
@@ -84,8 +84,8 @@ export default async function TeamDailyUpdatesPage({
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Stat label="Filed" value={`${updates.length}/${coaches.length}`} />
-        <Stat label="Yet to file" value={notFiled.length} tone={notFiled.length > 0 ? "amber" : "green"} />
-        <Stat label="Injuries flagged" value={updates.filter((u) => u.injuriesNoted).length} tone={updates.some((u) => u.injuriesNoted) ? "rose" : undefined} />
+        <Stat label="Yet to File" value={notFiled.length} tone={notFiled.length > 0 ? "amber" : "green"} />
+        <Stat label="Injuries Flagged" value={updates.filter((u) => u.injuriesNoted).length} tone={updates.some((u) => u.injuriesNoted) ? "rose" : undefined} />
       </div>
 
       <Card>

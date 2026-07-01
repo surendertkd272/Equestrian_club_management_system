@@ -66,7 +66,7 @@ export default async function MedicinesPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Vet medicines</h1>
+          <h1 className="text-2xl font-bold">Vet Medicines</h1>
           <p className="text-sm text-muted-foreground">
             {stats.total} batches · {stats.expired} expired · {stats.critical} expiring &lt;30d · {stats.lowStock} low-stock
           </p>
@@ -74,7 +74,7 @@ export default async function MedicinesPage({
         {canManage && (
           <Button asChild>
             <Link href="/medicines/new">
-              <Plus className="h-4 w-4" /> Add medicine batch
+              <Plus className="h-4 w-4" /> Add Medicine Batch
             </Link>
           </Button>
         )}
@@ -125,7 +125,7 @@ export default async function MedicinesPage({
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm"
               >
                 <option value="">All</option>
-                <option value="low">Low stock</option>
+                <option value="low">Low Stock</option>
                 <option value="expiring">Expiring &lt; 30d</option>
               </select>
             </div>

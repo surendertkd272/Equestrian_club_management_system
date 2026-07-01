@@ -65,7 +65,7 @@ export default async function LessonDetailPage({ params }: { params: { id: strin
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Rider → horse allocation</CardTitle>
+          <CardTitle className="text-base">Rider → Horse Allocation</CardTitle>
         </CardHeader>
         <CardContent>
           <AllocationGrid

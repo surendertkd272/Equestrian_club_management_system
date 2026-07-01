@@ -37,9 +37,9 @@ export function SegmentError({
           </p>
         )}
         <div className="mt-5 flex items-center justify-center gap-3">
-          <Button onClick={() => reset()}>Try again</Button>
+          <Button onClick={() => reset()}>Try Again</Button>
           <Button variant="outline" onClick={() => (window.location.href = home)}>
-            Go to dashboard
+            Go to Dashboard
           </Button>
         </div>
       </div>

@@ -7,7 +7,7 @@ export default function ForgotPasswordPage() {
     <main className="flex min-h-screen items-center justify-center bg-secondary p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Reset your password</CardTitle>
+          <CardTitle>Reset Your Password</CardTitle>
           <CardDescription>
             We'll email a one-time link if your address is on file. Link expires in 30 minutes.
           </CardDescription>

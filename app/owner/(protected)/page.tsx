@@ -123,7 +123,7 @@ export default async function OwnerDashboardPage() {
           link="/owner/saas-invoices"
         />
         <ChartCard
-          label="Tenant growth"
+          label="Tenant Growth"
           value={orgs.length}
           sub={`${months[0].label}–${months[months.length - 1].label} cumulative`}
           icon={<Users className="h-5 w-5" />}
@@ -150,7 +150,7 @@ export default async function OwnerDashboardPage() {
         <Panel title="By status">
           <BreakdownRow label="Active" count={byStatus.active ?? 0} tone="green" />
           <BreakdownRow label="Trial" count={byStatus.trial ?? 0} tone="blue" />
-          <BreakdownRow label="Past due" count={byStatus.past_due ?? 0} tone="amber" />
+          <BreakdownRow label="Past Due" count={byStatus.past_due ?? 0} tone="amber" />
           <BreakdownRow label="Suspended" count={byStatus.suspended ?? 0} tone="red" />
         </Panel>
         <Panel title="By plan">
@@ -306,15 +306,15 @@ async function SystemStatusPanel() {
     <Panel title="System health · last 24h">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Health
-          label="Cron sweep"
+          label="Cron Sweep"
           value={s.lastCronAt ? humanAge(s.cronAgeMin!) : "never"}
           sub={s.cronStale ? "stale — investigate" : "fresh"}
           tone={cronColor as any}
         />
-        <Health label="Email errors" value={String(s.emailErrorCount24h)} tone={emailColor as any} />
-        <Health label="SMS errors" value={String(s.smsErrorCount24h)} tone={smsColor as any} />
+        <Health label="Email Errors" value={String(s.emailErrorCount24h)} tone={emailColor as any} />
+        <Health label="SMS Errors" value={String(s.smsErrorCount24h)} tone={smsColor as any} />
         <Health
-          label="Failed logins"
+          label="Failed Logins"
           value={String(s.failedLogins24h)}
           tone={s.failedLogins24h > 50 ? "amber" : "green"}
         />

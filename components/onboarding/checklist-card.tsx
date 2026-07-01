@@ -78,7 +78,7 @@ export function OnboardingChecklist({
             </span>
           </div>
           <div className="flex-1">
-            <CardTitle className="text-base">Getting started</CardTitle>
+            <CardTitle className="text-base">Getting Started</CardTitle>
             <p className="text-xs text-muted-foreground">A few first steps for your account.</p>
           </div>
           <button

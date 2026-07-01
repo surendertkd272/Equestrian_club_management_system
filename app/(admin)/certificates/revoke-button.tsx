@@ -14,7 +14,7 @@ export function RevokeButton({ id }: { id: string }) {
     const reason = await openPrompt({
       title: "Revoke certificate",
       body: "This is shown on the public verify page.",
-      label: "Reason for revoking",
+      label: "Reason for Revoking",
       multiline: true,
       required: true,
       confirmLabel: "Revoke",

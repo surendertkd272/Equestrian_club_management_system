@@ -192,7 +192,7 @@ export default async function FinancePage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Expenses by category — YTD</CardTitle>
+            <CardTitle>Expenses by Category — YTD</CardTitle>
           </CardHeader>
           <CardContent>
             {breakdown.length === 0 ? (
@@ -214,7 +214,7 @@ export default async function FinancePage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Upcoming dues (14 days)</CardTitle>
+            <CardTitle>Upcoming Dues (14 Days)</CardTitle>
           </CardHeader>
           <CardContent>
             {upcomingDue.length === 0 ? (
@@ -245,7 +245,7 @@ export default async function FinancePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent invoices</CardTitle>
+          <CardTitle>Recent Invoices</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -305,7 +305,7 @@ export default async function FinancePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent expenses</CardTitle>
+          <CardTitle>Recent Expenses</CardTitle>
         </CardHeader>
         <CardContent>
           {recentExpenses.length === 0 ? (

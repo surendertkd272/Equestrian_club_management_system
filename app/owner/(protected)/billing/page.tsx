@@ -16,7 +16,7 @@ export default async function PlatformBillingPage() {
   return (
     <div className="space-y-6 text-foreground">
       <div>
-        <h1 className="text-2xl font-bold">Platform billing identity</h1>
+        <h1 className="text-2xl font-bold">Platform Billing Identity</h1>
         <p className="text-sm text-muted-foreground">
           Identifies <strong>your</strong> legal entity on every invoice we send to tenants. Tenants
           can't see this page — they see only the printed result on their SaaS invoice.
@@ -25,7 +25,7 @@ export default async function PlatformBillingPage() {
 
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-base">Company details</CardTitle>
+          <CardTitle className="text-base">Company Details</CardTitle>
           <CardDescription className="text-muted-foreground">
             Update once. Lives on the singleton <code className="bg-muted px-1">PlatformBillingConfig</code> row.
           </CardDescription>
@@ -37,7 +37,7 @@ export default async function PlatformBillingPage() {
 
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-base">Invoice numbering</CardTitle>
+          <CardTitle className="text-base">Invoice Numbering</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-foreground">
           <div>

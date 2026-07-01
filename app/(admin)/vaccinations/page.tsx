@@ -55,7 +55,7 @@ export default async function VaccinationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Horse health schedules</h1>
+        <h1 className="text-2xl font-bold">Horse Health Schedules</h1>
         <p className="text-sm text-muted-foreground">Vaccinations · deworming rotations · dental checks. One nextDueAt sweep covers them all.</p>
         <p className="text-sm text-muted-foreground">
           Plan vaccination cycles per horse. Recording a dose rolls "next due" forward by the
@@ -65,8 +65,8 @@ export default async function VaccinationsPage() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Kpi label="Overdue" value={overdue.length} tone={overdue.length > 0 ? "rose" : undefined} />
-        <Kpi label="Due in 30 days" value={dueSoon.length} tone={dueSoon.length > 0 ? "amber" : undefined} />
-        <Kpi label="All schedules" value={rows.length} />
+        <Kpi label="Due in 30 Days" value={dueSoon.length} tone={dueSoon.length > 0 ? "amber" : undefined} />
+        <Kpi label="All Schedules" value={rows.length} />
         <Kpi label="Horses" value={horses.length} />
       </div>
 
@@ -106,12 +106,12 @@ export default async function VaccinationsPage() {
               },
               {
                 key: "lastGiven",
-                header: "Last given",
+                header: "Last Given",
                 cell: (r) => (r.lastGivenAt ? formatDate(r.lastGivenAt) : "—"),
               },
               {
                 key: "nextDue",
-                header: "Next due",
+                header: "Next Due",
                 cell: (r) => {
                   const isOverdue = r.nextDueAt < todayStart;
                   const isSoon = !isOverdue && r.nextDueAt <= within30;

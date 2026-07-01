@@ -33,7 +33,7 @@ export default async function SubmitExpensePage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Submit invoice</CardTitle>
+          <CardTitle>Submit Invoice</CardTitle>
           <CardDescription>
             Bought feed, medicine, or equipment for the club? Upload the bill here. The accountant
             sees every submission and marks it paid once reimbursed.
@@ -46,7 +46,7 @@ export default async function SubmitExpensePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Your recent submissions</CardTitle>
+          <CardTitle>Your Recent Submissions</CardTitle>
         </CardHeader>
         <CardContent>
           {myRecent.length === 0 ? (

@@ -92,7 +92,7 @@ export function PrescribeForm({
         </Select>
       </div>
       <div className="space-y-1.5">
-        <Label>Withdrawal (days)</Label>
+        <Label>Withdrawal (Days)</Label>
         <Input aria-label="Withdrawal (days)"
           type="number"
           min={0}
@@ -105,7 +105,7 @@ export function PrescribeForm({
         </p>
       </div>
       <div className="space-y-1.5">
-        <Label>Qty consumed</Label>
+        <Label>Qty Consumed</Label>
         <Input aria-label="Qty consumed"
           type="number"
           min={1}
@@ -117,7 +117,7 @@ export function PrescribeForm({
       </div>
       <div className="md:col-span-1" />
       <div className="md:col-span-3 space-y-1.5">
-        <Label>Reason / notes</Label>
+        <Label>Reason / Notes</Label>
         <Textarea aria-label="Reason / notes"
           rows={2}
           value={form.reason}
@@ -127,7 +127,7 @@ export function PrescribeForm({
       </div>
       <div className="md:col-span-3">
         <Button type="submit" disabled={saving} className="w-full">
-          {saving ? "Saving…" : "Prescribe & log"}
+          {saving ? "Saving…" : "Prescribe & Log"}
         </Button>
       </div>
     </form>

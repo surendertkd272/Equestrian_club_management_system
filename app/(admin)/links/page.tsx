@@ -42,7 +42,7 @@ export default async function LinksPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Create WhatsApp deep-link</CardTitle>
+          <CardTitle>Create WhatsApp Deep-Link</CardTitle>
           <CardDescription>
             Generate a short link you can paste into WhatsApp. The recipient taps it from chat and
             lands directly on the right form — no scrolling, no menu hunting.
@@ -55,7 +55,7 @@ export default async function LinksPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Active links</CardTitle>
+          <CardTitle>Active Links</CardTitle>
           <CardDescription>
             Most recent first. Each row has a "Copy" and "WhatsApp" button — copy pastes the URL,
             WhatsApp opens the chat-share sheet pre-filled.

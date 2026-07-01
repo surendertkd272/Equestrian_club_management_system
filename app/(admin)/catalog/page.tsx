@@ -27,7 +27,7 @@ export default async function CatalogPage() {
   if (!centreId) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Club catalog</h1>
+        <h1 className="text-2xl font-bold">Club Catalog</h1>
         <Card>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
             Pick a club from the top-bar filter to manage its fee plans, levels, and skills.
@@ -55,7 +55,7 @@ export default async function CatalogPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Club catalog</h1>
+        <h1 className="text-2xl font-bold">Club Catalog</h1>
         <p className="text-sm text-muted-foreground">
           Manage <strong>{centre?.name ?? "this club"}</strong>'s fee plans, progress levels, and
           skills. Add, edit, or remove any of them — changes apply to this club only.

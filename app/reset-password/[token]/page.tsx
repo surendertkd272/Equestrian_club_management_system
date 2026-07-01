@@ -7,7 +7,7 @@ export default function ResetPasswordPage({ params }: { params: { token: string 
     <main className="flex min-h-screen items-center justify-center bg-secondary p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Pick a new password</CardTitle>
+          <CardTitle>Pick a New Password</CardTitle>
           <CardDescription>
             Link is single-use and expires 30 minutes after it was sent.
           </CardDescription>

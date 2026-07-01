@@ -220,16 +220,16 @@ export default async function DashboardPage() {
   const checklist = showChecklist
     ? [
         {
-          label: "Add a centre",
+          label: "Add a Centre",
           done: centreCount > 0,
           href: "/centres",
           hint: "your first location",
         },
-        { label: "Invite staff", done: staffCount > 0, href: "/users", hint: "coaches, vets, grooms" },
-        { label: "Add horses", done: horses > 0, href: "/horses/new", hint: "build the roster" },
-        { label: "Create batches", done: batches > 0, href: "/batches", hint: "schedule training slots" },
+        { label: "Invite Staff", done: staffCount > 0, href: "/users", hint: "coaches, vets, grooms" },
+        { label: "Add Horses", done: horses > 0, href: "/horses/new", hint: "build the roster" },
+        { label: "Create Batches", done: batches > 0, href: "/batches", hint: "schedule training slots" },
         {
-          label: "Onboard your first rider",
+          label: "Onboard Your First Rider",
           done: activeRiders + pendingRiders > 0,
           href: "/onboarding",
           hint: "students join here",
@@ -255,20 +255,20 @@ export default async function DashboardPage() {
   }));
 
   const tiles = [
-    { label: "Pending sign-ups", value: pendingRiders, hint: "awaiting payment", icon: <UserPlus className="h-5 w-5" /> },
+    { label: "Pending Sign-Ups", value: pendingRiders, hint: "awaiting payment", icon: <UserPlus className="h-5 w-5" /> },
     { label: "Batches", value: batches, hint: "scheduled", icon: <CalendarClock className="h-5 w-5" /> },
-    { label: "Open invoices", value: openInvoices, hint: "status = due", icon: <Receipt className="h-5 w-5" /> },
-    { label: "Horses on roster", value: horses, icon: <PawPrint className="h-5 w-5" /> },
+    { label: "Open Invoices", value: openInvoices, hint: "status = due", icon: <Receipt className="h-5 w-5" /> },
+    { label: "Horses on Roster", value: horses, icon: <PawPrint className="h-5 w-5" /> },
     {
-      label: "Open tasks",
+      label: "Open Tasks",
       value: openTasks,
       hint: overdueTasks > 0 ? `${overdueTasks} overdue` : "all on time",
       warn: overdueTasks > 0,
       icon: <ListChecks className="h-5 w-5" />,
     },
-    { label: "Low-stock meds", value: lowStock, hint: "qty ≤ 5", warn: lowStock > 0, icon: <Pill className="h-5 w-5" /> },
+    { label: "Low-Stock Meds", value: lowStock, hint: "qty ≤ 5", warn: lowStock > 0, icon: <Pill className="h-5 w-5" /> },
     {
-      label: "Coach updates (today)",
+      label: "Coach Updates (Today)",
       value: coachStaffCount > 0 ? `${coachUpdatesToday}/${coachStaffCount}` : "—",
       hint:
         coachStaffCount > 0 && coachUpdatesToday < coachStaffCount
@@ -278,7 +278,7 @@ export default async function DashboardPage() {
       icon: <ClipboardList className="h-5 w-5" />,
     },
     {
-      label: "Meds expiring within 30 days",
+      label: "Meds Expiring Within 30 Days",
       value: expiringSoon,
       hint: "review & rotate",
       warn: expiringSoon > 0,
@@ -289,7 +289,7 @@ export default async function DashboardPage() {
     // headcount are universally relevant.
     ...(myApproverStage
       ? [{
-          label: "Requisitions to approve",
+          label: "Requisitions to Approve",
           value: reqPendingMine,
           hint: myApproverStage === "pending_accountant" ? "accountant signoff" : "manager approval",
           warn: reqPendingMine > 0,
@@ -297,20 +297,20 @@ export default async function DashboardPage() {
         }]
       : []),
     {
-      label: "Invoices to reimburse",
+      label: "Invoices to Reimburse",
       value: invoicesAwaitingReimbursement,
       hint: "paid = false",
       warn: invoicesAwaitingReimbursement > 0,
       icon: <Wallet className="h-5 w-5" />,
     },
     {
-      label: "Vet follow-ups (next 7d)",
+      label: "Vet Follow-Ups (Next 7d)",
       value: upcomingVetFollowups,
       hint: "scheduled re-checks",
       icon: <Stethoscope className="h-5 w-5" />,
     },
     {
-      label: "Staff on premises now",
+      label: "Staff on Premises Now",
       value: onPremises,
       hint: "via gate log today",
       icon: <DoorOpen className="h-5 w-5" />,
@@ -342,7 +342,7 @@ export default async function DashboardPage() {
           link="/finance"
         />
         <ChartCard
-          label="New riders (this month)"
+          label="New Riders (This Month)"
           value={newRidersThisMonth}
           sub={`${months[0].label}–${months[months.length - 1].label} sign-ups`}
           icon={<UserPlus className="h-5 w-5" />}
@@ -350,7 +350,7 @@ export default async function DashboardPage() {
           link="/riders"
         />
         <ChartCard
-          label="Active roster"
+          label="Active Roster"
           value={activeRiders}
           sub={`${rosterSeries[rosterSeries.length - 1]} onboarded all-time`}
           icon={<Users className="h-5 w-5" />}
@@ -402,7 +402,7 @@ export default async function DashboardPage() {
 
       {/* Dense secondary metrics. */}
       <div>
-        <h2 className="mb-3 text-sm font-semibold text-muted-foreground">More metrics</h2>
+        <h2 className="mb-3 text-sm font-semibold text-muted-foreground">More Metrics</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {tiles.map((t) => (
             <StatTile

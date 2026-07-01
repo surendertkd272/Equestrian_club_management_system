@@ -170,7 +170,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
 
         <Card>
           <CardHeader>
-            <CardTitle>Address & contacts</CardTitle>
+            <CardTitle>Address & Contacts</CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 gap-y-2 text-sm">
@@ -199,7 +199,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Riding & medical</CardTitle>
+              <CardTitle>Riding & Medical</CardTitle>
               {/* AssignBatch is a write — read-only roles see the current
                   batch in the dl below but can't reassign. */}
               {!isReadOnly(session.role) && (
@@ -260,7 +260,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
 
         <Card>
           <CardHeader>
-            <CardTitle>Parent portal access</CardTitle>
+            <CardTitle>Parent Portal Access</CardTitle>
           </CardHeader>
           <CardContent>
             <ParentLinksPanel
@@ -279,7 +279,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
 
         <Card>
           <CardHeader>
-            <CardTitle>Rider portal access</CardTitle>
+            <CardTitle>Rider Portal Access</CardTitle>
           </CardHeader>
           <CardContent>
             <RiderPortalPanel
@@ -310,7 +310,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Recent attendance (last 30)</CardTitle>
+            <CardTitle>Recent Attendance (Last 30)</CardTitle>
             <AttendanceSummary attendances={rider.attendances} />
           </div>
         </CardHeader>
@@ -345,7 +345,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
 
       <Card>
         <CardHeader>
-          <CardTitle>Exam history</CardTitle>
+          <CardTitle>Exam History</CardTitle>
         </CardHeader>
         <CardContent>
           <ExamHistoryList exams={examHistory} />

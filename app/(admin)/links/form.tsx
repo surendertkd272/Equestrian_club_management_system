@@ -10,12 +10,12 @@ import { Select } from "@/components/ui/select";
 import { postJson } from "@/lib/client/post-json";
 
 const KINDS = [
-  { value: "injury", label: "Report a horse injury", needsHorse: true, targetHint: "/injuries/new" },
-  { value: "rider_onboard", label: "Rider onboarding (parent fills it)", needsHorse: false, targetHint: "/onboarding" },
-  { value: "expense_submit", label: "Submit an invoice", needsHorse: false, targetHint: "/expenses/submit" },
-  { value: "requisition", label: "Raise a requisition", needsHorse: false, targetHint: "/requisitions/new" },
+  { value: "injury", label: "Report a Horse Injury", needsHorse: true, targetHint: "/injuries/new" },
+  { value: "rider_onboard", label: "Rider Onboarding (Parent Fills It)", needsHorse: false, targetHint: "/onboarding" },
+  { value: "expense_submit", label: "Submit an Invoice", needsHorse: false, targetHint: "/expenses/submit" },
+  { value: "requisition", label: "Raise a Requisition", needsHorse: false, targetHint: "/requisitions/new" },
   { value: "vet_visit_horse", label: "Record a vet visit (per horse)", needsHorse: true, targetHint: "/horses/[id] (auto)" },
-  { value: "generic", label: "Other — custom path", needsHorse: false, targetHint: "" },
+  { value: "generic", label: "Other — Custom Path", needsHorse: false, targetHint: "" },
 ] as const;
 
 export function NewShortLinkForm({ horses }: { horses: { id: string; name: string }[] }) {

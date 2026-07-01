@@ -42,7 +42,7 @@ export default async function StaffAttendancePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Staff attendance</h1>
+        <h1 className="text-2xl font-bold">Staff Attendance</h1>
         <p className="text-sm text-muted-foreground">Last 30 days · {recent.length} rows</p>
       </div>
 
@@ -57,7 +57,7 @@ export default async function StaffAttendancePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent rows</CardTitle>
+          <CardTitle>Recent Rows</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveTable
@@ -92,7 +92,7 @@ export default async function StaffAttendancePage() {
               },
               {
                 key: "checkIn",
-                header: "Check-in",
+                header: "Check-In",
                 cell: (r) => (
                   <span className="font-mono text-xs">
                     {r.checkInAt ? r.checkInAt.toISOString().slice(11, 16) : "—"}
@@ -101,7 +101,7 @@ export default async function StaffAttendancePage() {
               },
               {
                 key: "checkOut",
-                header: "Check-out",
+                header: "Check-Out",
                 cell: (r) => (
                   <span className="font-mono text-xs">
                     {r.checkOutAt ? r.checkOutAt.toISOString().slice(11, 16) : "—"}

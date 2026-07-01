@@ -79,7 +79,7 @@ export default async function InjuriesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Injury treatment log</h1>
+          <h1 className="text-2xl font-bold">Injury Treatment Log</h1>
           <p className="text-sm text-muted-foreground">
             Track injuries for horses and riders. Append treatment entries as care happens,
             and mark recovered when the rider/horse is back to normal duty.
@@ -97,9 +97,9 @@ export default async function InjuriesPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kpi label="Active / recovering" value={active.length} tone={active.length > 0 ? "amber" : undefined} />
+        <Kpi label="Active / Recovering" value={active.length} tone={active.length > 0 ? "amber" : undefined} />
         <Kpi label="Severe" value={rows.filter((r) => r.severity === "severe").length} />
-        <Kpi label="Total tracked" value={rows.length} />
+        <Kpi label="Total Tracked" value={rows.length} />
         <Kpi label="Recovered" value={rows.filter((r) => r.status === "recovered").length} />
       </div>
 

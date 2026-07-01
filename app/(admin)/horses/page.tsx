@@ -96,7 +96,7 @@ export default async function HorsesPage({
           icon={<Rabbit className="h-8 w-8" />}
           title="No horses on the roster"
           body="Add a horse to start logging workload, vaccinations, farrier visits, and allocations."
-          action={canManage ? { href: "/horses/new", label: "Add the first horse" } : undefined}
+          action={canManage ? { href: "/horses/new", label: "Add the First Horse" } : undefined}
         />
       ) : (
 
@@ -167,7 +167,7 @@ export default async function HorsesPage({
               { key: "status", header: "Status", cell: (h) => <Badge variant={STATUS_VARIANT[h.status] ?? "outline"}>{h.status}</Badge> },
               {
                 key: "workload",
-                header: "Workload today",
+                header: "Workload Today",
                 cell: (h) => {
                   const used = usedByHorse.get(h.id) ?? 0;
                   const pct = Math.min(100, Math.round((used / DEFAULT_WORKLOAD_CAP_MIN) * 100));

@@ -140,7 +140,7 @@ export function AccountForm({
             )}
             <div className="flex flex-col gap-1">
               <label className="cursor-pointer text-xs text-primary underline">
-                {uploadingPhoto ? "Uploading…" : "Change photo"}
+                {uploadingPhoto ? "Uploading…" : "Change Photo"}
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
@@ -186,7 +186,7 @@ export function AccountForm({
           </div>
           <div className="pt-2">
             <Button onClick={saveProfile} disabled={!profileDirty || savingProfile}>
-              {savingProfile ? "Saving…" : "Save profile"}
+              {savingProfile ? "Saving…" : "Save Profile"}
             </Button>
           </div>
         </CardContent>
@@ -194,27 +194,27 @@ export function AccountForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Change password</CardTitle>
+          <CardTitle>Change Password</CardTitle>
           <CardDescription>
             Verify your current password, then set a new one (8+ characters).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
-            <Label htmlFor="acc-cur">Current password</Label>
+            <Label htmlFor="acc-cur">Current Password</Label>
             <Input id="acc-cur" type="password" value={currentPwd} onChange={(e) => setCurrentPwd(e.target.value)} />
           </div>
           <div>
-            <Label htmlFor="acc-new">New password</Label>
+            <Label htmlFor="acc-new">New Password</Label>
             <Input id="acc-new" type="password" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} />
           </div>
           <div>
-            <Label htmlFor="acc-conf">Confirm new password</Label>
+            <Label htmlFor="acc-conf">Confirm New Password</Label>
             <Input id="acc-conf" type="password" value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)} />
           </div>
           <div className="pt-2">
             <Button onClick={changePassword} disabled={!currentPwd || !newPwd || savingPwd}>
-              {savingPwd ? "Updating…" : "Change password"}
+              {savingPwd ? "Updating…" : "Change Password"}
             </Button>
           </div>
         </CardContent>

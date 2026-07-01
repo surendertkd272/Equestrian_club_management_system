@@ -49,7 +49,7 @@ export default async function GatePage({
       <div className="mx-auto max-w-2xl space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Gate log — pick a centre</CardTitle>
+            <CardTitle>Gate Log — Pick a Centre</CardTitle>
             <CardDescription>
               Gate-logging is per-centre. Pick which club's gate you're recording for.
             </CardDescription>

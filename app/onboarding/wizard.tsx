@@ -89,10 +89,10 @@ type StepKey = "personal" | "address" | "parents" | "medical" | "parental-consen
 const STEP_TITLES: Record<StepKey, string> = {
   personal: "Personal",
   address: "Address",
-  parents: "Parents & emergency",
+  parents: "Parents & Emergency",
   medical: "Medical",
-  "parental-consent": "Parental consent",
-  indemnity: "Indemnity e-sign",
+  "parental-consent": "Parental Consent",
+  indemnity: "Indemnity E-Sign",
   submitted: "Submitted",
 };
 
@@ -273,9 +273,9 @@ function PersonalStep({ initial, onNext }: { initial: WizardData; onNext: (d: Pe
   return (
     <form onSubmit={methods.handleSubmit(onNext)} className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
-        <Field methods={methods} name="firstName" label="First name" required />
-        <Field methods={methods} name="lastName" label="Last name" required />
-        <Field methods={methods} name="dob" label="Date of birth" type="date" required />
+        <Field methods={methods} name="firstName" label="First Name" required />
+        <Field methods={methods} name="lastName" label="Last Name" required />
+        <Field methods={methods} name="dob" label="Date of Birth" type="date" required />
         <div className="space-y-1.5">
           <Label>Gender *</Label>
           <Select aria-label="Gender" {...methods.register("gender")}>
@@ -286,10 +286,10 @@ function PersonalStep({ initial, onNext }: { initial: WizardData; onNext: (d: Pe
         </div>
         <Field methods={methods} name="mobile" label="Mobile" required placeholder="10-digit" inputMode="tel" />
         <Field methods={methods} name="email" label="Email" type="email" />
-        <Field methods={methods} name="aadhaarNo" label="Aadhaar (12 digits)" placeholder="123412341234" inputMode="numeric" />
-        <Field methods={methods} name="placeOfBirth" label="Place of birth" />
+        <Field methods={methods} name="aadhaarNo" label="Aadhaar (12 Digits)" placeholder="123412341234" inputMode="numeric" />
+        <Field methods={methods} name="placeOfBirth" label="Place of Birth" />
         <Field methods={methods} name="nationality" label="Nationality" placeholder="Indian" />
-        <Field methods={methods} name="maritalStatus" label="Marital status" />
+        <Field methods={methods} name="maritalStatus" label="Marital Status" />
         <Field methods={methods} name="school" label="School" placeholder="School / college name" />
         <Field methods={methods} name="education" label="Education" />
         <Field methods={methods} name="occupation" label="Occupation" />
@@ -306,7 +306,7 @@ function PersonalStep({ initial, onNext }: { initial: WizardData; onNext: (d: Pe
           <UploadField
             methods={methods}
             name="aadhaarDocUrl"
-            label="Aadhaar scan / PDF"
+            label="Aadhaar Scan / PDF"
             kind="rider_aadhaar"
             accept="image/jpeg,image/png,application/pdf"
             hint="JPG / PNG / PDF, up to 5 MB. Stored privately on our managed cloud."
@@ -336,11 +336,11 @@ function AddressStep({
     <form onSubmit={methods.handleSubmit(onNext)} className="space-y-6">
       <div className="grid gap-4">
         <div className="space-y-1.5">
-          <Label>Present address *</Label>
+          <Label>Present Address *</Label>
           <TextareaField methods={methods} name="addressPresent" />
         </div>
         <div className="space-y-1.5">
-          <Label>Permanent address (leave blank if same)</Label>
+          <Label>Permanent Address (Leave Blank if Same)</Label>
           <TextareaField methods={methods} name="addressPermanent" />
         </div>
         <div className="max-w-xs">
@@ -369,12 +369,12 @@ function ParentsStep({
   return (
     <form onSubmit={methods.handleSubmit(onNext)} className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
-        <Field methods={methods} name="fatherName" label="Father's name" />
-        <Field methods={methods} name="fatherPhone" label="Father's phone" inputMode="tel" />
-        <Field methods={methods} name="motherName" label="Mother's name" />
-        <Field methods={methods} name="motherPhone" label="Mother's phone" inputMode="tel" />
-        <Field methods={methods} name="emergencyName" label="Emergency contact name" required />
-        <Field methods={methods} name="emergencyPhone" label="Emergency contact phone" required inputMode="tel" />
+        <Field methods={methods} name="fatherName" label="Father's Name" />
+        <Field methods={methods} name="fatherPhone" label="Father's Phone" inputMode="tel" />
+        <Field methods={methods} name="motherName" label="Mother's Name" />
+        <Field methods={methods} name="motherPhone" label="Mother's Phone" inputMode="tel" />
+        <Field methods={methods} name="emergencyName" label="Emergency Contact Name" required />
+        <Field methods={methods} name="emergencyPhone" label="Emergency Contact Phone" required inputMode="tel" />
       </div>
       <StepFooter canBack onBack={onBack} submitting={false} submitLabel="Next" />
     </form>
@@ -406,12 +406,12 @@ function MedicalStep({
           <Field methods={methods} name="heightCm" label="Height (cm)" type="number" required />
           <Field methods={methods} name="weightKg" label="Weight (kg)" type="number" required />
           <div className="space-y-1.5">
-            <Label>BMI (auto)</Label>
+            <Label>BMI (Auto)</Label>
             <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm">{bmi ?? "—"}</div>
           </div>
         </div>
         <div className="space-y-1.5">
-          <Label>Medical conditions</Label>
+          <Label>Medical Conditions</Label>
           <TextareaField methods={methods} name="medicalNotes" placeholder="Asthma, prior fractures, etc." />
         </div>
         <div className="space-y-1.5">
@@ -455,23 +455,23 @@ function ParentalConsentStep({
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <Field methods={methods} name="parentName" label="Parent / guardian full name" required />
+          <Field methods={methods} name="parentName" label="Parent / Guardian Full Name" required />
           <div className="space-y-1.5">
             <Label htmlFor="parentRelation">Relation *</Label>
             <Select id="parentRelation" {...methods.register("parentRelation")}>
               <option value="">— select —</option>
               <option value="father">Father</option>
               <option value="mother">Mother</option>
-              <option value="guardian">Legal guardian</option>
+              <option value="guardian">Legal Guardian</option>
             </Select>
             {relationError && <p className="text-xs text-destructive">{relationError}</p>}
           </div>
-          <Field methods={methods} name="parentPhone" label="Parent's phone" required placeholder="10-digit mobile" inputMode="tel" />
-          <Field methods={methods} name="parentEmail" label="Parent's email" type="email" />
+          <Field methods={methods} name="parentPhone" label="Parent's Phone" required placeholder="10-digit mobile" inputMode="tel" />
+          <Field methods={methods} name="parentEmail" label="Parent's Email" type="email" />
         </div>
 
         <div className="max-h-56 overflow-y-auto rounded-md border bg-muted p-4 text-sm leading-relaxed">
-          <p className="font-semibold">Parental / guardian consent (DPDPA §9)</p>
+          <p className="font-semibold">Parental / Guardian Consent (DPDPA §9)</p>
           <p className="mt-2 whitespace-pre-line">{PARENTAL_CONSENT_TEXT}</p>
         </div>
 
@@ -512,7 +512,7 @@ function IndemnityStep({
     <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
       <div className="space-y-4">
         <div className="max-h-64 overflow-y-auto rounded-md border bg-muted p-4 text-sm leading-relaxed">
-          <p className="font-semibold">Horse riding indemnity & liability release</p>
+          <p className="font-semibold">Horse Riding Indemnity & Liability Release</p>
           <p className="mt-2">
             I acknowledge that horse riding is an inherently risky activity involving large unpredictable animals.
             I voluntarily assume all risks of injury, including but not limited to falls, kicks, bites, and equipment
@@ -533,7 +533,7 @@ function IndemnityStep({
             so the consent record is unambiguous: both boxes must be ticked.
             Highlighted styling so a quick scrolling reader can't miss it. */}
         <div className="rounded-md border-2 border-amber-300 bg-amber-50 p-4 text-sm leading-relaxed">
-          <p className="font-semibold text-amber-900">NOC for injuries</p>
+          <p className="font-semibold text-amber-900">NOC for Injuries</p>
           <p className="mt-2 text-amber-900">
             I (the rider, or parent/guardian for minors) give my No-Objection Consent for the rider to participate
             in horse-riding activity at this centre. I acknowledge that riding involves a real risk of injury —
@@ -564,7 +564,7 @@ function IndemnityStep({
         </label>
         {agreedError && <p className="text-xs text-destructive">{agreedError}</p>}
       </div>
-      <StepFooter canBack onBack={onBack} submitting={submitting} submitLabel="Submit application" />
+      <StepFooter canBack onBack={onBack} submitting={submitting} submitLabel="Submit Application" />
     </form>
   );
 }
@@ -589,7 +589,7 @@ function SubmittedStep({
   if (!result) {
     return (
       <div className="rounded-md border bg-muted p-4 text-sm text-muted-foreground">
-        Click <b>Submit application</b> on the previous step to send your details.
+        Click <b>Submit Application</b> on the previous step to send your details.
       </div>
     );
   }
@@ -603,7 +603,7 @@ function SubmittedStep({
     <div className="space-y-4 text-center">
       <div className="rounded-md border-2 border-emerald-300 bg-emerald-50 p-6">
         <div className="text-3xl">✓</div>
-        <h2 className="mt-2 text-lg font-bold text-emerald-900">Application received</h2>
+        <h2 className="mt-2 text-lg font-bold text-emerald-900">Application Received</h2>
         <p className="mt-2 text-sm text-emerald-900">
           Thank you. Your registration with <b>{centreName}</b> is now with the
           centre team for review.
@@ -803,7 +803,7 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
                 onClick={discardDraft}
                 className="font-semibold underline hover:text-amber-950"
               >
-                Start fresh
+                Start Fresh
               </button>
               .
             </div>

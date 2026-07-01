@@ -86,7 +86,7 @@ export function SupportStaffPanel({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Support staff (test-day)</CardTitle>
+        <CardTitle className="text-base">Support Staff (Test-Day)</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {picked.length === 0 ? (

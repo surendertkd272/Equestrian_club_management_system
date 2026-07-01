@@ -70,7 +70,7 @@ export default async function StaffOnboardingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Employee onboarding</h1>
+        <h1 className="text-2xl font-bold">Employee Onboarding</h1>
         <p className="text-sm text-muted-foreground">
           Generate a self-registration link to share with a new hire. They fill the form + upload documents; you review
           and approve to create their staff record.
@@ -79,7 +79,7 @@ export default async function StaffOnboardingPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">New registration link</CardTitle>
+          <CardTitle className="text-base">New Registration Link</CardTitle>
           <CardDescription>One link per employee. Filled once, then it lands below for review.</CardDescription>
         </CardHeader>
         <CardContent>
@@ -180,7 +180,7 @@ export default async function StaffOnboardingPage() {
 
       {others.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-base">All links</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">All Links</CardTitle></CardHeader>
           <CardContent>
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase text-muted-foreground">

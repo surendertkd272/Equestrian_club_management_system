@@ -32,7 +32,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { next
               />
             </picture>
           )}
-          <CardTitle>Sign in</CardTitle>
+          <CardTitle>Sign In</CardTitle>
           <CardDescription>
             {tenantBranding ? `${tenantBranding.name}` : "Equiwings Central Admin Panel"}
           </CardDescription>

@@ -43,20 +43,20 @@ export default async function SaasInvoicesPage({ searchParams }: { searchParams:
   return (
     <div className="space-y-6 text-foreground">
       <div>
-        <h1 className="text-2xl font-bold">SaaS invoices</h1>
+        <h1 className="text-2xl font-bold">SaaS Invoices</h1>
         <p className="text-sm text-muted-foreground">Platform-issued invoices to tenants for the subscription itself.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <KPI label="Paid · last 30d" value={`₹${paid30d.toLocaleString("en-IN")}`} sub={`${summary.find((s) => s.status === "paid")?._count ?? 0} invoices`} />
-        <KPI label="Outstanding · last 30d" value={`₹${due30d.toLocaleString("en-IN")}`} sub={`${summary.find((s) => s.status === "due")?._count ?? 0} invoices`} warn={due30d > 0} />
-        <KPI label="Total · last 30d" value={`${summary.reduce((acc, s) => acc + s._count, 0)} invoices`} sub="across all tenants" />
+        <KPI label="Paid · Last 30d" value={`₹${paid30d.toLocaleString("en-IN")}`} sub={`${summary.find((s) => s.status === "paid")?._count ?? 0} invoices`} />
+        <KPI label="Outstanding · Last 30d" value={`₹${due30d.toLocaleString("en-IN")}`} sub={`${summary.find((s) => s.status === "due")?._count ?? 0} invoices`} warn={due30d > 0} />
+        <KPI label="Total · Last 30d" value={`${summary.reduce((acc, s) => acc + s._count, 0)} invoices`} sub="across all tenants" />
       </div>
 
       <Card className="border-border bg-card">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-base">All invoices</CardTitle>
+            <CardTitle className="text-base">All Invoices</CardTitle>
             <CardDescription className="text-muted-foreground">Most recent first · cap 100. Filter via URL ?status=paid|due|void.</CardDescription>
           </div>
           <div className="flex gap-2 text-xs">

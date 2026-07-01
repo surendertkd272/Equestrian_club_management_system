@@ -52,7 +52,7 @@ export default async function EditHorsePage({ params }: { params: { id: string }
         <Link href={`/horses/${horse.id}`} className="text-sm text-primary hover:underline">← Back to profile</Link>
       </div>
       <Card>
-        <CardHeader><CardTitle className="text-base">Horse details</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">Horse Details</CardTitle></CardHeader>
         <CardContent>
           <EditHorseForm horseId={horse.id} initial={initial} />
         </CardContent>

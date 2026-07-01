@@ -48,7 +48,7 @@ export default async function HqEquipmentMatrix() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Equipment — HQ rollup</h1>
+          <h1 className="text-2xl font-bold">Equipment — HQ Rollup</h1>
           <p className="text-sm text-muted-foreground">
             Inventory across all {centres.length} centres. Red = below reorder point.
           </p>

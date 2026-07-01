@@ -35,7 +35,7 @@ export default async function EquipmentCatalogPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Equipment catalog</CardTitle>
+          <CardTitle>Equipment Catalog</CardTitle>
           <CardDescription>
             HQ-curated master list. Every centre&apos;s inventory page lists these items.
             Set a sensible default reorder threshold; centres can override per centre.

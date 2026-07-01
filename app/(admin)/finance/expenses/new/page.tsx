@@ -29,7 +29,7 @@ export default async function NewExpensePage() {
     <div className="mx-auto max-w-2xl">
       <Card>
         <CardHeader>
-          <CardTitle>New expense</CardTitle>
+          <CardTitle>New Expense</CardTitle>
           <CardDescription>
             Books an outflow against the centre. Categories are HQ-curated; vendors are
             centre-scoped so each club tracks its own suppliers.

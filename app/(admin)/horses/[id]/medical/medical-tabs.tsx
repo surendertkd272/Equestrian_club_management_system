@@ -5,7 +5,7 @@ import { useState } from "react";
 const TABS = [
   { id: "vaccination", label: "Vaccination" },
   { id: "deworming", label: "Deworming" },
-  { id: "temperature", label: "Temperature trend" },
+  { id: "temperature", label: "Temperature Trend" },
   { id: "injury", label: "Injuries" },
   { id: "farrier", label: "Farrier" },
   { id: "insurance", label: "Insurance" },

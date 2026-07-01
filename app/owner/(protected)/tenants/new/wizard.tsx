@@ -246,12 +246,12 @@ function Step1({
 }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      <Field id="t-name" label="Tenant name" hint='e.g. "Royal Riders Academy"'>
+      <Field id="t-name" label="Tenant Name" hint='e.g. "Royal Riders Academy"'>
         <Input id="t-name" value={form.name} onChange={(e) => set("name", e.target.value)} className={inputCls} />
       </Field>
       <Field
         id="t-slug"
-        label="Tenant slug"
+        label="Tenant Slug"
         hint="URL-safe identifier — lowercase + hyphens, immutable after creation"
       >
         <Input
@@ -280,13 +280,13 @@ function Step1({
         </p>
       </div>
 
-      <Field id="t-contact" label="Contact name (optional)">
+      <Field id="t-contact" label="Contact Name (Optional)">
         <Input id="t-contact" value={form.contactName} onChange={(e) => set("contactName", e.target.value)} className={inputCls} />
       </Field>
-      <Field id="t-billing" label="Billing email (optional)">
+      <Field id="t-billing" label="Billing Email (Optional)">
         <Input id="t-billing" type="email" value={form.billingEmail} onChange={(e) => set("billingEmail", e.target.value)} className={inputCls} />
       </Field>
-      <Field id="t-phone" label="Phone (optional)">
+      <Field id="t-phone" label="Phone (Optional)">
         <Input id="t-phone" value={form.phone} onChange={(e) => set("phone", e.target.value)} className={inputCls} />
       </Field>
     </div>
@@ -305,12 +305,12 @@ function Step2({
       <div className="sm:col-span-2 rounded border border-border bg-background p-3 text-xs text-muted-foreground">
         Every tenant starts with one centre. You can add more later (subject to the plan's cap).
       </div>
-      <Field id="c-name" label="Centre name">
+      <Field id="c-name" label="Centre Name">
         <Input id="c-name" value={form.centreName} onChange={(e) => set("centreName", e.target.value)} className={inputCls} placeholder="HQ Centre" />
       </Field>
       <Field
         id="c-slug"
-        label="Centre slug"
+        label="Centre Slug"
         hint="Global across the platform — used in public onboarding URLs"
       >
         <Input
@@ -321,7 +321,7 @@ function Step2({
           placeholder="royal-riders-hq"
         />
       </Field>
-      <Field id="c-addr" label="Address (optional)">
+      <Field id="c-addr" label="Address (Optional)">
         <Input id="c-addr" value={form.centreAddress} onChange={(e) => set("centreAddress", e.target.value)} className={inputCls} placeholder="Street, city, state" />
       </Field>
     </div>
@@ -341,13 +341,13 @@ function Step3({
         This person becomes the tenant's HQ super admin — they manage everything inside the
         tenant. You'll get a one-time temp password to share with them on the next screen.
       </div>
-      <Field id="a-name" label="Full name">
+      <Field id="a-name" label="Full Name">
         <Input id="a-name" value={form.adminName} onChange={(e) => set("adminName", e.target.value)} className={inputCls} />
       </Field>
       <Field id="a-email" label="Email">
         <Input id="a-email" type="email" value={form.adminEmail} onChange={(e) => set("adminEmail", e.target.value)} className={inputCls} />
       </Field>
-      <Field id="a-phone" label="Phone (optional)">
+      <Field id="a-phone" label="Phone (Optional)">
         <Input id="a-phone" value={form.adminPhone} onChange={(e) => set("adminPhone", e.target.value)} className={inputCls} />
       </Field>
     </div>
@@ -403,7 +403,7 @@ function SuccessCard({ created, onDone }: { created: Created; onDone: () => void
       </div>
 
       <div className="flex gap-2">
-        <Button onClick={onDone}>Open tenant detail</Button>
+        <Button onClick={onDone}>Open Tenant Detail</Button>
         <Link
           href="/owner/tenants"
           className="inline-flex h-10 items-center rounded-md border border-border px-4 text-sm text-foreground hover:bg-muted"

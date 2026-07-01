@@ -11,11 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { postJson } from "@/lib/client/post-json";
 
 const TEMPLATES = [
-  { label: "Muck out stalls", desc: "Clean all stalls and refresh bedding.", time: "06:00", rec: "daily" },
-  { label: "Morning feed", desc: "Feed all horses per dietary chart.", time: "06:30", rec: "daily" },
-  { label: "Evening feed", desc: "Feed all horses per dietary chart.", time: "18:00", rec: "daily" },
-  { label: "Tack inspection", desc: "Check girths/stitching/stirrups across all saddles.", time: "10:00", rec: "weekly" },
-  { label: "Farrier visit", desc: "Schedule trims/shoes for due horses.", time: "09:00", rec: "monthly" },
+  { label: "Muck Out Stalls", desc: "Clean all stalls and refresh bedding.", time: "06:00", rec: "daily" },
+  { label: "Morning Feed", desc: "Feed all horses per dietary chart.", time: "06:30", rec: "daily" },
+  { label: "Evening Feed", desc: "Feed all horses per dietary chart.", time: "18:00", rec: "daily" },
+  { label: "Tack Inspection", desc: "Check girths/stitching/stirrups across all saddles.", time: "10:00", rec: "weekly" },
+  { label: "Farrier Visit", desc: "Schedule trims/shoes for due horses.", time: "09:00", rec: "monthly" },
 ];
 
 export function NewTaskForm({

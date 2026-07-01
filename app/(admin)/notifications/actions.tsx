@@ -48,7 +48,7 @@ export function MarkAllRead() {
       disabled={busy}
       className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-xs font-medium hover:bg-muted"
     >
-      <CheckCheck className="h-3.5 w-3.5" /> Mark all read
+      <CheckCheck className="h-3.5 w-3.5" /> Mark All Read
     </button>
   );
 }

@@ -10,7 +10,7 @@ export default function NewTenantPage() {
           <span className="mx-1">/</span>
           <span>New</span>
         </div>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Onboard a new tenant</h1>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Onboard a New Tenant</h1>
         <p className="text-sm text-muted-foreground">
           Three steps. Org details → first centre → first super admin. Everything is created in
           one transaction; you get a one-time temp password to share at the end.

@@ -64,7 +64,7 @@ export default async function BatchShiftsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Batch shift requests</h1>
+        <h1 className="text-2xl font-bold">Batch Shift Requests</h1>
         <p className="text-sm text-muted-foreground">
           Riders ask to move to a different batch — for one day or permanently. Approve or reject below.
         </p>
@@ -82,7 +82,7 @@ export default async function BatchShiftsPage() {
           {pending.length === 0 ? (
             <EmptyState
               icon={<CalendarRange className="h-8 w-8" />}
-              title="Nothing waiting"
+              title="Nothing Waiting"
               body="Riders submit shift requests from their portal. They show up here for the right approver."
             />
           ) : (
@@ -94,7 +94,7 @@ export default async function BatchShiftsPage() {
                       <div className="font-medium">
                         {r.rider.firstName} {r.rider.lastName}{" "}
                         <Badge variant="outline" className="ml-1">
-                          {r.kind === "single_day" ? "Single day" : "Permanent"}
+                          {r.kind === "single_day" ? "Single Day" : "Permanent"}
                         </Badge>
                       </div>
                       <div className="text-xs text-muted-foreground">
@@ -120,7 +120,7 @@ export default async function BatchShiftsPage() {
       {decided.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Recent decisions</CardTitle>
+            <CardTitle>Recent Decisions</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
@@ -129,7 +129,7 @@ export default async function BatchShiftsPage() {
                   <div>
                     <span className="font-medium">{r.rider.firstName} {r.rider.lastName}</span>
                     {" · "}
-                    {r.kind === "single_day" ? "Single day" : "Permanent"}
+                    {r.kind === "single_day" ? "Single Day" : "Permanent"}
                     {" → "}
                     <b>{r.toBatch.name}</b>
                     {r.kind === "single_day" && r.shiftDate && <> on {formatDate(r.shiftDate)}</>}

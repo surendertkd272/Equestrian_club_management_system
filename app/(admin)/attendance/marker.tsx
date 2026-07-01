@@ -173,7 +173,7 @@ export function AttendanceMarker({
                       <meta.icon className="h-4 w-4" /> {meta.label}
                     </>
                   ) : (
-                    <>Tap to mark</>
+                    <>Tap to Mark</>
                   )}
                 </button>
               </div>

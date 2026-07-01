@@ -68,7 +68,7 @@ export default async function AccreditationsListPage({
       {byBody.size > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Rollup by issuing body</CardTitle>
+            <CardTitle>Rollup by Issuing Body</CardTitle>
           </CardHeader>
           <CardContent>
             <table className="w-full text-sm">

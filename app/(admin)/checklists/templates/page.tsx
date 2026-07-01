@@ -21,7 +21,7 @@ export default async function ChecklistTemplatesPage() {
   if (!centreId) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Daily checklist · templates</h1>
+        <h1 className="text-2xl font-bold">Daily Checklist · Templates</h1>
         <Card>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
             Pick a centre from the top-bar filter to edit its templates.
@@ -53,7 +53,7 @@ export default async function ChecklistTemplatesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Daily checklist · templates</h1>
+        <h1 className="text-2xl font-bold">Daily Checklist · Templates</h1>
         <p className="text-sm text-muted-foreground">
           Edit the daily checks coaches see for <strong>{centre?.name ?? "this centre"}</strong>.
           Renaming an item preserves its identity (historic submissions keep their original wording);
@@ -64,7 +64,7 @@ export default async function ChecklistTemplatesPage() {
       {general ? (
         <Card>
           <CardHeader>
-            <CardTitle>General daily checklist</CardTitle>
+            <CardTitle>General Daily Checklist</CardTitle>
             <CardDescription>
               One submission per day per centre. Section A = horse health (16 items canonical).
               Section B = feed &amp; stable (8 items canonical).
@@ -91,7 +91,7 @@ export default async function ChecklistTemplatesPage() {
       {perHorse ? (
         <Card>
           <CardHeader>
-            <CardTitle>Per-horse daily checklist</CardTitle>
+            <CardTitle>Per-Horse Daily Checklist</CardTitle>
             <CardDescription>
               One submission per horse per day. Coaches tick each horse's eight checks separately.
             </CardDescription>
@@ -111,7 +111,7 @@ export default async function ChecklistTemplatesPage() {
           </CardContent>
         </Card>
       ) : (
-        <MissingTemplate label="Per-horse" />
+        <MissingTemplate label="Per-Horse" />
       )}
     </div>
   );

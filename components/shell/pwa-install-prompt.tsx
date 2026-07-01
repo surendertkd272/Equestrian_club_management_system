@@ -95,7 +95,7 @@ export function PwaInstallPrompt() {
             </Button>
           )}
           <Button size="sm" variant="outline" onClick={dismiss}>
-            {showIosHint ? "Got it" : "Not now"}
+            {showIosHint ? "Got It" : "Not Now"}
           </Button>
         </div>
       </div>

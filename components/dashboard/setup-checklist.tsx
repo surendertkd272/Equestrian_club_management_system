@@ -22,7 +22,7 @@ export function SetupChecklist({ items }: { items: ChecklistItem[] }) {
     <Card className="border-primary/30 bg-primary/5">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">Finish setting up your centre</CardTitle>
+          <CardTitle className="text-base">Finish Setting up Your Centre</CardTitle>
           <span className="text-xs text-muted-foreground">{done}/{total} done</span>
         </div>
         <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">

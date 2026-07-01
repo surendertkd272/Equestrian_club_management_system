@@ -45,7 +45,7 @@ export function HqCentreSwitcher({
       title="Scope every page to one centre"
       className="h-8 rounded-md border bg-card px-2 text-xs"
     >
-      <option value="all">All centres</option>
+      <option value="all">All Centres</option>
       {centres.map((c) => (
         <option key={c.id} value={c.id}>{c.name}</option>
       ))}

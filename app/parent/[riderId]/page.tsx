@@ -53,15 +53,15 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
 
       <div className="grid gap-4 md:grid-cols-4">
         <KpiCard label="Attendance (90d)" value={attendancePct === null ? "—" : `${attendancePct}%`} />
-        <KpiCard label="Skills mastered" value={String(skills.filter((s) => s.status === "mastered").length)} />
-        <KpiCard label="Exams taken" value={String(exams.filter((e) => e.status === "completed").length)} />
+        <KpiCard label="Skills Mastered" value={String(skills.filter((s) => s.status === "mastered").length)} />
+        <KpiCard label="Exams Taken" value={String(exams.filter((e) => e.status === "completed").length)} />
         <KpiCard label="Certificates" value={String(certificates.length)} />
       </div>
 
       {upcomingLessons.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Upcoming lessons (next 2 weeks)</CardTitle>
+            <CardTitle>Upcoming Lessons (Next 2 Weeks)</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="divide-y text-sm">
@@ -84,7 +84,7 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent attendance (last 90 days)</CardTitle>
+          <CardTitle>Recent Attendance (Last 90 Days)</CardTitle>
         </CardHeader>
         <CardContent>
           {attendance.length === 0 ? (

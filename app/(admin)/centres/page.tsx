@@ -100,7 +100,7 @@ export default async function CentresPage() {
                 />
                 <div className="mt-4 border-t pt-3">
                   <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Emergency contacts
+                    Emergency Contacts
                   </div>
                   <EmergencyContactsPanel
                     centreId={c.id}
@@ -122,7 +122,7 @@ export default async function CentresPage() {
           // approvals pattern so the experience feels consistent.
           <EmptyState
             icon={<Building2 className="h-8 w-8" />}
-            title="No clubs yet"
+            title="No Clubs Yet"
             body="Each club gets its own riders, staff, horses, and invoices. Scroll up and use 'New club' to create your first one — five minutes of setup."
           />
         )}

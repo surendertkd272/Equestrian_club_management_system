@@ -115,7 +115,7 @@ export function NotificationsDropdown({ initialUnread }: { initialUnread: number
                     className="inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px] hover:bg-muted"
                     title="Mark all read"
                   >
-                    <CheckCheck className="h-3 w-3" /> Mark all read
+                    <CheckCheck className="h-3 w-3" /> Mark All Read
                   </button>
                 )}
                 <Link
@@ -124,7 +124,7 @@ export function NotificationsDropdown({ initialUnread }: { initialUnread: number
                   onClick={() => setOpen(false)}
                   title="See every unread item"
                 >
-                  View all →
+                  View All →
                 </Link>
               </div>
             </div>
@@ -157,7 +157,7 @@ export function NotificationsDropdown({ initialUnread }: { initialUnread: number
                 <div className="px-3 py-6 text-center text-sm text-muted-foreground">
                   {unread} unread notification{unread === 1 ? "" : "s"}.{" "}
                   <Link href="/notifications?filter=unread" onClick={() => setOpen(false)} className="text-primary hover:underline">
-                    View all →
+                    View All →
                   </Link>
                 </div>
               )}

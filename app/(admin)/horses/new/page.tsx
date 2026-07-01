@@ -11,7 +11,7 @@ export default async function NewHorsePage() {
     <div className="mx-auto max-w-xl">
       <Card>
         <CardHeader>
-          <CardTitle>Add horse</CardTitle>
+          <CardTitle>Add Horse</CardTitle>
           <CardDescription>
             Onboard a new horse to the centre roster. Status defaults to <code>active</code>. Workload tracking begins
             from the first allocation.

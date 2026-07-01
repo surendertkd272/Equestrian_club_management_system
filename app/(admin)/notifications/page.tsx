@@ -51,7 +51,7 @@ export default async function NotificationsPage({
             href={unreadOnly ? "/notifications" : "/notifications?filter=unread"}
             className="rounded border bg-card px-2 py-1 text-xs hover:bg-muted"
           >
-            {unreadOnly ? "Show all" : "Unread only"}
+            {unreadOnly ? "Show All" : "Unread Only"}
           </Link>
           {unread > 0 && <MarkAllRead />}
         </div>

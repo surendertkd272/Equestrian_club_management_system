@@ -48,7 +48,7 @@ export default async function TemplatesPage() {
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Scoring templates</h1>
+          <h1 className="text-2xl font-bold">Scoring Templates</h1>
           <p className="text-sm text-muted-foreground">
             Per-level rubrics used by the exam scoring engine. Levels live in
             the HQ catalog; centres can override the rubric per level.
@@ -61,7 +61,7 @@ export default async function TemplatesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Level catalog</CardTitle>
+          <CardTitle>Level Catalog</CardTitle>
           <CardDescription>
             Master progression — every centre picks from this list. Edit it from{" "}
             <Link href="/exams/levels" className="text-primary underline">
@@ -173,7 +173,7 @@ export default async function TemplatesPage() {
       {centreId && (
         <Card>
           <CardHeader>
-            <CardTitle>Create / replace template</CardTitle>
+            <CardTitle>Create / Replace Template</CardTitle>
             <CardDescription>
               Submitting overwrites the template for that level (centre-scoped). Use the example below as a starting
               point.

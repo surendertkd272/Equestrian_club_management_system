@@ -216,7 +216,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
 
         <Card>
           <CardHeader>
-            <CardTitle>Today's workload</CardTitle>
+            <CardTitle>Today's Workload</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
@@ -243,7 +243,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
 
       <Card>
         <CardHeader>
-          <CardTitle>Vet visits</CardTitle>
+          <CardTitle>Vet Visits</CardTitle>
         </CardHeader>
         <CardContent>
           <VetVisitsPanel
@@ -274,7 +274,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
 
       <Card>
         <CardHeader>
-          <CardTitle>Lab tests</CardTitle>
+          <CardTitle>Lab Tests</CardTitle>
         </CardHeader>
         <CardContent>
           <HorseTestsPanel
@@ -296,7 +296,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
 
       <Card>
         <CardHeader>
-          <CardTitle>Health log</CardTitle>
+          <CardTitle>Health Log</CardTitle>
         </CardHeader>
         <CardContent>
           <HealthLogPanel
@@ -318,7 +318,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
 
       <Card>
         <CardHeader>
-          <CardTitle>Feed plan</CardTitle>
+          <CardTitle>Feed Plan</CardTitle>
         </CardHeader>
         <CardContent>
           <FeedPlanPanel
@@ -370,7 +370,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
 
       <Card>
         <CardHeader>
-          <CardTitle>Today's allocations</CardTitle>
+          <CardTitle>Today's Allocations</CardTitle>
         </CardHeader>
         <CardContent>
           {todaysAllocs.length === 0 ? (
@@ -421,7 +421,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
       {canManage && horse.status === "active" && (
         <Card>
           <CardHeader>
-            <CardTitle>New allocation</CardTitle>
+            <CardTitle>New Allocation</CardTitle>
           </CardHeader>
           <CardContent>
             <NewAllocationForm horseId={horse.id} riders={riders} />

@@ -104,8 +104,8 @@ export function MyDocumentsForm({ pending }: { pending: Item[] }) {
         ) : it.key === "employmentType" ? (
           <Select value={v} onChange={(e) => set(it.key, e.target.value)}>
             <option value="">—</option>
-            <option value="full_time">Full employment</option>
-            <option value="trainee_stipend">Trainee on stipend</option>
+            <option value="full_time">Full Employment</option>
+            <option value="trainee_stipend">Trainee on Stipend</option>
           </Select>
         ) : TEXTAREA_KEYS.has(it.key) ? (
           <Textarea rows={2} value={v} onChange={(e) => set(it.key, e.target.value)} />

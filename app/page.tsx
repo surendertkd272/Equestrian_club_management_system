@@ -23,8 +23,8 @@ export default function Home() {
             <Link href="/privacy" className="hover:text-primary">Privacy</Link>
           </nav>
           <div className="flex items-center gap-2">
-            <Button asChild size="sm" variant="outline"><Link href="/login">Sign in</Link></Button>
-            <Button asChild size="sm"><Link href="/pricing">Start free trial</Link></Button>
+            <Button asChild size="sm" variant="outline"><Link href="/login">Sign In</Link></Button>
+            <Button asChild size="sm"><Link href="/pricing">Start Free Trial</Link></Button>
           </div>
         </div>
       </header>
@@ -44,8 +44,8 @@ export default function Home() {
             three WhatsApp groups.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg"><Link href="/pricing">Start 14-day free trial</Link></Button>
-            <Button asChild size="lg" variant="outline"><Link href="mailto:sales@equiwings.example?subject=Demo%20request">Book a demo</Link></Button>
+            <Button asChild size="lg"><Link href="/pricing">Start 14-Day Free Trial</Link></Button>
+            <Button asChild size="lg" variant="outline"><Link href="mailto:sales@equiwings.example?subject=Demo%20request">Book a Demo</Link></Button>
           </div>
           <p className="mt-4 text-xs text-muted-foreground">No credit card needed. Cancel any time.</p>
         </div>
@@ -100,8 +100,8 @@ export default function Home() {
           <h2 className="text-3xl font-bold">Run your academy the way you've been meaning to.</h2>
           <p className="mt-3 text-slate-300">Set it up in an afternoon. 14-day trial. No card required.</p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Button asChild size="lg" variant="default"><Link href="/pricing">See pricing</Link></Button>
-            <Button asChild size="lg" variant="outline" className="border-slate-600 bg-transparent text-white hover:bg-slate-800"><Link href="mailto:sales@equiwings.example?subject=Demo%20request">Talk to sales</Link></Button>
+            <Button asChild size="lg" variant="default"><Link href="/pricing">See Pricing</Link></Button>
+            <Button asChild size="lg" variant="outline" className="border-slate-600 bg-transparent text-white hover:bg-slate-800"><Link href="mailto:sales@equiwings.example?subject=Demo%20request">Talk to Sales</Link></Button>
           </div>
         </div>
       </section>
@@ -121,14 +121,14 @@ export default function Home() {
 }
 
 const FEATURES = [
-  { group: "Athletes", title: "Rider register + skill tracking", body: "EFI-style level progression, per-discipline skill heatmaps, attendance auto-rolled across batches." },
-  { group: "Horses", title: "Stable management", body: "Allocations, vaccinations, deworming, dental, farriery, feed plans, insurance expiry alerts." },
-  { group: "Exams", title: "Multi-judge exams", body: "Rubric templates, per-judge score cards, auto-issued QR-verified certificates on pass." },
-  { group: "Money", title: "Fees, payments, GST", body: "Registration + monthly invoices, GST tracking, cash/Razorpay/Stripe collection, expense P&L." },
-  { group: "Parents", title: "Parent + student portals", body: "Parents see attendance %, exam results, lesson schedule. Students see their own progress." },
-  { group: "Staff", title: "Coach + vet + groom", body: "Role-based access, staff attendance, leave, training records — 17 distinct roles supported." },
-  { group: "Health", title: "Vet records + injury log", body: "Per-horse medicine usage, withdrawal periods, cold-chain tracking, separate horse + rider injury logs." },
-  { group: "HQ", title: "Multi-centre dashboard", body: "Compare attendance %, pass rate, unpaid invoices, riders/staff/horses across every centre in your chain." },
+  { group: "Athletes", title: "Rider Register + Skill Tracking", body: "EFI-style level progression, per-discipline skill heatmaps, attendance auto-rolled across batches." },
+  { group: "Horses", title: "Stable Management", body: "Allocations, vaccinations, deworming, dental, farriery, feed plans, insurance expiry alerts." },
+  { group: "Exams", title: "Multi-Judge Exams", body: "Rubric templates, per-judge score cards, auto-issued QR-verified certificates on pass." },
+  { group: "Money", title: "Fees, Payments, GST", body: "Registration + monthly invoices, GST tracking, cash/Razorpay/Stripe collection, expense P&L." },
+  { group: "Parents", title: "Parent + Student Portals", body: "Parents see attendance %, exam results, lesson schedule. Students see their own progress." },
+  { group: "Staff", title: "Coach + Vet + Groom", body: "Role-based access, staff attendance, leave, training records — 17 distinct roles supported." },
+  { group: "Health", title: "Vet Records + Injury Log", body: "Per-horse medicine usage, withdrawal periods, cold-chain tracking, separate horse + rider injury logs." },
+  { group: "HQ", title: "Multi-Centre Dashboard", body: "Compare attendance %, pass rate, unpaid invoices, riders/staff/horses across every centre in your chain." },
 ];
 
 const REASONS = [

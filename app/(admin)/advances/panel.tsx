@@ -73,7 +73,7 @@ export function AdvancesPanel({
           <CardTitle>Outstanding ({outstanding.length})</CardTitle>
           {!openIssue && (
             <Button size="sm" onClick={() => setOpenIssue(true)}>
-              <Plus className="mr-1 h-4 w-4" /> Issue advance
+              <Plus className="mr-1 h-4 w-4" /> Issue Advance
             </Button>
           )}
         </div>
@@ -126,7 +126,7 @@ export function AdvancesPanel({
                 Cancel
               </Button>
               <Button type="submit" disabled={busy}>
-                {busy ? "Issuing…" : "Record advance"}
+                {busy ? "Issuing…" : "Record Advance"}
               </Button>
             </div>
           </form>
@@ -209,7 +209,7 @@ function AdvanceRowDisplay({ row }: { row: AdvanceRow }) {
 
       {!openRepay ? (
         <Button size="sm" variant="outline" className="mt-2" onClick={() => setOpenRepay(true)}>
-          <IndianRupee className="mr-1 h-3 w-3" /> Record repayment
+          <IndianRupee className="mr-1 h-3 w-3" /> Record Repayment
         </Button>
       ) : (
         <form onSubmit={repay} className="mt-2 flex flex-wrap items-end gap-2">

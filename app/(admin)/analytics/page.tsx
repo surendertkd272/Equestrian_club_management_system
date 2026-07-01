@@ -129,7 +129,7 @@ export default async function AnalyticsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Performance analytics</h1>
+        <h1 className="text-2xl font-bold">Performance Analytics</h1>
         <p className="text-sm text-muted-foreground">
           {session.role === "SUPER_ADMIN" ? "HQ cross-centre view." : "Centre view."} Last 6 months of trends.
         </p>
@@ -138,18 +138,18 @@ export default async function AnalyticsPage() {
       {/* KPI tiles */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Tile
-          label="Total exams completed"
+          label="Total Exams Completed"
           value={examsAll.length.toLocaleString("en-IN")}
           sub={passRate !== null ? `${passRate}% pass rate` : "—"}
           trend={passRateSeries}
         />
         <Tile
-          label="Average exam score"
+          label="Average Exam Score"
           value={avgScore !== null ? String(avgScore) : "—"}
           sub={`${passCount} pass · ${failCount} fail`}
         />
         <Tile
-          label="Certificates issued"
+          label="Certificates Issued"
           value={String(certificates)}
           sub="all-time"
         />
@@ -159,7 +159,7 @@ export default async function AnalyticsPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Revenue trend (last 6 months)</CardTitle>
+            <CardTitle>Revenue Trend (Last 6 Months)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="mb-3 flex items-end justify-between">
@@ -174,7 +174,7 @@ export default async function AnalyticsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Attendance % (last 6 months)</CardTitle>
+            <CardTitle>Attendance % (Last 6 Months)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="mb-3 flex items-end justify-between">
@@ -192,7 +192,7 @@ export default async function AnalyticsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Rider distribution by level</CardTitle>
+            <CardTitle>Rider Distribution by Level</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="mb-2 text-sm text-muted-foreground">

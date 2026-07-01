@@ -73,33 +73,33 @@ export type FeatureDef = {
 
 export const FEATURES: readonly FeatureDef[] = [
   // ── Operations
-  { key: "attendance",             label: "Rider attendance",       description: "Mark and review rider attendance per batch.",                    group: "operations",   enforcement: "wired", selfToggle: true },
-  { key: "skill-tracking",         label: "Skill tracking",         description: "Track per-rider skill progress across disciplines.",             group: "operations",   enforcement: "wired", selfToggle: true },
-  { key: "internal-exams",         label: "Internal exams",         description: "Schedule and score in-house promotion exams.",                   group: "operations",   enforcement: "ui-only" },
-  { key: "external-exams",         label: "External examinations",  description: "Formal exam workflow with external examiners (EFI-style).",     group: "operations",   enforcement: "wired" },
+  { key: "attendance",             label: "Rider Attendance",       description: "Mark and review rider attendance per batch.",                    group: "operations",   enforcement: "wired", selfToggle: true },
+  { key: "skill-tracking",         label: "Skill Tracking",         description: "Track per-rider skill progress across disciplines.",             group: "operations",   enforcement: "wired", selfToggle: true },
+  { key: "internal-exams",         label: "Internal Exams",         description: "Schedule and score in-house promotion exams.",                   group: "operations",   enforcement: "ui-only" },
+  { key: "external-exams",         label: "External Examinations",  description: "Formal exam workflow with external examiners (EFI-style).",     group: "operations",   enforcement: "wired" },
   { key: "certificates",           label: "Certificates",           description: "Issue QR-verified certificates for promotions + events.",         group: "operations",   enforcement: "wired", selfToggle: true },
   { key: "events",                 label: "Events",                 description: "Clinics, schooling days, fundraisers, external shows.",          group: "operations",   enforcement: "wired" },
 
   // ── People
-  { key: "staff-attendance",       label: "Staff attendance",       description: "Daily staff check-in / leave tracking.",                         group: "people",       enforcement: "wired", selfToggle: true },
-  { key: "parent-portal",          label: "Parent portal",          description: "Parents log in to see their kids' progress and bills.",          group: "people",       enforcement: "wired" },
-  { key: "student-portal",         label: "Student / rider portal", description: "Riders log in to see their attendance, skills, and exams.",     group: "people",       enforcement: "wired" },
-  { key: "leave-requests",         label: "Leave requests",         description: "Staff request leave; managers approve.",                         group: "people",       enforcement: "wired", selfToggle: true },
-  { key: "training-certs",         label: "Training & certs",       description: "Staff courses + external certifications register.",              group: "people",       enforcement: "wired", selfToggle: true },
-  { key: "teams",                  label: "Teams / squads",         description: "Group riders into named teams (squads).",         group: "people",       enforcement: "wired", selfToggle: true },
-  { key: "accreditations",         label: "Rider accreditations",   description: "Track external federation memberships per rider (EFI/BHS/FEI).", group: "people",       enforcement: "wired" },
+  { key: "staff-attendance",       label: "Staff Attendance",       description: "Daily staff check-in / leave tracking.",                         group: "people",       enforcement: "wired", selfToggle: true },
+  { key: "parent-portal",          label: "Parent Portal",          description: "Parents log in to see their kids' progress and bills.",          group: "people",       enforcement: "wired" },
+  { key: "student-portal",         label: "Student / Rider Portal", description: "Riders log in to see their attendance, skills, and exams.",     group: "people",       enforcement: "wired" },
+  { key: "leave-requests",         label: "Leave Requests",         description: "Staff request leave; managers approve.",                         group: "people",       enforcement: "wired", selfToggle: true },
+  { key: "training-certs",         label: "Training & Certs",       description: "Staff courses + external certifications register.",              group: "people",       enforcement: "wired", selfToggle: true },
+  { key: "teams",                  label: "Teams / Squads",         description: "Group riders into named teams (squads).",         group: "people",       enforcement: "wired", selfToggle: true },
+  { key: "accreditations",         label: "Rider Accreditations",   description: "Track external federation memberships per rider (EFI/BHS/FEI).", group: "people",       enforcement: "wired" },
 
   // ── Facility
-  { key: "horse-management",       label: "Horse management",       description: "Track horses, allocations, and ownership.",                      group: "facility",     enforcement: "wired" },
-  { key: "vet-records",            label: "Vet records",            description: "Medicine inventory and per-horse treatment logs.",               group: "facility",     enforcement: "wired" },
-  { key: "inventory",              label: "Tack & equipment",       description: "Tag, issue, and maintain saddles, gear, and school assets.",     group: "facility",     enforcement: "wired" },
-  { key: "consumables",            label: "First-aid consumables",  description: "Per-centre stock of bandages, antiseptics, etc.",                group: "facility",     enforcement: "wired", selfToggle: true },
+  { key: "horse-management",       label: "Horse Management",       description: "Track horses, allocations, and ownership.",                      group: "facility",     enforcement: "wired" },
+  { key: "vet-records",            label: "Vet Records",            description: "Medicine inventory and per-horse treatment logs.",               group: "facility",     enforcement: "wired" },
+  { key: "inventory",              label: "Tack & Equipment",       description: "Tag, issue, and maintain saddles, gear, and school assets.",     group: "facility",     enforcement: "wired" },
+  { key: "consumables",            label: "First-Aid Consumables",  description: "Per-centre stock of bandages, antiseptics, etc.",                group: "facility",     enforcement: "wired", selfToggle: true },
   { key: "farriery",               label: "Farriery",               description: "Schedule and track farrier visits per horse.",                   group: "facility",     enforcement: "wired" },
-  { key: "injuries",               label: "Injury log",             description: "Horse + rider injury records with recovery tracking.",            group: "facility",     enforcement: "wired", selfToggle: true },
-  { key: "facility-bookings",      label: "Facility bookings",      description: "Book arenas / wash bays / classroom slots.",                     group: "facility",     enforcement: "wired", selfToggle: true },
+  { key: "injuries",               label: "Injury Log",             description: "Horse + rider injury records with recovery tracking.",            group: "facility",     enforcement: "wired", selfToggle: true },
+  { key: "facility-bookings",      label: "Facility Bookings",      description: "Book arenas / wash bays / classroom slots.",                     group: "facility",     enforcement: "wired", selfToggle: true },
 
   // ── Finance
-  { key: "fee-collection",         label: "Parent / rider payments", description: "Switch for parent + rider-facing payment surfaces. When OFF: no invoices created on enrolment / event entry, /pay page 404s, Razorpay endpoints return 503, fee-due reminders skipped, approved riders go straight to active, parent invoice tiles hide. Staff bookkeeping (the /finance dashboard, manual cash recording, exports, invoice print) is unaffected so the team can still log offline payments. Existing invoices preserved as audit history.", group: "finance", enforcement: "wired" },
+  { key: "fee-collection",         label: "Parent / Rider Payments", description: "Switch for parent + rider-facing payment surfaces. When OFF: no invoices created on enrolment / event entry, /pay page 404s, Razorpay endpoints return 503, fee-due reminders skipped, approved riders go straight to active, parent invoice tiles hide. Staff bookkeeping (the /finance dashboard, manual cash recording, exports, invoice print) is unaffected so the team can still log offline payments. Existing invoices preserved as audit history.", group: "finance", enforcement: "wired" },
   { key: "expenses",               label: "Expenses & P&L",         description: "Book outgoings against chart-of-accounts; expense P&L.",         group: "finance",      enforcement: "wired" },
 
   // ── Productivity
@@ -107,16 +107,16 @@ export const FEATURES: readonly FeatureDef[] = [
   { key: "approvals",              label: "Approvals",              description: "Generic approval workflow (purchases, special requests).",       group: "productivity", enforcement: "wired", selfToggle: true },
   { key: "reports",                label: "Reports",                description: "Monthly parent report cards + analytical exports.",              group: "productivity", enforcement: "wired", selfToggle: true },
   { key: "analytics",              label: "Analytics",              description: "Per-rider performance trends.",             group: "productivity", enforcement: "wired", selfToggle: true },
-  { key: "whatsapp-notifications", label: "WhatsApp notifications", description: "Send class reminders, dues, and certificates via WhatsApp.",    group: "productivity", enforcement: "wired", selfToggle: true },
+  { key: "whatsapp-notifications", label: "WhatsApp Notifications", description: "Send class reminders, dues, and certificates via WhatsApp.",    group: "productivity", enforcement: "wired", selfToggle: true },
 
   // ── Advanced / HQ-only
-  { key: "hq-dashboard",           label: "HQ comparative dashboard", description: "Cross-centre side-by-side reporting for multi-club operators.", group: "advanced",   enforcement: "wired", selfToggle: true },
+  { key: "hq-dashboard",           label: "HQ Comparative Dashboard", description: "Cross-centre side-by-side reporting for multi-club operators.", group: "advanced",   enforcement: "wired", selfToggle: true },
 
   // ── Per-tenant chrome toggles — default OFF for new orgs (see seed.ts /
   // /api/orgs onboarding). Owner toggles ON in the feature matrix when a
   // specific tenant wants the feature exposed.
-  { key: "club-catalog",            label: "Club catalog",            description: "Per-club catalog editor for fee plans, levels, skills. Hidden by default — owner toggles on for clubs that need to customise the catalog.", group: "advanced", enforcement: "wired", selfToggle: true },
-  { key: "student-payment-visible", label: "Student-portal payments", description: "Show payment/invoice surfaces in the student (rider) portal. Hidden by default — payments are typically handled by the parent via emailed links, not students directly.", group: "advanced", enforcement: "ui-only" },
+  { key: "club-catalog",            label: "Club Catalog",            description: "Per-club catalog editor for fee plans, levels, skills. Hidden by default — owner toggles on for clubs that need to customise the catalog.", group: "advanced", enforcement: "wired", selfToggle: true },
+  { key: "student-payment-visible", label: "Student-Portal Payments", description: "Show payment/invoice surfaces in the student (rider) portal. Hidden by default — payments are typically handled by the parent via emailed links, not students directly.", group: "advanced", enforcement: "ui-only" },
 ];
 
 export const FEATURE_KEYS: readonly FeatureKey[] = FEATURES.map((f) => f.key);

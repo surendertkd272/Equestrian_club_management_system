@@ -120,7 +120,7 @@ export function NewBatchForm({
         </Select>
       </div>
       <Button type="submit" disabled={saving || disabled} className="w-full">
-        {saving ? "Creating…" : "Create batch"}
+        {saving ? "Creating…" : "Create Batch"}
       </Button>
     </form>
   );

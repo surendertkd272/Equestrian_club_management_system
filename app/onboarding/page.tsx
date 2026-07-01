@@ -49,7 +49,7 @@ export default async function OnboardingPage({
         : [];
     return (
       <main className="container max-w-md py-16 text-center">
-        <h1 className="text-2xl font-bold">Registration link needed</h1>
+        <h1 className="text-2xl font-bold">Registration Link Needed</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           {slug
             ? "That registration link isn't valid. Please ask your club for the correct link."
@@ -80,7 +80,7 @@ export default async function OnboardingPage({
       <div className="container max-w-2xl">
         <div className="mb-6 text-center">
           <div className="text-xs font-semibold uppercase tracking-wider text-primary">{centre.name}</div>
-          <h1 className="mt-1 text-3xl font-bold">Rider registration</h1>
+          <h1 className="mt-1 text-3xl font-bold">Rider Registration</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Replaces the paper GHRC Rider Registration Form + Indemnity Release.
           </p>

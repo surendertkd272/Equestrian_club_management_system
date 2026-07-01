@@ -58,7 +58,7 @@ export function BulkIssuePanel({
   return (
     <Card className="border-primary/30 bg-primary/5">
       <CardHeader>
-        <CardTitle className="text-base">Bulk issue certificates</CardTitle>
+        <CardTitle className="text-base">Bulk Issue Certificates</CardTitle>
         <CardDescription>
           Pick a source — exam sitting or event — and mint a cert per eligible
           rider in one shot. Re-running on the same source is safe: already-issued certs are

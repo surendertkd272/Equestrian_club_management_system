@@ -99,7 +99,7 @@ export default async function PricingPage() {
 
         {/* Comparison table */}
         <div className="mt-16">
-          <h2 className="text-2xl font-bold">What's in each plan</h2>
+          <h2 className="text-2xl font-bold">What's in Each Plan</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Need a specific module not in your plan? Enterprise allows per-feature overrides.
           </p>

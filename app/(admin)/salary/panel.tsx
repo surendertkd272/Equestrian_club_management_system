@@ -110,7 +110,7 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Record a salary payment</CardTitle>
+        <CardTitle className="text-base">Record a Salary Payment</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 md:grid-cols-3">
@@ -181,7 +181,7 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
             <span className="text-amber-700">No salary set for this staff member — set it in the structure table above.</span>
           ) : (
             <div className="space-y-1">
-              <Line label="Gross salary" value={gross} />
+              <Line label="Gross Salary" value={gross} />
               {preview.breakdown.map((b) => (
                 <Line
                   key={b.status}
@@ -196,9 +196,9 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
                   Advance capped to ₹{Math.round(advance).toLocaleString("en-IN")} — limited by what's outstanding and the take-home pay.
                 </p>
               )}
-              {other > 0 && <Line label="− Other deductions" value={-other} tone="amber" />}
+              {other > 0 && <Line label="− Other Deductions" value={-other} tone="amber" />}
               <div className="mt-1 border-t pt-1">
-                <Line label="Net payable" value={net} bold />
+                <Line label="Net Payable" value={net} bold />
               </div>
             </div>
           )}

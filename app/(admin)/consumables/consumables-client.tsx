@@ -59,7 +59,7 @@ export function ConsumablesClient() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Add a line item</CardTitle>
+        <CardTitle className="text-base">Add a Line Item</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 md:grid-cols-3">

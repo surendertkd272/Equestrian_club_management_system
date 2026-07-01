@@ -121,15 +121,15 @@ export default async function RiderAnalytics({ params }: { params: { id: string 
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <KPI label="Exam pass rate" value={examPassRate === null ? "—" : `${examPassRate}%`} sub={`${exams.length} taken`} />
-        <KPI label="Skill mastery" value={`${masteryPct}%`} sub={`${mastered}/${totalSkillsAtCentre}`} />
+        <KPI label="Exam Pass Rate" value={examPassRate === null ? "—" : `${examPassRate}%`} sub={`${exams.length} taken`} />
+        <KPI label="Skill Mastery" value={`${masteryPct}%`} sub={`${mastered}/${totalSkillsAtCentre}`} />
         <KPI label="Attendance" value={attendancePct === null ? "—" : `${attendancePct}%`} sub={`${attendance.length} sessions`} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Exam score trend</CardTitle>
+            <CardTitle>Exam Score Trend</CardTitle>
           </CardHeader>
           <CardContent>
             {exams.length === 0 ? (
@@ -172,7 +172,7 @@ export default async function RiderAnalytics({ params }: { params: { id: string 
 
         <Card>
           <CardHeader>
-            <CardTitle>Attendance (last 6 months)</CardTitle>
+            <CardTitle>Attendance (Last 6 Months)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="mb-3 flex items-end justify-between">
@@ -194,7 +194,7 @@ export default async function RiderAnalytics({ params }: { params: { id: string 
 
         <Card>
           <CardHeader>
-            <CardTitle>Skill mastery by discipline</CardTitle>
+            <CardTitle>Skill Mastery by Discipline</CardTitle>
           </CardHeader>
           <CardContent>
             <BarChart data={disciplineData} accent="bg-emerald-500" />

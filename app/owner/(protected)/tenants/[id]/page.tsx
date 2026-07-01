@@ -84,7 +84,7 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
         <Stat label="Centres" value={tenant.centres.length} />
         <Stat label="Users" value={userCount} />
         <Stat label="Riders" value={riderCount} />
-        <Stat label="Features on" value={`${enabledFeatures} / ${tenant.features.length}`} />
+        <Stat label="Features On" value={`${enabledFeatures} / ${tenant.features.length}`} />
       </div>
 
       <Panel title="Edit tenant">

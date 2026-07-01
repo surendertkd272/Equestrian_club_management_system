@@ -47,7 +47,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
       <main className="container py-6">
         {enabled ? children : (
           <div className="mx-auto max-w-md rounded-lg border bg-card p-6 text-sm">
-            <h2 className="text-base font-semibold">Student portal unavailable</h2>
+            <h2 className="text-base font-semibold">Student Portal Unavailable</h2>
             <p className="mt-1 text-muted-foreground">
               Your club hasn't enabled the student portal on their plan. Please contact your
               coach.

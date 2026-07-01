@@ -7,7 +7,7 @@ export default function OwnerLoginPage({ searchParams }: { searchParams: { next?
     <main className="flex min-h-screen items-center justify-center bg-slate-950 p-4 text-slate-100">
       <Card className="w-full max-w-sm border-slate-800 bg-slate-900 text-slate-100">
         <CardHeader>
-          <CardTitle>Platform owner</CardTitle>
+          <CardTitle>Platform Owner</CardTitle>
           <CardDescription className="text-slate-400">
             Sign in to manage all tenants
           </CardDescription>

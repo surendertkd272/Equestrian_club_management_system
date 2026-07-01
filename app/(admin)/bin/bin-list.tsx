@@ -32,7 +32,7 @@ export function BinList({
       const ok = await openConfirm({
         title: "Delete permanently?",
         body: `"${row.name}" will be erased for good. This can't be undone.`,
-        confirmLabel: "Delete forever",
+        confirmLabel: "Delete Forever",
         destructive: true,
       });
       if (!ok) return;
@@ -90,7 +90,7 @@ export function BinList({
                     {busy === key ? "…" : "Restore"}
                   </Button>
                   <Button size="sm" variant="ghost" className="text-destructive" disabled={busy === key} onClick={() => act(row, "purge")}>
-                    Delete now
+                    Delete Now
                   </Button>
                 </td>
               </tr>

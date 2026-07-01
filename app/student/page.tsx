@@ -33,7 +33,7 @@ export default async function StudentHome() {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Your portal isn't set up yet</CardTitle>
+          <CardTitle>Your Portal Isn't Set up Yet</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           Your account isn't linked to a rider profile. Please contact your centre — a
@@ -98,7 +98,7 @@ export default async function StudentHome() {
       {detail && detail.notifications.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>What's new</CardTitle>
+            <CardTitle>What's New</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2 text-sm">
@@ -133,10 +133,10 @@ export default async function StudentHome() {
           }
           stats={[
             { label: "Attendance", value: attendancePct === null ? "—" : `${attendancePct}%` },
-            { label: "Next exam", value: upcomingExam ? `L${upcomingExam.level}` : "—" },
+            { label: "Next Exam", value: upcomingExam ? `L${upcomingExam.level}` : "—" },
             showPayment
-              ? { label: "Unpaid fees", value: String(unpaidInvoices) }
-              : { label: "Skills this month", value: monthlySkillsTotal > 0 ? `${monthlySkillsMastered}/${monthlySkillsTotal}` : "—" },
+              ? { label: "Unpaid Fees", value: String(unpaidInvoices) }
+              : { label: "Skills This Month", value: monthlySkillsTotal > 0 ? `${monthlySkillsMastered}/${monthlySkillsTotal}` : "—" },
           ]}
         />
         <div className="flex flex-col rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
@@ -154,7 +154,7 @@ export default async function StudentHome() {
 
       <Card>
         <CardHeader>
-          <CardTitle>My class</CardTitle>
+          <CardTitle>My Class</CardTitle>
         </CardHeader>
         <CardContent className="text-sm">
           {rider.batch ? (
@@ -197,7 +197,7 @@ export default async function StudentHome() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Exam history</CardTitle>
+          <CardTitle>Exam History</CardTitle>
         </CardHeader>
         <CardContent>
           <ExamHistoryList exams={examHistory} />
@@ -207,7 +207,7 @@ export default async function StudentHome() {
       {detail && detail.upcomingLessons.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Upcoming lessons (next 2 weeks)</CardTitle>
+            <CardTitle>Upcoming Lessons (Next 2 Weeks)</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="divide-y text-sm">
@@ -232,7 +232,7 @@ export default async function StudentHome() {
         <>
           <Card>
             <CardHeader>
-              <CardTitle>Recent attendance</CardTitle>
+              <CardTitle>Recent Attendance</CardTitle>
             </CardHeader>
             <CardContent>
               {detail.attendance.length === 0 ? (
@@ -288,7 +288,7 @@ export default async function StudentHome() {
 
           <Card>
             <CardHeader>
-              <CardTitle>My exams</CardTitle>
+              <CardTitle>My Exams</CardTitle>
             </CardHeader>
             <CardContent>
               {detail.exams.length === 0 ? (
@@ -328,7 +328,7 @@ export default async function StudentHome() {
 
           <Card>
             <CardHeader>
-              <CardTitle>My certificates</CardTitle>
+              <CardTitle>My Certificates</CardTitle>
             </CardHeader>
             <CardContent>
               {detail.certificates.length === 0 ? (

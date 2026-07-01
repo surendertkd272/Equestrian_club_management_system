@@ -86,7 +86,7 @@ export default async function RequisitionPOPage({ params }: { params: { id: stri
       {/* Header band — vendor-facing letterhead */}
       <div className="mb-6 flex items-start justify-between border-b-2 border-black pb-4">
         <div>
-          <h1 className="text-2xl font-bold uppercase tracking-wide">Purchase order</h1>
+          <h1 className="text-2xl font-bold uppercase tracking-wide">Purchase Order</h1>
           <div className="mt-1 font-mono text-sm">#{poNumber}</div>
         </div>
         <div className="text-right">

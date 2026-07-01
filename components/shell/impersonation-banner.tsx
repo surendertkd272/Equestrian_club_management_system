@@ -43,7 +43,7 @@ export function ImpersonationBanner({
         disabled={busy}
         className="ml-3 rounded border border-indigo-400 bg-indigo-100 px-2 py-0.5 text-xs font-medium hover:bg-indigo-200 disabled:opacity-60"
       >
-        {busy ? "Stopping…" : "Stop impersonating →"}
+        {busy ? "Stopping…" : "Stop Impersonating →"}
       </button>
     </div>
   );

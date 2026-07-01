@@ -134,7 +134,7 @@ export function GatePanel({
       </div>
 
       <div>
-        <h3 className="mb-2 text-sm font-semibold">Last 24 hours</h3>
+        <h3 className="mb-2 text-sm font-semibold">Last 24 Hours</h3>
         {events.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">No gate events yet today.</p>
         ) : (

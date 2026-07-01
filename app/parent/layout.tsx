@@ -46,7 +46,7 @@ export default async function ParentLayout({ children }: { children: React.React
       <main className="container py-6">
         {enabled ? children : (
           <div className="mx-auto max-w-md rounded-lg border bg-card p-6 text-sm">
-            <h2 className="text-base font-semibold">Parent portal unavailable</h2>
+            <h2 className="text-base font-semibold">Parent Portal Unavailable</h2>
             <p className="mt-1 text-muted-foreground">
               Your club hasn't enabled the parent portal on their plan. Please contact your
               club's manager.

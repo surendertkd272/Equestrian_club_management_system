@@ -80,7 +80,7 @@ export default async function OwnerInsightsPage() {
 
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-base">Cohort retention (last 12 months)</CardTitle>
+          <CardTitle className="text-base">Cohort Retention (Last 12 Months)</CardTitle>
           <CardDescription className="text-muted-foreground">
             Tenants signed up in month X — % still in active/trial/past_due today.
           </CardDescription>
@@ -119,7 +119,7 @@ export default async function OwnerInsightsPage() {
 
       <Card className="border-border bg-card">
         <CardHeader>
-          <CardTitle className="text-base">Module usage · last 30 days</CardTitle>
+          <CardTitle className="text-base">Module Usage · Last 30 Days</CardTitle>
           <CardDescription className="text-muted-foreground">
             Audit-log events grouped by module. "Days active" = distinct calendar days with any
             event in the module; "Users" = distinct users who triggered events.

@@ -68,7 +68,7 @@ export default async function SeparationPage() {
       {history.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Past notices</CardTitle>
+            <CardTitle>Past Notices</CardTitle>
           </CardHeader>
           <CardContent>
             <ol className="space-y-3">

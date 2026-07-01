@@ -186,7 +186,7 @@ function CertsPanel({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Issue certification</CardTitle>
+          <CardTitle className="text-base">Issue Certification</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">Centre managers can issue certifications.</p>
@@ -198,7 +198,7 @@ function CertsPanel({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Issue certification</CardTitle>
+        <CardTitle className="text-base">Issue Certification</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-2 sm:grid-cols-2">

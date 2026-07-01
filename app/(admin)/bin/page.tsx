@@ -52,7 +52,7 @@ export default async function BinPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Recycle bin</h1>
+        <h1 className="text-2xl font-bold">Recycle Bin</h1>
         <p className="text-sm text-muted-foreground">
           Deleted items are kept here for <strong>{BIN_RETENTION_DAYS} days</strong>, then permanently
           removed automatically. Restore anything you still need, or delete it now.
@@ -61,7 +61,7 @@ export default async function BinPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Deleted items</CardTitle>
+          <CardTitle>Deleted Items</CardTitle>
           <CardDescription>
             {rows.length === 0 ? "The bin is empty." : `${rows.length} item${rows.length === 1 ? "" : "s"} across ${new Set(rows.map((r) => r.entity)).size} type(s).`}
           </CardDescription>

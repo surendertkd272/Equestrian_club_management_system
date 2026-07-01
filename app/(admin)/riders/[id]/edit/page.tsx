@@ -68,7 +68,7 @@ export default async function EditRiderPage({ params }: { params: { id: string }
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Edit profile</h1>
+          <h1 className="text-2xl font-bold">Edit Profile</h1>
           <p className="text-sm text-muted-foreground">
             {rider.firstName} {rider.lastName}
           </p>
@@ -83,7 +83,7 @@ export default async function EditRiderPage({ params }: { params: { id: string }
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Profile details</CardTitle>
+          <CardTitle className="text-base">Profile Details</CardTitle>
         </CardHeader>
         <CardContent>
           <EditRiderForm id={rider.id} initial={initial} />

@@ -101,13 +101,13 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
   return (
     <div className="space-y-8">
       <Section title="Personal">
-        <Field label="First name" required>
+        <Field label="First Name" required>
           <Input value={state.firstName} onChange={(e) => update("firstName", e.target.value)} />
         </Field>
-        <Field label="Last name" required>
+        <Field label="Last Name" required>
           <Input value={state.lastName} onChange={(e) => update("lastName", e.target.value)} />
         </Field>
-        <Field label="Date of birth" required>
+        <Field label="Date of Birth" required>
           <Input type="date" value={state.dob} onChange={(e) => update("dob", e.target.value)} />
         </Field>
         <Field label="Gender">
@@ -118,13 +118,13 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
             <option value="other">Other</option>
           </Select>
         </Field>
-        <Field label="Place of birth">
+        <Field label="Place of Birth">
           <Input value={state.placeOfBirth} onChange={(e) => update("placeOfBirth", e.target.value)} />
         </Field>
         <Field label="Nationality">
           <Input value={state.nationality} onChange={(e) => update("nationality", e.target.value)} />
         </Field>
-        <Field label="Marital status">
+        <Field label="Marital Status">
           <Input value={state.maritalStatus} onChange={(e) => update("maritalStatus", e.target.value)} />
         </Field>
         <Field label="Photo URL">
@@ -137,7 +137,7 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
       </Section>
 
       <Section title="ID">
-        <Field label="Aadhaar number">
+        <Field label="Aadhaar Number">
           <Input
             value={state.aadhaarNo}
             onChange={(e) => update("aadhaarNo", e.target.value.replace(/\D/g, ""))}
@@ -145,17 +145,17 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
             maxLength={12}
           />
         </Field>
-        <Field label="Aadhaar document URL">
+        <Field label="Aadhaar Document URL">
           <Input
             value={state.aadhaarDocUrl}
             onChange={(e) => update("aadhaarDocUrl", e.target.value)}
             placeholder="/uploads/<file>"
           />
         </Field>
-        <Field label="State rider ID">
+        <Field label="State Rider ID">
           <Input value={state.stateRiderId} onChange={(e) => update("stateRiderId", e.target.value)} />
         </Field>
-        <Field label="EFI rider ID">
+        <Field label="EFI Rider ID">
           <Input value={state.efiRiderId} onChange={(e) => update("efiRiderId", e.target.value)} />
         </Field>
       </Section>
@@ -171,7 +171,7 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
             onChange={(e) => update("email", e.target.value)}
           />
         </Field>
-        <Field label="Preferred language">
+        <Field label="Preferred Language">
           <Select
             value={state.preferredLanguage}
             onChange={(e) => update("preferredLanguage", e.target.value)}
@@ -201,13 +201,13 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
       </Section>
 
       <Section title="Address">
-        <Field label="Present address" full>
+        <Field label="Present Address" full>
           <Input
             value={state.addressPresent}
             onChange={(e) => update("addressPresent", e.target.value)}
           />
         </Field>
-        <Field label="Permanent address" full>
+        <Field label="Permanent Address" full>
           <Input
             value={state.addressPermanent}
             onChange={(e) => update("addressPermanent", e.target.value)}
@@ -236,10 +236,10 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
         <Field label="Mother's phone">
           <Input value={state.motherPhone} onChange={(e) => update("motherPhone", e.target.value)} />
         </Field>
-        <Field label="Emergency contact name">
+        <Field label="Emergency Contact Name">
           <Input value={state.emergencyName} onChange={(e) => update("emergencyName", e.target.value)} />
         </Field>
-        <Field label="Emergency contact phone">
+        <Field label="Emergency Contact Phone">
           <Input value={state.emergencyPhone} onChange={(e) => update("emergencyPhone", e.target.value)} />
         </Field>
       </Section>
@@ -261,7 +261,7 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
             onChange={(e) => update("weightKg", e.target.value)}
           />
         </Field>
-        <Field label="Current level">
+        <Field label="Current Level">
           <Input value={state.currentLevel} onChange={(e) => update("currentLevel", e.target.value)} />
         </Field>
         <Field label="Allergies" full>
@@ -271,7 +271,7 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
             rows={2}
           />
         </Field>
-        <Field label="Medical notes" full>
+        <Field label="Medical Notes" full>
           <Textarea
             value={state.medicalNotes}
             onChange={(e) => update("medicalNotes", e.target.value)}

@@ -79,7 +79,7 @@ export default async function AdvancesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-bold">Salary advances</h1>
+          <h1 className="text-2xl font-bold">Salary Advances</h1>
           <p className="text-sm text-muted-foreground">
             Track money advanced to staff; deduct from upcoming salary as repaid.
           </p>

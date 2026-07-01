@@ -119,7 +119,7 @@ export default async function ReportCard({
         <div className="flex items-start justify-between border-b-2 border-primary pb-3">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">{rider.centre.name}</div>
-            <h1 className="mt-1 text-2xl font-extrabold">Monthly report card</h1>
+            <h1 className="mt-1 text-2xl font-extrabold">Monthly Report Card</h1>
             <p className="text-xs text-muted-foreground">{rider.centre.address ?? ""}</p>
           </div>
           <div className="text-right">
@@ -140,11 +140,11 @@ export default async function ReportCard({
             <div className="text-muted-foreground">DOB {formatDate(rider.dob)}</div>
           </div>
           <div>
-            <div className="text-[10px] uppercase text-muted-foreground">Current level</div>
+            <div className="text-[10px] uppercase text-muted-foreground">Current Level</div>
             <div className="text-sm font-semibold">{rider.currentLevel ?? "—"}</div>
           </div>
           <div>
-            <div className="text-[10px] uppercase text-muted-foreground">Batch & coach</div>
+            <div className="text-[10px] uppercase text-muted-foreground">Batch & Coach</div>
             <div className="text-sm">{rider.batch?.name ?? "—"}</div>
             <div className="text-muted-foreground">{coach?.name ?? ""}</div>
           </div>
@@ -158,17 +158,17 @@ export default async function ReportCard({
             sub={aTotal > 0 ? `${aPresent + aLate}/${aTotal} sessions` : "no sessions"}
           />
           <Tile
-            label="Skills mastered"
+            label="Skills Mastered"
             value={String(skillStatusesRecent.length)}
             sub="this period"
           />
           <Tile
-            label="Exams this period"
+            label="Exams This Period"
             value={String(exams.length)}
             sub={`${exams.filter((e) => e.passed).length} passed`}
           />
           <Tile
-            label="Paid this period"
+            label="Paid This Period"
             value={`₹${Math.round(paidInPeriod).toLocaleString("en-IN")}`}
             sub={`${dueInvoices.length} outstanding`}
             warn={dueInvoices.length > 0}
@@ -190,7 +190,7 @@ export default async function ReportCard({
         </Section>
 
         {/* Progress detail */}
-        <Section title="2 · Progress milestones this period">
+        <Section title="2 · Progress Milestones this Period">
           {skillStatusesRecent.length === 0 ? (
             <p className="text-xs text-muted-foreground">No new skills mastered in this window.</p>
           ) : (
@@ -214,7 +214,7 @@ export default async function ReportCard({
         </Section>
 
         {/* Exams detail */}
-        <Section title="3 · Exam results">
+        <Section title="3 · Exam Results">
           {exams.length === 0 ? (
             <p className="text-xs text-muted-foreground">No exams completed in this period.</p>
           ) : (
@@ -277,7 +277,7 @@ export default async function ReportCard({
                 ))}
                 <tr className="border-t font-semibold">
                   <td colSpan={2} className="pt-1">
-                    Period total
+                    Period Total
                   </td>
                   <td colSpan={2} className="pt-1">₹{invoicedTotal.toLocaleString("en-IN")} invoiced · ₹
                     {Math.round(paidInPeriod).toLocaleString("en-IN")} paid
@@ -290,12 +290,12 @@ export default async function ReportCard({
 
         {/* Certificates detail */}
         {certificates.length > 0 && (
-          <Section title="5 · Certificates issued">
+          <Section title="5 · Certificates Issued">
             <ul className="space-y-1 text-xs">
               {certificates.map((c) => (
                 <li key={c.id} className="flex items-center justify-between border-b border-dashed pb-1">
                   <span>
-                    <b>{c.type === "promotion" ? "Level promotion" : c.type}</b>
+                    <b>{c.type === "promotion" ? "Level Promotion" : c.type}</b>
                     {c.levelName ? ` · ${c.levelName}` : ""}
                   </span>
                   <span className="font-mono text-[10px] text-muted-foreground">{c.serialNo}</span>
@@ -309,7 +309,7 @@ export default async function ReportCard({
         <div className="mt-8 grid grid-cols-2 gap-6 border-t pt-4 text-[11px]">
           <div>
             <div className="border-t border-foreground pt-1 font-semibold">{coach?.name ?? "Coach"}</div>
-            <div className="text-muted-foreground">Coach signature</div>
+            <div className="text-muted-foreground">Coach Signature</div>
           </div>
           <div className="text-right">
             <div className="border-t border-foreground pt-1 font-semibold">Centre Manager</div>

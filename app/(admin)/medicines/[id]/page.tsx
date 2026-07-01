@@ -117,7 +117,7 @@ export default async function MedicineDetail({ params }: { params: { id: string 
               <dd className="col-span-2 capitalize">{med.category}</dd>
               <dt className="text-muted-foreground">Batch #</dt>
               <dd className="col-span-2 font-mono text-xs">{med.batchNo}</dd>
-              <dt className="text-muted-foreground">Mfg / exp</dt>
+              <dt className="text-muted-foreground">Mfg / Exp</dt>
               <dd className="col-span-2">
                 {med.mfgDate ? formatDate(med.mfgDate) : "—"} → {formatDate(med.expDate)}
                 {!isExpired && <span className="ml-2 text-xs text-muted-foreground">({days}d)</span>}
@@ -152,7 +152,7 @@ export default async function MedicineDetail({ params }: { params: { id: string 
       {canPrescribe && !isExpired && !isOutOfStock && horses.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Prescribe to a horse</CardTitle>
+            <CardTitle>Prescribe to a Horse</CardTitle>
           </CardHeader>
           <CardContent>
             <PrescribeForm medicineId={med.id} horses={horses} maxQty={med.qty} />
@@ -170,7 +170,7 @@ export default async function MedicineDetail({ params }: { params: { id: string 
 
       <Card>
         <CardHeader>
-          <CardTitle>Usage history ({usages.length})</CardTitle>
+          <CardTitle>Usage History ({usages.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {usages.length === 0 ? (
@@ -184,7 +184,7 @@ export default async function MedicineDetail({ params }: { params: { id: string 
                     <th className="pb-2">Horse</th>
                     <th className="pb-2">Dose</th>
                     <th className="pb-2">Route</th>
-                    <th className="pb-2">Withdrawal until</th>
+                    <th className="pb-2">Withdrawal Until</th>
                     <th className="pb-2">By</th>
                   </tr>
                 </thead>

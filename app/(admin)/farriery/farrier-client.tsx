@@ -61,7 +61,7 @@ export function FarrierClient({ horses }: { horses: Horse[] }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Schedule a visit</CardTitle>
+        <CardTitle className="text-base">Schedule a Visit</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 md:grid-cols-3">

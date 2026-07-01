@@ -78,7 +78,7 @@ export default async function GivenTasksPage({
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold">Tasks given &amp; completed</h1>
+        <h1 className="text-2xl font-bold">Tasks Given &amp; Completed</h1>
         <p className="text-sm text-muted-foreground">
           {allScope ? "Every delegated task at this centre" : "Tasks you delegated"} ·{" "}
           {completed.length}/{tasks.length} completed ({completionRate}%).
@@ -86,7 +86,7 @@ export default async function GivenTasksPage({
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <Kpi label="Given (total)" value={tasks.length} />
+        <Kpi label="Given (Total)" value={tasks.length} />
         <Kpi label="Outstanding" value={outstanding.length} tone={outstanding.length > 0 ? "amber" : undefined} />
         <Kpi label="Completed" value={completed.length} tone="green" />
       </div>
@@ -145,7 +145,7 @@ function TaskTable({
         },
         {
           key: "assignee",
-          header: "Assigned to",
+          header: "Assigned To",
           cell: (t) => {
             const assignee = t.assigneeId ? userMap.get(t.assigneeId) : null;
             return assignee ? (

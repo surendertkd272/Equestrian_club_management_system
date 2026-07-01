@@ -36,7 +36,7 @@ export default async function ActivityPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Account activity</h1>
+        <h1 className="text-2xl font-bold">Account Activity</h1>
         <p className="text-sm text-muted-foreground">
           Your last 50 sign-in events. If you see something you don't recognise, sign out everywhere
           and change your password.
@@ -45,7 +45,7 @@ export default async function ActivityPage() {
 
       <Card className="border-amber-300 bg-amber-50">
         <CardHeader>
-          <CardTitle className="text-base">Sign out everywhere</CardTitle>
+          <CardTitle className="text-base">Sign Out Everywhere</CardTitle>
           <CardDescription>
             Invalidates every active session for your account — this browser, your phone, anywhere else.
             You'll be redirected to the login screen.
@@ -58,7 +58,7 @@ export default async function ActivityPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Recent events</CardTitle>
+          <CardTitle className="text-base">Recent Events</CardTitle>
         </CardHeader>
         <CardContent>
           {events.length === 0 ? (

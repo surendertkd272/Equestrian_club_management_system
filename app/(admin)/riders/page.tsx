@@ -95,7 +95,7 @@ export default async function RidersPage({
           action={
             isReadOnly(session.role)
               ? undefined
-              : { href: "/onboarding", label: "Onboard a rider" }
+              : { href: "/onboarding", label: "Onboard a Rider" }
           }
         />
       ) : (

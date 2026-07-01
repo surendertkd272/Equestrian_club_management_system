@@ -80,7 +80,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Schedule an ad-hoc lesson</CardTitle>
+          <CardTitle className="text-base">Schedule an Ad-Hoc Lesson</CardTitle>
         </CardHeader>
         <CardContent>
           <NewLessonForm centreId={centreId} batches={batches} defaultDate={date} />

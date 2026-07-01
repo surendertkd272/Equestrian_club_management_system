@@ -58,8 +58,8 @@ export function PricingForm({ initial }: { initial: Row }) {
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <Field label="Display label" value={form.label} onChange={(v) => set("label", v)} />
-      <Field label="Sort order" type="number" value={String(form.sortOrder)} onChange={(v) => set("sortOrder", Number(v))} />
+      <Field label="Display Label" value={form.label} onChange={(v) => set("label", v)} />
+      <Field label="Sort Order" type="number" value={String(form.sortOrder)} onChange={(v) => set("sortOrder", Number(v))} />
       <div className="md:col-span-2">
         <Field label="Tagline" value={form.tagline} onChange={(v) => set("tagline", v)} />
       </div>
@@ -88,14 +88,14 @@ export function PricingForm({ initial }: { initial: Row }) {
       </div>
 
       <Field
-        label="Razorpay plan id · monthly"
+        label="Razorpay Plan ID · Monthly"
         value={form.razorpayPlanIdMonthly ?? ""}
         onChange={(v) => set("razorpayPlanIdMonthly", v)}
         placeholder="plan_NCxxxxxxxxxxxx"
         mono
       />
       <Field
-        label="Razorpay plan id · annual"
+        label="Razorpay Plan ID · Annual"
         value={form.razorpayPlanIdAnnual ?? ""}
         onChange={(v) => set("razorpayPlanIdAnnual", v)}
         placeholder="plan_NCxxxxxxxxxxxx"
@@ -104,12 +104,12 @@ export function PricingForm({ initial }: { initial: Row }) {
 
       <div className="flex items-center gap-6 md:col-span-2">
         <Toggle
-          label="Highlight as most popular"
+          label="Highlight as Most Popular"
           on={form.highlight}
           onChange={(v) => set("highlight", v)}
         />
         <Toggle
-          label="Visible on public page"
+          label="Visible on Public Page"
           on={form.isVisible}
           onChange={(v) => set("isVisible", v)}
         />

@@ -495,7 +495,7 @@ export function NewUserCard({
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Share these credentials</CardTitle>
+          <CardTitle className="text-base">Share These Credentials</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border border-amber-400 bg-amber-50 p-3 text-sm">
@@ -551,7 +551,7 @@ export function NewUserCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">New user</CardTitle>
+        <CardTitle className="text-base">New User</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 sm:grid-cols-2">

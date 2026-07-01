@@ -90,7 +90,7 @@ export async function FarrierDashboard({ centreId, features }: { centreId: strin
             subtitle={nextVisit ? `Next shoeing · ${formatDateIndia(nextVisit.scheduledAt)}` : "Schedule from the farriery page"}
             icon={<Hammer />}
             stats={[
-              { label: "This week", value: upcoming.length },
+              { label: "This Week", value: upcoming.length },
               { label: "Overdue", value: overdue.length },
               { label: "Done", value: recentlyCompleted.length },
             ]}
@@ -101,12 +101,12 @@ export async function FarrierDashboard({ centreId, features }: { centreId: strin
       >
         <Kpi label="Upcoming (7d)" value={upcoming.length} link={fFarriery ? "/farriery" : undefined} />
         <Kpi label="Overdue" value={overdue.length} tone={overdue.length > 0 ? "amber" : undefined} link={fFarriery ? "/farriery" : undefined} />
-        <Kpi label="Completed (recent)" value={recentlyCompleted.length} />
+        <Kpi label="Completed (Recent)" value={recentlyCompleted.length} />
       </HeroRow>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle>This week's visits</CardTitle></CardHeader>
+          <CardHeader><CardTitle>This Week's Visits</CardTitle></CardHeader>
           <CardContent>
             {upcoming.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nothing booked in the next 7 days.</p>
@@ -126,7 +126,7 @@ export async function FarrierDashboard({ centreId, features }: { centreId: strin
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Overdue — needs scheduling</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Overdue — Needs Scheduling</CardTitle></CardHeader>
           <CardContent>
             {overdue.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nobody's overdue right now. 🐎</p>
@@ -211,7 +211,7 @@ export async function VetDashboard({ centreId, features }: { centreId: string | 
             subtitle={nextVacc ? `${nextVacc.vaccineLabel} · due ${formatDateIndia(nextVacc.nextDueAt)}` : "No vaccinations due in 30 days"}
             icon={<Stethoscope />}
             stats={[
-              { label: "Vacc. due", value: vaccDueSoon.length },
+              { label: "Vacc. Due", value: vaccDueSoon.length },
               { label: "Injuries", value: recentInjuries.length },
               { label: "Meds exp.", value: expiringMeds.length },
             ]}
@@ -220,15 +220,15 @@ export async function VetDashboard({ centreId, features }: { centreId: string | 
           />
         }
       >
-        <Kpi label="Vaccinations due (30d)" value={vaccDueSoon.length} tone={vaccDueSoon.length > 0 ? "amber" : undefined} link={fVet ? "/vaccinations" : undefined} />
-        <Kpi label="Active injuries" value={recentInjuries.length} tone={recentInjuries.length > 0 ? "amber" : undefined} link={fInjuries ? "/injuries" : undefined} />
-        <Kpi label="Medicines expiring (30d)" value={expiringMeds.length} tone={expiringMeds.length > 0 ? "amber" : undefined} link={fVet ? "/medicines" : undefined} />
-        <Kpi label="Low-stock meds" value={lowStockMeds} link={fVet ? "/medicines" : undefined} />
+        <Kpi label="Vaccinations Due (30d)" value={vaccDueSoon.length} tone={vaccDueSoon.length > 0 ? "amber" : undefined} link={fVet ? "/vaccinations" : undefined} />
+        <Kpi label="Active Injuries" value={recentInjuries.length} tone={recentInjuries.length > 0 ? "amber" : undefined} link={fInjuries ? "/injuries" : undefined} />
+        <Kpi label="Medicines Expiring (30d)" value={expiringMeds.length} tone={expiringMeds.length > 0 ? "amber" : undefined} link={fVet ? "/medicines" : undefined} />
+        <Kpi label="Low-Stock Meds" value={lowStockMeds} link={fVet ? "/medicines" : undefined} />
       </HeroRow>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle>Vaccinations due</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Vaccinations Due</CardTitle></CardHeader>
           <CardContent>
             {vaccDueSoon.length === 0 ? (
               <p className="text-sm text-muted-foreground">No vaccinations due in the next 30 days.</p>
@@ -250,7 +250,7 @@ export async function VetDashboard({ centreId, features }: { centreId: string | 
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Open injuries</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Open Injuries</CardTitle></CardHeader>
           <CardContent>
             {recentInjuries.length === 0 ? (
               <p className="text-sm text-muted-foreground">All injuries marked recovered. 🎉</p>
@@ -328,8 +328,8 @@ export async function StableManagerDashboard({ centreId, features }: { centreId:
             subtitle="on the active roster"
             icon={<Boxes />}
             stats={[
-              { label: "Allocs today", value: todayAllocs },
-              { label: "Open tasks", value: openTasks },
+              { label: "Allocs Today", value: todayAllocs },
+              { label: "Open Tasks", value: openTasks },
               { label: "Injuries", value: recentInjuries },
             ]}
             href={fHorses ? "/horses" : undefined}
@@ -337,11 +337,11 @@ export async function StableManagerDashboard({ centreId, features }: { centreId:
           />
         }
       >
-        <Kpi label="Active horses" value={horses} link={fHorses ? "/horses" : undefined} />
-        <Kpi label="Allocations today" value={todayAllocs} />
-        <Kpi label="Open tasks" value={openTasks} link={fTasks ? "/tasks" : undefined} />
-        <Kpi label="Low-stock consumables" value={lowConsumables} tone={lowConsumables > 0 ? "amber" : undefined} link={fConsumables ? "/consumables" : undefined} />
-        <Kpi label="Open injuries" value={recentInjuries} tone={recentInjuries > 0 ? "amber" : undefined} link={fInjuries ? "/injuries" : undefined} />
+        <Kpi label="Active Horses" value={horses} link={fHorses ? "/horses" : undefined} />
+        <Kpi label="Allocations Today" value={todayAllocs} />
+        <Kpi label="Open Tasks" value={openTasks} link={fTasks ? "/tasks" : undefined} />
+        <Kpi label="Low-Stock Consumables" value={lowConsumables} tone={lowConsumables > 0 ? "amber" : undefined} link={fConsumables ? "/consumables" : undefined} />
+        <Kpi label="Open Injuries" value={recentInjuries} tone={recentInjuries > 0 ? "amber" : undefined} link={fInjuries ? "/injuries" : undefined} />
       </HeroRow>
     </div>
   );
@@ -399,7 +399,7 @@ export async function GroomDashboard({ centreId, userId, features }: { centreId:
             }
             icon={<Sparkles />}
             stats={[
-              { label: "My tasks", value: myTasks.length },
+              { label: "My Tasks", value: myTasks.length },
               { label: "Allocations", value: todayAllocs.length },
               { label: "Horses", value: horses },
             ]}
@@ -408,14 +408,14 @@ export async function GroomDashboard({ centreId, userId, features }: { centreId:
           />
         }
       >
-        <Kpi label="My open tasks" value={myTasks.length} link={fTasks ? "/tasks" : undefined} />
-        <Kpi label="Allocations today" value={todayAllocs.length} />
-        <Kpi label="Horses on roster" value={horses} link={fHorses ? "/horses" : undefined} />
+        <Kpi label="My Open Tasks" value={myTasks.length} link={fTasks ? "/tasks" : undefined} />
+        <Kpi label="Allocations Today" value={todayAllocs.length} />
+        <Kpi label="Horses on Roster" value={horses} link={fHorses ? "/horses" : undefined} />
       </HeroRow>
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle>Today's allocations</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Today's Allocations</CardTitle></CardHeader>
           <CardContent>
             {todayAllocs.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nothing scheduled today.</p>
@@ -439,7 +439,7 @@ export async function GroomDashboard({ centreId, userId, features }: { centreId:
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>My tasks</CardTitle></CardHeader>
+          <CardHeader><CardTitle>My Tasks</CardTitle></CardHeader>
           <CardContent>
             {myTasks.length === 0 ? (
               <p className="text-sm text-muted-foreground">No tasks assigned to you.</p>
@@ -519,13 +519,13 @@ export async function ExaminerDashboard({ centreId, userId, features }: { centre
           />
         }
       >
-        <Kpi label="Upcoming exams" value={upcoming.length} link={fExams ? "/exams" : undefined} />
-        <Kpi label="Completed (recent)" value={completedRecent.length} />
-        <Kpi label="Certs signed (30d)" value={certsIssued} link={fCerts ? "/certificates" : undefined} />
+        <Kpi label="Upcoming Exams" value={upcoming.length} link={fExams ? "/exams" : undefined} />
+        <Kpi label="Completed (Recent)" value={completedRecent.length} />
+        <Kpi label="Certs Signed (30d)" value={certsIssued} link={fCerts ? "/certificates" : undefined} />
       </HeroRow>
 
       <Card>
-        <CardHeader><CardTitle>My upcoming exams</CardTitle></CardHeader>
+        <CardHeader><CardTitle>My Upcoming Exams</CardTitle></CardHeader>
         <CardContent>
           {upcoming.length === 0 ? (
             <p className="text-sm text-muted-foreground">No exams scheduled.{fExams ? <> Add one from <Link href="/exams" className="underline">/exams</Link>.</> : null}</p>
@@ -589,17 +589,17 @@ export async function AccountantDashboard({ centreId }: { centreId: string | nul
             stats={[
               { label: "Open inv.", value: openInvoices },
               { label: "Overdue", value: overdue },
-              { label: "All-time ₹", value: allTime.toLocaleString("en-IN") },
+              { label: "All-Time ₹", value: allTime.toLocaleString("en-IN") },
             ]}
             href="/finance"
             cta="Open finance"
           />
         }
       >
-        <Kpi label="Open invoices" value={openInvoices} link="/finance" />
+        <Kpi label="Open Invoices" value={openInvoices} link="/finance" />
         <Kpi label="Overdue" value={overdue} tone={overdue > 0 ? "rose" : undefined} link="/finance" />
-        <Kpi label="Paid this month (₹)" value={paidMTD} tone="green" />
-        <Kpi label="All-time collected (₹)" value={allTime} />
+        <Kpi label="Paid This Month (₹)" value={paidMTD} tone="green" />
+        <Kpi label="All-Time Collected (₹)" value={allTime} />
       </HeroRow>
     </div>
   );
@@ -673,17 +673,17 @@ export async function HeadCoachDashboard({ centreId, features }: { centreId: str
           />
         }
       >
-        <Kpi label="Active riders" value={totalRiders} link="/riders" />
+        <Kpi label="Active Riders" value={totalRiders} link="/riders" />
         <Kpi
-          label="Batches without attendance (today)"
+          label="Batches Without Attendance (Today)"
           value={unmarked.length}
           tone={unmarked.length > 0 ? "amber" : "green"}
           link={fAttendance ? "/attendance" : undefined}
         />
-        <Kpi label="Upcoming exams (7d)" value={upcomingExams} link={fExams ? "/exams" : undefined} />
-        <Kpi label="Score drafts to finalise" value={draftExams.length} tone={draftExams.length > 0 ? "amber" : undefined} link={fExams ? "/exams" : undefined} />
+        <Kpi label="Upcoming Exams (7d)" value={upcomingExams} link={fExams ? "/exams" : undefined} />
+        <Kpi label="Score Drafts to Finalise" value={draftExams.length} tone={draftExams.length > 0 ? "amber" : undefined} link={fExams ? "/exams" : undefined} />
         <Kpi
-          label="Coach updates filed (today)"
+          label="Coach Updates Filed (Today)"
           value={`${updatesToday}/${coachCount}`}
           tone={coachCount > 0 && updatesToday < coachCount ? "amber" : "green"}
           link="/daily-update/team"
@@ -693,7 +693,7 @@ export async function HeadCoachDashboard({ centreId, features }: { centreId: str
       {fAttendance && unmarked.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Batches still unmarked today</CardTitle>
+            <CardTitle className="text-base">Batches Still Unmarked Today</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-1 text-sm">
@@ -767,7 +767,7 @@ export async function CoachDashboard({ centreId, userId, features }: { centreId:
             icon={<ClipboardCheck />}
             progress={{ value: markedCount, max: Math.max(1, myBatches.length), label: `${markedCount}/${myBatches.length} marked today` }}
             stats={[
-              { label: "My tasks", value: myOpenTasks },
+              { label: "My Tasks", value: myOpenTasks },
               { label: "Checklist", value: checklistsToday > 0 ? "✓" : "—" },
               { label: "Riders", value: totalRiders },
             ]}
@@ -776,16 +776,16 @@ export async function CoachDashboard({ centreId, userId, features }: { centreId:
           />
         }
       >
-        <Kpi label="My batches" value={myBatches.length} link="/batches" />
+        <Kpi label="My Batches" value={myBatches.length} link="/batches" />
         <Kpi
-          label="My batches unmarked (today)"
+          label="My Batches Unmarked (Today)"
           value={unmarked.length}
           tone={unmarked.length > 0 ? "amber" : "green"}
           link={fAttendance ? "/attendance" : undefined}
         />
-        <Kpi label="My open tasks" value={myOpenTasks} tone={myOpenTasks > 0 ? "amber" : undefined} link={fTasks ? "/tasks?mine=1" : undefined} />
+        <Kpi label="My Open Tasks" value={myOpenTasks} tone={myOpenTasks > 0 ? "amber" : undefined} link={fTasks ? "/tasks?mine=1" : undefined} />
         <Kpi
-          label="Daily checklist filed today"
+          label="Daily Checklist Filed Today"
           value={checklistsToday > 0 ? "Yes" : "No"}
           tone={checklistsToday > 0 ? "green" : "amber"}
           link="/checklists"
@@ -796,7 +796,7 @@ export async function CoachDashboard({ centreId, userId, features }: { centreId:
         {fAttendance && unmarked.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">My batches still unmarked today</CardTitle>
+              <CardTitle className="text-base">My Batches Still Unmarked Today</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-1 text-sm">
@@ -816,7 +816,7 @@ export async function CoachDashboard({ centreId, userId, features }: { centreId:
         )}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Today's coach actions</CardTitle>
+            <CardTitle className="text-base">Today's Coach Actions</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-1.5 text-sm">

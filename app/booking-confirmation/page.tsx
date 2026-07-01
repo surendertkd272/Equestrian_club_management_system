@@ -57,7 +57,7 @@ export default function BookingConfirmationPage({
     <main className="flex min-h-screen items-center justify-center bg-secondary p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Booking confirmed</CardTitle>
+          <CardTitle>Booking Confirmed</CardTitle>
           <CardDescription>
             Your facility booking with {centre ?? "the club"} is confirmed. Show this page on
             arrival.

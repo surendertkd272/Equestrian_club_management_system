@@ -57,7 +57,7 @@ export default async function TrainingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Staff training & certifications</h1>
+        <h1 className="text-2xl font-bold">Staff Training & Certifications</h1>
         <p className="text-sm text-muted-foreground">
           Internal courses your club runs, plus external certifications staff bring in
           (BHS, EFI, vet-tech, first-aid). Expiry-tracked so you don't get caught with
@@ -66,9 +66,9 @@ export default async function TrainingPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kpi label="Active courses" value={courses.filter((c) => c.active).length} />
+        <Kpi label="Active Courses" value={courses.filter((c) => c.active).length} />
         <Kpi
-          label="Certs issued"
+          label="Certs Issued"
           value={certs.length}
         />
         <Kpi
@@ -143,7 +143,7 @@ export default async function TrainingPage() {
               },
               {
                 key: "validUntil",
-                header: "Valid until",
+                header: "Valid Until",
                 cell: (c) => {
                   const expired = c.validUntil && c.validUntil < todayStart;
                   const expSoon = c.validUntil && !expired && c.validUntil <= expiringCutoff;

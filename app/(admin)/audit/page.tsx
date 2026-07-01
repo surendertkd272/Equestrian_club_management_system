@@ -59,7 +59,7 @@ export default async function AuditPage({
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Audit log</h1>
+          <h1 className="text-2xl font-bold">Audit Log</h1>
           <p className="text-sm text-muted-foreground">{total} total entries.</p>
         </div>
         <ExportCsvButton entity="audit" />
@@ -73,7 +73,7 @@ export default async function AuditPage({
               defaultValue={searchParams.action ?? ""}
               className="h-9 rounded-md border bg-background px-2 text-sm"
             >
-              <option value="">All actions</option>
+              <option value="">All Actions</option>
               {actionPrefixes.map((a) => (
                 <option key={a} value={a}>{a}</option>
               ))}
@@ -83,7 +83,7 @@ export default async function AuditPage({
               defaultValue={searchParams.table ?? ""}
               className="h-9 rounded-md border bg-background px-2 text-sm"
             >
-              <option value="">All tables</option>
+              <option value="">All Tables</option>
               {distinctTables.map((t) => (
                 <option key={t.tableName} value={t.tableName}>{t.tableName} ({t._count})</option>
               ))}

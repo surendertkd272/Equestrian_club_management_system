@@ -35,7 +35,7 @@ export function BatchDeleteButton({
       title: `Delete "${name}"?`,
       body: "This removes the batch and its attendance history permanently.",
       destructive: true,
-      confirmLabel: "Delete batch",
+      confirmLabel: "Delete Batch",
     });
     if (!ok) return;
     setBusy(true);

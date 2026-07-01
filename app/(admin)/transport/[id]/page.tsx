@@ -56,7 +56,7 @@ export default async function TripDetailPage({ params }: { params: { id: string 
 
       <Card>
         <CardHeader>
-          <CardTitle>Transport manifest</CardTitle>
+          <CardTitle>Transport Manifest</CardTitle>
           <CardDescription>
             Add every horse and piece of kit, tick it OUT as you load, and IN on return. Mark
             anything not "ok" to flag a loss or damage.

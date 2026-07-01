@@ -50,7 +50,7 @@ export default async function TeamsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Teams & squads</h1>
+        <h1 className="text-2xl font-bold">Teams & Squads</h1>
         <p className="text-sm text-muted-foreground">
           Named rider groups your club fields together — junior squad, senior show-jumping
           team, gymkhana side.
@@ -60,7 +60,7 @@ export default async function TeamsPage() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Kpi label="Teams" value={teams.length} />
         <Kpi label="Active" value={teams.filter((t) => t.active).length} />
-        <Kpi label="Riders rostered" value={allMemberRiderIds.length} />
+        <Kpi label="Riders Rostered" value={allMemberRiderIds.length} />
       </div>
 
       <TeamsClient canManage={canManage} riders={riders} />

@@ -78,7 +78,7 @@ export function NewCentreCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>New club</CardTitle>
+        <CardTitle>New Club</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 sm:grid-cols-2">

@@ -79,7 +79,7 @@ function FeePlansCard({ feePlans, busy, call }: { feePlans: FeePlan[]; busy: boo
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Fee plans</CardTitle>
+        <CardTitle>Fee Plans</CardTitle>
         <CardDescription>Monthly + registration pricing per level for this club.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -119,10 +119,10 @@ function FeePlansCard({ feePlans, busy, call }: { feePlans: FeePlan[]; busy: boo
           </table>
         </div>
         <div className="flex flex-wrap items-end gap-2 rounded-md border bg-muted/30 p-3">
-          <div><label className="text-[10px] uppercase text-muted-foreground">Level name</label><Input className="h-9 w-40" value={draft.levelName} onChange={(e) => setDraft((d) => ({ ...d, levelName: e.target.value }))} placeholder="Beginner" /></div>
+          <div><label className="text-[10px] uppercase text-muted-foreground">Level Name</label><Input className="h-9 w-40" value={draft.levelName} onChange={(e) => setDraft((d) => ({ ...d, levelName: e.target.value }))} placeholder="Beginner" /></div>
           <div><label className="text-[10px] uppercase text-muted-foreground">Monthly ₹</label><Input className="h-9 w-28" type="number" value={draft.monthlyAmount} onChange={(e) => setDraft((d) => ({ ...d, monthlyAmount: e.target.value }))} /></div>
           <div><label className="text-[10px] uppercase text-muted-foreground">Registration ₹</label><Input className="h-9 w-28" type="number" value={draft.registrationAmount} onChange={(e) => setDraft((d) => ({ ...d, registrationAmount: e.target.value }))} /></div>
-          <Button onClick={add} disabled={busy}>Add fee plan</Button>
+          <Button onClick={add} disabled={busy}>Add Fee Plan</Button>
         </div>
       </CardContent>
     </Card>
@@ -144,7 +144,7 @@ function LevelsCard({ levels, busy, call }: { levels: Level[]; busy: boolean; ca
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Progress levels</CardTitle>
+        <CardTitle>Progress Levels</CardTitle>
         <CardDescription>The ladder riders climb (Beginner → Advanced). Order controls display + promotion sequence.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -158,9 +158,9 @@ function LevelsCard({ levels, busy, call }: { levels: Level[]; busy: boolean; ca
           {levels.length === 0 && <li className="px-3 py-4 text-center text-muted-foreground">No levels yet.</li>}
         </ul>
         <div className="flex flex-wrap items-end gap-2 rounded-md border bg-muted/30 p-3">
-          <div><label className="text-[10px] uppercase text-muted-foreground">Level name</label><Input className="h-9 w-40" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Intermediate" /></div>
+          <div><label className="text-[10px] uppercase text-muted-foreground">Level Name</label><Input className="h-9 w-40" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Intermediate" /></div>
           <div><label className="text-[10px] uppercase text-muted-foreground">Order</label><Input className="h-9 w-20" type="number" value={draft.order} onChange={(e) => setDraft((d) => ({ ...d, order: e.target.value }))} placeholder={String(levels.length + 1)} /></div>
-          <Button onClick={add} disabled={busy}>Add level</Button>
+          <Button onClick={add} disabled={busy}>Add Level</Button>
         </div>
       </CardContent>
     </Card>
@@ -239,7 +239,7 @@ function SkillsCard({ levels, busy, call }: { levels: Level[]; busy: boolean; ca
               </datalist>
             </div>
             <div className="flex-1 min-w-[160px]"><label className="text-[10px] uppercase text-muted-foreground">Component</label><Input className="h-9" value={draft.name} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} placeholder="Posting trot" /></div>
-            <Button onClick={add} disabled={busy}>Add component</Button>
+            <Button onClick={add} disabled={busy}>Add Component</Button>
           </div>
         )}
       </CardContent>

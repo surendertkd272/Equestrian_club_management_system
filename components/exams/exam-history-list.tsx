@@ -116,7 +116,7 @@ function ExamScoreBreakdown({
   return (
     <div className="space-y-3">
       <p className="text-[10px] text-muted-foreground">
-        Pass mark: <span className="font-mono">{passThreshold}%</span>
+        Pass Mark: <span className="font-mono">{passThreshold}%</span>
       </p>
       <div className="grid gap-3 md:grid-cols-2">
         {rubric.map((cat) => {

@@ -51,7 +51,7 @@ export function TeamsClient({ canManage, riders }: { canManage: boolean; riders:
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">New team</CardTitle>
+        <CardTitle className="text-base">New Team</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-2 sm:grid-cols-4">

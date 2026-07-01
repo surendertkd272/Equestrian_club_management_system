@@ -43,7 +43,7 @@ export default async function NewSittingPage() {
     <div className="mx-auto max-w-2xl space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Schedule exams</CardTitle>
+          <CardTitle>Schedule Exams</CardTitle>
           <CardDescription>
             One date + level. Pick the riders and the examiner pool — we&apos;ll create a
             scheduled exam per rider, unassigned. On the day, any examiner in the pool picks a

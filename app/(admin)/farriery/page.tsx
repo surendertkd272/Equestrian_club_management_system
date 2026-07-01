@@ -63,8 +63,8 @@ export default async function FarrieryPage() {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Kpi label="Scheduled" value={scheduled.length} />
         <Kpi label="Overdue" value={overdue.length} tone={overdue.length > 0 ? "amber" : undefined} />
-        <Kpi label="Completed (all-time)" value={completed.length} />
-        <Kpi label="Horses tracked" value={horses.length} />
+        <Kpi label="Completed (All-Time)" value={completed.length} />
+        <Kpi label="Horses Tracked" value={horses.length} />
       </div>
 
       <FarrierClient horses={horses} />
@@ -114,7 +114,7 @@ export default async function FarrieryPage() {
               },
               {
                 key: "nextDue",
-                header: "Next due",
+                header: "Next Due",
                 cell: (v) => {
                   const isOverdue =
                     v.status === "completed" && v.nextDueAt && v.nextDueAt < todayStart;

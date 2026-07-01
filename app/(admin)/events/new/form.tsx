@@ -11,14 +11,14 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 const TYPES = [
-  { value: "clinic", label: "Clinic (guest coach)" },
-  { value: "schooling", label: "Schooling day" },
-  { value: "demo", label: "Demo / exhibition" },
-  { value: "parent_day", label: "Parent day" },
+  { value: "clinic", label: "Clinic (Guest Coach)" },
+  { value: "schooling", label: "Schooling Day" },
+  { value: "demo", label: "Demo / Exhibition" },
+  { value: "parent_day", label: "Parent Day" },
   { value: "fundraiser", label: "Fundraiser" },
-  { value: "external_show", label: "External show (off-site)" },
+  { value: "external_show", label: "External Show (Off-Site)" },
   { value: "camp", label: "Camp" },
-  { value: "open_house", label: "Open house" },
+  { value: "open_house", label: "Open House" },
   { value: "other", label: "Other" },
 ];
 

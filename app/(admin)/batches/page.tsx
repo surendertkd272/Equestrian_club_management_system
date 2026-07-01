@@ -68,7 +68,7 @@ export default async function BatchesPage() {
         <div className={canManage ? "lg:col-span-2" : "lg:col-span-3"}>
           <Card>
             <CardHeader>
-              <CardTitle>All batches</CardTitle>
+              <CardTitle>All Batches</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveTable
@@ -88,7 +88,7 @@ export default async function BatchesPage() {
                     cell: (b) => (
                       <div className="flex items-center justify-end gap-2">
                         <Link className="text-xs text-primary underline" href={`/attendance?batch=${b.id}`}>
-                          Mark attendance →
+                          Mark Attendance →
                         </Link>
                         {canManage && (
                           <BatchDeleteButton id={b.id} name={b.name} riderCount={b._count.riders} />
@@ -106,7 +106,7 @@ export default async function BatchesPage() {
           <div>
             <Card>
               <CardHeader>
-                <CardTitle>New batch</CardTitle>
+                <CardTitle>New Batch</CardTitle>
               </CardHeader>
               <CardContent>
                 <NewBatchForm coaches={coaches} disabled={!canCreate} centreId={centreId} />

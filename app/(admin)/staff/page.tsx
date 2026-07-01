@@ -79,7 +79,7 @@ export default async function StaffPage({
 
       <Card>
         <CardHeader>
-          <CardTitle>All staff</CardTitle>
+          <CardTitle>All Staff</CardTitle>
           <form className="mt-2 flex gap-2">
             <input
               type="search"

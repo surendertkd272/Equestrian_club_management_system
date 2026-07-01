@@ -174,7 +174,7 @@ export function OnboardingForm({
       </p>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Personal details</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">Personal Details</CardTitle></CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1"><Label>Full name *</Label><Input aria-label="Full name" value={f.fullName} onChange={(e) => set("fullName", e.target.value)} required /></div>
           <div className="space-y-1"><Label>Father&apos;s name</Label><Input aria-label="Father&apos;s name" value={f.fatherName} onChange={(e) => set("fatherName", e.target.value)} /></div>
@@ -191,17 +191,17 @@ export function OnboardingForm({
             </Select>
           </div>
           <div className="space-y-1 sm:col-span-2"><Label>Permanent address</Label><Textarea aria-label="Permanent address" rows={2} value={f.permanentAddress} onChange={(e) => set("permanentAddress", e.target.value)} /></div>
-          <Upload field="photoUrl" label="Passport photo" />
+          <Upload field="photoUrl" label="Passport Photo" />
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Identity &amp; bank</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">Identity &amp; Bank</CardTitle></CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1"><Label>Aadhaar number</Label><Input aria-label="Aadhaar number" value={f.aadhaarNumber} onChange={(e) => set("aadhaarNumber", e.target.value)} /></div>
-          <Upload field="aadhaarUrl" label="Aadhaar card" />
+          <Upload field="aadhaarUrl" label="Aadhaar Card" />
           <div className="space-y-1"><Label>PAN number</Label><Input aria-label="PAN number" value={f.panNumber} onChange={(e) => set("panNumber", e.target.value.toUpperCase())} /></div>
-          <Upload field="panUrl" label="PAN card" />
+          <Upload field="panUrl" label="PAN Card" />
           <div className="space-y-1"><Label>Bank name</Label><Input aria-label="Bank name" value={f.bankName} onChange={(e) => set("bankName", e.target.value)} /></div>
           <div className="space-y-1"><Label>Account holder name</Label><Input aria-label="Account holder name" value={f.bankAccountName} onChange={(e) => set("bankAccountName", e.target.value)} /></div>
           <div className="space-y-1"><Label>Account number</Label><Input aria-label="Account number" value={f.bankAccountNumber} onChange={(e) => set("bankAccountNumber", e.target.value)} /></div>
@@ -230,10 +230,10 @@ export function OnboardingForm({
             I agree to register for PF / ESIC
           </label>
           <div className="space-y-1 sm:col-span-2"><Label>Previous employment details</Label><Textarea aria-label="Previous employment details" rows={2} value={f.prevEmployment} onChange={(e) => set("prevEmployment", e.target.value)} placeholder="Employer, role, duration…" /></div>
-          <Upload field="prevEmploymentUrl" label="Previous employment certificate (self-attested)" />
-          <Upload field="characterCertUrl" label="Character certificate (last organisation)" />
+          <Upload field="prevEmploymentUrl" label="Previous Employment Certificate (Self-Attested)" />
+          <Upload field="characterCertUrl" label="Character Certificate (Last Organisation)" />
           <div className="space-y-1 sm:col-span-2"><Label>Police verification details</Label><Input aria-label="Police verification details" value={f.policeVerificationDetails} onChange={(e) => set("policeVerificationDetails", e.target.value)} /></div>
-          <Upload field="policeVerificationUrl" label="Police verification certificate" />
+          <Upload field="policeVerificationUrl" label="Police Verification Certificate" />
           <div className="space-y-1 sm:col-span-2"><Label>Two references (name &amp; contact)</Label><Textarea aria-label="Two references (name &amp; contact)" rows={2} value={f.references} onChange={(e) => set("references", e.target.value)} /></div>
         </CardContent>
       </Card>
@@ -250,7 +250,7 @@ export function OnboardingForm({
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Self-declaration</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">Self-Declaration</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <pre className="whitespace-pre-wrap rounded-md border bg-muted/30 p-3 text-xs leading-relaxed text-foreground">{declaration}</pre>
           <label className="flex items-start gap-2 text-sm">

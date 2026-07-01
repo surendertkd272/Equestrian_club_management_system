@@ -56,7 +56,7 @@ export function TopBar({
               {session.role === "SUPER_ADMIN" || session.role === "ADMIN"
                 ? hqCentreFilter
                   ? (allCentres.find((c) => c.id === hqCentreFilter)?.name ?? "Centre")
-                  : "All centres"
+                  : "All Centres"
                 : centre?.name ?? "—"}
             </div>
             <div className="truncate text-xs text-muted-foreground">{session.role.replaceAll("_", " ")}</div>
@@ -91,7 +91,7 @@ export function TopBar({
           </Link>
           <Button variant="outline" size="sm" onClick={logout} aria-label="Sign out">
             <LogOut className="h-4 w-4" />
-            <span className="hidden md:inline">Sign out</span>
+            <span className="hidden md:inline">Sign Out</span>
           </Button>
         </div>
       </header>

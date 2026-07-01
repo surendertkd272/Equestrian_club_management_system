@@ -31,7 +31,7 @@ export function DispatchPanel() {
   return (
     <div className="space-y-2">
       <Button onClick={trigger} disabled={busy}>
-        {busy ? "Dispatching…" : "Send last month's report cards now"}
+        {busy ? "Dispatching…" : "Send Last Month's Report Cards Now"}
       </Button>
       {result && (
         <p className="text-xs text-muted-foreground">

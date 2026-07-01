@@ -124,19 +124,19 @@ export function NewMedicineForm({
           <Input aria-label="Supplier" value={form.supplier} onChange={(e) => set("supplier", e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label>Mfg date</Label>
+          <Label>Mfg Date</Label>
           <Input aria-label="Mfg date" type="date" value={form.mfgDate} onChange={(e) => set("mfgDate", e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label>Expiry date *</Label>
+          <Label>Expiry Date *</Label>
           <Input aria-label="Expiry date" required type="date" value={form.expDate} onChange={(e) => set("expDate", e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label>Qty in stock *</Label>
+          <Label>Qty in Stock *</Label>
           <Input aria-label="Qty in stock" required type="number" min={0} value={form.qty} onChange={(e) => set("qty", e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label>Reorder threshold *</Label>
+          <Label>Reorder Threshold *</Label>
           <Input aria-label="Reorder threshold"
             required
             type="number"
@@ -146,7 +146,7 @@ export function NewMedicineForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label>Storage location</Label>
+          <Label>Storage Location</Label>
           <Input aria-label="Storage location"
             value={form.storageLocation}
             onChange={(e) => set("storageLocation", e.target.value)}
@@ -163,7 +163,7 @@ export function NewMedicineForm({
         </label>
       </div>
       <Button type="submit" disabled={saving} className="w-full">
-        {saving ? "Adding…" : "Add medicine"}
+        {saving ? "Adding…" : "Add Medicine"}
       </Button>
     </form>
   );

@@ -14,7 +14,7 @@ export default async function NewEventPage() {
     <div className="mx-auto max-w-2xl">
       <Card>
         <CardHeader>
-          <CardTitle>New event</CardTitle>
+          <CardTitle>New Event</CardTitle>
           <CardDescription>
             Set up a clinic, schooling day, parent day, fundraiser, or off-site external show.
           </CardDescription>

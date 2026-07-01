@@ -47,7 +47,7 @@ export default async function HqExpensesPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Record HQ invoice</CardTitle>
+          <CardTitle>Record HQ Invoice</CardTitle>
           <CardDescription>
             Payments made at the headquarters level — umbrella insurance, software, bulk orders, etc.
             Tag specific clubs if this expense should be allocated to them in rollup reports.
@@ -60,7 +60,7 @@ export default async function HqExpensesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent HQ expenses</CardTitle>
+          <CardTitle>Recent HQ Expenses</CardTitle>
         </CardHeader>
         <CardContent>
           <ResponsiveTable
@@ -85,7 +85,7 @@ export default async function HqExpensesPage() {
               { key: "vendor", header: "Vendor", cell: (e) => <span className="text-xs">{e.vendorName ?? "—"}</span> },
               {
                 key: "tagged",
-                header: "Tagged clubs",
+                header: "Tagged Clubs",
                 cell: (e) => {
                   const tagged = e.taggedCentreIdsCsv?.split(",").filter(Boolean) ?? [];
                   return tagged.length === 0 ? (

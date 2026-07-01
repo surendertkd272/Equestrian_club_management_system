@@ -44,7 +44,7 @@ export default async function EditEventPage({ params }: { params: { id: string }
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Edit event</h1>
+        <h1 className="text-2xl font-bold">Edit Event</h1>
         <Link href={`/events/${ev.id}`} className="text-sm text-primary hover:underline">← Back</Link>
       </div>
       <Card>

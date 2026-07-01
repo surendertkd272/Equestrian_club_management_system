@@ -44,7 +44,7 @@ export function NewTripForm() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Plan a trip</CardTitle>
+        <CardTitle className="text-base">Plan a Trip</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 md:grid-cols-4">

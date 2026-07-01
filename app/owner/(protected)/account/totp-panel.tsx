@@ -108,7 +108,7 @@ export function OwnerTotpPanel({ enabled }: { enabled: boolean }) {
   return (
     <Card className="border-border bg-card">
       <CardHeader>
-        <CardTitle className="text-base">Two-factor authentication</CardTitle>
+        <CardTitle className="text-base">Two-Factor Authentication</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 text-sm text-foreground">
         {stage === "show_recovery" && recoveryCodes.length > 0 ? (

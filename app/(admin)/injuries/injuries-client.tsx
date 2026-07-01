@@ -76,7 +76,7 @@ export function InjuriesClient({ horses, riders }: { horses: Horse[]; riders: Ri
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Log a new injury</CardTitle>
+        <CardTitle className="text-base">Log a New Injury</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="grid gap-3 md:grid-cols-3">
@@ -166,7 +166,7 @@ export function InjuryRowActions({ id, status }: { id: string; status: string })
         onClick={async () => {
           const t = await openPrompt({
             title: "Add treatment",
-            label: "Treatment / care notes",
+            label: "Treatment / Care Notes",
             multiline: true,
             required: true,
             confirmLabel: "Add",

@@ -111,7 +111,7 @@ export default async function HQDashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">HQ comparative dashboard</h1>
+        <h1 className="text-2xl font-bold">HQ Comparative Dashboard</h1>
         <p className="text-sm text-muted-foreground">
           Side-by-side metrics across every centre. Attendance and pass rate use trailing 30 /
           90-day windows.
@@ -132,7 +132,7 @@ export default async function HQDashboardPage() {
           ]}
         />
         <ChartCard
-          label="Riders by centre"
+          label="Riders by Centre"
           value={totals.riders}
           sub={`${totals.centres} centre${totals.centres === 1 ? "" : "s"}`}
           icon={<Users className="h-5 w-5" />}
@@ -152,7 +152,7 @@ export default async function HQDashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kpi label="Unpaid invoices" value={totals.unpaid} tone={totals.unpaid > 0 ? "amber" : undefined} />
+        <Kpi label="Unpaid Invoices" value={totals.unpaid} tone={totals.unpaid > 0 ? "amber" : undefined} />
         <Kpi label="Certs (90d)" value={totals.certs90} />
       </div>
 

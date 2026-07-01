@@ -102,7 +102,7 @@ export function NpsWidget() {
               />
               <div className="mt-2 flex justify-end gap-2">
                 <button type="button" onClick={dismiss} className="rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground">
-                  Maybe later
+                  Maybe Later
                 </button>
                 <button
                   type="button"

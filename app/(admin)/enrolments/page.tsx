@@ -47,7 +47,7 @@ export default async function EnrolmentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Self-enrolment approvals</h1>
+        <h1 className="text-2xl font-bold">Self-Enrolment Approvals</h1>
         <p className="text-sm text-muted-foreground">
           Riders who signed up through the public link. Approve to start their registration
           (raises the ₹ registration invoice) or reject. Staff-created riders skip this queue.
@@ -56,7 +56,7 @@ export default async function EnrolmentsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Pending approval</CardTitle>
+          <CardTitle>Pending Approval</CardTitle>
           <CardDescription>{pending.length} waiting</CardDescription>
         </CardHeader>
         <CardContent>
@@ -90,7 +90,7 @@ export default async function EnrolmentsPage() {
               ...(!centreId
                 ? [{ key: "centre", header: "Centre", cell: (r: (typeof pending)[number]) => <span className="text-xs">{r.centre.name}</span> }]
                 : []),
-              { key: "signedUp", header: "Signed up", cell: (r) => <span className="text-xs">{formatDate(r.createdAt)}</span> },
+              { key: "signedUp", header: "Signed Up", cell: (r) => <span className="text-xs">{formatDate(r.createdAt)}</span> },
               {
                 key: "action",
                 header: "Action",
@@ -105,7 +105,7 @@ export default async function EnrolmentsPage() {
       {recent.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Recently processed</CardTitle>
+            <CardTitle className="text-base">Recently Processed</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="divide-y text-sm">

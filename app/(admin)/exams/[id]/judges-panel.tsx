@@ -102,7 +102,7 @@ export function JudgesPanel({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Jury panel</CardTitle>
+        <CardTitle className="text-base">Jury Panel</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         <ul className="space-y-1 text-sm">

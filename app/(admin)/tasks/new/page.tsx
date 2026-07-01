@@ -54,7 +54,7 @@ export default async function NewTaskPage() {
     <div className="mx-auto max-w-xl">
       <Card>
         <CardHeader>
-          <CardTitle>New task</CardTitle>
+          <CardTitle>New Task</CardTitle>
           <CardDescription>
             Assign operational work — stable cleaning, feeding, farrier, vet follow-up. Overdue tasks turn amber, and
             anything more than 24h overdue is auto-flagged "escalated".

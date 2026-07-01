@@ -43,7 +43,7 @@ export default async function ConsumablesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">First-aid consumables</h1>
+        <h1 className="text-2xl font-bold">First-Aid Consumables</h1>
         <p className="text-sm text-muted-foreground">
           Non-drug supplies — gauze, vet wrap, gloves, scissors. Separate from the medicine
           cabinet so you can re-order quickly without sifting through scheduled drugs.
@@ -51,10 +51,10 @@ export default async function ConsumablesPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kpi label="Line items" value={rows.length} />
-        <Kpi label="Total units" value={totalUnits} />
-        <Kpi label="Low stock" value={low.length} tone={low.length > 0 ? "amber" : undefined} />
-        <Kpi label="Out of stock" value={rows.filter((r) => r.qty === 0).length} tone={rows.filter((r) => r.qty === 0).length > 0 ? "rose" : undefined} />
+        <Kpi label="Line Items" value={rows.length} />
+        <Kpi label="Total Units" value={totalUnits} />
+        <Kpi label="Low Stock" value={low.length} tone={low.length > 0 ? "amber" : undefined} />
+        <Kpi label="Out of Stock" value={rows.filter((r) => r.qty === 0).length} tone={rows.filter((r) => r.qty === 0).length > 0 ? "rose" : undefined} />
       </div>
 
       <ConsumablesClient />
@@ -110,7 +110,7 @@ export default async function ConsumablesPage() {
                 },
                 {
                   key: "reorder",
-                  header: "Reorder at",
+                  header: "Reorder At",
                   headerClassName: "text-right",
                   className: "text-right text-xs text-muted-foreground",
                   cell: (r) => r.reorderThreshold,
