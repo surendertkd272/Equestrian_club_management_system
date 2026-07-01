@@ -159,7 +159,7 @@ export function RegistrationsPanel({
         {canManage && accepting && riders.length > 0 && (
           <form onSubmit={add} className="flex items-end gap-2 border-t pt-3">
             <div className="flex-1">
-              <label className="text-xs uppercase text-muted-foreground">Add rider</label>
+              <label className="text-xs text-muted-foreground">Add Rider</label>
               <Select value={newRiderId} onChange={(e) => setNewRiderId(e.target.value)}>
                 {riders.map((r) => (
                   <option key={r.id} value={r.id}>{r.label}</option>

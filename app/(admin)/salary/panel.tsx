@@ -115,7 +115,7 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
       <CardContent>
         <div className="grid gap-3 md:grid-cols-3">
           <div>
-            <Label>Staff member</Label>
+            <Label>Staff Member</Label>
             <Select aria-label="Staff member" value={form.userId} onChange={(e) => set("userId", e.target.value)}>
               {staff.length === 0 && <option value="">(no staff)</option>}
               {staff.map((s) => (
@@ -130,7 +130,7 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
             <Input aria-label="Month" type="month" value={form.periodMonth} onChange={(e) => set("periodMonth", e.target.value)} />
           </div>
           <div>
-            <Label>Gross override (₹, optional)</Label>
+            <Label>Gross Override (₹, optional)</Label>
             <Input aria-label="Gross override (₹, optional)"
               type="number"
               value={form.grossOverride}
@@ -139,7 +139,7 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
             />
           </div>
           <div>
-            <Label>Advance to deduct (₹)</Label>
+            <Label>Advance to Deduct (₹)</Label>
             <Input aria-label="Advance to deduct (₹)"
               type="number"
               value={form.advanceDeduction}
@@ -157,7 +157,7 @@ export function SalaryPanel({ staff, defaultMonth }: { staff: Staff[]; defaultMo
             )}
           </div>
           <div>
-            <Label>Other deductions (₹)</Label>
+            <Label>Other Deductions (₹)</Label>
             <Input aria-label="Other deductions (₹)" type="number" value={form.otherDeductions} onChange={(e) => set("otherDeductions", e.target.value)} placeholder="0" />
           </div>
           <div>

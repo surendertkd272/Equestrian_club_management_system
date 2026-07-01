@@ -91,7 +91,7 @@ export function HealthLogPanel({
           />
         </div>
         <div>
-          <Label className="text-xs">Heart rate (bpm)</Label>
+          <Label className="text-xs">Heart Rate (bpm)</Label>
           <Input aria-label="Heart rate (bpm)"
             type="number"
             value={form.heartRateBpm}

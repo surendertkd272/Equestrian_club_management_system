@@ -87,7 +87,7 @@ export default function BookingConfirmationPage({
             )}
             {bookedBy && (
               <>
-                <dt className="text-muted-foreground">Booked by</dt>
+                <dt className="text-muted-foreground">Booked By</dt>
                 <dd className="col-span-2">{bookedBy}</dd>
               </>
             )}

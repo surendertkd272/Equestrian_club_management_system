@@ -99,7 +99,7 @@ export function DewormingPanel({ horseId, canWrite, todayStartMs, entries }: Pro
       {canWrite && (
         <div className="grid gap-2 rounded-md border bg-muted/30 p-3 md:grid-cols-4">
           <div>
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Product</label>
+            <label className="text-[10px] tracking-wider text-muted-foreground">Product</label>
             <Select
               value={form.product}
               onChange={(e) => setForm((f) => ({ ...f, product: e.target.value }))}
@@ -114,7 +114,7 @@ export function DewormingPanel({ horseId, canWrite, todayStartMs, entries }: Pro
           </div>
           {form.product === "custom" && (
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Custom name</label>
+              <label className="text-[10px] tracking-wider text-muted-foreground">Custom Name</label>
               <Input
                 value={form.customProduct}
                 onChange={(e) => setForm((f) => ({ ...f, customProduct: e.target.value }))}
@@ -123,7 +123,7 @@ export function DewormingPanel({ horseId, canWrite, todayStartMs, entries }: Pro
             </div>
           )}
           <div>
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Scheduled</label>
+            <label className="text-[10px] tracking-wider text-muted-foreground">Scheduled</label>
             <Input
               type="date"
               value={form.scheduledAt}
@@ -131,7 +131,7 @@ export function DewormingPanel({ horseId, canWrite, todayStartMs, entries }: Pro
             />
           </div>
           <div className="md:col-span-1">
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Notes</label>
+            <label className="text-[10px] tracking-wider text-muted-foreground">Notes</label>
             <Input
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}

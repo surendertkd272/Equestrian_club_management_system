@@ -104,7 +104,7 @@ export default async function HorsesPage({
         <CardHeader>
           <form className="flex flex-wrap items-end gap-2 text-sm" method="get">
             <div>
-              <label className="mb-1 block text-xs uppercase text-muted-foreground">Search</label>
+              <label className="mb-1 block text-xs text-muted-foreground">Search</label>
               <input
                 type="search"
                 name="q"
@@ -115,7 +115,7 @@ export default async function HorsesPage({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs uppercase text-muted-foreground">Status</label>
+              <label className="mb-1 block text-xs text-muted-foreground">Status</label>
               <select aria-label="Filter by status"
                 name="status"
                 defaultValue={searchParams.status ?? ""}
@@ -128,7 +128,7 @@ export default async function HorsesPage({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs uppercase text-muted-foreground">Ownership</label>
+              <label className="mb-1 block text-xs text-muted-foreground">Ownership</label>
               <select aria-label="Filter by ownership"
                 name="ownership"
                 defaultValue={searchParams.ownership ?? ""}

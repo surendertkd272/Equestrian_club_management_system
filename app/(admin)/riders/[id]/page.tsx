@@ -209,11 +209,11 @@ export default async function RiderProfile({ params }: { params: { id: string } 
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 gap-y-2 text-sm">
-              <dt className="text-muted-foreground">Current level</dt>
+              <dt className="text-muted-foreground">Current Level</dt>
               <dd>{rider.currentLevel ?? "—"}</dd>
               <dt className="text-muted-foreground">Batch</dt>
               <dd>{rider.batch ? `${rider.batch.name} (${rider.batch.startTime}–${rider.batch.endTime})` : "Unassigned"}</dd>
-              <dt className="text-muted-foreground">Skills mastered</dt>
+              <dt className="text-muted-foreground">Skills Mastered</dt>
               <dd className="flex items-center gap-2">
                 <a href={`/riders/${rider.id}/progress`} className="text-primary underline">
                   {masteredCount} / {allSkills}
@@ -246,9 +246,9 @@ export default async function RiderProfile({ params }: { params: { id: string } 
                   </span>
                 )}
               </dd>
-              <dt className="text-muted-foreground">State rider ID</dt>
+              <dt className="text-muted-foreground">State Rider ID</dt>
               <dd className="font-mono text-xs">{rider.stateRiderId ?? "—"}</dd>
-              <dt className="text-muted-foreground">EFI rider ID</dt>
+              <dt className="text-muted-foreground">EFI Rider ID</dt>
               <dd className="font-mono text-xs">{rider.efiRiderId ?? "—"}</dd>
               <dt className="text-muted-foreground">Medical</dt>
               <dd>{rider.medicalNotes ?? "—"}</dd>
@@ -296,11 +296,11 @@ export default async function RiderProfile({ params }: { params: { id: string } 
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 gap-y-2 text-sm">
-              <dt className="text-muted-foreground">Signed at</dt>
+              <dt className="text-muted-foreground">Signed At</dt>
               <dd>{rider.indemnitySignedAt ? formatDate(rider.indemnitySignedAt) : "Not signed"}</dd>
               <dt className="text-muted-foreground">Signer IP</dt>
               <dd className="font-mono text-xs">{rider.indemnitySignerIp ?? "—"}</dd>
-              <dt className="text-muted-foreground">User agent</dt>
+              <dt className="text-muted-foreground">User Agent</dt>
               <dd className="font-mono text-xs truncate">{rider.indemnitySignerUa ?? "—"}</dd>
             </dl>
           </CardContent>

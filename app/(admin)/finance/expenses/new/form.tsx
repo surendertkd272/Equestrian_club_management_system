@@ -108,7 +108,7 @@ export function NewExpenseForm({
           </Select>
         </div>
         <div>
-          <Label>Date of expense *</Label>
+          <Label>Date of Expense *</Label>
           <Input aria-label="Date of expense" required type="date" value={form.spentAt} onChange={(e) => set("spentAt", e.target.value)} />
         </div>
         <div>
@@ -123,7 +123,7 @@ export function NewExpenseForm({
           />
         </div>
         <div>
-          <Label>Unit rate (₹)</Label>
+          <Label>Unit Rate (₹)</Label>
           <Input aria-label="Unit rate (₹)"
             type="number"
             min={0}
@@ -158,7 +158,7 @@ export function NewExpenseForm({
           />
         </div>
         <div>
-          <Label>Vendor invoice ref</Label>
+          <Label>Vendor Invoice Ref</Label>
           <Input aria-label="Vendor invoice ref" value={form.invoiceRef} onChange={(e) => set("invoiceRef", e.target.value)} placeholder="optional" />
         </div>
         <div className="md:col-span-2">
@@ -184,7 +184,7 @@ export function NewExpenseForm({
           {form.paid && (
             <>
               <div>
-                <Label className="!mb-1 !text-[10px]">Paid on</Label>
+                <Label className="!mb-1 !text-[10px]">Paid On</Label>
                 <Input aria-label="Paid on" type="date" value={form.paidAt} onChange={(e) => set("paidAt", e.target.value)} />
               </div>
               <div>

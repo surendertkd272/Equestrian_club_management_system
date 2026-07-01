@@ -115,7 +115,7 @@ export function TemplateEditor({ existing }: { existing: ExistingTemplate[] }) {
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid gap-3 md:grid-cols-3">
         <div className="space-y-1.5">
-          <Label>Level key</Label>
+          <Label>Level Key</Label>
           <Select aria-label="Level key" value={levelKey} onChange={(e) => loadExisting(e.target.value)}>
             {["1", "2", "3", "4"].map((k) => (
               <option key={k} value={k}>
@@ -125,11 +125,11 @@ export function TemplateEditor({ existing }: { existing: ExistingTemplate[] }) {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label>Level name</Label>
+          <Label>Level Name</Label>
           <Input aria-label="Level name" value={levelName} onChange={(e) => setLevelName(e.target.value)} required />
         </div>
         <div className="space-y-1.5">
-          <Label>Pass threshold (%)</Label>
+          <Label>Pass Threshold (%)</Label>
           <Input aria-label="Pass threshold (%)"
             type="number"
             min={0}

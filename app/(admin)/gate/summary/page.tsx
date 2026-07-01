@@ -124,7 +124,7 @@ export default async function GateSummaryPage({
           {session.role === "SUPER_ADMIN" && (
             <input type="hidden" name="centre" value={centreId} />
           )}
-          <label className="text-xs uppercase text-muted-foreground">Date</label>
+          <label className="text-xs text-muted-foreground">Date</label>
           <input
             type="date"
             name="date"

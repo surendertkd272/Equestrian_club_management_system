@@ -55,11 +55,11 @@ export function CentreEditForm({ id, initial }: { id: string; initial: Initial }
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <div>
-        <Label htmlFor={`c-name-${id}`}>Club name</Label>
+        <Label htmlFor={`c-name-${id}`}>Club Name</Label>
         <Input id={`c-name-${id}`} value={name} onChange={(e) => setName(e.target.value)} />
       </div>
       <div>
-        <Label htmlFor={`c-gst-${id}`}>GST number</Label>
+        <Label htmlFor={`c-gst-${id}`}>GST Number</Label>
         <Input
           id={`c-gst-${id}`}
           value={gstNo}

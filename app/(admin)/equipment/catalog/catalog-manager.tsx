@@ -130,7 +130,7 @@ export function CatalogManager({ initial }: { initial: Item[] }) {
     <div className="space-y-6">
       <form onSubmit={add} className="grid gap-2 rounded-md border bg-muted/30 p-3 md:grid-cols-12">
         <div className="md:col-span-2">
-          <label className="text-[10px] font-semibold uppercase text-muted-foreground">Category</label>
+          <label className="text-[10px] font-semibold text-muted-foreground">Category</label>
           <Select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>{c}</option>
@@ -138,7 +138,7 @@ export function CatalogManager({ initial }: { initial: Item[] }) {
           </Select>
         </div>
         <div className="md:col-span-3">
-          <label className="text-[10px] font-semibold uppercase text-muted-foreground">Name</label>
+          <label className="text-[10px] font-semibold text-muted-foreground">Name</label>
           <Input
             value={form.name}
             onChange={(e) => {
@@ -155,11 +155,11 @@ export function CatalogManager({ initial }: { initial: Item[] }) {
           />
         </div>
         <div className="md:col-span-3">
-          <label className="text-[10px] font-semibold uppercase text-muted-foreground">Code</label>
+          <label className="text-[10px] font-semibold text-muted-foreground">Code</label>
           <Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="dressage_saddle" />
         </div>
         <div>
-          <label className="text-[10px] font-semibold uppercase text-muted-foreground">Unit</label>
+          <label className="text-[10px] font-semibold text-muted-foreground">Unit</label>
           <Select value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
             {UNITS.map((u) => (
               <option key={u} value={u}>{u}</option>
@@ -167,7 +167,7 @@ export function CatalogManager({ initial }: { initial: Item[] }) {
           </Select>
         </div>
         <div>
-          <label className="text-[10px] font-semibold uppercase text-muted-foreground">Reorder at</label>
+          <label className="text-[10px] font-semibold text-muted-foreground">Reorder At</label>
           <Input
             type="number"
             min={0}

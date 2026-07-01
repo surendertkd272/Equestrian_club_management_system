@@ -142,7 +142,7 @@ export function TemplateEditor({ templateId, scope, items }: Props) {
       <div className="flex flex-wrap items-end gap-2 rounded-md border bg-muted/30 p-3">
         {scope === "general" && (
           <div className="w-20">
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            <label className="text-[10px] tracking-wider text-muted-foreground">
               Section
             </label>
             <Input
@@ -154,7 +154,7 @@ export function TemplateEditor({ templateId, scope, items }: Props) {
           </div>
         )}
         <div className="flex-1 min-w-[200px]">
-          <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          <label className="text-[10px] tracking-wider text-muted-foreground">
             New item label
           </label>
           <Input

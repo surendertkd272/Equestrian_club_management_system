@@ -102,11 +102,11 @@ export function NewStaffForm() {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label>Salary band</Label>
+          <Label>Salary Band</Label>
           <Input aria-label="Salary band" value={form.salaryBand} onChange={(e) => set("salaryBand", e.target.value)} placeholder="e.g. L3" />
         </div>
         <div className="space-y-1.5">
-          <Label>Initial password</Label>
+          <Label>Initial Password</Label>
           <Input aria-label="Initial password" value={form.password} onChange={(e) => set("password", e.target.value)} />
         </div>
       </div>

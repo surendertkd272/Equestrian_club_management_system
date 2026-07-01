@@ -177,7 +177,7 @@ export function TeamRosterControls({
     <div className="mt-3 border-t pt-3">
       <div className="grid gap-2 sm:grid-cols-4">
         <div className="sm:col-span-2">
-          <Label className="text-xs">Add rider</Label>
+          <Label className="text-xs">Add Rider</Label>
           <Select aria-label="Add rider" value={riderId} onChange={(e) => setRiderId(e.target.value)}>
             <option value="">— Pick a rider —</option>
             {available.map((r) => (

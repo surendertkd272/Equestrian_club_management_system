@@ -91,11 +91,11 @@ export function ConsumablesClient() {
             </Select>
           </div>
           <div>
-            <Label>Opening qty</Label>
+            <Label>Opening Qty</Label>
             <Input aria-label="Opening qty" type="number" min={0} value={form.qty} onChange={(e) => set("qty", e.target.value)} />
           </div>
           <div>
-            <Label>Reorder at</Label>
+            <Label>Reorder At</Label>
             <Input aria-label="Reorder at" type="number" min={0} value={form.reorderThreshold} onChange={(e) => set("reorderThreshold", e.target.value)} />
           </div>
           <div>
@@ -103,7 +103,7 @@ export function ConsumablesClient() {
             <Input aria-label="Supplier (optional)" value={form.supplier} onChange={(e) => set("supplier", e.target.value)} />
           </div>
           <div className="md:col-span-3">
-            <Label>Storage location</Label>
+            <Label>Storage Location</Label>
             <Input aria-label="Storage location" value={form.storageLocation} onChange={(e) => set("storageLocation", e.target.value)} placeholder="Cabinet A2, top shelf" />
           </div>
         </div>
@@ -250,9 +250,9 @@ export function EditConsumable({ row }: { row: EditableConsumable }) {
         </Select>
       </div>
       <div><Label className="text-xs">Qty</Label><Input aria-label="Qty" type="number" min={0} value={form.qty} onChange={(e) => set("qty", e.target.value)} /></div>
-      <div><Label className="text-xs">Reorder at</Label><Input aria-label="Reorder at" type="number" min={0} value={form.reorderThreshold} onChange={(e) => set("reorderThreshold", e.target.value)} /></div>
+      <div><Label className="text-xs">Reorder At</Label><Input aria-label="Reorder at" type="number" min={0} value={form.reorderThreshold} onChange={(e) => set("reorderThreshold", e.target.value)} /></div>
       <div><Label className="text-xs">Supplier</Label><Input aria-label="Supplier" value={form.supplier} onChange={(e) => set("supplier", e.target.value)} /></div>
-      <div className="sm:col-span-3"><Label className="text-xs">Storage location</Label><Input aria-label="Storage location" value={form.storageLocation} onChange={(e) => set("storageLocation", e.target.value)} /></div>
+      <div className="sm:col-span-3"><Label className="text-xs">Storage Location</Label><Input aria-label="Storage location" value={form.storageLocation} onChange={(e) => set("storageLocation", e.target.value)} /></div>
       <div className="flex gap-2 sm:col-span-3">
         <Button size="sm" disabled={busy} onClick={save}>{busy ? "Saving…" : "Save changes"}</Button>
         <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>

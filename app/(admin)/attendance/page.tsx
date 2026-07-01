@@ -64,7 +64,7 @@ export default async function AttendancePage({
         </div>
         <form className="flex flex-wrap items-end gap-2 text-sm" method="get">
           <div>
-            <label className="mb-1 block text-xs uppercase text-muted-foreground">Batch</label>
+            <label className="mb-1 block text-xs text-muted-foreground">Batch</label>
             <select aria-label="Filter by batch"
               name="batch"
               defaultValue={selectedBatchId ?? ""}
@@ -79,7 +79,7 @@ export default async function AttendancePage({
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs uppercase text-muted-foreground">Date</label>
+            <label className="mb-1 block text-xs text-muted-foreground">Date</label>
             <input
               type="date"
               name="date"

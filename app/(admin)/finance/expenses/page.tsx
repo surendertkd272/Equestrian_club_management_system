@@ -121,7 +121,7 @@ export default async function ExpensesPage({
         <CardHeader>
           <form method="get" className="flex flex-wrap items-end gap-2 text-sm">
             <div>
-              <label className="mb-1 block text-xs uppercase text-muted-foreground">Group</label>
+              <label className="mb-1 block text-xs text-muted-foreground">Group</label>
               <select aria-label="Filter by group"
                 name="group"
                 defaultValue={searchParams.group ?? ""}
@@ -139,7 +139,7 @@ export default async function ExpensesPage({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs uppercase text-muted-foreground">Paid</label>
+              <label className="mb-1 block text-xs text-muted-foreground">Paid</label>
               <select aria-label="Filter by paid"
                 name="paid"
                 defaultValue={searchParams.paid ?? ""}

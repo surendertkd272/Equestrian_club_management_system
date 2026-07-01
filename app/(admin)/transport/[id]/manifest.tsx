@@ -166,7 +166,7 @@ export function TripManifest({
       {/* Add item */}
       <div className="flex flex-wrap items-end gap-2 rounded-md border p-3">
         <div className="w-32">
-          <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Category</label>
+          <label className="text-[10px] tracking-wider text-muted-foreground">Category</label>
           <Select value={draft.category} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))}>
             {TRIP_ITEM_CATEGORIES.map((c) => (
               <option key={c} value={c}>{c}</option>
@@ -174,7 +174,7 @@ export function TripManifest({
           </Select>
         </div>
         <div className="flex-1 min-w-[180px]">
-          <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Item</label>
+          <label className="text-[10px] tracking-wider text-muted-foreground">Item</label>
           <Input
             value={draft.label}
             onChange={(e) => setDraft((d) => ({ ...d, label: e.target.value }))}
@@ -183,7 +183,7 @@ export function TripManifest({
           />
         </div>
         <div className="w-20">
-          <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Qty</label>
+          <label className="text-[10px] tracking-wider text-muted-foreground">Qty</label>
           <Input type="number" value={draft.qtyExpected} onChange={(e) => setDraft((d) => ({ ...d, qtyExpected: e.target.value }))} />
         </div>
         <Button onClick={add} disabled={busy === "__new__"}>Add</Button>

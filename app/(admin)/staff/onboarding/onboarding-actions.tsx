@@ -80,7 +80,7 @@ export function GenerateLinkButton({ roles }: { roles: string[] }) {
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Candidate name (optional)</label>
+          <label className="text-xs font-medium text-muted-foreground">Candidate Name (optional)</label>
           <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="For your reference" className="h-9" />
         </div>
         <div className="space-y-1">
@@ -93,7 +93,7 @@ export function GenerateLinkButton({ roles }: { roles: string[] }) {
           </Select>
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Link expires in</label>
+          <label className="text-xs font-medium text-muted-foreground">Link Expires In</label>
           <Select value={expiresDays} onChange={(e) => setExpiresDays(e.target.value)} className="h-9">
             <option value="3">3 Days</option>
             <option value="7">7 Days</option>

@@ -158,11 +158,11 @@ export function NewTaskForm({
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label>Due date</Label>
+          <Label>Due Date</Label>
           <Input aria-label="Due date" type="date" value={form.date} onChange={(e) => set("date", e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label>Due time</Label>
+          <Label>Due Time</Label>
           <Input aria-label="Due time" type="time" value={form.time} onChange={(e) => set("time", e.target.value)} />
         </div>
       </div>

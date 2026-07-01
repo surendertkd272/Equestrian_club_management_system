@@ -191,7 +191,7 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
     <div className="space-y-6">
       <form onSubmit={add} className="grid gap-2 rounded-md border bg-muted/30 p-3 md:grid-cols-6">
         <div>
-          <label className="text-[10px] font-semibold uppercase text-muted-foreground">Order</label>
+          <label className="text-[10px] font-semibold text-muted-foreground">Order</label>
           <Input
             type="number"
             min={1}
@@ -200,7 +200,7 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
           />
         </div>
         <div>
-          <label className="text-[10px] font-semibold uppercase text-muted-foreground">Code</label>
+          <label className="text-[10px] font-semibold text-muted-foreground">Code</label>
           <Input
             value={form.code}
             onChange={(e) => setForm({ ...form, code: e.target.value })}
@@ -208,7 +208,7 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
           />
         </div>
         <div className="md:col-span-2">
-          <label className="text-[10px] font-semibold uppercase text-muted-foreground">Name</label>
+          <label className="text-[10px] font-semibold text-muted-foreground">Name</label>
           <Input
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -216,7 +216,7 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
           />
         </div>
         <div>
-          <label className="text-[10px] font-semibold uppercase text-muted-foreground">Pass %</label>
+          <label className="text-[10px] font-semibold text-muted-foreground">Pass %</label>
           <Input
             type="number"
             min={0}
@@ -229,7 +229,7 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
           <Plus className="h-4 w-4" /> Add
         </Button>
         <div className="md:col-span-6">
-          <label className="text-[10px] font-semibold uppercase text-muted-foreground">Description (optional)</label>
+          <label className="text-[10px] font-semibold text-muted-foreground">Description (optional)</label>
           <Input
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}

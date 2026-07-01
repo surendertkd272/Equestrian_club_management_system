@@ -53,7 +53,7 @@ export function RotateForm({ homeOnSuccess }: { homeOnSuccess: string }) {
         <Input id="rot-cur" type="password" autoFocus value={cur} onChange={(e) => setCur(e.target.value)} />
       </div>
       <div>
-        <Label htmlFor="rot-new">New password</Label>
+        <Label htmlFor="rot-new">New Password</Label>
         <Input
           id="rot-new"
           type="password"
@@ -63,7 +63,7 @@ export function RotateForm({ homeOnSuccess }: { homeOnSuccess: string }) {
         />
       </div>
       <div>
-        <Label htmlFor="rot-conf">Confirm new password</Label>
+        <Label htmlFor="rot-conf">Confirm New Password</Label>
         <Input id="rot-conf" type="password" value={conf} onChange={(e) => setConf(e.target.value)} />
       </div>
       <Button onClick={submit} disabled={!cur || !next || busy} className="w-full">

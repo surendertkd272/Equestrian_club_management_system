@@ -104,7 +104,7 @@ export function SubmitExpenseForm({
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <Label>Invoice file *</Label>
+        <Label>Invoice File *</Label>
         {form.attachmentUrl ? (
           <div className="flex items-center gap-2 text-sm">
             <a
@@ -162,7 +162,7 @@ export function SubmitExpenseForm({
           />
         </div>
         <div>
-          <Label>Date of purchase *</Label>
+          <Label>Date of Purchase *</Label>
           <Input aria-label="Date of purchase"
             required
             type="date"
@@ -171,7 +171,7 @@ export function SubmitExpenseForm({
           />
         </div>
         <div>
-          <Label>Vendor / shop name</Label>
+          <Label>Vendor / Shop Name</Label>
           <Input aria-label="Vendor / shop name"
             value={form.vendorName}
             onChange={(e) => set("vendorName", e.target.value)}
@@ -179,7 +179,7 @@ export function SubmitExpenseForm({
           />
         </div>
         <div>
-          <Label>Invoice number</Label>
+          <Label>Invoice Number</Label>
           <Input aria-label="Invoice number"
             value={form.invoiceRef}
             onChange={(e) => set("invoiceRef", e.target.value)}
@@ -198,7 +198,7 @@ export function SubmitExpenseForm({
           </Select>
         </div>
         <div className="md:col-span-2">
-          <Label>What did you buy? *</Label>
+          <Label>What Did You Buy? *</Label>
           <Textarea aria-label="What did you buy?"
             required
             value={form.description}

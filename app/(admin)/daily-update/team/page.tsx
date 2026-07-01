@@ -75,7 +75,7 @@ export default async function TeamDailyUpdatesPage({
         {/* GET form keeps this a server component — no client JS needed. */}
         <form className="flex items-end gap-2">
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Date</label>
+            <label className="text-[10px] tracking-wider text-muted-foreground">Date</label>
             <Input type="date" name="date" defaultValue={dateStr} className="h-9" />
           </div>
           <Button type="submit" variant="outline" size="sm">View</Button>

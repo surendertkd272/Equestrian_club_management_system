@@ -101,7 +101,7 @@ export function BulkMarkPaid({
         </div>
         <div className="flex items-end justify-between gap-2">
           <div className="flex-1">
-            <label className="text-xs uppercase text-muted-foreground">Method</label>
+            <label className="text-xs text-muted-foreground">Method</label>
             <Select value={method} onChange={(e) => setMethod(e.target.value as any)}>
               <option value="cash">Cash</option>
               <option value="upi">UPI</option>

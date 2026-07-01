@@ -164,7 +164,7 @@ export function VetVisitsPanel({
         >
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-1.5">
-              <Label>Reason / chief complaint</Label>
+              <Label>Reason / Chief Complaint</Label>
               <Input aria-label="Reason / chief complaint"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
@@ -172,7 +172,7 @@ export function VetVisitsPanel({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Follow-up date</Label>
+              <Label>Follow-Up Date</Label>
               <Input aria-label="Follow-up date"
                 type="date"
                 value={followUpAt}
@@ -181,7 +181,7 @@ export function VetVisitsPanel({
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label>Findings & diagnosis *</Label>
+            <Label>Findings & Diagnosis *</Label>
             <textarea
               required
               value={notes}

@@ -236,14 +236,14 @@ export function AccreditationsPanel({
               />
             </div>
             <div>
-              <Label>Serial no</Label>
+              <Label>Serial No</Label>
               <Input aria-label="Serial no"
                 value={form.serialNo}
                 onChange={(e) => setForm({ ...form, serialNo: e.target.value })}
               />
             </div>
             <div>
-              <Label>Issued on</Label>
+              <Label>Issued On</Label>
               <Input aria-label="Issued on"
                 type="date"
                 value={form.issuedAt}

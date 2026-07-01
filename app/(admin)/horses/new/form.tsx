@@ -115,7 +115,7 @@ export function NewHorseForm() {
           <Input aria-label="Microchip" value={form.microchip} onChange={(e) => set("microchip", e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label>EFI horse ID</Label>
+          <Label>EFI Horse ID</Label>
           <Input aria-label="EFI horse ID"
             value={form.efiHorseId}
             onChange={(e) => set("efiHorseId", e.target.value)}
@@ -123,7 +123,7 @@ export function NewHorseForm() {
           />
         </div>
         <div className="space-y-1.5">
-          <Label>Home club</Label>
+          <Label>Home Club</Label>
           <Input aria-label="Home club"
             value={form.homeClub}
             onChange={(e) => set("homeClub", e.target.value)}
@@ -132,7 +132,7 @@ export function NewHorseForm() {
         </div>
       </div>
       <div className="space-y-1.5">
-        <Label>Dietary notes</Label>
+        <Label>Dietary Notes</Label>
         <Textarea aria-label="Dietary notes"
           value={form.diet}
           onChange={(e) => set("diet", e.target.value)}
@@ -141,7 +141,7 @@ export function NewHorseForm() {
       </div>
 
       <fieldset className="rounded-md border p-3">
-        <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <legend className="px-1 text-xs font-semibold tracking-wide text-muted-foreground">
           Insurance (optional)
         </legend>
         <div className="grid gap-3 md:grid-cols-2">
@@ -154,7 +154,7 @@ export function NewHorseForm() {
             <Input aria-label="Policy #" value={form.insurancePolicyNo} onChange={(e) => set("insurancePolicyNo", e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label>Annual premium (₹)</Label>
+            <Label>Annual Premium (₹)</Label>
             <Input aria-label="Annual premium (₹)"
               type="number"
               min={0}
@@ -164,11 +164,11 @@ export function NewHorseForm() {
           </div>
           <div /> {/* spacer */}
           <div className="space-y-1.5">
-            <Label>Valid from</Label>
+            <Label>Valid From</Label>
             <Input aria-label="Valid from" type="date" value={form.insuranceValidFrom} onChange={(e) => set("insuranceValidFrom", e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label>Valid to</Label>
+            <Label>Valid To</Label>
             <Input aria-label="Valid to" type="date" value={form.insuranceValidTo} onChange={(e) => set("insuranceValidTo", e.target.value)} />
           </div>
         </div>

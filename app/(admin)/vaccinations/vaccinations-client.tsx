@@ -145,11 +145,11 @@ export function VaccinationsClient({ horses }: { horses: Horse[] }) {
             />
           </div>
           <div>
-            <Label>Last given (optional)</Label>
+            <Label>Last Given (optional)</Label>
             <Input aria-label="Last given (optional)" type="date" value={form.lastGivenAt} onChange={(e) => set("lastGivenAt", e.target.value)} />
           </div>
           <div>
-            <Label>Next due (auto if blank)</Label>
+            <Label>Next Due (auto if blank)</Label>
             <Input aria-label="Next due (auto if blank)" type="date" value={form.nextDueAt} onChange={(e) => set("nextDueAt", e.target.value)} />
           </div>
         </div>

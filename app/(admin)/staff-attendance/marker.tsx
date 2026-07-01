@@ -94,15 +94,15 @@ export function StaffAttendanceMarker({ staff, defaultDate }: { staff: Staff[]; 
         </select>
       </div>
       <div>
-        <Label htmlFor="sa-in">Check-in</Label>
+        <Label htmlFor="sa-in">Check-In</Label>
         <Input id="sa-in" type="time" value={checkInAt} onChange={(e) => setCheckInAt(e.target.value)} />
       </div>
       <div>
-        <Label htmlFor="sa-out">Check-out</Label>
+        <Label htmlFor="sa-out">Check-Out</Label>
         <Input id="sa-out" type="time" value={checkOutAt} onChange={(e) => setCheckOutAt(e.target.value)} />
       </div>
       <div>
-        <Label htmlFor="sa-ot">OT hours</Label>
+        <Label htmlFor="sa-ot">OT Hours</Label>
         <Input
           id="sa-ot"
           type="number"

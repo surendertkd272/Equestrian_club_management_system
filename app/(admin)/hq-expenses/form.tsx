@@ -124,7 +124,7 @@ export function HqExpenseForm({
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-1.5">
-        <Label>Invoice file *</Label>
+        <Label>Invoice File *</Label>
         {form.attachmentUrl ? (
           <div className="flex items-center gap-2 text-sm">
             <a
@@ -181,7 +181,7 @@ export function HqExpenseForm({
           />
         </div>
         <div>
-          <Label>Date of expense *</Label>
+          <Label>Date of Expense *</Label>
           <Input aria-label="Date of expense"
             required
             type="date"
@@ -190,7 +190,7 @@ export function HqExpenseForm({
           />
         </div>
         <div>
-          <Label>Vendor name</Label>
+          <Label>Vendor Name</Label>
           <Input aria-label="Vendor name"
             value={form.vendorName}
             onChange={(e) => set("vendorName", e.target.value)}
@@ -198,7 +198,7 @@ export function HqExpenseForm({
           />
         </div>
         <div>
-          <Label>Invoice ref</Label>
+          <Label>Invoice Ref</Label>
           <Input aria-label="Invoice ref"
             value={form.invoiceRef}
             onChange={(e) => set("invoiceRef", e.target.value)}
@@ -229,7 +229,7 @@ export function HqExpenseForm({
       </div>
 
       <div className="space-y-2">
-        <Label>Allocate to clubs (optional)</Label>
+        <Label>Allocate to Clubs (optional)</Label>
         <div className="text-xs text-muted-foreground">
           Leave all unchecked if this is a pure HQ overhead (insurance, software). Tick clubs the
           expense should be split across for cost-allocation reports.
@@ -261,7 +261,7 @@ export function HqExpenseForm({
         {form.paid && (
           <>
             <div>
-              <Label className="!mb-1 !text-[10px]">Paid on</Label>
+              <Label className="!mb-1 !text-[10px]">Paid On</Label>
               <Input aria-label="Paid on" type="date" value={form.paidAt} onChange={(e) => set("paidAt", e.target.value)} />
             </div>
             <div>

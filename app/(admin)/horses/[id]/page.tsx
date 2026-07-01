@@ -147,7 +147,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
             <dl className="grid grid-cols-3 gap-y-2 text-sm">
               <dt className="text-muted-foreground">Breed</dt>
               <dd className="col-span-2">{horse.breed ?? "—"}</dd>
-              <dt className="text-muted-foreground">Sex / age</dt>
+              <dt className="text-muted-foreground">Sex / Age</dt>
               <dd className="col-span-2">
                 {horse.sex ?? "—"} {horse.ageYears !== null ? `· ${horse.ageYears}y` : ""}
               </dd>
@@ -161,7 +161,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
               <dd className="col-span-2 font-mono text-xs">{horse.microchip ?? "—"}</dd>
               <dt className="text-muted-foreground">EFI ID</dt>
               <dd className="col-span-2 font-mono text-xs">{horse.efiHorseId ?? "—"}</dd>
-              <dt className="text-muted-foreground">Home club</dt>
+              <dt className="text-muted-foreground">Home Club</dt>
               <dd className="col-span-2">{horse.homeClub ?? "—"}</dd>
               <dt className="text-muted-foreground">Diet</dt>
               <dd className="col-span-2">{horse.diet ?? "—"}</dd>

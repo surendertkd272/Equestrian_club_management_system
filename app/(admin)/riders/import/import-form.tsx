@@ -81,7 +81,7 @@ export function ImportForm({
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <Label>CSV file</Label>
+          <Label>CSV File</Label>
           <input
             type="file"
             accept=".csv,.txt,text/csv"
@@ -90,7 +90,7 @@ export function ImportForm({
           />
         </div>
         <div>
-          <Label>Schedule exam at level (optional)</Label>
+          <Label>Schedule Exam at Level (optional)</Label>
           <Select aria-label="Schedule exam at level (optional)" value={examinerId} onChange={(e) => setExaminerId(e.target.value)}>
             <option value="">— Don&apos;t schedule exams —</option>
             {examiners.map((u) => (
@@ -106,7 +106,7 @@ export function ImportForm({
       </div>
 
       <div>
-        <Label>Or paste CSV</Label>
+        <Label>Or Paste CSV</Label>
         <textarea
           value={csv}
           onChange={(e) => {

@@ -105,7 +105,7 @@ export function NewShortLinkForm({ horses }: { horses: { id: string; name: strin
 
         {kind === "generic" && (
           <div className="md:col-span-2">
-            <Label>Target path *</Label>
+            <Label>Target Path *</Label>
             <Input aria-label="Target path"
               value={customPath}
               onChange={(e) => setCustomPath(e.target.value)}
@@ -118,7 +118,7 @@ export function NewShortLinkForm({ horses }: { horses: { id: string; name: strin
         )}
 
         <div>
-          <Label>Display label (optional)</Label>
+          <Label>Display Label (optional)</Label>
           <Input aria-label="Display label (optional)"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
@@ -127,7 +127,7 @@ export function NewShortLinkForm({ horses }: { horses: { id: string; name: strin
         </div>
 
         <div>
-          <Label>Expires in (days)</Label>
+          <Label>Expires In (days)</Label>
           <Input aria-label="Expires in (days)"
             type="number"
             min={1}

@@ -120,7 +120,7 @@ export function NewCentreCard() {
       <CardContent>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Label htmlFor="nc-name">Club name *</Label>
+            <Label htmlFor="nc-name">Club Name *</Label>
             <Input
               id="nc-name"
               value={name}
@@ -142,7 +142,7 @@ export function NewCentreCard() {
             </p>
           </div>
           <div>
-            <Label htmlFor="nc-gst">GST number</Label>
+            <Label htmlFor="nc-gst">GST Number</Label>
             <Input
               id="nc-gst"
               value={gstNo}

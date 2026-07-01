@@ -102,7 +102,7 @@ export function BatchShiftCard({
                 </Select>
               </div>
               <div>
-                <Label className="text-xs">Target batch *</Label>
+                <Label className="text-xs">Target Batch *</Label>
                 <Select aria-label="Target batch" value={toBatchId} onChange={(e) => setToBatchId(e.target.value)}>
                   <option value="">— pick a batch —</option>
                   {eligibleBatches.map((b) => (
@@ -114,7 +114,7 @@ export function BatchShiftCard({
               </div>
               {kind === "single_day" && (
                 <div className="md:col-span-2">
-                  <Label className="text-xs">Date you want to attend *</Label>
+                  <Label className="text-xs">Date You Want to Attend *</Label>
                   <Input aria-label="Date you want to attend"
                     type="date"
                     value={shiftDate}

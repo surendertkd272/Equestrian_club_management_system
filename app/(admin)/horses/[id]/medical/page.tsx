@@ -361,9 +361,9 @@ function InsurancePanel({
             <dd className="col-span-2">
               {premium !== null ? `₹${premium.toLocaleString("en-IN")}` : "—"}
             </dd>
-            <dt className="text-muted-foreground">Valid from</dt>
+            <dt className="text-muted-foreground">Valid From</dt>
             <dd className="col-span-2">{validFrom ? formatDate(validFrom) : "—"}</dd>
-            <dt className="text-muted-foreground">Valid to</dt>
+            <dt className="text-muted-foreground">Valid To</dt>
             <dd className={`col-span-2 ${expired ? "font-semibold text-destructive" : expiring ? "font-semibold text-amber-700" : ""}`}>
               {validTo ? formatDate(validTo) : "—"}
             </dd>

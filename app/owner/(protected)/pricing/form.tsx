@@ -64,7 +64,7 @@ export function PricingForm({ initial }: { initial: Row }) {
         <Field label="Tagline" value={form.tagline} onChange={(v) => set("tagline", v)} />
       </div>
       <div>
-        <Label className="text-xs text-muted-foreground">Monthly price (₹)</Label>
+        <Label className="text-xs text-muted-foreground">Monthly Price (₹)</Label>
         <Input aria-label="Monthly price (₹)"
           type="number"
           value={form.monthlyInr}
@@ -73,7 +73,7 @@ export function PricingForm({ initial }: { initial: Row }) {
         />
       </div>
       <div>
-        <Label className="text-xs text-muted-foreground">Annual price (₹/month when billed annually)</Label>
+        <Label className="text-xs text-muted-foreground">Annual Price (₹/month when billed annually)</Label>
         <Input aria-label="Annual price (₹/month when billed annually)"
           type="number"
           value={form.annualInrPerMonth}

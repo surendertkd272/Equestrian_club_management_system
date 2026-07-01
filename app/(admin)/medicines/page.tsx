@@ -84,7 +84,7 @@ export default async function MedicinesPage({
         <CardHeader>
           <form className="flex flex-wrap items-end gap-2 text-sm" method="get">
             <div>
-              <label className="mb-1 block text-xs uppercase text-muted-foreground">Search</label>
+              <label className="mb-1 block text-xs text-muted-foreground">Search</label>
               <input
                 type="search"
                 name="q"
@@ -95,7 +95,7 @@ export default async function MedicinesPage({
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs uppercase text-muted-foreground">Category</label>
+              <label className="mb-1 block text-xs text-muted-foreground">Category</label>
               <select aria-label="Filter by category"
                 name="category"
                 defaultValue={searchParams.category ?? ""}
@@ -118,7 +118,7 @@ export default async function MedicinesPage({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs uppercase text-muted-foreground">Filter</label>
+              <label className="mb-1 block text-xs text-muted-foreground">Filter</label>
               <select aria-label="Filter by status"
                 name="status"
                 defaultValue={searchParams.status ?? ""}

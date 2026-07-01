@@ -81,7 +81,7 @@ export function InjuriesClient({ horses, riders }: { horses: Horse[]; riders: Ri
       <CardContent>
         <div className="grid gap-3 md:grid-cols-3">
           <div>
-            <Label htmlFor="inj-subjectType">Subject type</Label>
+            <Label htmlFor="inj-subjectType">Subject Type</Label>
             <Select id="inj-subjectType" value={form.subjectType} onChange={(e) => changeSubjectType(e.target.value as any)}>
               <option value="horse">Horse</option>
               <option value="rider">Rider</option>
@@ -108,7 +108,7 @@ export function InjuriesClient({ horses, riders }: { horses: Horse[]; riders: Ri
             <Input id="inj-occurredAt" type="date" value={form.occurredAt} onChange={(e) => set("occurredAt", e.target.value)} />
           </div>
           <div>
-            <Label htmlFor="inj-location">Location on body</Label>
+            <Label htmlFor="inj-location">Location on Body</Label>
             <Input id="inj-location" value={form.location} onChange={(e) => set("location", e.target.value)} placeholder="left fore fetlock" />
           </div>
           <div>
@@ -124,7 +124,7 @@ export function InjuriesClient({ horses, riders }: { horses: Horse[]; riders: Ri
             <Input id="inj-cause" value={form.cause} onChange={(e) => set("cause", e.target.value)} placeholder="slipped on wet arena" />
           </div>
           <div className="md:col-span-3">
-            <Label htmlFor="inj-initialNotes">Initial notes *</Label>
+            <Label htmlFor="inj-initialNotes">Initial Notes *</Label>
             <Textarea id="inj-initialNotes"
               value={form.initialNotes}
               onChange={(e) => set("initialNotes", e.target.value)}

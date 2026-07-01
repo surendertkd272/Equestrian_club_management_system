@@ -69,7 +69,7 @@ export function TenantEditForm({ id, initial }: { id: string; initial: Initial }
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <div>
-        <Label htmlFor={`t-name-${id}`} className="text-foreground">Tenant name</Label>
+        <Label htmlFor={`t-name-${id}`} className="text-foreground">Tenant Name</Label>
         <Input
           id={`t-name-${id}`}
           value={name}
@@ -78,7 +78,7 @@ export function TenantEditForm({ id, initial }: { id: string; initial: Initial }
         />
       </div>
       <div>
-        <Label htmlFor={`t-contact-${id}`} className="text-foreground">Contact name</Label>
+        <Label htmlFor={`t-contact-${id}`} className="text-foreground">Contact Name</Label>
         <Input
           id={`t-contact-${id}`}
           value={contactName}
@@ -87,7 +87,7 @@ export function TenantEditForm({ id, initial }: { id: string; initial: Initial }
         />
       </div>
       <div>
-        <Label htmlFor={`t-billing-${id}`} className="text-foreground">Billing email</Label>
+        <Label htmlFor={`t-billing-${id}`} className="text-foreground">Billing Email</Label>
         <Input
           id={`t-billing-${id}`}
           type="email"

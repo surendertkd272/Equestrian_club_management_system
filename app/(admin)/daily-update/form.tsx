@@ -76,20 +76,20 @@ export function DailyUpdateForm({ date, initial }: { date: string; initial: Init
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
         <div>
-          <Label>Horses worked</Label>
+          <Label>Horses Worked</Label>
           <Input aria-label="Horses worked" type="number" value={form.horsesWorked} onChange={(e) => set("horsesWorked", e.target.value)} placeholder="6" />
         </div>
         <div>
-          <Label>Riders taught</Label>
+          <Label>Riders Taught</Label>
           <Input aria-label="Riders taught" type="number" value={form.ridersTaught} onChange={(e) => set("ridersTaught", e.target.value)} placeholder="12" />
         </div>
         <div>
-          <Label>Minutes on the yard</Label>
+          <Label>Minutes on the Yard</Label>
           <Input aria-label="Minutes on the yard" type="number" value={form.minutesSpent} onChange={(e) => set("minutesSpent", e.target.value)} placeholder="240" />
         </div>
       </div>
       <div>
-        <Label>Injuries / concerns to flag (optional)</Label>
+        <Label>Injuries / Concerns to Flag (optional)</Label>
         <Textarea aria-label="Injuries / concerns to flag (optional)"
           rows={2}
           value={form.injuriesNoted}

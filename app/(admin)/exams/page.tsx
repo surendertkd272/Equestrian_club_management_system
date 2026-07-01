@@ -99,7 +99,7 @@ export default async function ExamsPage({
         <CardHeader>
           <form className="flex flex-wrap items-end gap-2 text-sm" method="get">
             <div>
-              <label className="mb-1 block text-xs uppercase text-muted-foreground">Status</label>
+              <label className="mb-1 block text-xs text-muted-foreground">Status</label>
               <select aria-label="Filter by status"
                 name="status"
                 defaultValue={searchParams.status ?? ""}
@@ -112,7 +112,7 @@ export default async function ExamsPage({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs uppercase text-muted-foreground">Level</label>
+              <label className="mb-1 block text-xs text-muted-foreground">Level</label>
               <select aria-label="Filter by level"
                 name="level"
                 defaultValue={searchParams.level ?? ""}

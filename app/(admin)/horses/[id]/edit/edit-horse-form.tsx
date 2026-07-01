@@ -114,12 +114,12 @@ export function EditHorseForm({ horseId, initial }: { horseId: string; initial: 
         </div>
       </div>
       <div className="space-y-1.5">
-        <Label>Dietary notes</Label>
+        <Label>Dietary Notes</Label>
         <Textarea aria-label="Dietary notes" value={form.diet} onChange={(e) => set("diet", e.target.value)} placeholder="2 kg pellets twice daily, no oats…" />
       </div>
 
       <fieldset className="rounded-md border p-3">
-        <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Insurance (optional)</legend>
+        <legend className="px-1 text-xs font-semibold tracking-wide text-muted-foreground">Insurance (optional)</legend>
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Insurer</Label>
@@ -130,16 +130,16 @@ export function EditHorseForm({ horseId, initial }: { horseId: string; initial: 
             <Input aria-label="Policy #" value={form.insurancePolicyNo} onChange={(e) => set("insurancePolicyNo", e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label>Annual premium (₹)</Label>
+            <Label>Annual Premium (₹)</Label>
             <Input aria-label="Annual premium (₹)" type="number" min={0} value={form.insurancePremium} onChange={(e) => set("insurancePremium", e.target.value)} />
           </div>
           <div />
           <div className="space-y-1.5">
-            <Label>Valid from</Label>
+            <Label>Valid From</Label>
             <Input aria-label="Valid from" type="date" value={form.insuranceValidFrom} onChange={(e) => set("insuranceValidFrom", e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label>Valid to</Label>
+            <Label>Valid To</Label>
             <Input aria-label="Valid to" type="date" value={form.insuranceValidTo} onChange={(e) => set("insuranceValidTo", e.target.value)} />
           </div>
         </div>

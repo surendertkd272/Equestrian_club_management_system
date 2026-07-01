@@ -111,7 +111,7 @@ export function HorseTestsPanel({
         <form onSubmit={onSubmit} className="space-y-3 rounded-md border bg-card p-4">
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-1.5">
-              <Label>Test type *</Label>
+              <Label>Test Type *</Label>
               <Select aria-label="Test type" value={testType} onChange={(e) => setTestType(e.target.value as HorseTestDTO["testType"])}>
                 <option value="coggins">Coggins (EIA)</option>
                 <option value="glanders">Glanders</option>
@@ -128,7 +128,7 @@ export function HorseTestsPanel({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Tested at</Label>
+              <Label>Tested At</Label>
               <Input aria-label="Tested at"
                 type="datetime-local"
                 value={testedAt}
@@ -136,7 +136,7 @@ export function HorseTestsPanel({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Next due</Label>
+              <Label>Next Due</Label>
               <Input aria-label="Next due"
                 type="date"
                 value={nextDueAt}
@@ -144,7 +144,7 @@ export function HorseTestsPanel({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Lab name</Label>
+              <Label>Lab Name</Label>
               <Input aria-label="Lab name" value={labName} onChange={(e) => setLabName(e.target.value)} />
             </div>
             <div className="space-y-1.5">

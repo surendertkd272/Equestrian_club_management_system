@@ -99,15 +99,15 @@ export function NewEventForm() {
           </Select>
         </div>
         <div>
-          <Label>Fee per rider (₹)</Label>
+          <Label>Fee per Rider (₹)</Label>
           <Input aria-label="Fee per rider (₹)" type="number" min={0} value={form.fee} onChange={(e) => set("fee", e.target.value)} />
         </div>
         <div>
-          <Label>Start date *</Label>
+          <Label>Start Date *</Label>
           <Input aria-label="Start date" required type="date" value={form.startDate} onChange={(e) => set("startDate", e.target.value)} />
         </div>
         <div>
-          <Label>End date *</Label>
+          <Label>End Date *</Label>
           <Input aria-label="End date" required type="date" value={form.endDate} onChange={(e) => set("endDate", e.target.value)} />
         </div>
         <div>
@@ -137,7 +137,7 @@ export function NewEventForm() {
         {isExternal && (
           <>
             <div className="md:col-span-2">
-              <Label>External venue</Label>
+              <Label>External Venue</Label>
               <Input aria-label="External venue"
                 value={form.externalVenue}
                 onChange={(e) => set("externalVenue", e.target.value)}
@@ -145,7 +145,7 @@ export function NewEventForm() {
               />
             </div>
             <div className="md:col-span-2">
-              <Label>Hosting organisation</Label>
+              <Label>Hosting Organisation</Label>
               <Input aria-label="Hosting organisation"
                 value={form.externalHostOrg}
                 onChange={(e) => set("externalHostOrg", e.target.value)}
@@ -155,11 +155,11 @@ export function NewEventForm() {
           </>
         )}
         <div>
-          <Label>Contact name</Label>
+          <Label>Contact Name</Label>
           <Input aria-label="Contact name" value={form.contactName} onChange={(e) => set("contactName", e.target.value)} />
         </div>
         <div>
-          <Label>Contact phone</Label>
+          <Label>Contact Phone</Label>
           <Input aria-label="Contact phone" value={form.contactPhone} onChange={(e) => set("contactPhone", e.target.value)} />
         </div>
         <div className="md:col-span-2">

@@ -139,7 +139,7 @@ export function FeedPlanPanel({
       {rations.map((r, ri) => (
         <div key={ri} className="rounded-md border p-3">
           <div className="mb-2 flex items-center gap-2">
-            <Label className="text-xs">Time slot</Label>
+            <Label className="text-xs">Time Slot</Label>
             <Input aria-label="Time slot"
               value={r.time}
               onChange={(e) => setRation(ri, { time: e.target.value })}

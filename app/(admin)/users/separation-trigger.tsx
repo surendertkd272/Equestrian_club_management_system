@@ -72,7 +72,7 @@ export function SeparationTrigger({
         </Select>
       </div>
       <div className="space-y-1.5">
-        <Label>Notice text *</Label>
+        <Label>Notice Text *</Label>
         <textarea
           value={noticeText}
           onChange={(e) => setNoticeText(e.target.value)}
@@ -86,7 +86,7 @@ export function SeparationTrigger({
         />
       </div>
       <div className="space-y-1.5">
-        <Label>Effective date (defaults to 30 days)</Label>
+        <Label>Effective Date (defaults to 30 days)</Label>
         <Input aria-label="Effective date (defaults to 30 days)" type="date" value={effectiveAt} onChange={(e) => setEffectiveAt(e.target.value)} />
       </div>
       <div className="flex justify-end gap-2 pt-1">

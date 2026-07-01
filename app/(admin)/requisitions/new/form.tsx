@@ -100,7 +100,7 @@ export function NewRequisitionForm({
       )}
 
       <div className="space-y-1.5">
-        <Label>Reason / context</Label>
+        <Label>Reason / Context</Label>
         <Textarea
           rows={2}
           value={reason}

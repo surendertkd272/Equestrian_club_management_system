@@ -203,7 +203,7 @@ function CertsPanel({
       <CardContent>
         <div className="grid gap-2 sm:grid-cols-2">
           <div>
-            <Label className="text-xs">Staff member</Label>
+            <Label className="text-xs">Staff Member</Label>
             <Select aria-label="Staff member" value={form.userId} onChange={(e) => set("userId", e.target.value)}>
               {staff.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -213,7 +213,7 @@ function CertsPanel({
             </Select>
           </div>
           <div>
-            <Label className="text-xs">Linked course (optional)</Label>
+            <Label className="text-xs">Linked Course (optional)</Label>
             <Select aria-label="Linked course (optional)" value={form.courseId} onChange={(e) => set("courseId", e.target.value)}>
               <option value="">External / standalone</option>
               {courses.filter((c) => c.active).map((c) => (
@@ -242,7 +242,7 @@ function CertsPanel({
             <Input aria-label="Serial #" value={form.serialNo} onChange={(e) => set("serialNo", e.target.value)} />
           </div>
           <div>
-            <Label className="text-xs">Valid until (optional)</Label>
+            <Label className="text-xs">Valid Until (optional)</Label>
             <Input aria-label="Valid until (optional)"
               type="date"
               value={form.validUntil}

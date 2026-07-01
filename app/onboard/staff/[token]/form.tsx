@@ -176,13 +176,13 @@ export function OnboardingForm({
       <Card>
         <CardHeader><CardTitle className="text-base">Personal Details</CardTitle></CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1"><Label>Full name *</Label><Input aria-label="Full name" value={f.fullName} onChange={(e) => set("fullName", e.target.value)} required /></div>
-          <div className="space-y-1"><Label>Father&apos;s name</Label><Input aria-label="Father&apos;s name" value={f.fatherName} onChange={(e) => set("fatherName", e.target.value)} /></div>
-          <div className="space-y-1"><Label>Emergency contact (name &amp; no.)</Label><Input aria-label="Emergency contact (name &amp; no.)" value={f.emergencyContact} onChange={(e) => set("emergencyContact", e.target.value)} /></div>
-          <div className="space-y-1"><Label>Date of birth</Label><Input aria-label="Date of birth" type="date" value={f.dob} onChange={(e) => set("dob", e.target.value)} /></div>
+          <div className="space-y-1"><Label>Full Name *</Label><Input aria-label="Full name" value={f.fullName} onChange={(e) => set("fullName", e.target.value)} required /></div>
+          <div className="space-y-1"><Label>Father&apos;s Name</Label><Input aria-label="Father&apos;s name" value={f.fatherName} onChange={(e) => set("fatherName", e.target.value)} /></div>
+          <div className="space-y-1"><Label>Emergency Contact (name &amp; no.)</Label><Input aria-label="Emergency contact (name &amp; no.)" value={f.emergencyContact} onChange={(e) => set("emergencyContact", e.target.value)} /></div>
+          <div className="space-y-1"><Label>Date of Birth</Label><Input aria-label="Date of birth" type="date" value={f.dob} onChange={(e) => set("dob", e.target.value)} /></div>
           <div className="space-y-1"><Label>Email *</Label><Input aria-label="Email" type="email" value={f.email} onChange={(e) => set("email", e.target.value)} required /></div>
           <div className="space-y-1">
-            <Label>Marital status</Label>
+            <Label>Marital Status</Label>
             <Select aria-label="Marital status" value={f.maritalStatus} onChange={(e) => set("maritalStatus", e.target.value)}>
               <option value="">—</option>
               <option value="single">Single</option>
@@ -190,7 +190,7 @@ export function OnboardingForm({
               <option value="other">Other</option>
             </Select>
           </div>
-          <div className="space-y-1 sm:col-span-2"><Label>Permanent address</Label><Textarea aria-label="Permanent address" rows={2} value={f.permanentAddress} onChange={(e) => set("permanentAddress", e.target.value)} /></div>
+          <div className="space-y-1 sm:col-span-2"><Label>Permanent Address</Label><Textarea aria-label="Permanent address" rows={2} value={f.permanentAddress} onChange={(e) => set("permanentAddress", e.target.value)} /></div>
           <Upload field="photoUrl" label="Passport Photo" />
         </CardContent>
       </Card>
@@ -198,13 +198,13 @@ export function OnboardingForm({
       <Card>
         <CardHeader><CardTitle className="text-base">Identity &amp; Bank</CardTitle></CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1"><Label>Aadhaar number</Label><Input aria-label="Aadhaar number" value={f.aadhaarNumber} onChange={(e) => set("aadhaarNumber", e.target.value)} /></div>
+          <div className="space-y-1"><Label>Aadhaar Number</Label><Input aria-label="Aadhaar number" value={f.aadhaarNumber} onChange={(e) => set("aadhaarNumber", e.target.value)} /></div>
           <Upload field="aadhaarUrl" label="Aadhaar Card" />
-          <div className="space-y-1"><Label>PAN number</Label><Input aria-label="PAN number" value={f.panNumber} onChange={(e) => set("panNumber", e.target.value.toUpperCase())} /></div>
+          <div className="space-y-1"><Label>PAN Number</Label><Input aria-label="PAN number" value={f.panNumber} onChange={(e) => set("panNumber", e.target.value.toUpperCase())} /></div>
           <Upload field="panUrl" label="PAN Card" />
-          <div className="space-y-1"><Label>Bank name</Label><Input aria-label="Bank name" value={f.bankName} onChange={(e) => set("bankName", e.target.value)} /></div>
-          <div className="space-y-1"><Label>Account holder name</Label><Input aria-label="Account holder name" value={f.bankAccountName} onChange={(e) => set("bankAccountName", e.target.value)} /></div>
-          <div className="space-y-1"><Label>Account number</Label><Input aria-label="Account number" value={f.bankAccountNumber} onChange={(e) => set("bankAccountNumber", e.target.value)} /></div>
+          <div className="space-y-1"><Label>Bank Name</Label><Input aria-label="Bank name" value={f.bankName} onChange={(e) => set("bankName", e.target.value)} /></div>
+          <div className="space-y-1"><Label>Account Holder Name</Label><Input aria-label="Account holder name" value={f.bankAccountName} onChange={(e) => set("bankAccountName", e.target.value)} /></div>
+          <div className="space-y-1"><Label>Account Number</Label><Input aria-label="Account number" value={f.bankAccountNumber} onChange={(e) => set("bankAccountNumber", e.target.value)} /></div>
           <div className="space-y-1"><Label>IFSC</Label><Input aria-label="IFSC" value={f.bankIfsc} onChange={(e) => set("bankIfsc", e.target.value.toUpperCase())} /></div>
           <Upload field="bankProofUrl" label="Bank proof (cancelled cheque / passbook)" />
         </CardContent>
@@ -214,27 +214,27 @@ export function OnboardingForm({
         <CardHeader><CardTitle className="text-base">Employment</CardTitle></CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1">
-            <Label>Employment type</Label>
+            <Label>Employment Type</Label>
             <Select aria-label="Employment type" value={f.employmentType} onChange={(e) => set("employmentType", e.target.value)}>
               <option value="">—</option>
               <option value="full_time">Full Employment</option>
               <option value="trainee_stipend">Trainee on Stipend</option>
             </Select>
           </div>
-          <div className="space-y-1"><Label>Date of joining</Label><Input aria-label="Date of joining" type="date" value={f.dateOfJoining} onChange={(e) => set("dateOfJoining", e.target.value)} /></div>
-          <div className="space-y-1"><Label>Agreed monthly salary (₹)</Label><Input aria-label="Agreed monthly salary (₹)" type="number" min={0} value={f.agreedSalary} onChange={(e) => set("agreedSalary", e.target.value)} /></div>
-          <div className="space-y-1"><Label>Agreed monthly food charges (₹)</Label><Input aria-label="Agreed monthly food charges (₹)" type="number" min={0} value={f.foodCharges} onChange={(e) => set("foodCharges", e.target.value)} /></div>
-          <div className="space-y-1 sm:col-span-2"><Label>Any other allowances agreed</Label><Input aria-label="Any other allowances agreed" value={f.otherAllowances} onChange={(e) => set("otherAllowances", e.target.value)} /></div>
+          <div className="space-y-1"><Label>Date of Joining</Label><Input aria-label="Date of joining" type="date" value={f.dateOfJoining} onChange={(e) => set("dateOfJoining", e.target.value)} /></div>
+          <div className="space-y-1"><Label>Agreed Monthly Salary (₹)</Label><Input aria-label="Agreed monthly salary (₹)" type="number" min={0} value={f.agreedSalary} onChange={(e) => set("agreedSalary", e.target.value)} /></div>
+          <div className="space-y-1"><Label>Agreed Monthly Food Charges (₹)</Label><Input aria-label="Agreed monthly food charges (₹)" type="number" min={0} value={f.foodCharges} onChange={(e) => set("foodCharges", e.target.value)} /></div>
+          <div className="space-y-1 sm:col-span-2"><Label>Any Other Allowances Agreed</Label><Input aria-label="Any other allowances agreed" value={f.otherAllowances} onChange={(e) => set("otherAllowances", e.target.value)} /></div>
           <label className="flex items-center gap-2 text-sm sm:col-span-2">
             <input type="checkbox" checked={pfEsicConsent} onChange={(e) => setPfEsicConsent(e.target.checked)} />
             I agree to register for PF / ESIC
           </label>
-          <div className="space-y-1 sm:col-span-2"><Label>Previous employment details</Label><Textarea aria-label="Previous employment details" rows={2} value={f.prevEmployment} onChange={(e) => set("prevEmployment", e.target.value)} placeholder="Employer, role, duration…" /></div>
+          <div className="space-y-1 sm:col-span-2"><Label>Previous Employment Details</Label><Textarea aria-label="Previous employment details" rows={2} value={f.prevEmployment} onChange={(e) => set("prevEmployment", e.target.value)} placeholder="Employer, role, duration…" /></div>
           <Upload field="prevEmploymentUrl" label="Previous Employment Certificate (Self-Attested)" />
           <Upload field="characterCertUrl" label="Character Certificate (Last Organisation)" />
-          <div className="space-y-1 sm:col-span-2"><Label>Police verification details</Label><Input aria-label="Police verification details" value={f.policeVerificationDetails} onChange={(e) => set("policeVerificationDetails", e.target.value)} /></div>
+          <div className="space-y-1 sm:col-span-2"><Label>Police Verification Details</Label><Input aria-label="Police verification details" value={f.policeVerificationDetails} onChange={(e) => set("policeVerificationDetails", e.target.value)} /></div>
           <Upload field="policeVerificationUrl" label="Police Verification Certificate" />
-          <div className="space-y-1 sm:col-span-2"><Label>Two references (name &amp; contact)</Label><Textarea aria-label="Two references (name &amp; contact)" rows={2} value={f.references} onChange={(e) => set("references", e.target.value)} /></div>
+          <div className="space-y-1 sm:col-span-2"><Label>Two References (name &amp; contact)</Label><Textarea aria-label="Two references (name &amp; contact)" rows={2} value={f.references} onChange={(e) => set("references", e.target.value)} /></div>
         </CardContent>
       </Card>
 
@@ -258,7 +258,7 @@ export function OnboardingForm({
             I accept the self-declaration above.
           </label>
           <div className="space-y-1">
-            <Label>Type your full name to accept (legal e-signature) *</Label>
+            <Label>Type Your Full Name to Accept (legal e-signature) *</Label>
             <Input aria-label="Type your full name to accept (legal e-signature)" value={declarationName} onChange={(e) => setDeclarationName(e.target.value)} placeholder="Your full legal name" />
           </div>
         </CardContent>

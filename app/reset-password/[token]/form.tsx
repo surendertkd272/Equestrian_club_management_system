@@ -64,7 +64,7 @@ export function ResetForm({ token }: { token: string }) {
   return (
     <form onSubmit={submit} className="space-y-3">
       <div>
-        <Label htmlFor="rp-1">New password</Label>
+        <Label htmlFor="rp-1">New Password</Label>
         <Input
           id="rp-1"
           type="password"

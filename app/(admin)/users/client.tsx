@@ -556,7 +556,7 @@ export function NewUserCard({
       <CardContent>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <Label htmlFor="nu-name">Full name *</Label>
+            <Label htmlFor="nu-name">Full Name *</Label>
             <Input id="nu-name" value={form.name} onChange={(e) => set("name", e.target.value)} />
           </div>
           <div>

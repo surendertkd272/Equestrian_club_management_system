@@ -212,7 +212,7 @@ export function MonthlySkillsClient({ yearMonth, canEdit, skills, riders, initia
     <div className="space-y-4">
       <div className="flex flex-wrap items-end gap-3">
         <div>
-          <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Month</label>
+          <label className="text-[10px] tracking-wider text-muted-foreground">Month</label>
           <Input
             type="month"
             value={pickerMonth}
@@ -223,7 +223,7 @@ export function MonthlySkillsClient({ yearMonth, canEdit, skills, riders, initia
         {canEdit && (
           <div className="flex-1 min-w-[280px] space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <label className="text-[10px] tracking-wider text-muted-foreground">
                 Add skills to track this month
               </label>
               {draftSkills.length > 0 && (

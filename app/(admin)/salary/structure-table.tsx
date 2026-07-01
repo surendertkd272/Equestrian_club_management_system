@@ -117,15 +117,15 @@ export function SalaryStructureTable({ staff, canEdit }: { staff: StaffRow[]; ca
                       <td colSpan={5} className="px-2 py-3">
                         <div className="flex flex-wrap items-end gap-3">
                           <div>
-                            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Monthly salary (₹)</label>
+                            <label className="text-[10px] tracking-wider text-muted-foreground">Monthly Salary (₹)</label>
                             <Input type="number" value={form.monthlySalary} onChange={(e) => setForm((f) => ({ ...f, monthlySalary: e.target.value }))} className="w-36" />
                           </div>
                           <div>
-                            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Effective from</label>
+                            <label className="text-[10px] tracking-wider text-muted-foreground">Effective From</label>
                             <Input type="date" value={form.effectiveFrom} onChange={(e) => setForm((f) => ({ ...f, effectiveFrom: e.target.value }))} className="w-40" />
                           </div>
                           <div className="flex-1 min-w-[160px]">
-                            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Note (optional)</label>
+                            <label className="text-[10px] tracking-wider text-muted-foreground">Note (optional)</label>
                             <Input value={form.note} onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))} placeholder="Annual increment" />
                           </div>
                           <Button size="sm" onClick={() => save(row.id)} disabled={busy}>{busy ? "Saving…" : "Save"}</Button>

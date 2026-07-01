@@ -108,7 +108,7 @@ export function OffboardPanel({
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <Label className="text-xs text-muted-foreground">Grace days</Label>
+          <Label className="text-xs text-muted-foreground">Grace Days</Label>
           <Input aria-label="Grace days"
             type="number"
             min={0}

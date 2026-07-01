@@ -114,7 +114,7 @@ export function RiderPortalPanel({
             Create a sign-in for this rider so they can view their attendance / skills / exam results.
           </div>
           <div>
-            <Label htmlFor={`r-portal-${riderId}`}>Rider email</Label>
+            <Label htmlFor={`r-portal-${riderId}`}>Rider Email</Label>
             <Input
               id={`r-portal-${riderId}`}
               type="email"

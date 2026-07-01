@@ -99,7 +99,7 @@ export default async function AccreditationsListPage({
         <CardHeader>
           <form method="get" className="flex flex-wrap items-end gap-2 text-sm">
             <div>
-              <label className="mb-1 block text-xs uppercase text-muted-foreground">Body</label>
+              <label className="mb-1 block text-xs text-muted-foreground">Body</label>
               <select aria-label="Filter by body"
                 name="body"
                 defaultValue={searchParams.body ?? ""}
@@ -112,7 +112,7 @@ export default async function AccreditationsListPage({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs uppercase text-muted-foreground">Status</label>
+              <label className="mb-1 block text-xs text-muted-foreground">Status</label>
               <select aria-label="Filter by status"
                 name="status"
                 defaultValue={searchParams.status ?? ""}

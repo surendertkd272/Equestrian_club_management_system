@@ -64,7 +64,7 @@ export function OwnerResetForm({ token }: { token: string }) {
   return (
     <form onSubmit={submit} className="space-y-3">
       <div>
-        <Label htmlFor="orp-1" className="text-slate-300">New password</Label>
+        <Label htmlFor="orp-1" className="text-slate-300">New Password</Label>
         <Input
           id="orp-1"
           type="password"

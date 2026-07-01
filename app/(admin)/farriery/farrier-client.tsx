@@ -76,7 +76,7 @@ export function FarrierClient({ horses }: { horses: Horse[] }) {
             </Select>
           </div>
           <div>
-            <Label>Farrier name</Label>
+            <Label>Farrier Name</Label>
             <Input aria-label="Farrier name" value={form.farrierName} onChange={(e) => set("farrierName", e.target.value)} />
           </div>
           <div>

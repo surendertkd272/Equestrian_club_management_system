@@ -68,7 +68,7 @@ export function BulkIssuePanel({
       <CardContent className="space-y-3">
         <div className="grid gap-3 md:grid-cols-3">
           <div>
-            <label className="text-xs uppercase text-muted-foreground">Source kind</label>
+            <label className="text-xs text-muted-foreground">Source Kind</label>
             <Select
               value={source}
               onChange={(e) => {
@@ -81,7 +81,7 @@ export function BulkIssuePanel({
             </Select>
           </div>
           <div className="md:col-span-2">
-            <label className="text-xs uppercase text-muted-foreground">Source</label>
+            <label className="text-xs text-muted-foreground">Source</label>
             <Select value={sourceId} onChange={(e) => setSourceId(e.target.value)}>
               <option value="">— Choose —</option>
               {list.map((x) => (

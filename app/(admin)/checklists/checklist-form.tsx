@@ -88,7 +88,7 @@ export function ChecklistSubmissionForm({ templateId, scope, items, horses }: Pr
     <div className="space-y-4">
       {scope === "general" && (
         <div className="max-w-xs">
-          <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Shift</label>
+          <label className="text-[10px] tracking-wider text-muted-foreground">Shift</label>
           <Select value={shift} onChange={(e) => setShift(e.target.value as "morning" | "evening")}>
             <option value="morning">Morning</option>
             <option value="evening">Evening</option>
@@ -97,7 +97,7 @@ export function ChecklistSubmissionForm({ templateId, scope, items, horses }: Pr
       )}
       {scope === "per_horse" && (
         <div className="max-w-xs">
-          <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          <label className="text-[10px] tracking-wider text-muted-foreground">
             Horse
           </label>
           {horses.length === 0 ? (
@@ -170,7 +170,7 @@ export function ChecklistSubmissionForm({ templateId, scope, items, horses }: Pr
       ))}
 
       <div>
-        <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+        <label className="text-[10px] tracking-wider text-muted-foreground">
           General notes (optional)
         </label>
         <Textarea

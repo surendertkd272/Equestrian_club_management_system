@@ -170,7 +170,7 @@ export function NewVendorForm({
         </Select>
       </div>
       <div className="space-y-1.5 md:col-span-2">
-        <Label>Delivery coverage *</Label>
+        <Label>Delivery Coverage *</Label>
         <Select aria-label="Delivery coverage" value={form.deliveryScope} onChange={(e) => set("deliveryScope", e.target.value as "centre" | "national")}>
           <option value="centre">Centre-specific — only this club uses it</option>
           <option value="national">All-India — delivers to every club</option>
@@ -190,7 +190,7 @@ export function NewVendorForm({
         </div>
       )}
       <div className="space-y-1.5">
-        <Label>Contact person</Label>
+        <Label>Contact Person</Label>
         <Input aria-label="Contact person" value={form.contactName} onChange={(e) => set("contactName", e.target.value)} />
       </div>
       <div className="space-y-1.5">
@@ -213,24 +213,24 @@ export function NewVendorForm({
       {/* Bank details — optional, all four collapsed to one row to keep
           the common case (no bank info) visually quiet. */}
       <fieldset className="md:col-span-2 rounded-md border bg-muted/30 p-3 space-y-3">
-        <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <legend className="px-1 text-xs font-semibold tracking-wide text-muted-foreground">
           Bank details (optional — for NEFT / IMPS payouts)
         </legend>
         <div className="grid gap-3 md:grid-cols-2">
           <div className="space-y-1.5">
-            <Label className="text-xs">Account holder name</Label>
+            <Label className="text-xs">Account Holder Name</Label>
             <Input aria-label="Account holder name" value={form.bankAccountName} onChange={(e) => set("bankAccountName", e.target.value)} placeholder="As on bank record" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Bank name</Label>
+            <Label className="text-xs">Bank Name</Label>
             <Input aria-label="Bank name" value={form.bankName} onChange={(e) => set("bankName", e.target.value)} placeholder="SBI / HDFC / ICICI / …" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Account number</Label>
+            <Label className="text-xs">Account Number</Label>
             <Input aria-label="Account number" value={form.bankAccountNumber} onChange={(e) => set("bankAccountNumber", e.target.value)} placeholder="123456789012" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">IFSC code</Label>
+            <Label className="text-xs">IFSC Code</Label>
             <Input aria-label="IFSC code"
               value={form.bankIfsc}
               onChange={(e) => set("bankIfsc", e.target.value.toUpperCase())}
@@ -253,12 +253,12 @@ export function NewVendorForm({
       {/* Per-category extra fields */}
       {form.category === "vet" && (
         <fieldset className="md:col-span-2 rounded-md border bg-muted/30 p-3 space-y-3">
-          <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <legend className="px-1 text-xs font-semibold tracking-wide text-muted-foreground">
             Vet doctor registration
           </legend>
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-1.5">
-              <Label>VCI / Council reg # *</Label>
+              <Label>VCI / Council Reg # *</Label>
               <Input aria-label="VCI / Council reg #"
                 value={vet.vciNumber}
                 onChange={(e) => setVet({ ...vet, vciNumber: e.target.value })}
@@ -284,7 +284,7 @@ export function NewVendorForm({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Years of practice</Label>
+              <Label>Years of Practice</Label>
               <Input aria-label="Years of practice"
                 type="number"
                 min={0}
@@ -304,7 +304,7 @@ export function NewVendorForm({
               </label>
             </div>
             <div className="space-y-1.5 md:col-span-2">
-              <Label>Clinic / hospital affiliation</Label>
+              <Label>Clinic / Hospital Affiliation</Label>
               <Input aria-label="Clinic / hospital affiliation"
                 value={vet.clinicAffiliation}
                 onChange={(e) => setVet({ ...vet, clinicAffiliation: e.target.value })}
@@ -317,12 +317,12 @@ export function NewVendorForm({
 
       {form.category === "farrier" && (
         <fieldset className="md:col-span-2 rounded-md border bg-muted/30 p-3 space-y-3">
-          <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <legend className="px-1 text-xs font-semibold tracking-wide text-muted-foreground">
             Farrier registration
           </legend>
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-1.5">
-              <Label>Years of experience *</Label>
+              <Label>Years of Experience *</Label>
               <Input aria-label="Years of experience"
                 type="number"
                 min={0}
@@ -332,7 +332,7 @@ export function NewVendorForm({
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Hourly / per-horse rate (₹)</Label>
+              <Label>Hourly / Per-Horse Rate (₹)</Label>
               <Input aria-label="Hourly / per-horse rate (₹)"
                 type="number"
                 min={0}
@@ -356,7 +356,7 @@ export function NewVendorForm({
               </div>
             </div>
             <div className="space-y-1.5 md:col-span-2">
-              <Label>Available days</Label>
+              <Label>Available Days</Label>
               <div className="flex flex-wrap gap-2">
                 {WEEKDAYS.map((d) => (
                   <label key={d} className="inline-flex items-center gap-1 rounded-md border bg-card px-2 py-1 text-xs">

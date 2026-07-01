@@ -118,7 +118,7 @@ export function OwnerLoginForm({ next, devMode = false }: { next: string; devMod
       )}
       {needTotp && useRecovery && (
         <div className="space-y-1.5">
-          <Label htmlFor="owner-recovery" className="text-slate-200">Recovery code</Label>
+          <Label htmlFor="owner-recovery" className="text-slate-200">Recovery Code</Label>
           <Input
             id="owner-recovery"
             type="text"

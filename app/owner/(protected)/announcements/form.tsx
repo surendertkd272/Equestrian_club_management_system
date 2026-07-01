@@ -84,7 +84,7 @@ export function NewAnnouncementForm() {
         <Input aria-label="Expires (optional)" type="datetime-local" value={form.expiresAt} onChange={(e) => set("expiresAt", e.target.value)} className="border-border bg-background text-foreground" />
       </div>
       <div>
-        <Label className="text-xs text-muted-foreground">CTA label</Label>
+        <Label className="text-xs text-muted-foreground">CTA Label</Label>
         <Input aria-label="CTA label" value={form.ctaLabel} onChange={(e) => set("ctaLabel", e.target.value)} className="border-border bg-background text-foreground" />
       </div>
       <div>
@@ -92,11 +92,11 @@ export function NewAnnouncementForm() {
         <Input aria-label="CTA URL (https://…)" value={form.ctaHref} onChange={(e) => set("ctaHref", e.target.value)} className="border-border bg-background text-foreground" />
       </div>
       <div>
-        <Label className="text-xs text-muted-foreground">Plan filter (CSV, e.g. "starter,pro")</Label>
+        <Label className="text-xs text-muted-foreground">Plan Filter (CSV, e.g. "starter,pro")</Label>
         <Input aria-label="Plan filter (CSV, e.g. &quot;starter,pro&quot;)" value={form.planFilter} onChange={(e) => set("planFilter", e.target.value)} className="border-border bg-background text-foreground" />
       </div>
       <div>
-        <Label className="text-xs text-muted-foreground">Role filter (CSV, e.g. "CENTRE_MANAGER,COACH")</Label>
+        <Label className="text-xs text-muted-foreground">Role Filter (CSV, e.g. "CENTRE_MANAGER,COACH")</Label>
         <Input aria-label="Role filter (CSV, e.g. &quot;CENTRE_MANAGER,COACH&quot;)" value={form.roleFilter} onChange={(e) => set("roleFilter", e.target.value)} className="border-border bg-background text-foreground" />
       </div>
       <div className="md:col-span-2 flex justify-end">

@@ -100,13 +100,13 @@ export default async function EventDetailPage({ params }: { params: { id: string
             <dd>{ev.fee > 0 ? `₹${ev.fee.toLocaleString("en-IN")}` : "Free"}</dd>
             {ev.externalVenue && (
               <>
-                <dt className="text-muted-foreground">External venue</dt>
+                <dt className="text-muted-foreground">External Venue</dt>
                 <dd className="md:col-span-3">{ev.externalVenue}</dd>
               </>
             )}
             {ev.externalHostOrg && (
               <>
-                <dt className="text-muted-foreground">Hosting organisation</dt>
+                <dt className="text-muted-foreground">Hosting Organisation</dt>
                 <dd className="md:col-span-3">{ev.externalHostOrg}</dd>
               </>
             )}

@@ -134,7 +134,7 @@ export function InspectionSheet({
 
       {!completed ? (
         <div className="space-y-2 rounded-md border bg-muted/30 p-3">
-          <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Summary / overall remarks</label>
+          <label className="text-[10px] tracking-wider text-muted-foreground">Summary / Overall Remarks</label>
           <Textarea rows={2} value={summary} onChange={(e) => setSummary(e.target.value)} maxLength={1000} />
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">
