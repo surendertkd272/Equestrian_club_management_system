@@ -115,7 +115,10 @@
       "Bash(rm -f ./ztest_tmp.mjs)",
       "Bash(grep -rn \"staff/.*edit\\\\|/staff/\\\\${.*}/edit\\\\|edit\" app/\\\\\\(admin\\\\\\)/staff/)",
       "Bash(git -C \"/Users/surenderyadav/Equiwings CMS\" diff \"app/\\(admin\\)/staff/[id]/page.tsx\")",
-      "Bash(vercel whoami *)"
+      "Bash(vercel whoami *)",
+      "Bash(DATABASE_URL=\"file:./dev.db\" npx vitest run lib/email.test.ts)",
+      "Bash(cd \"/Users/surenderyadav/Equiwings CMS\" && rm -rf \"app/verify-email/[token]\" && find app/verify-email -type f)",
+      "Bash(grep -rn \"issueEmailVerifyToken\\\\|redeemEmailVerifyToken\\\\|verify-email/\\\\${\" --include=\"*.ts\" --include=\"*.tsx\" .)"
     ],
     "additionalDirectories": [
       "/Users/surenderyadav/Equiwings CMS/app/api/exams/[id]",
@@ -139,7 +142,8 @@
       "/Users/surenderyadav/Equiwings CMS/app/api/riders/[id]",
       "/Users/surenderyadav/Equiwings CMS/app/api/centres",
       "/Users/surenderyadav/Equiwings CMS/app/api/users/[id]",
-      "/Users/surenderyadav/Equiwings CMS/app/events/[slug]"
+      "/Users/surenderyadav/Equiwings CMS/app/events/[slug]",
+      "/Users/surenderyadav/Equiwings CMS/app/verify-email/[token]"
     ]
   }
 }
