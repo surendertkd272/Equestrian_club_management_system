@@ -16,7 +16,7 @@ import { hashPassword } from "./auth";
 import { FEATURE_KEYS, type FeatureKey } from "./features";
 import { planFeatures, type PlanKey } from "./plans";
 import { bootstrapCentreCatalog } from "./centre-bootstrap";
-import { issueEmailVerifyToken } from "./email-verify";
+import { issueEmailVerifyCode } from "./email-verify";
 import { sendEmail, renderEmail } from "./email";
 import type { CreateTenantInput } from "./schemas/tenant-create";
 
@@ -114,9 +114,9 @@ export async function provisionTenant(
   // failure shouldn't roll back tenant creation; the owner can request a
   // resend from the tenant detail page.
   try {
-    const verifyToken = await issueEmailVerifyToken(result.superAdminId, input.superAdmin.email);
+    const verifyCode = await issueEmailVerifyCode(result.superAdminId, input.superAdmin.email);
     const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-    const verifyLink = `${base}/verify-email/${verifyToken}`;
+    const verifyPageUrl = `${base}/verify-email?email=${encodeURIComponent(input.superAdmin.email)}`;
     await sendEmail({
       to: input.superAdmin.email,
       subject: `Welcome to Equiwings, ${input.name}`,
@@ -125,11 +125,13 @@ export async function provisionTenant(
         heading: `Welcome aboard, ${input.superAdmin.name.split(" ")[0]}!`,
         body: `<p>Your Equiwings tenant <strong>${input.name}</strong> is live. A few next steps:</p>
 <ol style="line-height:1.7;padding-left:18px">
-  <li><strong>Verify your email</strong> — <a href="${verifyLink}" style="color:#0f172a">click here</a>. The link expires in 7 days.</li>
+  <li><strong>Verify your email</strong> — enter this code at <a href="${verifyPageUrl}" style="color:#0f172a">${verifyPageUrl}</a>. It expires in 10 minutes.
+    <p style="font-size:28px;font-weight:700;letter-spacing:0.15em;margin:12px 0;">${verifyCode}</p>
+  </li>
   <li><strong>Sign in</strong> at <a href="${base}/login">${base}/login</a> with the temporary password your onboarding agent shared. You'll be asked to set a permanent one immediately.</li>
   <li><strong>Invite your team</strong> from Settings → Users. Coaches, examiners, vets, accountants — each gets their own role-scoped login.</li>
   <li><strong>Add your first riders</strong> via Riders → New, or share <a href="${base}/onboarding?centre=${input.centre.slug}">your centre's signup link</a> with parents.</li>
-  <li><strong>Set up your fee plans</strong> at Finance → Fee Plans so registration invoices auto-generate.</li>
+  <li><strong>Set up your fee plans</strong> at Club Catalog so registration invoices auto-generate.</li>
 </ol>
 <p style="margin-top:20px"><strong>Need help?</strong> Reply to this email — we read every message.</p>`,
       }),

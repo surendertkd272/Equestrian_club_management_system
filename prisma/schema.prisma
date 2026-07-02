@@ -754,22 +754,30 @@ model PasswordResetToken {
   @@index([userId, expiresAt])
 }
 
-// Email verification token. Same shape as PasswordResetToken — SHA-256
-// hashed, single-use, 7-day TTL. Issued at user creation (super-admin
-// onboarding + new admin-created users) and on email-change requests.
-// Verification flips User.emailVerifiedAt and consumes the row.
+// Email verification code (OTP). SHA-256 hashed, single-use, 10-minute TTL.
+// Issued at user creation (super-admin onboarding + new admin-created users)
+// and on email-change requests. Verification flips User.emailVerifiedAt and
+// consumes the row.
+//
+// Looked up by (userId, usedAt: null) rather than a unique hash — unlike the
+// old 32-byte link token, a 6-digit code has too little entropy to double as
+// a global lookup key (an attacker could probe random code hashes hoping to
+// hit *any* live row without even knowing a target email). `attempts` caps
+// guesses per issued code; issuing a new code invalidates any still-live one
+// for the same user so at most one code is guessable at a time.
 model EmailVerifyToken {
   id        String   @id @default(cuid())
   userId    String
   email     String   // snapshot of the address being verified (in case it changes mid-flow)
-  tokenHash String   @unique
+  codeHash  String
+  attempts  Int      @default(0)
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, expiresAt])
+  @@index([userId, usedAt])
 }
 
 // Same shape as PasswordResetToken but for PlatformUser (owner portal). Kept

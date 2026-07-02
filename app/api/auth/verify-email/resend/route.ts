@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { issueEmailVerifyToken } from "@/lib/email-verify";
+import { issueEmailVerifyCode } from "@/lib/email-verify";
 import { sendEmail, renderEmail } from "@/lib/email";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 
@@ -32,9 +32,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  const token = await issueEmailVerifyToken(user.id, user.email);
+  const code = await issueEmailVerifyCode(user.id, user.email);
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const link = `${base}/verify-email/${token}`;
+  const verifyPageUrl = `${base}/verify-email?email=${encodeURIComponent(user.email)}`;
 
   await sendEmail({
     to: user.email,
@@ -43,11 +43,11 @@ export async function POST(req: NextRequest) {
       centreName: "Equiwings",
       heading: "Verify your email",
       body: `<p>Hi ${user.name},</p>
-<p>Click the button below to confirm your email address. The link expires in 7 days.</p>
-<p><a href="${link}" style="display:inline-block;padding:10px 20px;background:#0f172a;color:#fff;border-radius:6px;text-decoration:none">Verify email</a></p>
-<p style="font-size:12px;color:#666">Or paste this URL: <code>${link}</code></p>`,
+<p>Enter this code to confirm your email address. It expires in 10 minutes.</p>
+<p style="font-size:32px;font-weight:700;letter-spacing:0.15em;margin:20px 0;">${code}</p>
+<p><a href="${verifyPageUrl}" style="color:#0f172a">Enter it here</a></p>`,
     }),
-    ref: { type: "auth.email_verify_link", rowId: user.id },
+    ref: { type: "auth.email_verify_code", rowId: user.id },
   });
 
   return NextResponse.json({ ok: true });
