@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, FileText, Pencil } from "lucide-react";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
@@ -40,7 +40,15 @@ export default async function StaffProfilePage({ params }: { params: { id: strin
             <span>· joined {formatDate(staff.joiningDate)}</span>
           </div>
         </div>
-        <PrintControl staffId={staff.id} docs={docs.map((d) => ({ key: d.key, label: d.label }))} />
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/staff/${staff.id}/edit`}
+            className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm font-medium hover:bg-muted"
+          >
+            <Pencil className="h-4 w-4" /> Edit
+          </Link>
+          <PrintControl staffId={staff.id} docs={docs.map((d) => ({ key: d.key, label: d.label }))} />
+        </div>
       </div>
 
       <Card>

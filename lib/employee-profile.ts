@@ -152,6 +152,11 @@ export async function loadEmployeeProfile(staffId: string, centreId: string | nu
   const record = ob
     ? (ob as unknown as Record<string, unknown>)
     : synthRecordFromStaff(staff, staff.user);
+  // Staff.joiningDate is the authoritative, editable joining date (staff edit
+  // form). The onboarding row carries its own dateOfJoining snapshot from
+  // submission time; surface the live value so the profile + print packet don't
+  // show a stale date after an admin corrects it.
+  record.dateOfJoining = staff.joiningDate;
 
   return {
     staff: {
