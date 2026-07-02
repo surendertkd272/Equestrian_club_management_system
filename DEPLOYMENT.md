@@ -148,27 +148,27 @@ you're going through a BSP that proxies Meta).
 
 ---
 
-## 6. Email DNS — SPF + DKIM + DMARC
+## 6. Email DNS — SPF + DKIM + DMARC (Resend)
 
 Without these, Gmail and Yahoo flag emails as spam from the first send.
 
-Add three TXT records to your sending domain:
+1. Resend → **Domains → Add Domain** → enter the domain (or subdomain,
+   e.g. `mail.equiwings.in`) `RESEND_FROM_EMAIL` will send from.
+2. Resend shows the exact records to add — typically an MX, a TXT for
+   SPF, and a TXT for DKIM, scoped to that domain. **Copy them verbatim
+   from the dashboard** — the values are domain- and account-specific,
+   don't reuse another provider's records.
+3. Also add a DMARC record (Resend doesn't manage this one for you):
 
 ```
-SPF (TXT @)
-  v=spf1 include:sendgrid.net ~all
-
-DKIM (TXT s1._domainkey)
-  <copy from SendGrid → Sender Authentication → DKIM>
-
 DMARC (TXT _dmarc)
   v=DMARC1; p=quarantine; rua=mailto:dmarc@equiwings.in; pct=100; adkim=s; aspf=s
 ```
 
-If you're on a different ESP, swap `include:sendgrid.net` accordingly.
-After publishing, verify in SendGrid's "Sender Authentication" — green
-checks across the board. **Don't deploy before this passes** — bulk
-sender rules at Gmail/Yahoo (Feb 2024) reject unauthenticated mail.
+4. After publishing, return to Resend's Domains page — it re-checks DNS
+   and flips to **Verified** once everything resolves. **Don't deploy
+   before this passes** — bulk sender rules at Gmail/Yahoo (Feb 2024)
+   reject unauthenticated mail.
 
 Verify externally with [dmarcian.com/dmarc-inspector](https://dmarcian.com/dmarc-inspector/).
 
@@ -264,7 +264,7 @@ Expected output:
 ✓ JWT_SECRET is ≥ 32 chars
 ✓ NEXT_PUBLIC_APP_URL is HTTPS in production
 ✓ CRON_SECRET is set
-✓ SENDGRID_API_KEY + SENDGRID_FROM_EMAIL are set
+✓ RESEND_API_KEY + RESEND_FROM_EMAIL are set
 ✓ RAZORPAY_* credentials set
 ✓ Razorpay plan IDs set for all 3 tiers
 ✓ STRIPE_* credentials set (optional, present)

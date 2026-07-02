@@ -1,7 +1,7 @@
-// SendGrid email dispatch. Pure fetch + Bearer auth — no SDK.
+// Resend email dispatch. Pure fetch + Bearer auth — no SDK.
 //
 // Same mental model as lib/sms.ts:
-//   - SENDGRID_API_KEY + SENDGRID_FROM_EMAIL set → real send
+//   - RESEND_API_KEY + RESEND_FROM_EMAIL set → real send
 //   - Otherwise → dry-run: log + audit, never throws
 //
 // Templates are inline HTML — no template engine to keep dep tree small.
@@ -14,7 +14,7 @@ export type SendEmailResult =
   | { ok: false; error: string };
 
 export function isEmailConfigured(): boolean {
-  return Boolean(process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM_EMAIL);
+  return Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
 }
 
 // RFC 5322 is over-engineered; this is the "good-enough" subset.
@@ -83,23 +83,21 @@ export async function sendEmail(opts: {
     return { ok: true, skipped: true };
   }
 
-  const fromEmail = process.env.SENDGRID_FROM_EMAIL!;
-  const fromName = process.env.SENDGRID_FROM_NAME ?? "Equiwings";
+  const fromEmail = process.env.RESEND_FROM_EMAIL!;
+  const fromName = process.env.RESEND_FROM_NAME ?? "Equiwings";
   const body = {
-    personalizations: [{ to: [{ email: opts.to }] }],
-    from: { email: fromEmail, name: fromName },
+    from: `${fromName} <${fromEmail}>`,
+    to: [opts.to],
     subject,
-    content: [
-      ...(opts.text ? [{ type: "text/plain", value: opts.text }] : []),
-      { type: "text/html", value: opts.html },
-    ],
+    html: opts.html,
+    ...(opts.text ? { text: opts.text } : {}),
   };
 
   try {
-    const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
+    const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`,
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
@@ -120,15 +118,16 @@ export async function sendEmail(opts: {
       });
       await logDispatchFailure({
         channel: "email",
-        error: `SENDGRID_${res.status}`,
+        error: `RESEND_${res.status}`,
         recipient: opts.to,
         refType: opts.ref?.type,
         refRowId: opts.ref?.rowId,
       });
-      return { ok: false, error: `SENDGRID_${res.status}` };
+      return { ok: false, error: `RESEND_${res.status}` };
     }
-    // SendGrid returns message id in the X-Message-Id header.
-    const messageId = res.headers.get("x-message-id") ?? undefined;
+    // Resend returns the message id in the JSON body: { id: "..." }.
+    const data: any = await res.json().catch(() => ({}));
+    const messageId = typeof data?.id === "string" ? data.id : undefined;
     await audit({
       action: "email.sent",
       tableName: "email",

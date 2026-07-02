@@ -113,13 +113,13 @@ required("CRON_SECRET", process.env.CRON_SECRET, "without this, /api/cron/sweep 
 
 // ─── Email ──────────────────────────────────────────────────────────────────
 {
-  const key = process.env.SENDGRID_API_KEY;
-  const from = process.env.SENDGRID_FROM_EMAIL;
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.RESEND_FROM_EMAIL;
   if (!key || !from) {
-    if (PROD) fail("Email (SendGrid)", "SENDGRID_API_KEY + SENDGRID_FROM_EMAIL required");
-    else warn("Email (SendGrid)", "not set — emails dry-run to console");
+    if (PROD) fail("Email (Resend)", "RESEND_API_KEY + RESEND_FROM_EMAIL required");
+    else warn("Email (Resend)", "not set — emails dry-run to console");
   } else {
-    ok("Email (SendGrid)", from);
+    ok("Email (Resend)", from);
   }
 }
 

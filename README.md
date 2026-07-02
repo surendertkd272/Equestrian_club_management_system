@@ -298,9 +298,9 @@ TWILIO_FROM="+14155551234"   # Twilio-provided sender ID
 
 Phone numbers normalise to E.164 +91 automatically — pass `9876543210` or `+919876543210`, both work. Invalid formats are skipped (logged to audit; no Twilio call). Audit captures one entry per SMS: `sms.dry_run`, `sms.sent` (with Twilio SID), `sms.upstream_error`, `sms.network_error`, or `sms.invalid_phone`.
 
-## Email (SendGrid)
+## Email (Resend)
 
-Email dispatch is wired into 6 trigger points (the same 5 as SMS, plus the monthly report card per §4.5). Same dry-run behaviour: with `SENDGRID_*` env vars empty, every call is a no-op that logs to console + audit.
+Email dispatch is wired into 6 trigger points (the same 5 as SMS, plus the monthly report card per §4.5). Same dry-run behaviour: with `RESEND_*` env vars empty, every call is a no-op that logs to console + audit.
 
 | Trigger | Recipient | Content |
 |---|---|---|
@@ -314,14 +314,14 @@ Email dispatch is wired into 6 trigger points (the same 5 as SMS, plus the month
 ### Setup
 
 ```
-SENDGRID_API_KEY="SG.xxxxxxxxxxxxxxxxxxxxxx"
-SENDGRID_FROM_EMAIL="notifications@equiwings.in"   # must be a Verified Sender in SendGrid
-SENDGRID_FROM_NAME="Equiwings"                     # optional, defaults to "Equiwings"
+RESEND_API_KEY="re_xxxxxxxxxxxxxxxxxxxxxx"
+RESEND_FROM_EMAIL="notifications@equiwings.in"   # domain must be Verified in Resend
+RESEND_FROM_NAME="Equiwings"                     # optional, defaults to "Equiwings"
 ```
 
 Templates are inline HTML rendered by `renderEmail({ heading, body, ctaText?, ctaUrl?, centreName? })` in [lib/email.ts](lib/email.ts). All transactional emails share the same wrapper (brand strip + card + closer line) so they look consistent across triggers.
 
-Audit captures one entry per email: `email.dry_run`, `email.sent` (with SendGrid message ID), `email.upstream_error`, `email.network_error`, or `email.invalid_address`.
+Audit captures one entry per email: `email.dry_run`, `email.sent` (with Resend message ID), `email.upstream_error`, `email.network_error`, or `email.invalid_address`.
 
 ## WhatsApp (Meta Cloud API)
 
