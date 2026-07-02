@@ -80,7 +80,7 @@ export function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
-// Common header block used by certificates / test sheets / judge sheets.
+// Common header block used by certificates / test sheets / jury sheets.
 export function pdfHeader(opts: { centreName: string; subtitle?: string; serial?: string; date?: Date }): string {
   const date = (opts.date ?? new Date()).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
   return `

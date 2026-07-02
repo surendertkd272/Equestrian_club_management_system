@@ -114,7 +114,7 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
         <div className="flex items-center gap-2">
           <Button asChild variant="outline" size="sm">
             <a href={`/api/exams/${exam.id}/test-sheet`} target="_blank" rel="noopener">
-              📄 Print judge sheet
+              📄 Print jury sheet
             </a>
           </Button>
           <Badge variant={exam.status === "completed" ? "success" : exam.status === "in_progress" ? "warning" : "outline"}>

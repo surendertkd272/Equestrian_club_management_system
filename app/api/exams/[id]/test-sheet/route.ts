@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth";
 import { parseRubric } from "@/lib/schemas/exam";
 import { renderPrintable, pdfHeader, escapeHtml } from "@/lib/pdf";
 
-// GET /api/exams/[id]/test-sheet — printable judge sheet for one exam.
+// GET /api/exams/[id]/test-sheet — printable jury sheet for one exam.
 // Renders the rubric with empty score boxes the examiner fills by hand;
 // useful when running paper-based exams at outdoor venues without tablets.
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
@@ -77,7 +77,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     .join("");
 
   const body = `
-    ${pdfHeader({ centreName: exam.centre.name, subtitle: `Judge sheet · Level ${exam.level} · ${template.levelName}`, date: exam.date })}
+    ${pdfHeader({ centreName: exam.centre.name, subtitle: `Jury sheet · Level ${exam.level} · ${template.levelName}`, date: exam.date })}
     <table style="margin-bottom:8mm">
       <tr>
         <th style="width:30%">Candidate</th>
@@ -109,7 +109,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   `;
 
   const html = renderPrintable({
-    title: `Judge sheet · ${exam.rider.firstName} ${exam.rider.lastName} · L${exam.level}`,
+    title: `Jury sheet · ${exam.rider.firstName} ${exam.rider.lastName} · L${exam.level}`,
     bodyHtml: body,
   });
 

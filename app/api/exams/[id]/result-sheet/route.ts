@@ -5,7 +5,7 @@ import { parseRubric } from "@/lib/schemas/exam";
 import { renderPrintable, pdfHeader, escapeHtml } from "@/lib/pdf";
 
 // GET /api/exams/[id]/result-sheet — rider-facing result card. Unlike the
-// judge sheet (paper input form), this renders the FINAL scores with
+// jury sheet (paper input form), this renders the FINAL scores with
 // section breakdown, deductions, time faults, pass/fail verdict and
 // signature lines. Issued only after the exam is completed.
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
