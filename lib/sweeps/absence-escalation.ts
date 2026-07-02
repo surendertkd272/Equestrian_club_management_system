@@ -64,7 +64,7 @@ export async function sweepAbsenceEscalation(): Promise<SweepResult> {
       centreId: rider.centreId,
       type: "rider.absence_streak",
       title: `${rider.firstName} ${rider.lastName}: 3+ absences in last 5 sessions`,
-      body: `Call parent at ${parentPhone} to check in. Per GHRC rule, 15d un-notified absence cancels membership.`,
+      body: `Call parent at ${parentPhone} to check in. Per club policy, prolonged un-notified absence may risk membership.`,
       link: `/riders/${rider.id}`,
       payload: { riderId: rider.id },
     });
