@@ -66,9 +66,6 @@ export default async function ProcurementReportPage() {
       <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
         <div>
           <h1 className="text-2xl font-bold">Procurement Report</h1>
-          <p className="text-sm text-muted-foreground">
-            Club-wise — the latest farrier, fodder, hay and vet-medicine purchase per club.
-          </p>
         </div>
         <PrintButton />
       </div>

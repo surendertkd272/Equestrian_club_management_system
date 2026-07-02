@@ -59,10 +59,6 @@ export default async function AccreditationsListPage({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Accreditations</h1>
-        <p className="text-sm text-muted-foreground">
-          External credentials held by riders — federation memberships, coaching diplomas,
-          discipline-specific eligibility. Edit on a rider&apos;s profile page.
-        </p>
       </div>
 
       {byBody.size > 0 && (

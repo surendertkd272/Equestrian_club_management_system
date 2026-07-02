@@ -60,10 +60,6 @@ export default async function ReportsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Report Cards</h1>
-        <p className="text-sm text-muted-foreground">
-          Monthly parent report cards. Pulls attendance, progress milestones, exam results, fees, and
-          certificates for the selected period — print or save as PDF.
-        </p>
       </div>
 
       {canDispatch && (

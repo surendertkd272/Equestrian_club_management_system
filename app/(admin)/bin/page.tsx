@@ -53,10 +53,6 @@ export default async function BinPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Recycle Bin</h1>
-        <p className="text-sm text-muted-foreground">
-          Deleted items are kept here for <strong>{BIN_RETENTION_DAYS} days</strong>, then permanently
-          removed automatically. Restore anything you still need, or delete it now.
-        </p>
       </div>
 
       <Card>

@@ -72,10 +72,6 @@ export default async function OwnerInsightsPage() {
     <div className="space-y-6 text-foreground">
       <div>
         <h1 className="text-2xl font-bold">Insights</h1>
-        <p className="text-sm text-muted-foreground">
-          Cohort retention + module usage. Both are computed live from the audit log — accurate, but
-          re-run on every page load. Move to materialised aggregates if it gets slow.
-        </p>
       </div>
 
       <Card className="border-border bg-card">

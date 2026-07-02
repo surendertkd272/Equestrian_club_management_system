@@ -112,10 +112,6 @@ export default async function HQDashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">HQ Comparative Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Side-by-side metrics across every centre. Attendance and pass rate use trailing 30 /
-          90-day windows.
-        </p>
       </div>
 
       {/* Charted headline band. */}

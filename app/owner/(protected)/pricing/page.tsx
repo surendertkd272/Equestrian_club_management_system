@@ -12,10 +12,6 @@ export default async function OwnerPricingPage() {
     <div className="space-y-6 text-foreground">
       <div>
         <h1 className="text-2xl font-bold">Pricing</h1>
-        <p className="text-sm text-muted-foreground">
-          The public <Link href="/pricing" target="_blank" className="text-emerald-700 dark:text-emerald-400 hover:underline">/pricing</Link>{" "}
-          page renders directly from these rows. Edit, save, and the next visitor sees the new numbers — no deploy required.
-        </p>
         <p className="mt-2 text-xs text-muted-foreground">
           <strong>Important:</strong> these display prices and the actual billed amount are decoupled. Razorpay charges
           whatever the plan in their dashboard says — paste the plan id into the field below so we know which one to mint

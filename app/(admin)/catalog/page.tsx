@@ -56,10 +56,6 @@ export default async function CatalogPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Club Catalog</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage <strong>{centre?.name ?? "this club"}</strong>'s fee plans, progress levels, and
-          skills. Add, edit, or remove any of them — changes apply to this club only.
-        </p>
       </div>
 
       <CatalogManager

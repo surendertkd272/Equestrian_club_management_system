@@ -76,10 +76,6 @@ export default async function CertificatesPage({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Certificates</h1>
-        <p className="text-sm text-muted-foreground">
-          Auto-issued on exam pass. Bulk-issue for exam sittings / events;
-          revoke a cert without losing the audit trail.
-        </p>
       </div>
 
       {canBulk && (

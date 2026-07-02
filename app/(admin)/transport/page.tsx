@@ -56,10 +56,6 @@ export default async function TransportPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Event Transport &amp; Inventory</h1>
-        <p className="text-sm text-muted-foreground">
-          Plan a trip to a venue, build the manifest of horses + equipment, then check everything
-          OUT before departure and IN on return — so anything lost or damaged is caught at once.
-        </p>
       </div>
 
       <NewTripForm />

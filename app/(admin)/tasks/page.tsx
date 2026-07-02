@@ -73,10 +73,6 @@ export default async function TasksPage({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Tasks</h1>
-          <p className="text-sm text-muted-foreground">
-            {tasks.length} total · {overdueCount} overdue
-            {escalatedCount > 0 && <span className="ml-1 text-destructive">· {escalatedCount} escalated</span>}
-          </p>
         </div>
         <div className="flex flex-wrap items-end gap-2">
           <Button asChild variant={searchParams.mine === "1" ? "default" : "outline"} size="sm">

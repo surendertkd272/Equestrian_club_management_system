@@ -18,10 +18,6 @@ export default async function OwnerAnnouncementsPage() {
     <div className="space-y-6 text-foreground">
       <div>
         <h1 className="text-2xl font-bold">Announcements</h1>
-        <p className="text-sm text-muted-foreground">
-          Show platform-wide messages on every tenant's dashboard. Users dismiss each card individually.
-          Use sparingly — bombing tenants with banners is the fastest way to train them to ignore your messages.
-        </p>
       </div>
 
       <Card className="border-border bg-card">

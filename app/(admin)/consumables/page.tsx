@@ -44,10 +44,6 @@ export default async function ConsumablesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">First-Aid Consumables</h1>
-        <p className="text-sm text-muted-foreground">
-          Non-drug supplies — gauze, vet wrap, gloves, scissors. Separate from the medicine
-          cabinet so you can re-order quickly without sifting through scheduled drugs.
-        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

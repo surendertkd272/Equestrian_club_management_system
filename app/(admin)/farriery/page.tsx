@@ -54,10 +54,6 @@ export default async function FarrieryPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Farriery</h1>
-        <p className="text-sm text-muted-foreground">
-          Schedule farrier visits, close them out, and track each horse's next-due date
-          (default cadence: 6 weeks after the last visit).
-        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

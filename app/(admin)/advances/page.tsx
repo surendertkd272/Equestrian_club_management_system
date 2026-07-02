@@ -80,9 +80,6 @@ export default async function AdvancesPage() {
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold">Salary Advances</h1>
-          <p className="text-sm text-muted-foreground">
-            Track money advanced to staff; deduct from upcoming salary as repaid.
-          </p>
         </div>
         <Badge variant={outstanding.length > 0 ? "warning" : "outline"} className="text-sm">
           ₹{Math.round(totalOutstanding).toLocaleString("en-IN")} outstanding across {outstanding.length}

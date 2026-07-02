@@ -46,10 +46,6 @@ export default async function InspectionDetailPage({ params }: { params: { id: s
 
       <div>
         <h1 className="text-2xl font-bold capitalize">{formatEnum(run.scope)} audit</h1>
-        <p className="text-sm text-muted-foreground">
-          {run.centre.name} · started {formatDate(run.startedAt)}
-          {run.completedAt ? ` · completed ${formatDate(run.completedAt)}` : ""}
-        </p>
       </div>
 
       <Card>

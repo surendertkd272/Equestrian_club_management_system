@@ -49,11 +49,6 @@ export default async function CentresPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Clubs</h1>
-        <p className="text-sm text-muted-foreground">
-          HQ control · {centres.length} club{centres.length === 1 ? "" : "s"} under Equiwings.
-          Add new clubs, rename existing ones, or remove an empty one. Slugs are baked into
-          public onboarding URLs and can't be changed once set.
-        </p>
       </div>
 
       {canManageClubs && <NewCentreCard />}

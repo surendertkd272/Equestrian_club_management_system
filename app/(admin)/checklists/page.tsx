@@ -82,10 +82,6 @@ export default async function ChecklistsPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Daily Checklist</h1>
-          <p className="text-sm text-muted-foreground">
-            Run through the daily ticks for horse health, feed, and per-horse care. Items come
-            from the centre's template — admins can edit them at any time.
-          </p>
         </div>
         {isHQ && (
           <Button asChild variant="outline">

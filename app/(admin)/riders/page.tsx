@@ -60,7 +60,6 @@ export default async function RidersPage({
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-bold">Riders</h1>
-          <p className="text-sm text-muted-foreground">{total} total</p>
         </div>
         <div className="flex items-center gap-2">
           <ExportCsvButton entity="riders" />

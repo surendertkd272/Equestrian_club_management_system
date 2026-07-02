@@ -58,10 +58,6 @@ export default async function ApprovalsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Approvals</h1>
-        <p className="text-sm text-muted-foreground">
-          Pending requests for things that need a manager's sign-off — asset issuance,
-          expense items, anything an upstream module raises.
-        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

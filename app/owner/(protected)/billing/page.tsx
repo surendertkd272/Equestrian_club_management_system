@@ -17,10 +17,6 @@ export default async function PlatformBillingPage() {
     <div className="space-y-6 text-foreground">
       <div>
         <h1 className="text-2xl font-bold">Platform Billing Identity</h1>
-        <p className="text-sm text-muted-foreground">
-          Identifies <strong>your</strong> legal entity on every invoice we send to tenants. Tenants
-          can't see this page — they see only the printed result on their SaaS invoice.
-        </p>
       </div>
 
       <Card className="border-border bg-card">

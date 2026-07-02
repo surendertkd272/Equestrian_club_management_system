@@ -80,10 +80,6 @@ export default async function InjuriesPage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Injury Treatment Log</h1>
-          <p className="text-sm text-muted-foreground">
-            Track injuries for horses and riders. Append treatment entries as care happens,
-            and mark recovered when the rider/horse is back to normal duty.
-          </p>
         </div>
         {emergencyDial && (
           <a

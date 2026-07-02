@@ -59,9 +59,6 @@ export default async function VetFollowupsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Vet Follow-Ups</h1>
-        <p className="text-sm text-muted-foreground">
-          Cross-horse view of scheduled re-checks. New follow-ups are set when the vet records a visit on a horse profile.
-        </p>
       </div>
 
       <Section title="Overdue" badge="destructive" empty="Nothing overdue — good." visits={overdue} highlight />

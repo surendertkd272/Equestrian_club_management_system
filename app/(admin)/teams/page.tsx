@@ -51,10 +51,6 @@ export default async function TeamsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Teams & Squads</h1>
-        <p className="text-sm text-muted-foreground">
-          Named rider groups your club fields together — junior squad, senior show-jumping
-          team, gymkhana side.
-        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">

@@ -68,9 +68,6 @@ export default async function TeamDailyUpdatesPage({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Team Daily Updates</h1>
-          <p className="text-sm text-muted-foreground">
-            Every coach's end-of-day note for the selected day.
-          </p>
         </div>
         {/* GET form keeps this a server component — no client JS needed. */}
         <form className="flex items-end gap-2">

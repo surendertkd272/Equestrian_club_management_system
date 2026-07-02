@@ -54,11 +54,6 @@ export default async function ChecklistTemplatesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Daily Checklist · Templates</h1>
-        <p className="text-sm text-muted-foreground">
-          Edit the daily checks coaches see for <strong>{centre?.name ?? "this centre"}</strong>.
-          Renaming an item preserves its identity (historic submissions keep their original wording);
-          deleting an item soft-deactivates it so old submissions still resolve.
-        </p>
       </div>
 
       {general ? (

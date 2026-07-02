@@ -58,9 +58,6 @@ export default async function AttendancePage({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Attendance</h1>
-          <p className="text-sm text-muted-foreground">
-            Mark present / absent / late / excused. Auto-SMS triggers after 3 consecutive absences.
-          </p>
         </div>
         <form className="flex flex-wrap items-end gap-2 text-sm" method="get">
           <div>

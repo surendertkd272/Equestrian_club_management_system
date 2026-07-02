@@ -60,11 +60,6 @@ export default async function FacilityBookingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Facility Bookings</h1>
-        <p className="text-sm text-muted-foreground">
-          Reserve arenas, classrooms, and stables. Overlapping bookings on the same facility
-          are refused automatically — back-to-back slots (09:00→10:00 then 10:00→11:00) are
-          fine.
-        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

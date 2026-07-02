@@ -164,10 +164,6 @@ export default async function FinancePage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Finance</h1>
-          <p className="text-sm text-muted-foreground">
-            Income via paid Invoices &amp; Payments; expenses booked against the chart of accounts.
-            Net P&amp;L = Income − Expenses for the period.
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <ExportCsvButton entity="invoices" />

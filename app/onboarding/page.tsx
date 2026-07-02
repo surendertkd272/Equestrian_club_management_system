@@ -50,11 +50,6 @@ export default async function OnboardingPage({
     return (
       <main className="container max-w-md py-16 text-center">
         <h1 className="text-2xl font-bold">Registration Link Needed</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {slug
-            ? "That registration link isn't valid. Please ask your club for the correct link."
-            : "Open the registration link your club shared with you to start."}
-        </p>
         {devCentres.length > 0 && (
           <div className="mt-8 rounded-md border border-dashed p-4 text-left">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

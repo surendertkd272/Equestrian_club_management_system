@@ -39,12 +39,6 @@ export default async function NotificationsPage({
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-bold">Notifications</h1>
-          <p className="text-sm text-muted-foreground">
-            {items.length} {unreadOnly ? "unread shown" : "recent"}
-            {!unreadOnly && unread > 0 && (
-              <> · <span className="font-semibold text-primary">{unread} unread</span></>
-            )}
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Link

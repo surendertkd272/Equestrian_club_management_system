@@ -85,13 +85,6 @@ export default async function EquipmentPage({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Tack &amp; Equipment</h1>
-          <p className="text-sm text-muted-foreground">
-            {centre?.name ?? "Centre"} inventory. {lowCount > 0 && (
-              <span className="text-rose-600">
-                {lowCount} item{lowCount === 1 ? "" : "s"} below reorder point.
-              </span>
-            )}
-          </p>
         </div>
         <div className="flex gap-2">
           {isHQ && (

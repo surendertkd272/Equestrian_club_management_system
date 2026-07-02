@@ -48,10 +48,6 @@ export default async function EnrolmentsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Self-Enrolment Approvals</h1>
-        <p className="text-sm text-muted-foreground">
-          Riders who signed up through the public link. Approve to start their registration
-          (raises the ₹ registration invoice) or reject. Staff-created riders skip this queue.
-        </p>
       </div>
 
       <Card>

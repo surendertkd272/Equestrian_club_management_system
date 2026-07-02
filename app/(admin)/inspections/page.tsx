@@ -30,10 +30,6 @@ export default async function InspectionsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Inspections &amp; Audit</h1>
-        <p className="text-sm text-muted-foreground">
-          Run a manual audit of inventory, the vet cabinet, or the stable. Each run seeds a
-          standard checklist; mark every line pass / fail with remarks, then complete it.
-        </p>
       </div>
 
       {centreId ? (

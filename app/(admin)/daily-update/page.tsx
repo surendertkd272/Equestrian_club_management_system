@@ -57,10 +57,6 @@ export default async function DailyUpdatePage() {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold">Daily Coach Update</h1>
-          <p className="text-sm text-muted-foreground">
-            A 60-second end-of-day note: what you covered, how many horses/riders, and anything to
-            flag (injuries, concerns). One per day — saving again updates today's entry.
-          </p>
         </div>
         {["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH"].includes(session.role) && (
           <Link href="/daily-update/team" className="text-sm text-primary hover:underline">

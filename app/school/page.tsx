@@ -99,9 +99,6 @@ export default async function SchoolDashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">{centre?.name ?? "Club"} — school view</h1>
-        <p className="text-sm text-muted-foreground">
-          Read-only view of riders' attendance this month, exam history, and skill progress.
-        </p>
       </div>
 
       {pendingEnrolments.length > 0 && (

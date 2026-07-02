@@ -49,10 +49,6 @@ export default async function TemplatesPage() {
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-bold">Scoring Templates</h1>
-          <p className="text-sm text-muted-foreground">
-            Per-level rubrics used by the exam scoring engine. Levels live in
-            the HQ catalog; centres can override the rubric per level.
-          </p>
         </div>
         <Button asChild variant="outline">
           <Link href="/exams/levels">Manage level catalog →</Link>

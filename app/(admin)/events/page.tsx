@@ -68,9 +68,6 @@ export default async function EventsPage({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Events</h1>
-          <p className="text-sm text-muted-foreground">
-            Clinics, schooling days, demos, fundraisers, external shows.
-          </p>
         </div>
         {canManage && (
           <Button asChild>

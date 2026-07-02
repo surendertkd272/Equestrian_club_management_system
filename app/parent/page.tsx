@@ -36,9 +36,6 @@ export default async function ParentDashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Your Children</h1>
-        <p className="text-sm text-muted-foreground">
-          {children.length} rider{children.length === 1 ? "" : "s"} linked to your account
-        </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">

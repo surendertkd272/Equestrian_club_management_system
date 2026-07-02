@@ -127,11 +127,6 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Users</h1>
-        <p className="text-sm text-muted-foreground">
-          HQ control · {totalAll} total · {filteredTotal} match · showing {rangeStart}–{rangeEnd}
-          {totalPages > 1 ? ` (page ${page} of ${totalPages})` : ""}. Edit role/centre/status, reset
-          passwords, suspend accounts. Self-demotion and last-super-admin removal are blocked.
-        </p>
       </div>
 
       <ApprovalQueue

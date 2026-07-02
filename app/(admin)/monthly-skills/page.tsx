@@ -78,10 +78,6 @@ export default async function MonthlySkillsPage({
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Monthly Skills</h1>
-        <p className="text-sm text-muted-foreground">
-          Curate the skills coaches will rate this month, then mark each rider's progress.
-          The rating scale (0 – 3) is shared across the squad — see the legend below the table.
-        </p>
       </div>
 
       <Card>

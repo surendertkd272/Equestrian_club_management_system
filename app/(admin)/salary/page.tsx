@@ -87,11 +87,6 @@ export default async function SalaryPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Salary &amp; Payroll</h1>
-        <p className="text-sm text-muted-foreground">
-          Define each staff member's salary (Super Admin only), then record monthly pay — one
-          absent day deducts base ÷ 30, and outstanding advances are recovered automatically.
-          See the advance ledger at <Link href="/advances" className="underline">Salary advances</Link>.
-        </p>
       </div>
 
       {/* Salary master — Super Admin sets / raises each staff member's pay. */}

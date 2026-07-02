@@ -44,7 +44,6 @@ export default async function SaasInvoicesPage({ searchParams }: { searchParams:
     <div className="space-y-6 text-foreground">
       <div>
         <h1 className="text-2xl font-bold">SaaS Invoices</h1>
-        <p className="text-sm text-muted-foreground">Platform-issued invoices to tenants for the subscription itself.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

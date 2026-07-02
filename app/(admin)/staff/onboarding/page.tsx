@@ -71,10 +71,6 @@ export default async function StaffOnboardingPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Employee Onboarding</h1>
-        <p className="text-sm text-muted-foreground">
-          Generate a self-registration link to share with a new hire. They fill the form + upload documents; you review
-          and approve to create their staff record.
-        </p>
       </div>
 
       <Card>

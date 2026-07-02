@@ -64,9 +64,6 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
       <div className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-bold">Lessons</h1>
-          <p className="text-sm text-muted-foreground">
-            Concrete sessions for {date}. Batches define the recurring slot; each lesson is one date.
-          </p>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <Link href={`/lessons?date=${fmt(prev)}`} className="rounded border px-2 py-1 hover:bg-accent">← {fmt(prev)}</Link>

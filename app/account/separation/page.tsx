@@ -29,9 +29,6 @@ export default async function SeparationPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Separation</h1>
-        <p className="text-sm text-muted-foreground">
-          Notices issued by the admin team about ending your employment with the club.
-        </p>
       </div>
 
       {pending ? (

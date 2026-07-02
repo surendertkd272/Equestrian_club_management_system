@@ -65,9 +65,6 @@ export default async function BatchShiftsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Batch Shift Requests</h1>
-        <p className="text-sm text-muted-foreground">
-          Riders ask to move to a different batch — for one day or permanently. Approve or reject below.
-        </p>
       </div>
 
       <Card>

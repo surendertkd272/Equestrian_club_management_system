@@ -86,9 +86,6 @@ export default async function RequisitionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Requisitions</h1>
-          <p className="text-sm text-muted-foreground">
-            Procurement requests — staff submits, manager approves, accountant signs off.
-          </p>
         </div>
         <Button asChild>
           <Link href="/requisitions/new">

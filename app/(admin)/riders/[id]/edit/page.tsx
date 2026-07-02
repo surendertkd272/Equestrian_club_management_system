@@ -69,9 +69,6 @@ export default async function EditRiderPage({ params }: { params: { id: string }
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Edit Profile</h1>
-          <p className="text-sm text-muted-foreground">
-            {rider.firstName} {rider.lastName}
-          </p>
         </div>
         <a
           href={`/riders/${rider.id}`}

@@ -86,9 +86,6 @@ export default async function TenantActivityPage({ params }: { params: SP }) {
           ← Back to tenant
         </Link>
         <h1 className="mt-1 text-2xl font-bold">Activity · {org.name}</h1>
-        <p className="text-sm text-muted-foreground">
-          Latest 200 events combining platform-side actions and the tenant's own audit log.
-        </p>
       </div>
 
       <Card className="border-border bg-card">

@@ -39,10 +39,6 @@ export default async function SittingDetail({ params }: { params: { id: string }
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Exam sitting — Level {sitting.level}</h1>
-        <p className="text-sm text-muted-foreground">
-          {formatDate(sitting.date)} · {sitting.exams.length} rider{sitting.exams.length === 1 ? "" : "s"} ·{" "}
-          {unassigned} unassigned
-        </p>
       </div>
 
       <Card>

@@ -72,9 +72,6 @@ export default async function ExamsPage({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Exams</h1>
-          <p className="text-sm text-muted-foreground">
-            Level-promotion exams. {session.role === "EXAMINER" ? "Showing exams assigned to you." : ""}
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {canManageTemplates && (
