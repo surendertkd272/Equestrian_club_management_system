@@ -81,7 +81,6 @@ export const FEATURE_GUIDES: Record<string, FeatureGuide> = {
   "/transport": { title: "Event transport", blurb: "Horse and equipment transport manifest.", help: "Build a manifest and check horses/gear out and back in for an event." },
 
   // ── Money & Records
-  "/finance": { title: "Finance", blurb: "The money dashboard — invoices, payments, exports.", help: "Review invoices, record cash payments, and export the books." },
   "/expenses/submit": { title: "Submit invoice", blurb: "Drop in bills you paid for the club.", help: "Upload a receipt and amount for something you bought on the club's behalf, for reimbursement." },
   "/reports": { title: "Reports", blurb: "Monthly parent report cards and exports.", help: "Generate report cards and analytical exports." },
   "/reports/procurement": { title: "Procurement report", blurb: "Club-wise spend snapshot.", help: "See farrier, fodder, hay, and medicine spend at a glance." },

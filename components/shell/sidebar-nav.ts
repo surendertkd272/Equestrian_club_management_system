@@ -137,7 +137,6 @@ export const NAV: NavGroup[] = [
   {
     group: "Money & Records",
     items: [
-      { href: "/finance", label: "Finance", iconName: "Receipt", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "ACCOUNTANT"] },
       // Staff-side invoice submission. Distinct from the admin finance page —
       // visible to coaches/grooms/vet/etc so they can drop in bills for things
       // they purchased on behalf of the club.
@@ -202,10 +201,10 @@ const ROLE_PINS: Partial<Record<Role, string[]>> = {
   // Farrier has a narrow surface — schedule + horse health.
   FARRIER: ["/farriery", "/horses", "/injuries"],
   // Centre manager: queue-clearing first (approvals + new enrolments),
-  // then finance overview, then who's at the gate today.
-  CENTRE_MANAGER: ["/approvals", "/enrolments", "/finance", "/staff-attendance", "/gate"],
+  // then who's at the gate today.
+  CENTRE_MANAGER: ["/approvals", "/enrolments", "/staff-attendance", "/gate"],
   // Accountant: cash work first, queue second.
-  ACCOUNTANT: ["/finance", "/approvals", "/salary", "/advances"],
+  ACCOUNTANT: ["/approvals", "/salary", "/advances"],
   // Inventory manager: stock-centric.
   INVENTORY_MANAGER: ["/equipment", "/requisitions", "/consumables", "/medicines"],
   // School administrator: read-only club-wide view of student data.

@@ -591,13 +591,11 @@ export async function AccountantDashboard({ centreId }: { centreId: string | nul
               { label: "Overdue", value: overdue },
               { label: "All-Time ₹", value: allTime.toLocaleString("en-IN") },
             ]}
-            href="/finance"
-            cta="Open Finance"
           />
         }
       >
-        <Kpi label="Open Invoices" value={openInvoices} link="/finance" />
-        <Kpi label="Overdue" value={overdue} tone={overdue > 0 ? "rose" : undefined} link="/finance" />
+        <Kpi label="Open Invoices" value={openInvoices} />
+        <Kpi label="Overdue" value={overdue} tone={overdue > 0 ? "rose" : undefined} />
         <Kpi label="Paid This Month (₹)" value={paidMTD} tone="green" />
         <Kpi label="All-Time Collected (₹)" value={allTime} />
       </HeroRow>

@@ -33,6 +33,13 @@ function inr(n: number): string {
 }
 
 export default async function FinancePage() {
+  // Finance module removed from the admin surface (sidebar link + dashboard
+  // cards are gone). This unconditional guard blocks direct URL access too.
+  // The page code is kept (not deleted) so the module is reversible — drop this
+  // line and re-add the sidebar entry to bring it back. NOTE: because /finance
+  // no longer appears in the NAV table, assertRoute() below would otherwise
+  // treat it as unrestricted, so this redirect is what actually gates the page.
+  redirect("/dashboard");
   const session = await assertRoute("/finance");
   // Finance pages expose receivables, P&L, payment ledgers — admin/accountant
   // only. The sidebar already hides this link from other roles, but a direct

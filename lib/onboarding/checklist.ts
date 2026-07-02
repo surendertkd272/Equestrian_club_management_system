@@ -65,7 +65,6 @@ const STAFF_TASKS: Partial<Record<Role, ChecklistTask[]>> = {
     { key: "certificates", label: "See issued certificates", href: "/certificates" },
   ],
   ACCOUNTANT: [
-    { key: "finance", label: "Open the finance dashboard", href: "/finance" },
     { key: "salary", label: "Review salary & payroll", href: "/salary" },
     { key: "approvals", label: "Clear finance approvals", href: "/approvals" },
   ],

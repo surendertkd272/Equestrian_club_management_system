@@ -336,7 +336,6 @@ export default async function DashboardPage() {
           sub="razorpay + cash · 6-month trend"
           icon={<IndianRupee className="h-5 w-5" />}
           chart={<MiniBars data={revenueSeries} />}
-          link="/finance"
         />
         <ChartCard
           label="New Riders (This Month)"
