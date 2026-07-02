@@ -124,7 +124,7 @@ export default function TermsPage() {
         <h2 className="mt-6 text-xl font-semibold">14. Contact</h2>
         <p>
           {"{{Legal entity name}}"} · {"{{Registered address}}"} · India ·
-          {" {{support@equiwings.example}}"}
+          {" info@equiwings.com"}
         </p>
       </section>
     </main>

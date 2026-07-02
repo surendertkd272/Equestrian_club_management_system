@@ -31,6 +31,7 @@ export const FEATURE_GUIDES: Record<string, FeatureGuide> = {
   "/users": { title: "Users (HQ)", blurb: "Manage all login accounts across the organisation.", help: "Create accounts, set roles, and reset access for any user." },
   "/hq-dashboard": { title: "HQ Comparative", blurb: "Side-by-side numbers for every centre.", help: "Compare clubs on the same metrics to spot outliers." },
   "/hq-expenses": { title: "HQ Invoices", blurb: "Organisation-level billing across clubs.", help: "Review and record invoices rolled up across all centres." },
+  "/settings": { title: "Settings", blurb: "Your organisation's public contact details.", help: "Set the support email and phone shown to riders, parents, and staff on the Help Center and portals." },
 
   // ── Riders & Training
   "/riders": { title: "Riders", blurb: "The rider roster — profiles, levels, contacts, and history.", help: "Search and open a rider to see their level, batch, parent links, and progress." },

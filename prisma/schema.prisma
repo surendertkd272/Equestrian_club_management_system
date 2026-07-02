@@ -43,6 +43,11 @@ model Organisation {
   contactName        String?
   billingEmail       String?
   phone              String?
+  // Public-facing contact details shown to users on the Help Center + portals,
+  // editable by SUPER_ADMIN/ADMIN in /settings. Distinct from billingEmail/phone
+  // (billing/ops). Fall back to DEFAULT_SUPPORT_EMAIL (lib/contact.ts) when null.
+  supportEmail       String?
+  supportPhone       String?
   trialEndsAt        DateTime?
   onboardedAt        DateTime  @default(now())
   // Offboarding lifecycle. When the owner schedules a tenant for

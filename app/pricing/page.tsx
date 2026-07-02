@@ -47,7 +47,7 @@ export default async function PricingPage() {
           <Link href="/" className="text-lg font-bold">Equiwings</Link>
           <div className="flex items-center gap-2">
             <Button asChild size="sm" variant="outline"><Link href="/login">Sign in</Link></Button>
-            <Button asChild size="sm"><Link href="mailto:sales@equiwings.example?subject=Trial">Start trial</Link></Button>
+            <Button asChild size="sm"><Link href="mailto:info@equiwings.com?subject=Trial">Start trial</Link></Button>
           </div>
         </div>
       </header>
@@ -88,7 +88,7 @@ export default async function PricingPage() {
                   {" "}<strong>{plan.features.length}</strong> modules
                 </div>
                 <Button asChild className="mt-5 w-full">
-                  <Link href={`mailto:sales@equiwings.example?subject=${t.label || plan.label}%20trial`}>
+                  <Link href={`mailto:info@equiwings.com?subject=${t.label || plan.label}%20trial`}>
                     Start {t.label || plan.label} trial
                   </Link>
                 </Button>
@@ -146,7 +146,7 @@ export default async function PricingPage() {
             we set them up case by case.
           </p>
           <Button asChild className="mt-4">
-            <Link href="mailto:sales@equiwings.example?subject=Enterprise%20discussion">Talk to sales</Link>
+            <Link href="mailto:info@equiwings.com?subject=Enterprise%20discussion">Talk to sales</Link>
           </Button>
         </div>
       </section>

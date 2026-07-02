@@ -46,6 +46,7 @@ export const NAV: NavGroup[] = [
       { href: "/users", label: "Users (HQ)", iconName: "UserCog", perm: ["SUPER_ADMIN", "ADMIN"] },
       { href: "/hq-dashboard", label: "HQ Comparative", iconName: "LineChart", perm: ["SUPER_ADMIN", "ADMIN"], feature: "hq-dashboard" },
       { href: "/hq-expenses", label: "HQ Invoices", iconName: "Receipt", perm: ["SUPER_ADMIN", "ADMIN"] },
+      { href: "/settings", label: "Settings", iconName: "Settings", perm: ["SUPER_ADMIN", "ADMIN"] },
     ],
   },
   {

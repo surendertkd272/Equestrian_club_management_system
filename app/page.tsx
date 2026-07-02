@@ -45,7 +45,7 @@ export default function Home() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg"><Link href="/pricing">Start 14-Day Free Trial</Link></Button>
-            <Button asChild size="lg" variant="outline"><Link href="mailto:sales@equiwings.example?subject=Demo%20request">Book a Demo</Link></Button>
+            <Button asChild size="lg" variant="outline"><Link href="mailto:info@equiwings.com?subject=Demo%20request">Book a Demo</Link></Button>
           </div>
           <p className="mt-4 text-xs text-muted-foreground">No credit card needed. Cancel any time.</p>
         </div>
@@ -101,7 +101,7 @@ export default function Home() {
           <p className="mt-3 text-slate-300">Set it up in an afternoon. 14-day trial. No card required.</p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Button asChild size="lg" variant="default"><Link href="/pricing">See Pricing</Link></Button>
-            <Button asChild size="lg" variant="outline" className="border-slate-600 bg-transparent text-white hover:bg-slate-800"><Link href="mailto:sales@equiwings.example?subject=Demo%20request">Talk to Sales</Link></Button>
+            <Button asChild size="lg" variant="outline" className="border-slate-600 bg-transparent text-white hover:bg-slate-800"><Link href="mailto:info@equiwings.com?subject=Demo%20request">Talk to Sales</Link></Button>
           </div>
         </div>
       </section>
@@ -112,7 +112,7 @@ export default function Home() {
           <div className="flex gap-4">
             <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
             <Link href="/terms" className="hover:text-foreground">Terms</Link>
-            <Link href="mailto:support@equiwings.example" className="hover:text-foreground">Support</Link>
+            <Link href="mailto:info@equiwings.com" className="hover:text-foreground">Support</Link>
           </div>
         </div>
       </footer>

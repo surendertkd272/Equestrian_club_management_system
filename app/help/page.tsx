@@ -2,7 +2,9 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getSession } from "@/lib/auth";
 import { isRole } from "@/lib/roles";
-import { getFeaturesForSession } from "@/lib/features-gate";
+import { getFeaturesForSession, getOrgIdForSession } from "@/lib/features-gate";
+import { prisma } from "@/lib/prisma";
+import { supportEmailFor } from "@/lib/contact";
 import { buildRoleGuide, profileFor, PORTAL_ROLES, type RoleProfile, type GuideGroup } from "@/lib/onboarding/role-guide";
 import { NavIcon } from "@/components/shell/nav-icons";
 import { Play, ChevronRight } from "lucide-react";
@@ -74,6 +76,14 @@ export default async function HelpIndex() {
     guide = { profile: profileFor(role), portalNote, groups };
   }
 
+  // Public contact email — org-configured (SUPER_ADMIN/ADMIN set it in /settings),
+  // falling back to the platform default for logged-out visitors.
+  const orgId = session ? await getOrgIdForSession(session) : null;
+  const org = orgId
+    ? await prisma.organisation.findUnique({ where: { id: orgId }, select: { supportEmail: true } })
+    : null;
+  const supportEmail = supportEmailFor(org);
+
   return (
     <main className="min-h-screen bg-muted/40">
       <header className="border-b bg-card">
@@ -82,7 +92,7 @@ export default async function HelpIndex() {
           <nav className="hidden gap-6 text-sm md:flex">
             <Link href="/pricing" className="hover:text-primary">Pricing</Link>
             <Link href="/help" className="font-semibold">Help</Link>
-            <Link href="mailto:support@equiwings.example" className="hover:text-primary">Contact</Link>
+            <Link href={`mailto:${supportEmail}`} className="hover:text-primary">Contact</Link>
           </nav>
         </div>
       </header>
@@ -92,7 +102,7 @@ export default async function HelpIndex() {
           <h1 className="text-4xl font-bold">Help & Guides</h1>
           <p className="mt-3 text-muted-foreground">
             Practical how-to articles for everyday Equiwings tasks. Can't find what you need?
-            Email <a href="mailto:support@equiwings.example" className="text-primary underline">support@equiwings.example</a> —
+            Email <a href={`mailto:${supportEmail}`} className="text-primary underline">{supportEmail}</a> —
             we read every message.
           </p>
         </div>
@@ -199,8 +209,8 @@ export default async function HelpIndex() {
         <Card className="mt-10 border bg-amber-50">
           <CardContent className="py-6 text-sm">
             <strong>Still stuck?</strong> Email{" "}
-            <a href="mailto:support@equiwings.example" className="text-primary underline">
-              support@equiwings.example
+            <a href={`mailto:${supportEmail}`} className="text-primary underline">
+              {supportEmail}
             </a>{" "}
             with your centre name, a screenshot if useful, and a short description. We reply
             within 1 business day; urgent issues within 2 hours.

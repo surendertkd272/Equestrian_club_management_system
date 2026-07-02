@@ -36,6 +36,7 @@ import {
   DoorOpen,
   Boxes,
   QrCode,
+  Settings,
 } from "lucide-react";
 
 // Icon registry — referenced by name from sidebar-nav.ts (which stays JSX-free
@@ -77,6 +78,7 @@ export const NAV_ICONS: Record<string, React.ComponentType<{ className?: string 
   DoorOpen,
   Boxes,
   QrCode,
+  Settings,
   // Custom horse silhouette (no equivalent in lucide-react).
   Horse,
   // lucide exports it as `Bandage`; nav defs reference it as `BandageIcon`.

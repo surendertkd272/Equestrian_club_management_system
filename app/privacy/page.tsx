@@ -11,9 +11,9 @@ export const metadata = {
 // names behind the privacy / grievance / DPO contacts. Everything else is
 // written to reflect how the platform actually works and the obligations of
 // the Digital Personal Data Protection Act 2023 ("DPDP Act") and the Digital
-// Personal Data Protection Rules 2025. Placeholders are shown in [brackets]
-// and at the @equiwings.example domain (a reserved test domain) so they are
-// impossible to miss.
+// Personal Data Protection Rules 2025. Remaining placeholders are shown in
+// [brackets] so they are impossible to miss; contact addresses now point at
+// info@equiwings.com.
 
 const LAST_UPDATED = "6 June 2026";
 
@@ -126,7 +126,7 @@ export default function PrivacyPage() {
           language that describes the data, the purpose, and how to exercise your
           rights. You may withdraw consent at any time — through the relevant
           setting in your account, or by writing to{" "}
-          <a href="mailto:privacy@equiwings.example" className="text-primary underline">privacy@equiwings.example</a>.
+          <a href="mailto:info@equiwings.com" className="text-primary underline">info@equiwings.com</a>.
           Withdrawing consent is as easy as giving it, and we will stop the
           related processing, except where the law requires or permits us to
           continue. Withdrawal does not make earlier, lawful processing invalid.
@@ -192,7 +192,7 @@ export default function PrivacyPage() {
           You can do most of this yourself in the app: edit your profile to
           correct it, use Account → Export to obtain a copy, and use Account →
           Delete to request erasure. You can also write to{" "}
-          <a href="mailto:privacy@equiwings.example" className="text-primary underline">privacy@equiwings.example</a>.
+          <a href="mailto:info@equiwings.com" className="text-primary underline">info@equiwings.com</a>.
           We will verify your identity before acting and respond within the
           timelines required by law. If an academy entered your data, we may need
           to route your request through it as the Data Fiduciary.
@@ -210,7 +210,7 @@ export default function PrivacyPage() {
         <p className="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <strong>Grievance Officer</strong><br />
           [Name of Grievance Officer]<br />
-          <a href="mailto:grievance@equiwings.example" className="text-primary underline">grievance@equiwings.example</a><br />
+          <a href="mailto:info@equiwings.com" className="text-primary underline">info@equiwings.com</a><br />
           [Registered office address], India
         </p>
         <p>
@@ -229,7 +229,7 @@ export default function PrivacyPage() {
           and tenant isolation at the database layer. No system is perfectly
           secure; if you believe your account or data has been compromised, write
           to{" "}
-          <a href="mailto:security@equiwings.example" className="text-primary underline">security@equiwings.example</a>{" "}
+          <a href="mailto:info@equiwings.com" className="text-primary underline">info@equiwings.com</a>{" "}
           and we will investigate promptly.
         </p>
 
@@ -264,7 +264,7 @@ export default function PrivacyPage() {
         <p className="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <strong>Data Protection Officer</strong><br />
           [Name of Data Protection Officer]<br />
-          <a href="mailto:dpo@equiwings.example" className="text-primary underline">dpo@equiwings.example</a><br />
+          <a href="mailto:info@equiwings.com" className="text-primary underline">info@equiwings.com</a><br />
           [Equiwings legal entity name]<br />
           [Registered office address], India
         </p>
