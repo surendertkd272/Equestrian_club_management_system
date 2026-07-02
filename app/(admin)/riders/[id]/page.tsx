@@ -170,7 +170,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
 
         <Card>
           <CardHeader>
-            <CardTitle>Address & Contacts</CardTitle>
+            <CardTitle>Contact Details</CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 gap-y-2 text-sm">

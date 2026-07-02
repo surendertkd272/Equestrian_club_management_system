@@ -77,7 +77,7 @@ export default async function OnboardingPage({
           <div className="text-xs font-semibold uppercase tracking-wider text-primary">{centre.name}</div>
           <h1 className="mt-1 text-3xl font-bold">Rider Registration</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Replaces the paper GHRC Rider Registration Form + Indemnity Release.
+            Replaces the paper Rider Registration Form + Indemnity Release.
           </p>
         </div>
         <OnboardingWizard centreSlug={centre.slug} centreName={centre.name} />
