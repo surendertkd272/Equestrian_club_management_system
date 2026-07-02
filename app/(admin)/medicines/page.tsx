@@ -67,6 +67,9 @@ export default async function MedicinesPage({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Vet Medicines</h1>
+          <p className="text-sm text-muted-foreground">
+            {stats.total} batches · {stats.expired} expired · {stats.critical} expiring &lt;30d · {stats.lowStock} low-stock
+          </p>
         </div>
         {canManage && (
           <Button asChild>

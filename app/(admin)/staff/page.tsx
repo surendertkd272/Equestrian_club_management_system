@@ -59,6 +59,7 @@ export default async function StaffPage({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Staff</h1>
+          <p className="text-sm text-muted-foreground">{total} member{total === 1 ? "" : "s"}</p>
         </div>
         <div className="flex items-center gap-2">
           {CAN_ONBOARD.includes(session.role) && (

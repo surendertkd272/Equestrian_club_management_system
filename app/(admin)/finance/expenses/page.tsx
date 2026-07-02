@@ -93,6 +93,9 @@ export default async function ExpensesPage({
             </Link>
           </Button>
           <h1 className="mt-1 text-2xl font-bold">Expenses</h1>
+          <p className="text-sm text-muted-foreground">
+            {totals._count} entries · Total {inr(totals._sum.amount ?? 0)}
+          </p>
         </div>
         {canManage && (
           <Button asChild>

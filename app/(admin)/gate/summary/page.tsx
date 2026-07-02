@@ -112,6 +112,13 @@ export default async function GateSummaryPage({
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="text-2xl font-bold">Gate Summary</h1>
+          <p className="text-sm text-muted-foreground">
+            {rows.length} staff with events on {dateStr}
+            {" · "}
+            <Link className="text-primary underline" href={session.role === "SUPER_ADMIN" ? `/gate?centre=${centreId}` : "/gate"}>
+              Back to kiosk
+            </Link>
+          </p>
         </div>
         <form className="flex items-center gap-2 text-sm">
           {session.role === "SUPER_ADMIN" && (
