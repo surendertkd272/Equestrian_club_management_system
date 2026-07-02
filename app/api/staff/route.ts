@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       role: d.role,
       salaryBand: d.salaryBand || null,
+      ...(d.joiningDate ? { joiningDate: new Date(d.joiningDate) } : {}),
       status: "active",
       aadhaarUrl: d.aadhaarUrl || null,
       policeVerificationUrl: d.policeVerificationUrl || null,

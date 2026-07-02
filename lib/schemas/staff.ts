@@ -15,6 +15,15 @@ export const createStaffSchema = z.object({
   phone: z.string().min(10).max(20).optional().or(z.literal("")),
   role: z.string().refine((r) => STAFF_ROLES.includes(r), "Invalid staff role"),
   salaryBand: z.string().optional(),
+  // Optional real date of joining — set it for employees who were part of the
+  // club before being entered into the system. Left empty, joiningDate defaults
+  // to now() at the DB layer. Regex-guarded so a malformed date can't reach
+  // new Date() on the server (the UI already uses a native date picker).
+  joiningDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+    .optional()
+    .or(z.literal("")),
   password: z.string().min(8, "8+ chars").default("password123"),
   // Optional KYC artefacts — URLs returned from /api/upload after the form
   // uploads the actual files. Empty string means "not provided yet".

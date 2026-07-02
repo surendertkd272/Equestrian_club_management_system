@@ -88,6 +88,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
   // dob is a Date column, but we ship YYYY-MM-DD on the wire.
   if ("dob" in d && d.dob) data.dob = new Date(d.dob);
+  // joiningDate is likewise a Date column shipped as YYYY-MM-DD.
+  if ("joiningDate" in d && d.joiningDate) data.joiningDate = new Date(d.joiningDate);
 
   // Recompute bmi when anthropometrics change. Use the post-update values
   // (incoming when present, prior row when not).

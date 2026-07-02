@@ -69,6 +69,11 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
         payload[k] = v;
       }
     }
+    // joiningDate maps to a required (non-null) Date column — don't send an
+    // empty string if the user cleared the picker; just leave it unchanged.
+    if ("joiningDate" in payload && !String(payload.joiningDate).trim()) {
+      delete payload.joiningDate;
+    }
 
     setBusy(true);
     try {
@@ -109,6 +114,10 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
         </Field>
         <Field label="Date of Birth" required>
           <Input type="date" value={state.dob} onChange={(e) => update("dob", e.target.value)} />
+        </Field>
+        <Field label="Date of Joining">
+          <Input type="date" value={state.joiningDate} onChange={(e) => update("joiningDate", e.target.value)} />
+          <p className="mt-1 text-xs text-muted-foreground">Set the real joining date for riders who were part of the club before this registration.</p>
         </Field>
         <Field label="Gender">
           <Select value={state.gender} onChange={(e) => update("gender", e.target.value)}>

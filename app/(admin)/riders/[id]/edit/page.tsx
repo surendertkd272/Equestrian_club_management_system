@@ -34,6 +34,7 @@ export default async function EditRiderPage({ params }: { params: { id: string }
     lastName: rider.lastName,
     photoUrl: rider.photoUrl ?? "",
     dob: rider.dob.toISOString().slice(0, 10),
+    joiningDate: rider.joiningDate.toISOString().slice(0, 10),
     placeOfBirth: rider.placeOfBirth ?? "",
     nationality: rider.nationality ?? "",
     gender: rider.gender ?? "",

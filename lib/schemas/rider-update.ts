@@ -24,6 +24,9 @@ export const updateRiderSchema = z.object({
   lastName: z.string().min(1).max(80),
   photoUrl: uploadedUrl,
   dob: dateString,
+  // Real date the rider joined the club. Editable so admins can backdate it
+  // for riders who were members before being entered into the system.
+  joiningDate: dateString,
   placeOfBirth: z.string().max(80).nullable(),
   nationality: z.string().max(60).nullable(),
   gender: z.enum(["male", "female", "other"]).nullable(),

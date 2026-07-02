@@ -27,6 +27,7 @@ export function NewStaffForm() {
     phone: "",
     role: "COACH",
     salaryBand: "",
+    joiningDate: "",
     password: "password123",
     aadhaarUrl: "",
     policeVerificationUrl: "",
@@ -104,6 +105,11 @@ export function NewStaffForm() {
         <div className="space-y-1.5">
           <Label>Salary Band</Label>
           <Input aria-label="Salary band" value={form.salaryBand} onChange={(e) => set("salaryBand", e.target.value)} placeholder="e.g. L3" />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Date of Joining</Label>
+          <Input aria-label="Date of joining" type="date" value={form.joiningDate} onChange={(e) => set("joiningDate", e.target.value)} />
+          <p className="text-xs text-muted-foreground">Set the real joining date for staff who were part of the club before this registration. Leave blank to use today.</p>
         </div>
         <div className="space-y-1.5">
           <Label>Initial Password</Label>
