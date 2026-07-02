@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession, shouldForceRotate } from "@/lib/auth";
-import { getFeaturesForSession } from "@/lib/features-gate";
+import { getFeaturesForSession, getOrgIdForSession } from "@/lib/features-gate";
+import { prisma } from "@/lib/prisma";
+import { supportEmailFor } from "@/lib/contact";
 import { getStatusForSession } from "@/lib/readonly-gate";
 import { ReadOnlyBanner } from "@/components/shell/read-only-banner";
 import { ImpersonationBanner } from "@/components/shell/impersonation-banner";
@@ -22,6 +24,17 @@ export default async function StudentLayout({ children }: { children: React.Reac
     getStatusForSession(session),
   ]);
   const enabled = features.has("student-portal");
+
+  // Only needed for the "portal unavailable" message below — skip the lookup
+  // on the normal (enabled) path.
+  let supportEmail = "";
+  if (!enabled) {
+    const orgId = await getOrgIdForSession(session);
+    const org = orgId
+      ? await prisma.organisation.findUnique({ where: { id: orgId }, select: { supportEmail: true } })
+      : null;
+    supportEmail = supportEmailFor(org);
+  }
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -50,7 +63,8 @@ export default async function StudentLayout({ children }: { children: React.Reac
             <h2 className="text-base font-semibold">Student Portal Unavailable</h2>
             <p className="mt-1 text-muted-foreground">
               Your club hasn't enabled the student portal on their plan. Please contact your
-              coach.
+              coach, or email{" "}
+              <a href={`mailto:${supportEmail}`} className="text-primary underline">{supportEmail}</a>.
             </p>
             <div className="mt-4">
               <LogoutButton />

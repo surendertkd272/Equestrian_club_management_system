@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { getParentChildren } from "@/lib/parent";
-import { getFeaturesForSession } from "@/lib/features-gate";
+import { getFeaturesForSession, getOrgIdForSession } from "@/lib/features-gate";
+import { prisma } from "@/lib/prisma";
+import { supportEmailFor } from "@/lib/contact";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -19,6 +21,11 @@ export default async function ParentDashboard() {
   const showPayment = features.has("fee-collection");
 
   if (children.length === 0) {
+    const orgId = await getOrgIdForSession(session);
+    const org = orgId
+      ? await prisma.organisation.findUnique({ where: { id: orgId }, select: { supportEmail: true } })
+      : null;
+    const email = supportEmailFor(org);
     return (
       <Card>
         <CardHeader>
@@ -26,7 +33,8 @@ export default async function ParentDashboard() {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           Your account isn't linked to a rider yet. Please contact your centre — a manager
-          can add the link from the rider's profile.
+          can add the link from the rider's profile. Or email{" "}
+          <a href={`mailto:${email}`} className="text-primary underline">{email}</a>.
         </CardContent>
       </Card>
     );

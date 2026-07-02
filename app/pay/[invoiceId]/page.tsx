@@ -10,6 +10,7 @@
 // reload an old link after paying.
 
 import Link from "next/link";
+import { supportEmailFor } from "@/lib/contact";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isFeatureEnabledForCentre } from "@/lib/features-gate";
@@ -25,7 +26,7 @@ export default async function PayPage({ params }: { params: { invoiceId: string 
   const invoice = await prisma.invoice.findUnique({
     where: { id: params.invoiceId },
     include: {
-      centre: { select: { name: true } },
+      centre: { select: { name: true, org: { select: { supportEmail: true } } } },
       rider: { select: { firstName: true, lastName: true } },
     },
   });
@@ -109,7 +110,10 @@ export default async function PayPage({ params }: { params: { invoiceId: string 
         </Card>
 
         <p className="mt-4 text-center text-xs text-muted-foreground">
-          Need help? Reach out to <b>{invoice.centre.name}</b> directly.
+          Need help? Reach out to <b>{invoice.centre.name}</b> at{" "}
+          <a href={`mailto:${supportEmailFor(invoice.centre.org)}`} className="underline">
+            {supportEmailFor(invoice.centre.org)}
+          </a>.
           {" "}
           <Link href="/login" className="underline">Staff sign in →</Link>
         </p>

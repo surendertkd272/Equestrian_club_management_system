@@ -7,7 +7,8 @@ import { RingGauge } from "@/components/ui/charts";
 import { Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import { getFeaturesForSession } from "@/lib/features-gate";
+import { getFeaturesForSession, getOrgIdForSession } from "@/lib/features-gate";
+import { supportEmailFor } from "@/lib/contact";
 import { loadRiderExamHistory } from "@/lib/exam-history";
 import { ExamHistoryList } from "@/components/exams/exam-history-list";
 import { BmiBanner } from "./bmi-banner";
@@ -30,6 +31,11 @@ export default async function StudentHome() {
   const summary = await getStudentSummary(session.userId);
 
   if (!summary) {
+    const orgId = await getOrgIdForSession(session);
+    const org = orgId
+      ? await prisma.organisation.findUnique({ where: { id: orgId }, select: { supportEmail: true } })
+      : null;
+    const email = supportEmailFor(org);
     return (
       <Card>
         <CardHeader>
@@ -37,7 +43,8 @@ export default async function StudentHome() {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           Your account isn't linked to a rider profile. Please contact your centre — a
-          manager can link your account from your rider profile.
+          manager can link your account from your rider profile. Or email{" "}
+          <a href={`mailto:${email}`} className="text-primary underline">{email}</a>.
         </CardContent>
       </Card>
     );
