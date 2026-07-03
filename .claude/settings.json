@@ -118,7 +118,11 @@
       "Bash(vercel whoami *)",
       "Bash(DATABASE_URL=\"file:./dev.db\" npx vitest run lib/email.test.ts)",
       "Bash(cd \"/Users/surenderyadav/Equiwings CMS\" && rm -rf \"app/verify-email/[token]\" && find app/verify-email -type f)",
-      "Bash(grep -rn \"issueEmailVerifyToken\\\\|redeemEmailVerifyToken\\\\|verify-email/\\\\${\" --include=\"*.ts\" --include=\"*.tsx\" .)"
+      "Bash(grep -rn \"issueEmailVerifyToken\\\\|redeemEmailVerifyToken\\\\|verify-email/\\\\${\" --include=\"*.ts\" --include=\"*.tsx\" .)",
+      "Bash(curl -s -X POST https://api.resend.com/emails -H 'Authorization: Bearer re_Jtb1EvSb_CaCJ1dh3SC7MvHKKHKjsQx42' -H 'Content-Type: application/json' -d '{ *)",
+      "Bash(npx next *)",
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash(rm -rf .next)"
     ],
     "additionalDirectories": [
       "/Users/surenderyadav/Equiwings CMS/app/api/exams/[id]",
