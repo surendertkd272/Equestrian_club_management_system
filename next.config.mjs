@@ -60,14 +60,40 @@ const nextConfig = {
   async headers() {
     return [{ source: "/(.*)", headers: SECURITY_HEADERS }];
   },
-  // In S3 mode (S3_PUBLIC_URL set), uploads aren't written to public/uploads — forward
-  // /uploads/* reads to the configured bucket prefix so DB rows that store `/uploads/<file>`
-  // resolve the same way they do in dev. Paired with the S3 branch in lib/storage.ts.
+  // In remote-storage mode, uploads aren't written to public/uploads — forward
+  // /uploads/<file> reads to the backend's public base so DB rows that store
+  // `/uploads/<file>` resolve the same way they do in dev. No rewrite in local
+  // mode — Next serves public/uploads directly.
+  //
+  // Two invariants this block must uphold:
+  //
+  //  1. The active-backend conditions here MUST match readS3Config /
+  //     readSupabaseConfig in lib/storage.ts EXACTLY, or writes land in one
+  //     backend while reads rewrite to another (uploads "succeed" then 404).
+  //     S3 = all four S3_* vars; Supabase = URL + service key + explicit bucket.
+  //
+  //  2. The source is constrained to the exact random-filename shape produced by
+  //     randomFilename() (32 lowercase-hex chars + a known extension), NOT a
+  //     greedy `:path*`. A `:path*` would forward `..`/encoded-slash segments to
+  //     the Supabase Storage host — which serves EVERY public bucket in the
+  //     project under one origin — letting `/uploads/%2e%2e/<other-bucket>/x`
+  //     traverse out of our bucket and be served from our own domain. A tight
+  //     single-segment pattern makes such requests simply not match (→ 404).
   async rewrites() {
-    const pub = process.env.S3_PUBLIC_URL;
-    if (!pub) return [];
+    const s3All = ["S3_BUCKET", "S3_ACCESS_KEY", "S3_SECRET", "S3_PUBLIC_URL"].every(
+      (k) => process.env[k],
+    );
+    const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supaKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supaBucket = process.env.SUPABASE_STORAGE_BUCKET;
+    const base = s3All
+      ? process.env.S3_PUBLIC_URL.replace(/\/$/, "")
+      : supaUrl && supaKey && supaBucket
+        ? `${supaUrl.replace(/\/$/, "")}/storage/v1/object/public/${supaBucket}`
+        : null;
+    if (!base) return [];
     return [
-      { source: "/uploads/:path*", destination: `${pub.replace(/\/$/, "")}/:path*` },
+      { source: "/uploads/:file([0-9a-f]+\\.(?:jpg|png|webp|pdf))", destination: `${base}/:file` },
     ];
   },
 };

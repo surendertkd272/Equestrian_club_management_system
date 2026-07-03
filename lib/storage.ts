@@ -1,12 +1,21 @@
-// File storage abstraction. Two backends — chosen at request time based on env config:
-//   - S3 (or any S3-compatible: AWS S3, Cloudflare R2, DigitalOcean Spaces) when S3_BUCKET +
-//     S3_ACCESS_KEY + S3_SECRET + S3_PUBLIC_URL are all set.
-//   - Local filesystem (public/uploads/<filename>) as the dev fallback otherwise.
+// File storage abstraction. Three backends — chosen at request time based on env config:
+//   1. S3 (or any S3-compatible: AWS S3, Cloudflare R2, DigitalOcean Spaces) when S3_BUCKET +
+//      S3_ACCESS_KEY + S3_SECRET + S3_PUBLIC_URL are all set. Explicit config wins.
+//   2. Supabase Storage when NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are set
+//      (they already are wherever the app's Supabase Postgres lives). Writes via the
+//      Storage REST API into SUPABASE_STORAGE_BUCKET (default "uploads") — a public
+//      bucket, so reads need no auth. Pure fetch, no SDK (same pattern as lib/email.ts).
+//   3. Local filesystem (public/uploads/<filename>) as the dev fallback otherwise.
 //
-// Both backends return the same URL shape: `/uploads/<filename>`. In S3 mode, the
-// `/uploads/:path*` rewrite in next.config.mjs forwards reads to `${S3_PUBLIC_URL}/:path*`,
-// so DB rows stay portable across backends and bucket migrations (rebind S3_PUBLIC_URL
-// without touching stored URLs).
+// All backends return the same URL shape: `/uploads/<filename>`. In S3/Supabase mode, the
+// `/uploads/:path*` rewrite in next.config.mjs forwards reads to the backend's public
+// base URL, so DB rows stay portable across backends and bucket migrations (rebind the
+// env without touching stored URLs).
+//
+// Security model (unchanged from the original design): files are public-by-
+// unguessable-filename — 16 random bytes per name. Sensitive docs (Aadhaar etc.)
+// rely on that; if per-file authz is ever needed, switch the bucket to private
+// and serve through a signed-URL route instead.
 
 import { writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
@@ -158,6 +167,29 @@ function getS3Client(cfg: S3Config): S3Client {
   return _s3Client;
 }
 
+type SupabaseStorageConfig = {
+  url: string; // project base, e.g. https://<ref>.supabase.co
+  serviceKey: string;
+  bucket: string;
+};
+
+// Reuses the project's existing Supabase URL + service key, but requires an
+// EXPLICIT SUPABASE_STORAGE_BUCKET to activate. That opt-in is deliberate:
+// NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY are present on every dev
+// machine (they point at the same project as the app's Postgres), so keying the
+// backend purely on their presence would silently route local `next dev`
+// uploads into the live production bucket. Gating on SUPABASE_STORAGE_BUCKET —
+// which is set only in the deployed env, never in local .env — keeps dev on the
+// local-FS fallback. The service-role key stays server-side only (this module
+// never ships to the client; the upload route is the sole entry point).
+function readSupabaseConfig(): SupabaseStorageConfig | null {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET;
+  if (!url || !serviceKey || !bucket) return null;
+  return { url: url.replace(/\/$/, ""), serviceKey, bucket };
+}
+
 export async function uploadFile(opts: {
   kind: UploadKind;
   buffer: Buffer;
@@ -212,11 +244,46 @@ export async function uploadFile(opts: {
     return { ok: true, url: `/uploads/${filename}`, size: opts.buffer.length, mime: opts.mime };
   }
 
+  // Supabase Storage — second choice, lights up automatically wherever the
+  // app's Supabase env is present. POST (not PUT) so an unlikely filename
+  // collision errors instead of silently overwriting someone else's file.
+  const sb = readSupabaseConfig();
+  if (sb) {
+    try {
+      const res = await fetch(`${sb.url}/storage/v1/object/${sb.bucket}/${filename}`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${sb.serviceKey}`,
+          "Content-Type": opts.mime,
+          "Cache-Control": "public, max-age=31536000, immutable", // filenames are random+unique — cache forever
+        },
+        body: new Uint8Array(opts.buffer),
+      });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "");
+        return {
+          ok: false,
+          error: "SUPABASE_PUT_FAILED",
+          message: `${uploadNoun(opts.kind)} upload failed. Please try again.`,
+          deployerHint: `Supabase Storage returned ${res.status}: ${errText.slice(0, 300)}. Check the "${sb.bucket}" bucket exists and SUPABASE_SERVICE_ROLE_KEY is valid.`,
+        };
+      }
+    } catch (err) {
+      return {
+        ok: false,
+        error: "SUPABASE_PUT_FAILED",
+        message: `${uploadNoun(opts.kind)} upload failed. Please try again.`,
+        deployerHint: `Supabase Storage network error: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+    return { ok: true, url: `/uploads/${filename}`, size: opts.buffer.length, mime: opts.mime };
+  }
+
   // Local-filesystem fallback. Works in dev (writable cwd) and on most VMs.
   // Vercel's serverless runtime has a read-only filesystem under public/, so
-  // this branch will EROFS — surface a clear "configure S3" error rather
-  // than an unhandled 500. AWS S3 is the planned production backend; the
-  // four S3_* env vars above light up the S3 branch.
+  // this branch will EROFS — surface a clear "configure storage" error rather
+  // than an unhandled 500. The S3_* or Supabase env vars above light up the
+  // remote branches.
   try {
     const dir = path.join(process.cwd(), "public", "uploads");
     await mkdir(dir, { recursive: true });
@@ -236,7 +303,7 @@ export async function uploadFile(opts: {
         // Operator-facing. Stays in the API response body for logs but no
         // toast surfaces it (callsites use data.message only).
         deployerHint:
-          "File storage isn't configured. Set S3_BUCKET / S3_ACCESS_KEY / S3_SECRET / S3_PUBLIC_URL env vars for S3-compatible storage (AWS / R2 / Backblaze).",
+          "File storage isn't configured. Either set NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (Supabase Storage, bucket 'uploads') or S3_BUCKET / S3_ACCESS_KEY / S3_SECRET / S3_PUBLIC_URL (S3-compatible: AWS / R2 / Backblaze).",
       };
     }
     return {
