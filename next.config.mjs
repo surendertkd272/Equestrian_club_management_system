@@ -39,6 +39,14 @@ const nextConfig = {
     // refresh. 0 = always refetch dynamic routes on navigation. (This is Next
     // 15's default; we set it explicitly on 14.2.) Static routes keep theirs.
     staleTimes: { dynamic: 0 },
+    // lib/sentry.ts guards @sentry/nextjs behind a runtime require() so the
+    // package never needs installing unless SENTRY_DSN is set. Webpack still
+    // statically resolves require()/import() calls at build time regardless
+    // of the try/catch around them, so without this it fails the build with
+    // "Module not found" the moment the package isn't in node_modules. Marking
+    // it external skips bundling — Node resolves it at runtime instead, which
+    // only happens if that guarded branch actually runs.
+    serverComponentsExternalPackages: ["@sentry/nextjs"],
   },
   async headers() {
     return [{ source: "/(.*)", headers: SECURITY_HEADERS }];

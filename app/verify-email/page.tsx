@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { VerifyEmailForm } from "./form";
@@ -11,7 +12,13 @@ export default function VerifyEmailPage() {
           <CardDescription>Enter the 6-digit code we emailed you. It expires in 10 minutes.</CardDescription>
         </CardHeader>
         <CardContent>
-          <VerifyEmailForm />
+          {/* VerifyEmailForm reads ?email= via useSearchParams(), which opts
+              this subtree into client-side rendering — Next requires a
+              Suspense boundary around that so the rest of the page can still
+              be statically prerendered. */}
+          <Suspense fallback={null}>
+            <VerifyEmailForm />
+          </Suspense>
           <div className="mt-4 text-center text-xs text-muted-foreground">
             <Link href="/login" className="hover:underline">← Back to sign in</Link>
           </div>
