@@ -9,6 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 
+// Canonical week order — the CSV is always emitted in this order no matter
+// which sequence the days were ticked in, so "Tue,Wed,Thu" and "Thu,Tue,Wed"
+// produce identical stored values.
+const DAY_OPTIONS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+
 export function NewBatchForm({
   coaches,
   disabled,
@@ -68,14 +73,38 @@ export function NewBatchForm({
         />
       </div>
       <div className="space-y-1.5">
-        <Label>Days (CSV)</Label>
-        <Input aria-label="Days (CSV)"
-          required
-          value={form.dayOfWeek}
-          onChange={(e) => set("dayOfWeek", e.target.value)}
-          placeholder="Mon,Wed,Fri"
-          disabled={disabled}
-        />
+        <Label>Days</Label>
+        {/* Day-of-week toggles replace the old free-text CSV field (typo-prone,
+            custom combos weren't discoverable). Still stores the same
+            "Mon,Wed,Fri" CSV so the API + lesson generation are unchanged. */}
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Days">
+          {DAY_OPTIONS.map((day) => {
+            const selected = form.dayOfWeek.split(",").map((s) => s.trim()).includes(day);
+            return (
+              <button
+                key={day}
+                type="button"
+                disabled={disabled}
+                aria-pressed={selected}
+                onClick={() => {
+                  const days = form.dayOfWeek.split(",").map((s) => s.trim()).filter(Boolean);
+                  const next = selected ? days.filter((d) => d !== day) : [...days, day];
+                  set("dayOfWeek", DAY_OPTIONS.filter((d) => next.includes(d)).join(","));
+                }}
+                className={`rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                  selected
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "bg-card text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {day}
+              </button>
+            );
+          })}
+        </div>
+        {form.dayOfWeek === "" && (
+          <p className="text-xs text-rose-600">Pick at least one day.</p>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1.5">
@@ -119,7 +148,7 @@ export function NewBatchForm({
           ))}
         </Select>
       </div>
-      <Button type="submit" disabled={saving || disabled} className="w-full">
+      <Button type="submit" disabled={saving || disabled || form.dayOfWeek === ""} className="w-full">
         {saving ? "Creating…" : "Create Batch"}
       </Button>
     </form>
