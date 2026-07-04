@@ -69,7 +69,10 @@ export function NewStaffForm() {
     setSaving(false);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      toast.error(err.error === "EMAIL_IN_USE" ? "Email already in use" : err.error ?? "Failed");
+      // Prefer the server's human-readable `message`; fall back to known codes.
+      toast.error(
+        err.message ?? (err.error === "EMAIL_IN_USE" ? "Email already in use" : err.error ?? "Failed"),
+      );
       return;
     }
     toast.success("Staff added");
