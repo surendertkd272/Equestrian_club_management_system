@@ -403,8 +403,8 @@ function MedicalStep({
     <form onSubmit={methods.handleSubmit(onNext)} className="space-y-6">
       <div className="grid gap-4">
         <div className="grid gap-4 md:grid-cols-3">
-          <Field methods={methods} name="heightCm" label="Height (cm)" type="number" required />
-          <Field methods={methods} name="weightKg" label="Weight (kg)" type="number" required />
+          <Field methods={methods} name="heightCm" label="Height (cm)" type="number" />
+          <Field methods={methods} name="weightKg" label="Weight (kg)" type="number" />
           <div className="space-y-1.5">
             <Label>BMI (Auto)</Label>
             <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm">{bmi ?? "—"}</div>

@@ -43,9 +43,13 @@ export const parentsSchema = z.object({
   emergencyPhone: z.string().min(10, "Required"),
 });
 
+// Height/weight are OPTIONAL at registration (field feedback: medical data
+// often isn't collected yet when the form is filled — don't block submission).
+// The `.or(literal "")` branch tolerates an emptied number input, which the
+// browser submits as "" (z.coerce would turn that into 0 and fail positive()).
 export const medicalSchema = z.object({
-  heightCm: z.coerce.number().positive("Required").max(250),
-  weightKg: z.coerce.number().positive("Required").max(300),
+  heightCm: z.coerce.number().positive().max(250).optional().or(z.literal("").transform(() => undefined)),
+  weightKg: z.coerce.number().positive().max(300).optional().or(z.literal("").transform(() => undefined)),
   medicalNotes: z.string().optional(),
   allergies: z.string().optional(),
 });
