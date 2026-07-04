@@ -32,7 +32,7 @@ export default async function EditHorsePage({ params }: { params: { id: string }
     breed: horse.breed ?? "",
     sex: horse.sex ?? "gelding",
     ageYears: horse.ageYears != null ? String(horse.ageYears) : "",
-    heightHh: horse.heightHh != null ? String(horse.heightHh) : "",
+    heightIn: horse.heightIn != null ? String(horse.heightIn) : "",
     microchip: horse.microchip ?? "",
     ownership: horse.ownership ?? "club",
     stableNo: horse.stableNo ?? "",

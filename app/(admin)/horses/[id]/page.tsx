@@ -152,7 +152,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
                 {horse.sex ?? "—"} {horse.ageYears !== null ? `· ${horse.ageYears}y` : ""}
               </dd>
               <dt className="text-muted-foreground">Height</dt>
-              <dd className="col-span-2">{horse.heightHh ? `${horse.heightHh} hh` : "—"}</dd>
+              <dd className="col-span-2">{horse.heightIn ? `${horse.heightIn} in` : "—"}</dd>
               <dt className="text-muted-foreground">Ownership</dt>
               <dd className="col-span-2">{horse.ownership ?? "—"}</dd>
               <dt className="text-muted-foreground">Stable</dt>

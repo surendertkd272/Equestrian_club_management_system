@@ -30,7 +30,7 @@ async function mkHorse(centreId: string, name = "Bullet") {
       breed: "Marwari",
       sex: "gelding",
       ageYears: 8,
-      heightHh: 15.2,
+      heightIn: 62,
       stableNo: "A1",
       ownership: "club",
     },

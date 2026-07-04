@@ -14,7 +14,8 @@ export const createHorseSchema = z.object({
   breed: z.string().max(40).optional(),
   sex: z.enum(HORSE_SEXES).optional(),
   ageYears: z.coerce.number().int().min(0).max(50).optional(),
-  heightHh: z.coerce.number().min(8).max(20).optional(),
+  // Height in inches (field teams measure in inches; 61 in = 15.1 hh).
+  heightIn: z.coerce.number().min(30).max(90).optional(),
   microchip: z.string().max(40).optional(),
   // EFI horse registration id (optional — only competing horses have one)
   efiHorseId: z.string().max(40).optional(),

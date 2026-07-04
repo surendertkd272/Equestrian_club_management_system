@@ -44,7 +44,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(d.breed !== undefined ? { breed: d.breed || null } : {}),
       ...(d.sex !== undefined ? { sex: d.sex || null } : {}),
       ...(d.ageYears !== undefined ? { ageYears: d.ageYears ?? null } : {}),
-      ...(d.heightHh !== undefined ? { heightHh: d.heightHh ?? null } : {}),
+      ...(d.heightIn !== undefined ? { heightIn: d.heightIn ?? null } : {}),
       ...(d.microchip !== undefined ? { microchip: d.microchip || null } : {}),
       ...(d.ownership !== undefined ? { ownership: d.ownership } : {}),
       ...(d.stableNo !== undefined ? { stableNo: d.stableNo || null } : {}),

@@ -18,7 +18,7 @@ export function NewHorseForm() {
     breed: "",
     sex: "gelding",
     ageYears: "",
-    heightHh: "",
+    heightIn: "",
     microchip: "",
     efiHorseId: "",
     homeClub: "",
@@ -42,7 +42,7 @@ export function NewHorseForm() {
     setSaving(true);
     const payload: any = { ...form };
     if (form.ageYears === "") delete payload.ageYears;
-    if (form.heightHh === "") delete payload.heightHh;
+    if (form.heightIn === "") delete payload.heightIn;
     if (form.insurancePremium === "") delete payload.insurancePremium;
     for (const k of ["insurerName", "insurancePolicyNo", "insuranceValidFrom", "insuranceValidTo", "efiHorseId", "homeClub", "microchip", "breed", "diet", "stableNo"]) {
       if (payload[k] === "") delete payload[k];
@@ -88,15 +88,15 @@ export function NewHorseForm() {
           />
         </div>
         <div className="space-y-1.5">
-          <Label>Height (hh)</Label>
-          <Input aria-label="Height (hh)"
+          <Label>Height (inches)</Label>
+          <Input aria-label="Height (inches)"
             type="number"
-            step="0.1"
-            min={8}
-            max={20}
-            value={form.heightHh}
-            onChange={(e) => set("heightHh", e.target.value)}
-            placeholder="15.1"
+            step="1"
+            min={30}
+            max={90}
+            value={form.heightIn}
+            onChange={(e) => set("heightIn", e.target.value)}
+            placeholder="61"
           />
         </div>
         <div className="space-y-1.5">

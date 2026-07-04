@@ -41,7 +41,7 @@ function mkMedicine(centreId: string, qty: number, expDate?: Date) {
 }
 function mkHorse(centreId: string) {
   return prisma.horse.create({
-    data: { centreId, name: "Bullet", breed: "Marwari", sex: "gelding", ageYears: 8, heightHh: 15.2, stableNo: "A1", ownership: "club" },
+    data: { centreId, name: "Bullet", breed: "Marwari", sex: "gelding", ageYears: 8, heightIn: 62, stableNo: "A1", ownership: "club" },
   });
 }
 const usageReq = (medId: string, body: object) =>

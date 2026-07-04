@@ -1170,7 +1170,7 @@ model Horse {
   breed       String?
   sex         String?
   ageYears    Int?
-  heightHh    Float?
+  heightIn    Float?  // height in INCHES (pre-2026-07 this column held hands; migration converted)
   microchip   String?
   // Equestrian Federation of India horse ID. Optional — only horses
   // competing at national or above need one. Different from microchip
@@ -2336,6 +2336,9 @@ model EquipmentCatalog {
   unit            String  @default("piece") // piece | pair | set | metre | kg | litre
   defaultThreshold Int    @default(5) // reorder point applied when no per-centre override
   notes           String?
+  // Item photo (upload URL via /api/upload kind=asset_photo) — shown as a
+  // thumbnail on inventory rows so staff can identify gear at a glance.
+  photoUrl        String?
   active          Boolean @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

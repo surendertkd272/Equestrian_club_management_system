@@ -191,7 +191,7 @@ type Horse = {
   breed: string;
   sex: "M" | "F";
   ageYears: number;
-  heightHh: number;
+  heightIn: number; // inches
   ownership: "club" | "private";
   stableNo: string;
 };
@@ -244,9 +244,9 @@ const CLUBS: ClubSpec[] = [
     accountantName: "Sanjay Verma",
     parentName: "Arvind Sharma",
     horses: [
-      { name: "Bijli", breed: "Marwari", sex: "M", ageYears: 9, heightHh: 15.1, ownership: "club", stableNo: "A1" },
-      { name: "Champa", breed: "Indian Half-Bred", sex: "F", ageYears: 12, heightHh: 14.3, ownership: "club", stableNo: "A2" },
-      { name: "Raja", breed: "Sindhi", sex: "M", ageYears: 7, heightHh: 15.0, ownership: "private", stableNo: "B1" },
+      { name: "Bijli", breed: "Marwari", sex: "M", ageYears: 9, heightIn: 61, ownership: "club", stableNo: "A1" },
+      { name: "Champa", breed: "Indian Half-Bred", sex: "F", ageYears: 12, heightIn: 59, ownership: "club", stableNo: "A2" },
+      { name: "Raja", breed: "Sindhi", sex: "M", ageYears: 7, heightIn: 60, ownership: "private", stableNo: "B1" },
     ],
     riders: [
       { firstName: "Aarav", lastName: "Sharma", dob: new Date("2014-06-12"), mobile: "9111100001", gender: "male", school: "DPS Ghaziabad", fatherPhone: "9111100002" },
@@ -270,9 +270,9 @@ const CLUBS: ClubSpec[] = [
     accountantName: "Kavita Mathur",
     parentName: "Deepak Chopra",
     horses: [
-      { name: "Tara", breed: "Kathiawari", sex: "F", ageYears: 8, heightHh: 14.2, ownership: "club", stableNo: "G1" },
-      { name: "Surya", breed: "Marwari", sex: "M", ageYears: 10, heightHh: 15.2, ownership: "club", stableNo: "G2" },
-      { name: "Moti", breed: "Thoroughbred", sex: "M", ageYears: 6, heightHh: 16.0, ownership: "private", stableNo: "G3" },
+      { name: "Tara", breed: "Kathiawari", sex: "F", ageYears: 8, heightIn: 58, ownership: "club", stableNo: "G1" },
+      { name: "Surya", breed: "Marwari", sex: "M", ageYears: 10, heightIn: 62, ownership: "club", stableNo: "G2" },
+      { name: "Moti", breed: "Thoroughbred", sex: "M", ageYears: 6, heightIn: 64, ownership: "private", stableNo: "G3" },
     ],
     riders: [
       { firstName: "Vihaan", lastName: "Chopra", dob: new Date("2013-03-04"), mobile: "9222200001", gender: "male", school: "Pathways World, Gurgaon", fatherPhone: "9222200002" },
@@ -296,9 +296,9 @@ const CLUBS: ClubSpec[] = [
     accountantName: "Manish Patil",
     parentName: "Nikhil Shah",
     horses: [
-      { name: "Aakash", breed: "Anglo-Arabian", sex: "M", ageYears: 11, heightHh: 15.3, ownership: "club", stableNo: "M1" },
-      { name: "Ruhi", breed: "Marwari", sex: "F", ageYears: 7, heightHh: 14.3, ownership: "club", stableNo: "M2" },
-      { name: "Veer", breed: "Thoroughbred", sex: "M", ageYears: 5, heightHh: 16.1, ownership: "private", stableNo: "M3" },
+      { name: "Aakash", breed: "Anglo-Arabian", sex: "M", ageYears: 11, heightIn: 63, ownership: "club", stableNo: "M1" },
+      { name: "Ruhi", breed: "Marwari", sex: "F", ageYears: 7, heightIn: 59, ownership: "club", stableNo: "M2" },
+      { name: "Veer", breed: "Thoroughbred", sex: "M", ageYears: 5, heightIn: 65, ownership: "private", stableNo: "M3" },
     ],
     riders: [
       { firstName: "Ishaan", lastName: "Shah", dob: new Date("2013-07-15"), mobile: "9333300001", gender: "male", school: "Cathedral & John Connon", fatherPhone: "9333300002" },
@@ -322,9 +322,9 @@ const CLUBS: ClubSpec[] = [
     accountantName: "Shobha Iyer",
     parentName: "Suresh Reddy",
     horses: [
-      { name: "Chetak", breed: "Marwari", sex: "M", ageYears: 10, heightHh: 15.0, ownership: "club", stableNo: "B1" },
-      { name: "Lakshmi", breed: "Indian Half-Bred", sex: "F", ageYears: 9, heightHh: 14.2, ownership: "club", stableNo: "B2" },
-      { name: "Arjun", breed: "Thoroughbred", sex: "M", ageYears: 8, heightHh: 16.2, ownership: "private", stableNo: "B3" },
+      { name: "Chetak", breed: "Marwari", sex: "M", ageYears: 10, heightIn: 60, ownership: "club", stableNo: "B1" },
+      { name: "Lakshmi", breed: "Indian Half-Bred", sex: "F", ageYears: 9, heightIn: 58, ownership: "club", stableNo: "B2" },
+      { name: "Arjun", breed: "Thoroughbred", sex: "M", ageYears: 8, heightIn: 66, ownership: "private", stableNo: "B3" },
     ],
     riders: [
       { firstName: "Rohan", lastName: "Reddy", dob: new Date("2012-04-19"), mobile: "9444400001", gender: "male", school: "Inventure Academy, Whitefield", fatherPhone: "9444400002" },
