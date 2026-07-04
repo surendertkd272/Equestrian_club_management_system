@@ -34,6 +34,7 @@ export function EditStaffForm({
   const [busy, setBusy] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [manualPassword, setManualPassword] = useState("");
 
   const dirtyKeys = useMemo(
     () => (Object.keys(state) as (keyof FormState)[]).filter((k) => state[k] !== initial[k]),
@@ -107,6 +108,33 @@ export function EditStaffForm({
     }
   }
 
+  // Manual variant — admin types the exact password (e.g. a club-standard
+  // onboarding password). No temp box afterwards: the admin already knows it.
+  async function setPasswordManually() {
+    if (manualPassword.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    if (!window.confirm(`Set this exact password for ${state.name || "this staff member"}? Their current password stops working immediately.`)) return;
+    setResetting(true);
+    try {
+      const res = await fetch(`/api/users/${userId}/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: manualPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.message ?? data.error ?? "Failed to set password");
+        return;
+      }
+      setManualPassword("");
+      toast.success("Password set");
+    } finally {
+      setResetting(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
@@ -146,13 +174,36 @@ export function EditStaffForm({
               </Button>
             </div>
           ) : (
-            <div className="flex flex-wrap items-center gap-3">
-              <Button type="button" variant="outline" disabled={resetting} onClick={resetPassword}>
-                {resetting ? "Generating…" : "Generate New Password"}
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                Invalidates the current password and creates a temporary one you can share.
-              </p>
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Button type="button" variant="outline" disabled={resetting} onClick={resetPassword}>
+                  {resetting ? "Working…" : "Generate New Password"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Invalidates the current password and creates a temporary one you can share.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted-foreground">or set one manually:</span>
+                <Input
+                  aria-label="New password"
+                  type="text"
+                  autoComplete="off"
+                  className="h-9 w-48 font-mono text-sm"
+                  placeholder="min 8 characters"
+                  value={manualPassword}
+                  onChange={(e) => setManualPassword(e.target.value)}
+                  disabled={resetting}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={resetting || manualPassword.length < 8}
+                  onClick={setPasswordManually}
+                >
+                  Set Password
+                </Button>
+              </div>
             </div>
           )}
         </div>
