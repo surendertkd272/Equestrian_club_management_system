@@ -53,7 +53,14 @@ export default async function EditStaffPage({ params }: { params: { id: string }
           <CardTitle className="text-base">Staff Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <EditStaffForm id={staff.id} initial={initial} />
+          <EditStaffForm
+            id={staff.id}
+            initial={initial}
+            userId={staff.userId}
+            // Password reset rides on the HQ users endpoint, which is
+            // SUPER_ADMIN-only — hide the control for everyone else.
+            canResetPassword={session.role === "SUPER_ADMIN"}
+          />
           <p className="mt-4 border-t pt-4 text-xs text-muted-foreground">
             To change this person&apos;s email, role, or account status, use the{" "}
             <Link href="/users" className="text-primary underline">
