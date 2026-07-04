@@ -30,7 +30,9 @@ export const EQUIPMENT_CATALOG: CatalogSeedItem[] = [
   { category: "tack", code: "tack_saddle_pad", name: "Saddle Pad", unit: "piece", defaultThreshold: 5 },
   { category: "tack", code: "tack_gel_pad", name: "Gel Pad", unit: "piece", defaultThreshold: 5 },
   { category: "tack", code: "tack_fur_pad", name: "Pur Pad / Fur Pads", unit: "piece", defaultThreshold: 5 },
-  { category: "tack", code: "tack_blanket", name: "Blanket", unit: "piece", defaultThreshold: 5 },
+  // "Jhool" is the Hindi term for horse blanket — one consolidated entry
+  // (the old separate "Winter Blanket / Jhool" row was merged into this one).
+  { category: "tack", code: "tack_blanket", name: "Blanket / Jhool", unit: "piece", defaultThreshold: 5 },
   { category: "tack", code: "tack_noseband", name: "Noseband", unit: "piece", defaultThreshold: 5 },
   { category: "tack", code: "tack_martingale", name: "Martingale", unit: "piece", defaultThreshold: 5 },
   { category: "tack", code: "tack_muzzle", name: "Muzzle", unit: "piece", defaultThreshold: 5 },
@@ -44,8 +46,13 @@ export const EQUIPMENT_CATALOG: CatalogSeedItem[] = [
   { category: "tack", code: "tack_lunging_reins", name: "Lunging Reins", unit: "piece", defaultThreshold: 5 },
   { category: "tack", code: "tack_side_reins", name: "Side Reins", unit: "pair", defaultThreshold: 5 },
   { category: "tack", code: "tack_over_girth", name: "Over Girth", unit: "piece", defaultThreshold: 5 },
-  { category: "tack", code: "tack_winter_blanket", name: "Winter Blanket / Jhool", unit: "piece", defaultThreshold: 5 },
+  // tack_winter_blanket removed — merged into tack_blanket ("Blanket / Jhool");
+  // the data script deactivated the DB row and moved its stock across.
   { category: "tack", code: "tack_lance_holder", name: "Lance Holder", unit: "piece", defaultThreshold: 5 },
+  { category: "tack", code: "tack_iron_stirrups_small", name: "Iron Stirrups (Small)", unit: "pair", defaultThreshold: 5 },
+  { category: "tack", code: "tack_leather_stirrups", name: "Leather Stirrups", unit: "pair", defaultThreshold: 5 },
+  { category: "tack", code: "tack_girth_rein", name: "Girth Rein", unit: "piece", defaultThreshold: 5 },
+  { category: "tack", code: "tack_lunge_whip_small", name: "Lungeing / Dressage Whip (Small)", unit: "piece", defaultThreshold: 5 },
   { category: "tack", code: "tack_pony_saddle", name: "Pony Saddles", unit: "piece", defaultThreshold: 5 },
   { category: "tack", code: "tack_pony_bridle", name: "Pony Bridles", unit: "piece", defaultThreshold: 5 },
   { category: "tack", code: "tack_pony_bit", name: "Pony Bits", unit: "piece", defaultThreshold: 5 },
@@ -70,6 +77,10 @@ export const EQUIPMENT_CATALOG: CatalogSeedItem[] = [
   { category: "grooming", code: "groom_fleece_machine", name: "Fleece Removing Machine", unit: "piece", defaultThreshold: 5 },
 
   // ── Stable Equipment ──
+  // Mounting stands tracked as separate Small/Big line items per GHRC
+  // convention — do NOT consolidate into one entry.
+  { category: "stable", code: "stable_mounting_stand_small", name: "Mounting Stand (Small)", unit: "piece", defaultThreshold: 2 },
+  { category: "stable", code: "stable_mounting_stand_big", name: "Mounting Stand (Big)", unit: "piece", defaultThreshold: 2 },
   { category: "stable", code: "stable_hay_net", name: "Hay Net", unit: "piece", defaultThreshold: 5 },
   { category: "stable", code: "stable_mats", name: "Stable Mats", unit: "piece", defaultThreshold: 5 },
   { category: "stable", code: "stable_fans", name: "Fans", unit: "piece", defaultThreshold: 5 },
@@ -79,6 +90,14 @@ export const EQUIPMENT_CATALOG: CatalogSeedItem[] = [
   { category: "stable", code: "stable_forked_spade", name: "Forked Hay Spade (Punji)", unit: "piece", defaultThreshold: 5 },
   { category: "stable", code: "stable_spade", name: "Spade", unit: "piece", defaultThreshold: 5 },
   { category: "stable", code: "stable_waste_trolley", name: "Waste Trolley", unit: "piece", defaultThreshold: 5 },
+  { category: "stable", code: "stable_front_curtains", name: "Stable Front Curtains", unit: "piece", defaultThreshold: 2 },
+  { category: "stable", code: "stable_aluminium_box", name: "Aluminium Box", unit: "piece", defaultThreshold: 1 },
+  { category: "stable", code: "stable_almirah", name: "Almirah", unit: "piece", defaultThreshold: 1 },
+  { category: "stable", code: "stable_fridge", name: "Fridge", unit: "piece", defaultThreshold: 1 },
+  { category: "stable", code: "stable_notice_board", name: "Notice Board", unit: "piece", defaultThreshold: 1 },
+  { category: "stable", code: "stable_watering_pipe", name: "Ground Watering Pipe", unit: "piece", defaultThreshold: 2 },
+  { category: "stable", code: "stable_sprinklers", name: "Sprinklers", unit: "piece", defaultThreshold: 2 },
+  { category: "stable", code: "stable_plants", name: "Plants", unit: "piece", defaultThreshold: 5 },
 
   // ── Rider's Equipment ──
   { category: "rider", code: "rider_helmet", name: "Helmet", unit: "piece", defaultThreshold: 5 },
@@ -94,6 +113,34 @@ export const EQUIPMENT_CATALOG: CatalogSeedItem[] = [
   { category: "rider", code: "rider_track_suits", name: "Track Suits", unit: "piece", defaultThreshold: 5 },
   { category: "rider", code: "rider_gloves", name: "Gloves", unit: "pair", defaultThreshold: 5 },
   { category: "rider", code: "rider_knee_guard", name: "Knee Guard", unit: "pair", defaultThreshold: 5 },
+  // ── Sized riding gear — per GHRC convention each size is its own line item
+  // so per-size quantities are countable. The unsized base rows above stay for
+  // legacy/unsorted stock; new counting should use the sized rows.
+  { category: "rider", code: "rider_helmet_xs", name: "Helmet (XS)", unit: "piece", defaultThreshold: 2 },
+  { category: "rider", code: "rider_helmet_s", name: "Helmet (S)", unit: "piece", defaultThreshold: 2 },
+  { category: "rider", code: "rider_helmet_m", name: "Helmet (M)", unit: "piece", defaultThreshold: 2 },
+  { category: "rider", code: "rider_helmet_l", name: "Helmet (L)", unit: "piece", defaultThreshold: 2 },
+  { category: "rider", code: "rider_helmet_xl", name: "Helmet (XL)", unit: "piece", defaultThreshold: 2 },
+  { category: "rider", code: "rider_riding_boots_s", name: "Riding Boots (S)", unit: "pair", defaultThreshold: 2 },
+  { category: "rider", code: "rider_riding_boots_m", name: "Riding Boots (M)", unit: "pair", defaultThreshold: 2 },
+  { category: "rider", code: "rider_riding_boots_l", name: "Riding Boots (L)", unit: "pair", defaultThreshold: 2 },
+  { category: "rider", code: "rider_riding_boots_xl", name: "Riding Boots (XL)", unit: "pair", defaultThreshold: 2 },
+  { category: "rider", code: "rider_short_boots_s", name: "Short Boots (S)", unit: "pair", defaultThreshold: 2 },
+  { category: "rider", code: "rider_short_boots_m", name: "Short Boots (M)", unit: "pair", defaultThreshold: 2 },
+  { category: "rider", code: "rider_short_boots_l", name: "Short Boots (L)", unit: "pair", defaultThreshold: 2 },
+  { category: "rider", code: "rider_short_boots_xl", name: "Short Boots (XL)", unit: "pair", defaultThreshold: 2 },
+  { category: "rider", code: "rider_chaps_s", name: "Chaps (S)", unit: "pair", defaultThreshold: 2 },
+  { category: "rider", code: "rider_chaps_m", name: "Chaps (M)", unit: "pair", defaultThreshold: 2 },
+  { category: "rider", code: "rider_chaps_l", name: "Chaps (L)", unit: "pair", defaultThreshold: 2 },
+  { category: "rider", code: "rider_chaps_xl", name: "Chaps (XL)", unit: "pair", defaultThreshold: 2 },
+  { category: "rider", code: "rider_gloves_s", name: "Gloves (S)", unit: "pair", defaultThreshold: 2 },
+  { category: "rider", code: "rider_gloves_m", name: "Gloves (M)", unit: "pair", defaultThreshold: 2 },
+  { category: "rider", code: "rider_gloves_l", name: "Gloves (L)", unit: "pair", defaultThreshold: 2 },
+  { category: "rider", code: "rider_gloves_xl", name: "Gloves (XL)", unit: "pair", defaultThreshold: 2 },
+  { category: "rider", code: "rider_chest_guard_s", name: "Chest Guard (S)", unit: "piece", defaultThreshold: 2 },
+  { category: "rider", code: "rider_chest_guard_m", name: "Chest Guard (M)", unit: "piece", defaultThreshold: 2 },
+  { category: "rider", code: "rider_chest_guard_l", name: "Chest Guard (L)", unit: "piece", defaultThreshold: 2 },
+  { category: "rider", code: "rider_chest_guard_xl", name: "Chest Guard (XL)", unit: "piece", defaultThreshold: 2 },
 
   // ── Sports Equipment ──
   { category: "sports", code: "sport_polo_mallet", name: "Polo Mallet", unit: "piece", defaultThreshold: 5, notes: "Sizes" },
@@ -120,7 +167,25 @@ export const EQUIPMENT_CATALOG: CatalogSeedItem[] = [
   { category: "sports", code: "sport_riding_bibs", name: "Riding Bibs", unit: "piece", defaultThreshold: 5 },
   { category: "sports", code: "sport_marking_cones", name: "Marking Cones", unit: "piece", defaultThreshold: 5 },
   { category: "sports", code: "sport_mls_stand", name: "Mallet / Lance / Sword Stand", unit: "piece", defaultThreshold: 5 },
+  // Tent pegging & equestrian sport additions (field request, July 2026).
+  { category: "sports", code: "sport_sword_indian", name: "Sword Indian", unit: "piece", defaultThreshold: 2 },
+  { category: "sports", code: "sport_peg_angle", name: "Peg Angle", unit: "piece", defaultThreshold: 2 },
+  { category: "sports", code: "sport_balloon_lance", name: "Balloon Bursting Lance", unit: "piece", defaultThreshold: 2 },
+  { category: "sports", code: "sport_stabling_tent", name: "Stabling Tent Items", unit: "set", defaultThreshold: 1 },
+  { category: "sports", code: "sport_jury_box", name: "Jury Box", unit: "piece", defaultThreshold: 1 },
 
   // ── Vet Equipment & Medicines ──
   { category: "vet", code: "vet_thermometer", name: "Thermometer", unit: "piece", defaultThreshold: 5 },
+
+  // ── Arena, Facility & Electronics (field request, July 2026) ──
+  { category: "other", code: "other_equiwings_arena", name: "Equiwings Arena", unit: "set", defaultThreshold: 1 },
+  { category: "other", code: "other_kenop_equiwings", name: "Kenop (Equiwings)", unit: "piece", defaultThreshold: 1 },
+  { category: "other", code: "other_kenop_syl", name: "Kenop (Syl)", unit: "piece", defaultThreshold: 1 },
+  { category: "other", code: "other_chairs_tables", name: "Chairs & Tables", unit: "piece", defaultThreshold: 5 },
+  { category: "other", code: "other_foot_boards", name: "Foot Boards", unit: "piece", defaultThreshold: 2 },
+  { category: "other", code: "other_cooler_stand", name: "Cooler Stand", unit: "piece", defaultThreshold: 1 },
+  { category: "other", code: "other_cameras", name: "Cameras (CCTV)", unit: "piece", defaultThreshold: 1 },
+  { category: "other", code: "other_teachers_mic", name: "Teacher's Mic", unit: "piece", defaultThreshold: 1 },
+  { category: "other", code: "other_tube_light", name: "Tube Light", unit: "piece", defaultThreshold: 2 },
+  { category: "other", code: "other_bulb", name: "Bulb", unit: "piece", defaultThreshold: 2 },
 ];
