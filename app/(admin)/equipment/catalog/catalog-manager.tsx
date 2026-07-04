@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Archive, Trash2 } from "lucide-react";
+import { Plus, Archive, Trash2, ImagePlus, X } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
 import { EQUIPMENT_CATEGORIES, EQUIPMENT_CATEGORY_ORDER } from "@/lib/schemas/equipment";
+import { compressForKind } from "@/lib/image-compress";
 
 // Use the canonical category list + order from the schema so the dropdown and
 // the grouped list below match the rest of the app:
@@ -25,6 +26,7 @@ type Item = {
   unit: string;
   defaultThreshold: number;
   notes: string | null;
+  photoUrl: string | null;
   active: boolean;
   adoptedBy: number;
 };
@@ -94,6 +96,27 @@ export function CatalogManager({ initial }: { initial: Item[] }) {
     }
     if (msg) toast.success(msg);
     router.refresh();
+  }
+
+  // Upload an item photo (compressed client-side) then attach it via PATCH.
+  async function uploadPhoto(id: string, file: File) {
+    setBusy(true);
+    try {
+      const compressed = await compressForKind(file, "asset_photo");
+      const fd = new FormData();
+      fd.append("kind", "asset_photo");
+      fd.append("file", compressed);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.message ?? err.error ?? "Upload failed");
+        return;
+      }
+      const data = await res.json();
+      await patch(id, { photoUrl: data.url as string }, "Photo added");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function archive(id: string, adoptedBy: number) {
@@ -196,6 +219,7 @@ export function CatalogManager({ initial }: { initial: Item[] }) {
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-left text-xs text-muted-foreground">
                 <tr>
+                  <th className="px-3 py-2 w-16">Photo</th>
                   <th className="px-3 py-2">Name</th>
                   <th className="px-3 py-2 w-32">Code</th>
                   <th className="px-3 py-2 w-20">Unit</th>
@@ -207,6 +231,37 @@ export function CatalogManager({ initial }: { initial: Item[] }) {
               <tbody>
                 {rows.map((i) => (
                   <tr key={i.id} className={`border-t ${i.active ? "" : "opacity-60"}`}>
+                    <td className="px-3 py-1.5">
+                      {i.photoUrl ? (
+                        <div className="group relative h-9 w-9">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={i.photoUrl} alt={i.name} className="h-9 w-9 rounded object-cover" loading="lazy" />
+                          <button
+                            type="button"
+                            aria-label="Remove photo"
+                            onClick={() => patch(i.id, { photoUrl: null }, "Photo removed")}
+                            className="absolute -right-1.5 -top-1.5 hidden rounded-full bg-background p-0.5 text-muted-foreground shadow group-hover:block hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-dashed text-muted-foreground hover:bg-muted" title="Add photo">
+                          <ImagePlus className="h-4 w-4" />
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className="hidden"
+                            disabled={busy}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) uploadPhoto(i.id, file);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      )}
+                    </td>
                     <td className="px-3 py-1.5">
                       <Input
                         defaultValue={i.name}

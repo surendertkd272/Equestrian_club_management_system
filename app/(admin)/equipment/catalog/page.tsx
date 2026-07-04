@@ -51,6 +51,7 @@ export default async function EquipmentCatalogPage() {
               unit: i.unit,
               defaultThreshold: i.defaultThreshold,
               notes: i.notes,
+              photoUrl: i.photoUrl,
               active: i.active,
               adoptedBy: adopted.get(i.id) ?? 0,
             }))}

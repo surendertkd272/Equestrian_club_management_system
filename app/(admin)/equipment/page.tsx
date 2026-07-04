@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function EquipmentPage({
   searchParams,
 }: {
-  searchParams: { centreId?: string };
+  searchParams: { centreId?: string; q?: string };
 }) {
   const session = (await getSession())!;
   // HQ-tier admins (SUPER_ADMIN + ADMIN) without a centre context (via
@@ -52,15 +52,24 @@ export default async function EquipmentPage({
   if (!centre) redirect("/dashboard");
   const stockByCatalog = new Map(stocks.map((s) => [s.catalogId, s]));
 
-  const canEdit = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "INVENTORY_MANAGER", "STABLE_MANAGER", "HEAD_COACH"].includes(
+  // COACH included per field request: any coach can step in and manage
+  // inventory in another coach's absence (shared ground-ops access).
+  const canEdit = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "INVENTORY_MANAGER", "STABLE_MANAGER", "HEAD_COACH", "COACH"].includes(
     session.role,
   );
   const canManageCatalog = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
 
+  // Text search across item names (?q=) — server-side so the whole page
+  // (grouping, counts) reflects the filter. Empty/absent q = full catalog.
+  const q = (searchParams.q ?? "").trim().toLowerCase();
+  const visibleCatalog = q
+    ? catalog.filter((c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q))
+    : catalog;
+
   // Group by category. Map preserves insertion order — pre-sort the
   // catalog by EQUIPMENT_CATEGORY_ORDER so the resulting iteration
   // order is the canonical display sequence (tack first, etc.).
-  const sortedCatalog = [...catalog].sort((a, b) => {
+  const sortedCatalog = [...visibleCatalog].sort((a, b) => {
     const ai = EQUIPMENT_CATEGORY_ORDER[a.category] ?? 99;
     const bi = EQUIPMENT_CATEGORY_ORDER[b.category] ?? 99;
     return ai - bi;
@@ -110,6 +119,26 @@ export default async function EquipmentPage({
         </div>
       </div>
 
+      {/* Search — plain GET form so the server render reflects the filter.
+          centreId is preserved for HQ users browsing a specific club. */}
+      <form method="GET" className="flex max-w-md items-center gap-2">
+        {isHQ && searchParams.centreId && <input type="hidden" name="centreId" value={searchParams.centreId} />}
+        <input
+          type="search"
+          name="q"
+          defaultValue={searchParams.q ?? ""}
+          placeholder="Search items… e.g. helmet, comb, saddle"
+          className="h-9 w-full rounded-md border bg-card px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+          aria-label="Search equipment"
+        />
+        <Button type="submit" variant="outline" size="sm">Search</Button>
+        {q && (
+          <Button asChild variant="ghost" size="sm">
+            <Link href={searchParams.centreId ? `/equipment?centreId=${searchParams.centreId}` : "/equipment"}>Clear</Link>
+          </Button>
+        )}
+      </form>
+
       {catalog.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
@@ -122,6 +151,12 @@ export default async function EquipmentPage({
                 </Link>
               </>
             )}
+          </CardContent>
+        </Card>
+      ) : visibleCatalog.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            No items match &ldquo;{searchParams.q}&rdquo;.
           </CardContent>
         </Card>
       ) : (
@@ -160,6 +195,7 @@ export default async function EquipmentPage({
                           catalogId={c.id}
                           name={c.name}
                           code={c.code}
+                          photoUrl={c.photoUrl}
                           unit={c.unit}
                           qtyUnused={s?.qtyUnused ?? 0}
                           qtyInUse={s?.qtyInUse ?? 0}

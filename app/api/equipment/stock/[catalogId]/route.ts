@@ -24,10 +24,11 @@ export async function PATCH(
   if (readOnlyBlock) return readOnlyBlock;
 
   // Inventory edits are limited to the inventory manager + centre manager
-  // (and SUPER_ADMIN for cross-centre fixes). HEAD_COACH can adjust too —
-  // they often handle quick stock checks during the day.
+  // (and SUPER_ADMIN for cross-centre fixes). HEAD_COACH + COACH can adjust
+  // too — coaches share ground-ops duties and cover for each other, so
+  // inventory access is deliberately not siloed to one person.
   if (
-    !["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "INVENTORY_MANAGER", "STABLE_MANAGER", "HEAD_COACH"].includes(session.role)
+    !["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "INVENTORY_MANAGER", "STABLE_MANAGER", "HEAD_COACH", "COACH"].includes(session.role)
   ) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }

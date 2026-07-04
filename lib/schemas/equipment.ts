@@ -39,6 +39,13 @@ export const createCatalogSchema = z.object({
   unit: z.enum(EQUIPMENT_UNITS).default("piece"),
   defaultThreshold: z.coerce.number().int().min(0).max(10000).default(5),
   notes: z.string().max(500).optional(),
+  // Item photo — an /uploads/ URL from /api/upload (kind=asset_photo).
+  // Null clears the photo.
+  photoUrl: z
+    .string()
+    .regex(/^\/uploads\/[a-z0-9._-]+$/i, "Must be an /uploads/ URL")
+    .nullable()
+    .optional(),
   active: z.boolean().default(true),
 });
 

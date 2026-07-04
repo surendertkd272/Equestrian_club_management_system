@@ -111,7 +111,9 @@ export const NAV: NavGroup[] = [
       // Per-item Asset tracking was removed in the consolidation — clubs found
       // the parallel system confusing, and the bulk view answers the
       // "do we have enough" question that drives day-to-day decisions.
-      { href: "/equipment", label: "Tack & Equipment", iconName: "Package", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "STABLE_MANAGER", "INVENTORY_MANAGER", "HEAD_COACH", "GROOM"], feature: "inventory" },
+      // COACH included per field request — any coach can manage inventory in
+      // another coach's absence (shared ground-ops access, not siloed).
+      { href: "/equipment", label: "Tack & Equipment", iconName: "Package", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "STABLE_MANAGER", "INVENTORY_MANAGER", "HEAD_COACH", "COACH", "GROOM"], feature: "inventory" },
       { href: "/medicines", label: "Vet Medicines", iconName: "Pill", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "VET", "INVENTORY_MANAGER", "ACCOUNTANT"], feature: "vet-records" },
       // Cross-horse vet follow-up calendar — companion view to the per-horse
       // Vet Visits panel. Same permission set so VET / horse.manage roles see it.

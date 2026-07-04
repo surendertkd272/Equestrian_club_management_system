@@ -17,6 +17,7 @@ export function InventoryRow({
   name,
   code,
   unit,
+  photoUrl,
   qtyUnused,
   qtyInUse,
   qtyForRepair,
@@ -34,6 +35,7 @@ export function InventoryRow({
   name: string;
   code: string;
   unit: string;
+  photoUrl?: string | null;
   qtyUnused: number;
   qtyInUse: number;
   qtyForRepair: number;
@@ -98,6 +100,11 @@ export function InventoryRow({
         min={0}
         defaultValue={value}
         onBlur={onBlurNumber(field, value)}
+        // Select-all on focus: without this, clicking a field showing "0" and
+        // typing "6" can produce "60" (cursor lands beside the existing digit)
+        // — the source of the "Total shows 60" field report. Selecting the
+        // current value means typing always REPLACES it.
+        onFocus={(e) => e.target.select()}
         className="h-7 w-14 text-center"
         disabled={busy}
         key={value /* re-mount on server-side change so the visible value matches */}
@@ -110,8 +117,21 @@ export function InventoryRow({
   return (
     <tr className={`border-t ${isLow ? "bg-rose-50/40" : ""}`}>
       <td className="py-2">
-        <div className="font-medium">{name}</div>
-        <div className="text-[10px] text-muted-foreground">{unit}</div>
+        <div className="flex items-center gap-2">
+          {photoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={photoUrl}
+              alt={name}
+              className="h-8 w-8 shrink-0 rounded object-cover"
+              loading="lazy"
+            />
+          )}
+          <div>
+            <div className="font-medium">{name}</div>
+            <div className="text-[10px] text-muted-foreground">{unit}</div>
+          </div>
+        </div>
       </td>
       <td className="py-2">{qtyInput("qtyUnused", qtyUnused)}</td>
       <td className="py-2">{qtyInput("qtyInUse", qtyInUse)}</td>
