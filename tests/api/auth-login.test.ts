@@ -60,7 +60,7 @@ describe("POST /api/auth/login", () => {
   it("returns 401 for an unknown email (does not leak existence)", async () => {
     const r = await postLogin({ email: "nobody@test.local", password: "anything" });
     expect(r.status).toBe(401);
-    expect(await r.json()).toMatchObject({ error: "Invalid credentials" });
+    expect(await r.json()).toMatchObject({ error: "INVALID_CREDENTIALS" });
     expect(cookieJar.size).toBe(0);
   });
 
@@ -68,7 +68,7 @@ describe("POST /api/auth/login", () => {
     await mkUser({ email: "user@test.local", password: "correct-horse-battery-staple" });
     const r = await postLogin({ email: "user@test.local", password: "wrong-password" });
     expect(r.status).toBe(401);
-    expect(await r.json()).toMatchObject({ error: "Invalid credentials" });
+    expect(await r.json()).toMatchObject({ error: "INVALID_CREDENTIALS" });
     expect(cookieJar.size).toBe(0);
   });
 
@@ -76,7 +76,7 @@ describe("POST /api/auth/login", () => {
     await mkUser({ email: "user@test.local", password: "pw", status: "suspended" });
     const r = await postLogin({ email: "user@test.local", password: "pw" });
     expect(r.status).toBe(401);
-    expect(await r.json()).toMatchObject({ error: "Invalid credentials" });
+    expect(await r.json()).toMatchObject({ error: "INVALID_CREDENTIALS" });
     expect(cookieJar.size).toBe(0);
   });
 

@@ -58,10 +58,10 @@ export async function POST(req: NextRequest) {
     },
   });
   if (!user || user.status !== "active") {
-    return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    return NextResponse.json({ error: "INVALID_CREDENTIALS" }, { status: 401 });
   }
   const ok = await verifyPassword(parsed.data.password, user.passwordHash);
-  if (!ok) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+  if (!ok) return NextResponse.json({ error: "INVALID_CREDENTIALS" }, { status: 401 });
 
   // Org-suspended block — credentials are valid but the tenant has been
   // suspended by the platform team (overdue billing, terms violation, etc).

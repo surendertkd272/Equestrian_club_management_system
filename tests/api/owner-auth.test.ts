@@ -59,7 +59,7 @@ describe("POST /api/owner/auth/login", () => {
   it("401 for unknown email", async () => {
     const r = await postLogin({ email: "nobody@platform.local", password: "anything" });
     expect(r.status).toBe(401);
-    expect(await r.json()).toMatchObject({ error: "Invalid credentials" });
+    expect(await r.json()).toMatchObject({ error: "INVALID_CREDENTIALS" });
     expect(cookieJar.size).toBe(0);
   });
 

@@ -48,10 +48,10 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.platformUser.findUnique({ where: { email: parsed.data.email } });
   if (!user || user.status !== "active") {
-    return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    return NextResponse.json({ error: "INVALID_CREDENTIALS" }, { status: 401 });
   }
   const ok = await verifyOwnerPassword(parsed.data.password, user.passwordHash);
-  if (!ok) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+  if (!ok) return NextResponse.json({ error: "INVALID_CREDENTIALS" }, { status: 401 });
 
   if (!isOwner(user.role)) {
     return NextResponse.json({ error: "Platform role invalid; contact support." }, { status: 500 });
