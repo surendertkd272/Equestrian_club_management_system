@@ -49,6 +49,8 @@ export const EQUIPMENT_CATALOG: CatalogSeedItem[] = [
   // tack_winter_blanket removed — merged into tack_blanket ("Blanket / Jhool");
   // the data script deactivated the DB row and moved its stock across.
   { category: "tack", code: "tack_lance_holder", name: "Lance Holder", unit: "piece", defaultThreshold: 5 },
+  // "Pisova" in field lists = Pessoa (brand) lunging training system.
+  { category: "tack", code: "tack_pessoa_lunging", name: "Pessoa Lunging System", unit: "set", defaultThreshold: 1, notes: "aka 'Pisova' in field lists" },
   { category: "tack", code: "tack_iron_stirrups_small", name: "Iron Stirrups (Small)", unit: "pair", defaultThreshold: 5 },
   { category: "tack", code: "tack_leather_stirrups", name: "Leather Stirrups", unit: "pair", defaultThreshold: 5 },
   { category: "tack", code: "tack_girth_rein", name: "Girth Rein", unit: "piece", defaultThreshold: 5 },

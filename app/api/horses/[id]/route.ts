@@ -46,6 +46,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(d.ageYears !== undefined ? { ageYears: d.ageYears ?? null } : {}),
       ...(d.heightIn !== undefined ? { heightIn: d.heightIn ?? null } : {}),
       ...(d.microchip !== undefined ? { microchip: d.microchip || null } : {}),
+      ...(d.efiHorseId !== undefined ? { efiHorseId: d.efiHorseId || null } : {}),
+      ...(d.homeClub !== undefined ? { homeClub: d.homeClub || null } : {}),
       ...(d.ownership !== undefined ? { ownership: d.ownership } : {}),
       ...(d.stableNo !== undefined ? { stableNo: d.stableNo || null } : {}),
       ...(d.diet !== undefined ? { diet: d.diet || null } : {}),
