@@ -13,6 +13,9 @@ export const createHorseSchema = z.object({
   name: z.string().min(1).max(40),
   breed: z.string().max(40).optional(),
   sex: z.enum(HORSE_SEXES).optional(),
+  // Date of birth (preferred); age is derived from it for display. ageYears is
+  // kept for back-compat + CSV imports that only carry an age.
+  dob: ymd.optional().or(z.literal("")),
   ageYears: z.coerce.number().int().min(0).max(50).optional(),
   // Height in inches (field teams measure in inches; 61 in = 15.1 hh).
   heightIn: z.coerce.number().min(30).max(90).optional(),

@@ -15,7 +15,7 @@ export type EditHorseInitial = {
   name: string;
   breed: string;
   sex: string;
-  ageYears: string;
+  dob: string;
   heightIn: string;
   microchip: string;
   ownership: string;
@@ -48,7 +48,7 @@ export function EditHorseForm({ horseId, initial }: { horseId: string; initial: 
     setSaving(true);
     const payload: Record<string, unknown> = { ...form };
     // Numeric/optional fields: drop blanks so they clear to null server-side.
-    for (const k of ["ageYears", "heightIn", "insurancePremium"]) {
+    for (const k of ["dob", "heightIn", "insurancePremium"]) {
       if (payload[k] === "") delete payload[k];
     }
     const res = await patchJson(`/api/horses/${horseId}`, payload);
@@ -90,8 +90,8 @@ export function EditHorseForm({ horseId, initial }: { horseId: string; initial: 
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label>Age (years)</Label>
-          <Input aria-label="Age (years)" type="number" min={0} max={50} value={form.ageYears} onChange={(e) => set("ageYears", e.target.value)} />
+          <Label>Date of Birth</Label>
+          <Input aria-label="Date of birth" type="date" value={form.dob} onChange={(e) => set("dob", e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <Label>Height (inches)</Label>

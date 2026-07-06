@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { formatDate, displayAgeYears } from "@/lib/utils";
 import { NewAllocationForm } from "./new-allocation";
 import { DeleteAllocation } from "./delete-allocation";
 import { StatusSelect } from "./status-select";
@@ -149,7 +149,11 @@ export default async function HorseProfile({ params }: { params: { id: string } 
               <dd className="col-span-2">{horse.breed ?? "—"}</dd>
               <dt className="text-muted-foreground">Sex / Age</dt>
               <dd className="col-span-2">
-                {horse.sex ?? "—"} {horse.ageYears !== null ? `· ${horse.ageYears}y` : ""}
+                {horse.sex ?? "—"}
+                {(() => {
+                  const age = displayAgeYears(horse.dob, horse.ageYears);
+                  return age !== null ? ` · ${age}y${horse.dob ? ` (b. ${formatDate(horse.dob)})` : ""}` : "";
+                })()}
               </dd>
               <dt className="text-muted-foreground">Height</dt>
               <dd className="col-span-2">{horse.heightIn ? `${horse.heightIn} in` : "—"}</dd>

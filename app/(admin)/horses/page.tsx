@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { DEFAULT_WORKLOAD_CAP_MIN } from "@/lib/schemas/horse";
+import { displayAgeYears } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -162,7 +163,7 @@ export default async function HorsesPage({
               },
               { key: "breed", header: "Breed", cell: (h) => h.breed ?? "—" },
               { key: "sex", header: "Sex", cell: (h) => h.sex ?? "—" },
-              { key: "age", header: "Age", cell: (h) => h.ageYears ?? "—" },
+              { key: "age", header: "Age", cell: (h) => displayAgeYears(h.dob, h.ageYears) ?? "—" },
               { key: "stable", header: "Stable", cell: (h) => h.stableNo ?? "—" },
               { key: "status", header: "Status", cell: (h) => <Badge variant={STATUS_VARIANT[h.status] ?? "outline"}>{formatEnum(h.status)}</Badge> },
               {

@@ -34,6 +34,7 @@ const rowSchema = z.object({
     if (["stallion", "s"].includes(t)) return "stallion";
     return t;
   }),
+  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD").optional(),
   age_years: z.coerce.number().int().min(0).max(50).optional(),
   height_in: z.coerce.number().min(30).max(90).optional(),
   // Legacy hands column — old import templates keep working; converted to
@@ -70,6 +71,7 @@ function aliasRow(row: Record<string, string>): Record<string, string> {
     out[n] = v;
     if (n === "stableno") out["stable_no"] = v;
     if (n === "ageyears") out["age_years"] = v;
+    if (n === "dateofbirth" || n === "dob") out["dob"] = v;
     if (n === "heighthh") out["height_hh"] = v;
     if (n === "heightin") out["height_in"] = v;
     if (n === "policyno") out["insurance_policy_no"] = v;
@@ -148,6 +150,7 @@ export async function POST(req: NextRequest) {
           stableNo: v.data.stable_no ?? null,
           breed: v.data.breed ?? null,
           sex: v.data.sex ?? null,
+          dob: v.data.dob ? new Date(v.data.dob) : null,
           ageYears: v.data.age_years ?? null,
           heightIn: v.data.height_in ?? (v.data.height_hh != null ? handsToInches(v.data.height_hh) : null),
           ownership: v.data.ownership ?? "club",

@@ -1169,6 +1169,10 @@ model Horse {
   name        String
   breed       String?
   sex         String?
+  // Date of birth — the form collects this and age is derived from it for
+  // display. `ageYears` is retained as a fallback for horses entered before
+  // DOB capture (and for CSV imports that only carry an age).
+  dob         DateTime?
   ageYears    Int?
   heightIn    Float?  // height in INCHES (pre-2026-07 this column held hands; migration converted)
   microchip   String?

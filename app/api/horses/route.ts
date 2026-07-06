@@ -65,6 +65,7 @@ export async function POST(req: NextRequest) {
       name: parsed.data.name,
       breed: parsed.data.breed || null,
       sex: parsed.data.sex || null,
+      dob: parsed.data.dob ? new Date(parsed.data.dob) : null,
       ageYears: parsed.data.ageYears ?? null,
       heightIn: parsed.data.heightIn ?? null,
       microchip: parsed.data.microchip || null,

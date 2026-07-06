@@ -43,6 +43,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(d.name !== undefined ? { name: d.name } : {}),
       ...(d.breed !== undefined ? { breed: d.breed || null } : {}),
       ...(d.sex !== undefined ? { sex: d.sex || null } : {}),
+      ...(d.dob !== undefined ? { dob: d.dob ? new Date(d.dob) : null } : {}),
       ...(d.ageYears !== undefined ? { ageYears: d.ageYears ?? null } : {}),
       ...(d.heightIn !== undefined ? { heightIn: d.heightIn ?? null } : {}),
       ...(d.microchip !== undefined ? { microchip: d.microchip || null } : {}),

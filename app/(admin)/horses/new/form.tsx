@@ -17,7 +17,7 @@ export function NewHorseForm() {
     name: "",
     breed: "",
     sex: "gelding",
-    ageYears: "",
+    dob: "",
     heightIn: "",
     microchip: "",
     efiHorseId: "",
@@ -41,7 +41,7 @@ export function NewHorseForm() {
     e.preventDefault();
     setSaving(true);
     const payload: any = { ...form };
-    if (form.ageYears === "") delete payload.ageYears;
+    if (form.dob === "") delete payload.dob;
     if (form.heightIn === "") delete payload.heightIn;
     if (form.insurancePremium === "") delete payload.insurancePremium;
     for (const k of ["insurerName", "insurancePolicyNo", "insuranceValidFrom", "insuranceValidTo", "efiHorseId", "homeClub", "microchip", "breed", "diet", "stableNo"]) {
@@ -78,13 +78,11 @@ export function NewHorseForm() {
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label>Age (years)</Label>
-          <Input aria-label="Age (years)"
-            type="number"
-            min={0}
-            max={50}
-            value={form.ageYears}
-            onChange={(e) => set("ageYears", e.target.value)}
+          <Label>Date of Birth</Label>
+          <Input aria-label="Date of birth"
+            type="date"
+            value={form.dob}
+            onChange={(e) => set("dob", e.target.value)}
           />
         </div>
         <div className="space-y-1.5">
