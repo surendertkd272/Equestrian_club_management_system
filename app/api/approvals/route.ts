@@ -6,6 +6,7 @@ import { blockIfFeatureOff } from "@/lib/features-gate";
 import { audit } from "@/lib/audit";
 import { notifyCentreManager } from "@/lib/notify";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { resolveWriteCentre } from "@/lib/resolve-centre";
 import { createApprovalSchema } from "@/lib/schemas/approvals";
 
 // GET — list approvals for the caller's centre. Filters: ?status, ?entityType.
@@ -47,8 +48,9 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
-  const centreId = session.centreId ?? (body?.centreId as string | undefined);
-  if (!centreId) return NextResponse.json({ error: "NO_CENTRE" }, { status: 400 });
+  const resolved = await resolveWriteCentre(session, body);
+  if (resolved.error) return resolved.error;
+  const { centreId } = resolved;
 
   const row = await prisma.approvalRequest.create({
     data: {

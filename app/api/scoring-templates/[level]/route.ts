@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { resolveWriteCentre } from "@/lib/resolve-centre";
 import { updateScoringTemplateSchema } from "@/lib/schemas/exam";
 import { audit } from "@/lib/audit";
 
@@ -22,8 +23,11 @@ export async function PUT(req: NextRequest, { params }: { params: { level: strin
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const centreId = session.centreId ?? (body?.centreId as string | undefined);
-  if (!centreId) return NextResponse.json({ error: "centreId required" }, { status: 400 });
+  // HQ users (SUPER_ADMIN/ADMIN) edit templates for the centre picked in the
+  // top bar; the editor doesn't send a centreId, so resolve it here.
+  const resolved = await resolveWriteCentre(session, body);
+  if (resolved.error) return resolved.error;
+  const { centreId } = resolved;
 
   const levelKey = String(params.level);
   const existing = await prisma.scoringTemplate.findUnique({

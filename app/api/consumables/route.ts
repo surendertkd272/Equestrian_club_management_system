@@ -6,6 +6,7 @@ import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { blockIfFeatureOff } from "@/lib/features-gate";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { resolveWriteCentre } from "@/lib/resolve-centre";
 import { createConsumableSchema } from "@/lib/schemas/consumable";
 
 // GET — list consumables for the caller's centre. Optional ?category, ?low=1.
@@ -48,11 +49,10 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
-  if (!session.centreId && session.role !== "SUPER_ADMIN") {
-    return NextResponse.json({ error: "NO_CENTRE" }, { status: 400 });
-  }
-  const centreId = session.centreId ?? (body?.centreId as string | undefined);
-  if (!centreId) return NextResponse.json({ error: "centreId required" }, { status: 400 });
+  // Resolve centre via picker (HQ) / own centre / body fallback.
+  const resolved = await resolveWriteCentre(session, body);
+  if (resolved.error) return resolved.error;
+  const { centreId } = resolved;
 
   const row = await prisma.consumable.create({
     data: {

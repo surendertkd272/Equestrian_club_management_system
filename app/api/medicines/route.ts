@@ -6,6 +6,7 @@ import { createMedicineSchema } from "@/lib/schemas/medicine";
 import { audit } from "@/lib/audit";
 import { blockIfFeatureOff } from "@/lib/features-gate";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { resolveWriteCentre } from "@/lib/resolve-centre";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -15,9 +16,6 @@ export async function POST(req: NextRequest) {
   if (featureBlock) return featureBlock;
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
-  if (!session.centreId && session.role !== "SUPER_ADMIN") {
-    return NextResponse.json({ error: "NO_CENTRE" }, { status: 400 });
-  }
 
   const body = await req.json().catch(() => null);
   const parsed = createMedicineSchema.safeParse(body);
@@ -25,8 +23,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
   const d = parsed.data;
-  const centreId = session.centreId ?? (body?.centreId as string | undefined);
-  if (!centreId) return NextResponse.json({ error: "centreId required" }, { status: 400 });
+  // Resolve centre via picker (HQ) / own centre / body fallback. Fixes ADMIN
+  // (previously blocked) and replaces the unmapped "centreId required" string.
+  const resolved = await resolveWriteCentre(session, body);
+  if (resolved.error) return resolved.error;
+  const { centreId } = resolved;
 
   const medicine = await prisma.medicine.create({
     data: {

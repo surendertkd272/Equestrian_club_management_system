@@ -6,6 +6,7 @@ import { blockIfFeatureOff } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { resolveWriteCentre } from "@/lib/resolve-centre";
 import { createCourseSchema } from "@/lib/schemas/courses";
 
 // GET — list courses for the caller's centre. ?active=1 filter for the "what
@@ -43,8 +44,11 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
-  const centreId = session.centreId ?? (body?.centreId as string | undefined);
-  if (!centreId) return NextResponse.json({ error: "NO_CENTRE" }, { status: 400 });
+  // HQ users have centreId=null and this form doesn't send a centreId — resolve
+  // via the top-bar picker so HQ can create training courses for the centre.
+  const resolved = await resolveWriteCentre(session, body);
+  if (resolved.error) return resolved.error;
+  const { centreId } = resolved;
 
   const row = await prisma.course.create({
     data: {

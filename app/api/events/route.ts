@@ -33,7 +33,15 @@ export async function POST(req: NextRequest) {
   if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
 
   const centreId = scopeCentre(session) ?? (body?.centreId as string | undefined);
-  if (!centreId) return NextResponse.json({ error: "centreId required" }, { status: 400 });
+  if (!centreId) {
+    return NextResponse.json(
+      {
+        error: "NO_CENTRE_SELECTED",
+        message: "Pick a specific centre from the top-bar centre selector (not “All centres”), then try again.",
+      },
+      { status: 400 },
+    );
+  }
 
   // HQ can target any centre via body.centreId — confirm it's within their org
   // before writing, so an HQ admin can't create events under another org's centre.

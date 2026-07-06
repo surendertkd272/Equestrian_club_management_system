@@ -7,6 +7,7 @@ import { createTaskSchema } from "@/lib/schemas/task";
 import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { resolveWriteCentre } from "@/lib/resolve-centre";
 
 function parseLocalDate(s: string): Date {
   return new Date(s);
@@ -20,9 +21,6 @@ export async function POST(req: NextRequest) {
   if (!can(session.role, "task.assign")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
-  if (!session.centreId && session.role !== "SUPER_ADMIN") {
-    return NextResponse.json({ error: "NO_CENTRE" }, { status: 400 });
-  }
 
   const body = await req.json().catch(() => null);
   const parsed = createTaskSchema.safeParse(body);
@@ -30,8 +28,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
   const d = parsed.data;
-  const centreId = session.centreId ?? (body?.centreId as string | undefined);
-  if (!centreId) return NextResponse.json({ error: "centreId required" }, { status: 400 });
+  // Resolve centre via picker (HQ) / own centre / body fallback. Fixes ADMIN
+  // (previously blocked) and replaces the unmapped "centreId required" string.
+  const resolved = await resolveWriteCentre(session, body);
+  if (resolved.error) return resolved.error;
+  const { centreId } = resolved;
 
   if (d.assigneeId) {
     const assignee = await prisma.user.findUnique({ where: { id: d.assigneeId } });
