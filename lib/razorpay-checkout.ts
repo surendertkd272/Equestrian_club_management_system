@@ -15,6 +15,7 @@
 // modal styling, theme colour, and verify endpoint URL stay in one place.
 
 import { toast } from "sonner";
+import { humanizeError } from "@/lib/error-messages";
 
 type RazorpayResponse = {
   razorpay_order_id: string;
@@ -74,7 +75,9 @@ export async function runRazorpayCheckout(
   });
   if (!orderRes.ok) {
     const err = await orderRes.json().catch(() => ({}));
-    toast.error(err.message ?? err.error ?? "Could not start payment");
+    // Parent-facing — run through humanizeError so mapped codes (ALREADY_PAID,
+    // INVOICE_NOT_FOUND, RAZORPAY_NOT_CONFIGURED, …) render as sentences.
+    toast.error(humanizeError(err, "Could not start payment"));
     return false;
   }
   const order = await orderRes.json();

@@ -37,7 +37,13 @@ export async function getStatusForSession(session: SessionPayload | null): Promi
 
 export function readOnlyResponse(status: string) {
   return NextResponse.json(
-    { error: "READ_ONLY", status },
+    {
+      error: "READ_ONLY",
+      status,
+      // Human message so the ~40 client callsites that read `data.message`
+      // (bypassing humanizeError) show a sentence rather than "READ_ONLY".
+      message: "This account is read-only (billing past due) — writes are paused. Contact your administrator.",
+    },
     { status: 403 },
   );
 }

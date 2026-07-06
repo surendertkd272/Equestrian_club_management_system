@@ -31,8 +31,11 @@ const rowSchema = z.object({
     .optional()
     .transform((v) => v || undefined),
   // Optional — if present, the import also schedules an exam at this level
-  // for each created rider. Skips the exam if no level is supplied.
-  level: z.coerce.number().int().min(1).max(50).optional(),
+  // for each created rider. Skips the exam if no level is supplied. The
+  // empty-string branch is required because a blank CSV cell arrives as ""
+  // (not undefined); without it z.coerce turns "" into 0 and .min(1) rejects
+  // the whole row, silently dropping riders who don't sit an exam.
+  level: z.coerce.number().int().min(1).max(50).optional().or(z.literal("").transform(() => undefined)),
 });
 
 const payloadSchema = z.object({

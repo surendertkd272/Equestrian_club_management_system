@@ -87,11 +87,18 @@ export function FeedPlanPanel({
       return;
     }
     setBusy(true);
-    const res = await fetch(`/api/horses/${horseId}/feed-plan`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rations: cleaned, notes: notes.trim() || null }),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`/api/horses/${horseId}/feed-plan`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rations: cleaned, notes: notes.trim() || null }),
+      });
+    } catch {
+      setBusy(false);
+      toast.error("Couldn't reach the server — check your connection and try again.");
+      return;
+    }
     setBusy(false);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {

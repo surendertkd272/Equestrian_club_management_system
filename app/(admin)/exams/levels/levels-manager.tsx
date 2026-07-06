@@ -286,6 +286,7 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
                       <Input
                         type="number"
                         defaultValue={l.orderIndex}
+                        onFocus={(e) => e.target.select()}
                         onBlur={(e) => {
                           const v = Number(e.target.value);
                           if (v === l.orderIndex) return;
@@ -318,6 +319,7 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
                       <Input
                         type="number"
                         defaultValue={l.passThreshold}
+                        onFocus={(e) => e.target.select()}
                         onBlur={(e) => {
                           const v = Number(e.target.value);
                           if (v === l.passThreshold) return;

@@ -54,7 +54,10 @@ export async function POST(req: NextRequest) {
   if (!ok) return NextResponse.json({ error: "INVALID_CREDENTIALS" }, { status: 401 });
 
   if (!isOwner(user.role)) {
-    return NextResponse.json({ error: "Platform role invalid; contact support." }, { status: 500 });
+    return NextResponse.json(
+      { error: "ROLE_INVALID", message: "Your platform role is misconfigured — please contact support." },
+      { status: 500 },
+    );
   }
 
   if (user.twoFactor && user.totpSecret) {

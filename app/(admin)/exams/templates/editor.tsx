@@ -96,11 +96,18 @@ export function TemplateEditor({ existing }: { existing: ExistingTemplate[] }) {
       return;
     }
     setSaving(true);
-    const res = await fetch(`/api/scoring-templates/${encodeURIComponent(levelKey)}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ levelName, passThreshold, categories }),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`/api/scoring-templates/${encodeURIComponent(levelKey)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ levelName, passThreshold, categories }),
+      });
+    } catch {
+      setSaving(false);
+      toast.error("Couldn't reach the server — check your connection and try again.");
+      return;
+    }
     setSaving(false);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));

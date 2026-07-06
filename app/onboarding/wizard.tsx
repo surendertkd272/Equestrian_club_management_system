@@ -739,11 +739,20 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
   async function submitAll(indemnity: IndemnityInput) {
     const payload = { ...data, ...indemnity };
     setSubmitting(true);
-    const res = await fetch("/api/onboarding", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    let res: Response;
+    try {
+      res = await fetch("/api/onboarding", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    } catch {
+      // Network drop (barn wifi) — fetch rejects. Without this the button
+      // stays stuck on "Working…" forever and the parent gets no feedback.
+      setSubmitting(false);
+      toast.error("Couldn't reach the server — check your connection and try again.");
+      return;
+    }
     setSubmitting(false);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));

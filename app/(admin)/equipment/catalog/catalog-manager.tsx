@@ -277,6 +277,7 @@ export function CatalogManager({ initial }: { initial: Item[] }) {
                       <Input
                         type="number"
                         defaultValue={i.defaultThreshold}
+                        onFocus={(e) => e.target.select()}
                         onBlur={(e) => {
                           const v = Number(e.target.value);
                           if (v !== i.defaultThreshold) patch(i.id, { defaultThreshold: v }, "Threshold updated");

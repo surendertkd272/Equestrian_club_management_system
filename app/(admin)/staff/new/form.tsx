@@ -61,11 +61,20 @@ export function NewStaffForm() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const res = await fetch("/api/staff", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
+    let res: Response;
+    try {
+      res = await fetch("/api/staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+    } catch {
+      // Network drop — reset the button and tell the user, instead of leaving
+      // "Creating…" spinning forever.
+      setSaving(false);
+      toast.error("Couldn't reach the server — check your connection and try again.");
+      return;
+    }
     setSaving(false);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));

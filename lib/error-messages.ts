@@ -39,6 +39,10 @@ const MESSAGES: Record<string, string> = {
   SHIFT_REQUIRED: "Please choose a shift before submitting.",
   RAZORPAY_NOT_CONFIGURED: "Online payments aren't set up yet — contact your admin.",
   PROVIDER_ERROR: "The payment provider had a problem — please try again.",
+  ALREADY_PAID: "This invoice has already been paid.",
+  INVOICE_NOT_FOUND: "We couldn't find that invoice — it may have been removed.",
+  INVALID_AMOUNT: "That amount isn't valid — please refresh and try again.",
+  ROLE_INVALID: "Your account role is misconfigured — please contact your administrator.",
 };
 
 const GENERIC = "Something went wrong. Please try again.";

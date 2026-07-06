@@ -130,7 +130,13 @@ export const getFeaturesForSession = cache(async (session: SessionPayload | null
 // rather than a generic error.
 export function featureDeniedResponse(key: FeatureKey) {
   return NextResponse.json(
-    { error: "FEATURE_DISABLED", featureKey: key },
+    {
+      error: "FEATURE_DISABLED",
+      featureKey: key,
+      // Human message so client callsites that read `data.message` directly
+      // (bypassing humanizeError) show a sentence rather than "FEATURE_DISABLED".
+      message: "That feature isn't enabled for your plan.",
+    },
     { status: 403 },
   );
 }

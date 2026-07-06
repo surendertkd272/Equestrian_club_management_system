@@ -78,7 +78,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (!isRole(user.role)) {
-    return NextResponse.json({ error: "User role is invalid; contact admin." }, { status: 500 });
+    return NextResponse.json(
+      { error: "ROLE_INVALID", message: "Your account role is misconfigured — please contact your administrator." },
+      { status: 500 },
+    );
   }
 
   // Tenant 2FA gate. If the user is enrolled, require a valid TOTP

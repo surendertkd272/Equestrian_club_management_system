@@ -35,11 +35,16 @@ const rowSchema = z.object({
     return t;
   }),
   dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD").optional(),
-  age_years: z.coerce.number().int().min(0).max(50).optional(),
-  height_in: z.coerce.number().min(30).max(90).optional(),
+  // A blank CSV cell arrives as "" (not undefined); z.coerce turns "" into 0.
+  // For height that fails .min(30)/.min(8) and, since a non-dry-run aborts the
+  // WHOLE batch on any row error, one blank height blocks importing every
+  // horse. For age/premium, 0 would silently overwrite null. The empty-string
+  // branch normalises a blank cell back to undefined.
+  age_years: z.coerce.number().int().min(0).max(50).optional().or(z.literal("").transform(() => undefined)),
+  height_in: z.coerce.number().min(30).max(90).optional().or(z.literal("").transform(() => undefined)),
   // Legacy hands column — old import templates keep working; converted to
   // inches at create time (hand notation is base-4: 15.1 hh = 15h 1in = 61 in).
-  height_hh: z.coerce.number().min(8).max(20).optional(),
+  height_hh: z.coerce.number().min(8).max(20).optional().or(z.literal("").transform(() => undefined)),
   ownership: z.string().optional().transform((v) => {
     const t = (v ?? "").trim().toLowerCase();
     if (!t) return undefined;
@@ -48,7 +53,7 @@ const rowSchema = z.object({
   microchip: z.string().max(40).optional().transform((v) => v?.trim() || undefined),
   insurer: z.string().max(80).optional().transform((v) => v?.trim() || undefined),
   insurance_policy_no: z.string().max(60).optional().transform((v) => v?.trim() || undefined),
-  insurance_premium: z.coerce.number().min(0).optional(),
+  insurance_premium: z.coerce.number().min(0).optional().or(z.literal("").transform(() => undefined)),
   insurance_valid_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   insurance_valid_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
