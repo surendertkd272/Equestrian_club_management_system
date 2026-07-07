@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { assertRoute } from "@/lib/route-guard";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForCentre, getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,7 +34,9 @@ function AttendanceSummary({ attendances }: { attendances: { status: string }[] 
 }
 
 export default async function RiderProfile({ params }: { params: { id: string } }) {
-  const session = (await getSession())!;
+  // Same role gate as the list — the detail page exposes the most PII (DOB,
+  // contacts, Aadhaar doc), so enforce the /riders nav perm server-side.
+  const session = await assertRoute("/riders");
   const centreId = scopeCentre(session);
 
   const rider = await prisma.rider.findUnique({

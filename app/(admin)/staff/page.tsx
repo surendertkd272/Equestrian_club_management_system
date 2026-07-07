@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { assertRoute } from "@/lib/route-guard";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +28,10 @@ export default async function StaffPage({
 }: {
   searchParams: { q?: string; page?: string; pageSize?: string };
 }) {
-  const session = (await getSession())!;
+  // Role gate: /staff (employee directory) is SUPER_ADMIN/ADMIN/CENTRE_MANAGER
+  // per the nav perm; the page previously had no server-side guard so other
+  // roles (e.g. ACCOUNTANT) could read the directory by URL.
+  const session = await assertRoute("/staff");
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/dashboard");
   const centreId = scopeCentre(session);

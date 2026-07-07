@@ -52,7 +52,7 @@ export const NAV: NavGroup[] = [
   {
     group: "Riders & Training",
     items: [
-      { href: "/riders", label: "Riders", iconName: "Users", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER", "SCHOOL_ADMINISTRATOR"] },
+      { href: "/riders", label: "Riders", iconName: "Users", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER", "SCHOOL_ADMINISTRATOR"] },
       // Self-enrolment approval queue — School Admin / Centre Manager vet
       // public sign-ups before they become billable registrations.
       { href: "/enrolments", label: "Enrolment Approvals", iconName: "UserCheck", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "SCHOOL_ADMINISTRATOR"] },

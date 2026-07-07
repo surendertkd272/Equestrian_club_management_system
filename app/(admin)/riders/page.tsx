@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { assertRoute } from "@/lib/route-guard";
 import { isReadOnly } from "@/lib/roles";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
@@ -26,7 +27,11 @@ export default async function RidersPage({
 }: {
   searchParams: { q?: string; status?: string; page?: string; pageSize?: string };
 }) {
-  const session = (await getSession())!;
+  // Role gate: the sidebar hides /riders from roles not in its perm list, but
+  // that only HID the link — the page itself had no guard, so VET/ACCOUNTANT
+  // etc. could read minor-rider PII by typing the URL. assertRoute enforces the
+  // nav perm server-side (redirects disallowed roles to /dashboard).
+  const session = await assertRoute("/riders");
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/dashboard");
   const centreId = scopeCentre(session);
