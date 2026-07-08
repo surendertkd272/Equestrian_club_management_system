@@ -18,16 +18,19 @@ export default async function ParentLayout({ children }: { children: React.React
 
   // If the tenant has parent-portal turned off, render a static notice instead
   // of children. We deliberately don't redirect — that creates a login loop.
-  const [features, orgStatus] = await Promise.all([
-    getFeaturesForSession(session),
-    getStatusForSession(session),
-  ]);
-  const enabled = features.has("parent-portal");
+  //
+  // An UNLINKED parent (no ParentLink yet) can't resolve an org, so the feature
+  // set comes back empty — which previously showed a misleading "not on your
+  // plan" notice. Distinguish the two: only gate when the org actually resolves
+  // AND parent-portal is off. Unlinked → let the page render its real
+  // "No Children Linked Yet" empty state.
+  const orgStatus = await getStatusForSession(session);
+  const orgId = await getOrgIdForSession(session);
+  const enabled = orgId ? (await getFeaturesForSession(session)).has("parent-portal") : true;
 
   // Only needed for the "portal unavailable" message below.
   let supportEmail = "";
   if (!enabled) {
-    const orgId = await getOrgIdForSession(session);
     const org = orgId
       ? await prisma.organisation.findUnique({ where: { id: orgId }, select: { supportEmail: true } })
       : null;

@@ -177,6 +177,33 @@ export function canAccessRoute(role: Role, href: string): boolean {
   return perm ? perm.includes(role) : true;
 }
 
+// Like navPermFor but resolves a full pathname (incl. detail/sub-pages) to the
+// perm of the MOST SPECIFIC nav href that is a prefix of it — so /riders/<id>
+// and /riders/<id>/edit inherit the /riders perm, while /reports/procurement
+// keeps its own (more specific) perm rather than falling back to /reports.
+// Returns null when no nav href matches (caller should fail OPEN — the route
+// carries no declared restriction, e.g. /account, /dashboard sub-tools).
+export function navPermForPath(pathname: string): Role[] | null {
+  let best: { href: string; perm: Role[] | null } | null = null;
+  for (const group of NAV) {
+    for (const it of group.items) {
+      const matches = pathname === it.href || pathname.startsWith(it.href + "/");
+      if (!matches) continue;
+      if (!best || it.href.length > best.href.length) best = { href: it.href, perm: it.perm ?? null };
+    }
+  }
+  return best ? best.perm : null;
+}
+
+// Central route gate used by middleware. HQ roles (SUPER_ADMIN, ADMIN) are
+// oversight peers and may reach any page — only non-HQ (centre-scoped) roles are
+// held to the nav perm. Fail-open when the route isn't in NAV.
+export function canReachPath(role: Role, pathname: string): boolean {
+  if (role === "SUPER_ADMIN" || role === "ADMIN") return true;
+  const perm = navPermForPath(pathname);
+  return perm ? perm.includes(role) : true;
+}
+
 // Role-specific "Pinned" shortcuts that appear above all other nav groups.
 // Each entry lists hrefs (in display order) that map to existing NavItems
 // in NAV; the filterSidebarNav() function looks the items up and assembles

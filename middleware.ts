@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify, SignJWT } from "jose";
+import { canReachPath } from "@/components/shell/sidebar-nav";
+import type { Role } from "@/lib/roles";
 
 // Idle session window. The token lives this long; we re-issue it on activity
 // (sliding renewal below), so an active user is never logged out — only after
@@ -135,6 +137,22 @@ export async function middleware(req: NextRequest) {
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
+
+    // Central RBAC for admin PAGE routes: the sidebar only HIDES links; without
+    // this a signed-in staff member could reach a page outside their role by
+    // typing the URL (audit finding — VET/ACCOUNTANT reading rider PII, etc.).
+    // HQ roles bypass (canReachPath), unknown routes fail open, and API routes
+    // keep their own per-handler guards. Denied → /dashboard (ALL_STAFF, safe).
+    if (!isApi) {
+      const role = (payload as { role?: string }).role as Role | undefined;
+      if (role && !canReachPath(role, logical)) {
+        const url = req.nextUrl.clone();
+        url.pathname = "/dashboard";
+        url.search = "";
+        return NextResponse.redirect(url);
+      }
+    }
+
     const res = slug
       ? NextResponse.rewrite((() => { const u = req.nextUrl.clone(); u.pathname = logical; return u; })())
       : NextResponse.next();
