@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { parseCsv } from "@/lib/csv-parse";
+import { isRealYMD } from "@/lib/utils";
 
 // Schema for a single row in the import payload. Accepts a generous set
 // of column aliases so CSV authors don't have to use exact field names.
@@ -13,7 +14,7 @@ const rowSchema = z.object({
   last_name: z.string().min(1).max(80),
   mobile: z.string().min(7).max(20),
   email: z.string().email().optional().or(z.literal("")).transform((v) => v || undefined),
-  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "DOB must be YYYY-MM-DD"),
+  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "DOB must be YYYY-MM-DD").refine(isRealYMD, "DOB isn't a real calendar date"),
   gender: z
     .string()
     .optional()
@@ -28,6 +29,7 @@ const rowSchema = z.object({
   joining_date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine(isRealYMD, "joining_date isn't a real calendar date")
     .optional()
     .transform((v) => v || undefined),
   // Optional — if present, the import also schedules an exam at this level

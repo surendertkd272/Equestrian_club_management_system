@@ -66,13 +66,19 @@ export function VaccinationsClient({ horses }: { horses: Horse[] }) {
 
   async function save() {
     if (!form.horseId) return toast.error("Pick a horse.");
+    // Guard the interval client-side: a cleared field is "" → Number("")===0,
+    // which the server rejects (min 7) with a cryptic error. Catch it here.
+    const interval = Number(form.intervalDays);
+    if (!form.intervalDays || !Number.isFinite(interval) || interval < 7) {
+      return toast.error("Interval must be at least 7 days.");
+    }
     setBusy(true);
     try {
       const payload: any = {
         horseId: form.horseId,
         vaccineKey: form.vaccineKey,
         vaccineLabel: form.vaccineLabel,
-        intervalDays: Number(form.intervalDays),
+        intervalDays: interval,
       };
       if (form.lastGivenAt) payload.lastGivenAt = form.lastGivenAt;
       if (form.nextDueAt) payload.nextDueAt = form.nextDueAt;

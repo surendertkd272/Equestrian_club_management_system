@@ -52,7 +52,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(d.name !== undefined ? { name: d.name } : {}),
       ...(d.generic !== undefined ? { generic: d.generic } : {}),
       ...(d.category !== undefined ? { category: d.category } : {}),
-      ...(d.schedule !== undefined ? { schedule: d.schedule } : {}),
+      ...(d.schedule !== undefined ? { schedule: d.schedule === "none" ? null : d.schedule } : {}),
       ...(d.batchNo !== undefined ? { batchNo: d.batchNo } : {}),
       ...(d.mfgDate !== undefined ? { mfgDate: d.mfgDate ? new Date(d.mfgDate) : null } : {}),
       ...(d.expDate !== undefined ? { expDate: new Date(d.expDate) } : {}),

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
+import { isRealYMD } from "@/lib/utils";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { parseCsv } from "@/lib/csv-parse";
 
@@ -34,7 +35,7 @@ const rowSchema = z.object({
     if (["stallion", "s"].includes(t)) return "stallion";
     return t;
   }),
-  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD").optional(),
+  dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD").refine(isRealYMD, "dob isn't a real calendar date").optional(),
   // A blank CSV cell arrives as "" (not undefined); z.coerce turns "" into 0.
   // For height that fails .min(30)/.min(8) and, since a non-dry-run aborts the
   // WHOLE batch on any row error, one blank height blocks importing every
@@ -54,8 +55,8 @@ const rowSchema = z.object({
   insurer: z.string().max(80).optional().transform((v) => v?.trim() || undefined),
   insurance_policy_no: z.string().max(60).optional().transform((v) => v?.trim() || undefined),
   insurance_premium: z.coerce.number().min(0).optional().or(z.literal("").transform(() => undefined)),
-  insurance_valid_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  insurance_valid_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  insurance_valid_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(isRealYMD, "insurance_valid_from isn't a real date").optional(),
+  insurance_valid_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(isRealYMD, "insurance_valid_to isn't a real date").optional(),
 });
 
 const payloadSchema = z.object({

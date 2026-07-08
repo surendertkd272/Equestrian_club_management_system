@@ -68,7 +68,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   const url = new URL(req.url);
   const riderId = url.searchParams.get("riderId");
-  if (!riderId) return NextResponse.json({ error: "riderId required" }, { status: 400 });
+  if (!riderId) return NextResponse.json({ error: "VALIDATION" }, { status: 400 });
 
   const team = await prisma.team.findUnique({ where: { id: params.id } });
   if (!team) return NextResponse.json({ error: "TEAM_NOT_FOUND" }, { status: 404 });

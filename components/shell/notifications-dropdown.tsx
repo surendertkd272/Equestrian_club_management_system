@@ -69,7 +69,14 @@ export function NotificationsDropdown({ initialUnread }: { initialUnread: number
   }, []);
 
   async function markOne(id: string) {
-    await fetch(`/api/notifications/${id}/read`, { method: "POST" });
+    // Only drop the row + decrement the badge if the write actually succeeded —
+    // otherwise a failed/dropped request left the badge count wrong.
+    try {
+      const res = await fetch(`/api/notifications/${id}/read`, { method: "POST" });
+      if (!res.ok) return;
+    } catch {
+      return;
+    }
     setItems((s) => s.filter((x) => x.id !== id));
     setUnread((n) => Math.max(0, n - 1));
   }

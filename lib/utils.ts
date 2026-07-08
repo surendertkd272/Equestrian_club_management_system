@@ -22,6 +22,19 @@ export function displayAgeYears(dob?: Date | string | null, fallbackYears?: numb
   return fallbackYears ?? null;
 }
 
+// True only for a real calendar date in YYYY-MM-DD form. The plain regex
+// /^\d{4}-\d{2}-\d{2}$/ accepts impossible dates (2020-13-40, 2021-02-30) that
+// then reach new Date() and either throw Invalid Date or silently roll over to
+// the wrong day. Round-tripping through UTC catches both.
+export function isRealYMD(s: string | null | undefined): boolean {
+  if (!s) return false;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return false;
+  const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d;
+}
+
 export function calcBmi(heightCm?: number | null, weightKg?: number | null) {
   if (!heightCm || !weightKg) return null;
   const m = heightCm / 100;

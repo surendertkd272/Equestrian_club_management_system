@@ -21,11 +21,18 @@ export function CatalogManager({ feePlans, levels }: { feePlans: FeePlan[]; leve
   async function call(method: string, url: string, body?: unknown): Promise<boolean> {
     setBusy(true);
     try {
-      const res = await fetch(url, {
-        method,
-        headers: body ? { "Content-Type": "application/json" } : undefined,
-        body: body ? JSON.stringify(body) : undefined,
-      });
+      let res: Response;
+      try {
+        res = await fetch(url, {
+          method,
+          headers: body ? { "Content-Type": "application/json" } : undefined,
+          body: body ? JSON.stringify(body) : undefined,
+        });
+      } catch {
+        // Network drop — surface it instead of failing silently.
+        toast.error("Couldn't reach the server — check your connection and try again.");
+        return false;
+      }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error(humanError(data.error) ?? "Failed");
@@ -96,10 +103,12 @@ function FeePlansCard({ feePlans, busy, call }: { feePlans: FeePlan[]; busy: boo
                     <td className="py-2 font-medium">{f.levelName}</td>
                     <td className="py-2">
                       <Input className="h-8 w-28" type="number" defaultValue={f.monthlyAmount}
+                        onFocus={(ev) => ev.target.select()}
                         onChange={(ev) => setEdit((p) => ({ ...p, [f.id]: { ...(p[f.id] ?? { monthlyAmount: String(f.monthlyAmount), registrationAmount: String(f.registrationAmount) }), monthlyAmount: ev.target.value } }))} />
                     </td>
                     <td className="py-2">
                       <Input className="h-8 w-28" type="number" defaultValue={f.registrationAmount}
+                        onFocus={(ev) => ev.target.select()}
                         onChange={(ev) => setEdit((p) => ({ ...p, [f.id]: { ...(p[f.id] ?? { monthlyAmount: String(f.monthlyAmount), registrationAmount: String(f.registrationAmount) }), registrationAmount: ev.target.value } }))} />
                     </td>
                     <td className="py-2 text-right whitespace-nowrap">

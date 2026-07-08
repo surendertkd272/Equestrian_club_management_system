@@ -43,6 +43,31 @@ const MESSAGES: Record<string, string> = {
   INVOICE_NOT_FOUND: "We couldn't find that invoice — it may have been removed.",
   INVALID_AMOUNT: "That amount isn't valid — please refresh and try again.",
   ROLE_INVALID: "Your account role is misconfigured — please contact your administrator.",
+  // Parent-link flow (#14)
+  PARENT_USER_NOT_FOUND: "No account was found for that parent email.",
+  NOT_PARENT_ROLE: "That account isn't a parent account.",
+  ALREADY_LINKED: "That parent is already linked to this rider.",
+  // Teams (#15)
+  TEAM_NOT_FOUND: "We couldn't find that team — it may have been removed.",
+  RIDER_NOT_FOUND: "We couldn't find that rider — they may have been removed.",
+  // Monthly skills (#16)
+  SKILL_INACTIVE: "That skill is no longer active.",
+  CENTRE_MISMATCH: "That record belongs to another centre.",
+  // Salary advances (#17)
+  ALREADY_CLOSED: "That advance is already fully repaid.",
+  OVERPAYMENT: "That repayment is more than the outstanding balance.",
+  // Requisitions (#18)
+  ALREADY_DECIDED: "That request has already been decided.",
+  // Batches (#19)
+  INVALID_COACH: "Pick a coach from this centre.",
+  // Events (#20)
+  EVENT_CLOSED: "Registration for this event is closed.",
+  // Facility bookings (#21)
+  FACILITY_NOT_FOUND: "We couldn't find that facility — it may have been removed.",
+  // Injuries (#22)
+  SUBJECT_NOT_FOUND: "We couldn't find that horse or rider.",
+  // Salary (#23)
+  STAFF_NOT_FOUND: "We couldn't find that staff member.",
 };
 
 const GENERIC = "Something went wrong. Please try again.";
