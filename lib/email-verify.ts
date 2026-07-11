@@ -87,3 +87,44 @@ export async function redeemEmailVerifyCode(
 
   return { ok: true, userId: user.id, email: row.email };
 }
+
+// Passwordless-login variant: validate a code WITHOUT consuming it, returning
+// the token id so the caller can consume it only after any second factor (TOTP)
+// also passes. This prevents a 2FA account's code from being burned when the
+// user still has to enter their authenticator code. Wrong codes still increment
+// the attempt counter (the 5-try lockout applies), and expiry/lockout are
+// enforced — the only difference from redeem is it doesn't mark usedAt or stamp
+// emailVerifiedAt.
+export async function peekEmailVerifyCode(
+  email: string,
+  code: string,
+): Promise<{ ok: true; userId: string; tokenId: string } | { ok: false; error: string }> {
+  const user = await prisma.user.findUnique({ where: { email }, select: { id: true } });
+  if (!user) return { ok: false, error: "INVALID_CODE" };
+
+  const row = await prisma.emailVerifyToken.findFirst({
+    where: { userId: user.id, usedAt: null },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!row) return { ok: false, error: "INVALID_CODE" };
+  if (row.expiresAt < new Date()) return { ok: false, error: "CODE_EXPIRED" };
+  if (row.attempts >= VERIFY_MAX_ATTEMPTS) return { ok: false, error: "TOO_MANY_ATTEMPTS" };
+
+  if (hashCode(code) !== row.codeHash) {
+    await prisma.emailVerifyToken.update({ where: { id: row.id }, data: { attempts: { increment: 1 } } });
+    return { ok: false, error: "INVALID_CODE" };
+  }
+  return { ok: true, userId: user.id, tokenId: row.id };
+}
+
+// Mark a peeked code used (single-use guard) + stamp emailVerifiedAt. Returns
+// false if it was already consumed by a concurrent request.
+export async function consumeEmailVerifyCode(tokenId: string, userId: string): Promise<boolean> {
+  const update = await prisma.emailVerifyToken.updateMany({
+    where: { id: tokenId, usedAt: null },
+    data: { usedAt: new Date() },
+  });
+  if (update.count === 0) return false;
+  await prisma.user.update({ where: { id: userId }, data: { emailVerifiedAt: new Date() } });
+  return true;
+}

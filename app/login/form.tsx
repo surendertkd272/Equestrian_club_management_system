@@ -51,6 +51,21 @@ export function LoginForm({
   const [password, setPassword] = useState(quickPickEnabled ? "password" : "");
   const [loading, setLoading] = useState(false);
 
+  // Passwordless email-OTP sign-in (for users who forgot their password).
+  const [mode, setMode] = useState<"password" | "otp">("password");
+  const [otpStage, setOtpStage] = useState<"email" | "code">("email");
+  const [code, setCode] = useState("");
+  const [otpTotp, setOtpTotp] = useState("");
+  const [needTotp, setNeedTotp] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  // Shared post-auth navigation (password + OTP paths land here on success).
+  function goAfterAuth(redirect?: string) {
+    const requested = next !== "/dashboard" ? next : (redirect ?? "/dashboard");
+    router.push(safeNextPath(requested, redirect ?? "/dashboard"));
+    router.refresh();
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -64,16 +79,127 @@ export function LoginForm({
       toast.error(res.message);
       return;
     }
-    // If the caller passed an explicit ?next= we honour it; otherwise use the role-aware
-    // redirect the API returned (parents → /parent, staff → /dashboard).
-    // Validate ?next= so a crafted /login?next=https://phishy.com link
-    // can't redirect post-auth. Falls back to the role-aware redirect.
-    const requested = next !== "/dashboard" ? next : (res.data.redirect ?? "/dashboard");
-    const target = safeNextPath(requested, res.data.redirect ?? "/dashboard");
-    router.push(target);
-    router.refresh();
+    goAfterAuth(res.data.redirect);
   }
 
+  async function sendCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email) return;
+    setBusy(true);
+    await postJson("/api/auth/otp/request", { email });
+    setBusy(false);
+    setOtpStage("code");
+    toast.success("If that email is registered, a 6-digit code is on its way.");
+  }
+
+  async function verifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const res = await postJson<{ redirect?: string }>("/api/auth/otp/verify", {
+      email,
+      code,
+      ...(otpTotp ? { totpCode: otpTotp } : {}),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      if (res.code === "TWO_FACTOR_REQUIRED") {
+        setNeedTotp(true);
+        toast.message("Enter your authenticator code to finish signing in.");
+        return;
+      }
+      if (res.code === "ACCOUNT_SUSPENDED") {
+        toast.error(res.message, { duration: 10_000 });
+        return;
+      }
+      toast.error(res.message);
+      return;
+    }
+    goAfterAuth(res.data.redirect);
+  }
+
+  // ── OTP (passwordless) mode ────────────────────────────────────────────────
+  if (mode === "otp") {
+    return (
+      <form onSubmit={otpStage === "email" ? sendCode : verifyCode} className="space-y-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="otp-email">Email</Label>
+          <Input
+            id="otp-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={otpStage === "code"}
+            placeholder="you@example.com"
+          />
+        </div>
+
+        {otpStage === "email" ? (
+          <>
+            <Button type="submit" className="w-full" disabled={busy || !email}>
+              {busy ? "Sending…" : "Email me a sign-in code"}
+            </Button>
+            <p className="text-center text-[11px] text-muted-foreground">
+              We&apos;ll email a 6-digit code. No password needed.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="space-y-1.5">
+              <Label htmlFor="otp-code">6-digit code</Label>
+              <Input
+                id="otp-code"
+                inputMode="numeric"
+                autoFocus
+                required
+                maxLength={6}
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="123456"
+              />
+              <button type="button" onClick={sendCode} className="text-[11px] text-muted-foreground hover:underline">
+                Didn&apos;t get it? Resend code
+              </button>
+            </div>
+            {needTotp && (
+              <div className="space-y-1.5">
+                <Label htmlFor="otp-totp">Authenticator code</Label>
+                <Input
+                  id="otp-totp"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={otpTotp}
+                  onChange={(e) => setOtpTotp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="From your authenticator app"
+                />
+              </div>
+            )}
+            <Button type="submit" className="w-full" disabled={busy || code.length !== 6}>
+              {busy ? "Signing in…" : "Sign in"}
+            </Button>
+          </>
+        )}
+
+        <div className="text-center text-xs text-muted-foreground">
+          <button
+            type="button"
+            onClick={() => {
+              setMode("password");
+              setOtpStage("email");
+              setCode("");
+              setOtpTotp("");
+              setNeedTotp(false);
+            }}
+            className="hover:underline"
+          >
+            ← Sign in with password
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  // ── Password mode ───────────────────────────────────────────────────────────
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {quickPickEnabled && (
@@ -111,6 +237,11 @@ export function LoginForm({
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Signing in…" : "Sign in"}
       </Button>
+      <div className="text-center text-xs text-muted-foreground">
+        <button type="button" onClick={() => setMode("otp")} className="hover:underline">
+          Forgot password? Sign in with an email code
+        </button>
+      </div>
     </form>
   );
 }
