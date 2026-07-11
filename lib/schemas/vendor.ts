@@ -16,6 +16,23 @@ export const VENDOR_CATEGORIES = [
 
 export type VendorCategory = (typeof VENDOR_CATEGORIES)[number];
 
+// Public vendor self-registration (/onboard/vendor?centre=<slug>). Deliberately
+// a lean subset of the admin create schema — no bank/UPI details or delivery
+// scope (those are set by the admin on approval). Phone is required so the club
+// can follow up. The row is created status="pending" for admin review.
+export const publicVendorRegistrationSchema = z.object({
+  centreSlug: z.string().min(1),
+  name: z.string().min(2).max(120),
+  category: z.enum(VENDOR_CATEGORIES).optional(),
+  contactName: z.string().max(80).optional().or(z.literal("")).transform((v) => v || undefined),
+  phone: z.string().min(7).max(40),
+  email: z.string().email().optional().or(z.literal("")).transform((v) => v || undefined),
+  address: z.string().max(300).optional().or(z.literal("")).transform((v) => v || undefined),
+  gstin: z.string().max(30).optional().or(z.literal("")).transform((v) => v || undefined),
+  notes: z.string().max(500).optional().or(z.literal("")).transform((v) => v || undefined),
+});
+export type PublicVendorRegistrationInput = z.infer<typeof publicVendorRegistrationSchema>;
+
 export const VENDOR_CATEGORY_LABEL: Record<VendorCategory, string> = {
   vet: "Vet doctor",
   farrier: "Farrier",

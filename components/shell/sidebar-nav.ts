@@ -47,6 +47,9 @@ export const NAV: NavGroup[] = [
       { href: "/hq-dashboard", label: "HQ Comparative", iconName: "LineChart", perm: ["SUPER_ADMIN", "ADMIN"], feature: "hq-dashboard" },
       { href: "/hq-expenses", label: "HQ Invoices", iconName: "Receipt", perm: ["SUPER_ADMIN", "ADMIN"] },
       { href: "/settings", label: "Settings", iconName: "Settings", perm: ["SUPER_ADMIN", "ADMIN"] },
+      // Public self-registration links (Students / Employees / Vendors) — one
+      // reusable link per club per type; submissions land in approval queues.
+      { href: "/registration-links", label: "Registration Links", iconName: "QrCode", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
     ],
   },
   {

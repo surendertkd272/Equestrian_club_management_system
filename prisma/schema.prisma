@@ -2530,14 +2530,21 @@ model Vendor {
   upiId             String?
   notes     String?
   active    Boolean  @default(true)
-  deletedAt DateTime?  // set on soft-delete; bin purges 30 days later
+  // Review state. "active" = normal (admin-created or approved). "pending" =
+  // self-registered via the public vendor link, awaiting admin approval — kept
+  // out of the working vendor list + expense pickers until approved. "rejected"
+  // = declined. Self-registrations also set active=false so existing
+  // active-filtered queries never surface an unreviewed row.
+  status    String   @default("active") // active | pending | rejected
   createdAt DateTime @default(now())
+  deletedAt DateTime?  // set on soft-delete; bin purges 30 days later
   updatedAt DateTime @updatedAt
 
   centre   Centre    @relation(fields: [centreId], references: [id], onDelete: Cascade)
   expenses Expense[]
 
   @@index([centreId, active])
+  @@index([centreId, status])
 }
 
 // Headquarters-level expenses — the SUPER_ADMIN's view. These are payments

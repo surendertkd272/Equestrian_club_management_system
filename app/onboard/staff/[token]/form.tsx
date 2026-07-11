@@ -20,11 +20,16 @@ type DocField =
 
 export function OnboardingForm({
   token,
+  centreSlug,
   centreName,
   agreement,
   declaration,
 }: {
-  token: string;
+  // Exactly one of `token` (one-time admin invite) or `centreSlug` (reusable
+  // public club link) is provided. Token → /api/staff-onboarding/submit;
+  // slug → /api/staff-onboarding/self-register.
+  token?: string;
+  centreSlug?: string;
   centreName: string;
   agreement: string;
   declaration: string;
@@ -106,8 +111,9 @@ export function OnboardingForm({
     if (!canSubmit) return;
     setBusy(true);
     try {
+      const reusable = !!centreSlug;
       const payload: Record<string, unknown> = {
-        token,
+        ...(reusable ? { centreSlug } : { token }),
         ...f,
         ...docs,
         pfEsicConsent,
@@ -120,7 +126,8 @@ export function OnboardingForm({
       if (!f.foodCharges) delete payload.foodCharges;
       if (!f.maritalStatus) delete payload.maritalStatus;
       if (!f.employmentType) delete payload.employmentType;
-      const res = await fetch("/api/staff-onboarding/submit", {
+      const endpoint = reusable ? "/api/staff-onboarding/self-register" : "/api/staff-onboarding/submit";
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

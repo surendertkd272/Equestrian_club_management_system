@@ -16,6 +16,7 @@ import { Phone, Mail } from "lucide-react";
 import { VENDOR_CATEGORY_LABEL } from "@/lib/schemas/vendor";
 import { NewVendorForm } from "./form";
 import { EditVendor } from "./edit-vendor";
+import { VendorReviewButtons } from "./review-buttons";
 import { DeactivateButton } from "@/components/ui/deactivate-button";
 
 export const dynamic = "force-dynamic";
@@ -33,11 +34,17 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
   const where: any = { ...scopeWhere, active: true };
   if (searchParams.category) where.category = searchParams.category;
 
-  const [vendors, centres] = await Promise.all([
+  const [vendors, pending, centres] = await Promise.all([
     prisma.vendor.findMany({
       where,
       include: { centre: { select: { name: true, slug: true } } },
       orderBy: [{ category: "asc" }, { name: "asc" }],
+    }),
+    // Self-registered vendors awaiting review (from the public link).
+    prisma.vendor.findMany({
+      where: { ...scopeWhere, status: "pending", deletedAt: null },
+      include: { centre: { select: { name: true } } },
+      orderBy: { createdAt: "desc" },
     }),
     prisma.centre.findMany({
       where: { orgId },
@@ -58,6 +65,52 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
       <div>
         <h1 className="text-2xl font-bold">Vendor Contacts</h1>
       </div>
+
+      {pending.length > 0 && (
+        <Card className="border-amber-300">
+          <CardHeader>
+            <CardTitle>
+              Pending Registrations{" "}
+              <Badge variant="warning" className="ml-2">{pending.length}</Badge>
+            </CardTitle>
+            <CardDescription>Vendors who registered via the public link — approve to add them, or reject.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {pending.map((v) => (
+                <li key={v.id} className="rounded-md border bg-amber-50/40 p-3 text-sm">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <div>
+                      <span className="font-semibold">{v.name}</span>
+                      <Badge variant="outline" className="ml-2 text-[10px]">
+                        {VENDOR_CATEGORY_LABEL[v.category as keyof typeof VENDOR_CATEGORY_LABEL] ?? v.category}
+                      </Badge>
+                      {v.contactName && <span className="ml-2 text-xs text-muted-foreground">via {v.contactName}</span>}
+                    </div>
+                    <VendorReviewButtons vendorId={v.id} vendorName={v.name} />
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-3 text-xs">
+                    {v.phone && (
+                      <a href={`tel:${v.phone.replace(/[^\d+]/g, "")}`} className="inline-flex items-center gap-1 text-primary hover:underline">
+                        <Phone className="h-3 w-3" /> {v.phone}
+                      </a>
+                    )}
+                    {v.email && (
+                      <a href={`mailto:${v.email}`} className="inline-flex items-center gap-1 text-primary hover:underline">
+                        <Mail className="h-3 w-3" /> {v.email}
+                      </a>
+                    )}
+                    {v.gstin && <span className="text-muted-foreground">GSTIN: <span className="font-mono">{v.gstin}</span></span>}
+                    <span className="text-muted-foreground">for {v.centre?.name}</span>
+                  </div>
+                  {v.address && <div className="mt-1 text-xs text-muted-foreground">{v.address}</div>}
+                  {v.notes && <div className="mt-1 text-xs italic text-muted-foreground">{v.notes}</div>}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

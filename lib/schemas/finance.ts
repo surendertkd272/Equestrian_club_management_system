@@ -54,6 +54,8 @@ export const createVendorSchema = z.object({
 
 export const updateVendorSchema = createVendorSchema.partial().extend({
   active: z.boolean().optional(),
+  // Review state — set when approving/rejecting a self-registered vendor.
+  status: z.enum(["active", "pending", "rejected"]).optional(),
 });
 
 const dateLike = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);

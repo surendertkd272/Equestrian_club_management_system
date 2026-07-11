@@ -56,6 +56,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(d.upiId !== undefined ? { upiId: d.upiId || null } : {}),
       ...(d.notes !== undefined ? { notes: d.notes } : {}),
       ...(d.active !== undefined ? { active: d.active } : {}),
+      ...(d.status !== undefined ? { status: d.status } : {}),
       // Native Json column — pass the object straight through (no stringify).
       // Empty object → Prisma.DbNull so we don't leave "{}" rows behind.
       // (Plain `null` isn't accepted by Prisma for nullable Json columns —

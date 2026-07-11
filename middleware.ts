@@ -46,10 +46,16 @@ const PUBLIC_PREFIXES = [
   // (not-expired, code exists) on its own.
   "/r/",
   "/api/short-links/resolve",
-  // Employee self-registration link — public form + its submit endpoint only.
+  // Employee self-registration link — public form + its submit endpoints only.
   // (Link generation + approval under /api/staff-onboarding stay auth-gated.)
+  // /onboard/staff covers BOTH the tokenised page and the reusable ?centre=
+  // page; self-register is the reusable-link submit.
   "/onboard/staff",
   "/api/staff-onboarding/submit",
+  "/api/staff-onboarding/self-register",
+  // Vendor self-registration — reusable per-club link + its submit endpoint.
+  "/onboard/vendor",
+  "/api/vendor-registration",
   // Venue booking confirmation — public, read-only. Renter sees their
   // booking details from URL params; the underlying FacilityBooking row
   // still requires auth to mutate.
