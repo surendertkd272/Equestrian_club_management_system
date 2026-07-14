@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function AuditPage({
   searchParams,
 }: {
-  searchParams: { page?: string; pageSize?: string; action?: string; table?: string; q?: string };
+  searchParams: { page?: string; pageSize?: string; action?: string; table?: string; user?: string; q?: string };
 }) {
   const session = (await getSession())!;
   if (session.role !== "SUPER_ADMIN") redirect("/dashboard");
@@ -26,6 +26,8 @@ export default async function AuditPage({
   const where: any = {};
   if (searchParams.action) where.action = { startsWith: searchParams.action };
   if (searchParams.table) where.tableName = searchParams.table;
+  // Filter to one person's actions — e.g. "show me everything this coach did".
+  if (searchParams.user) where.userId = searchParams.user;
   if (searchParams.q) {
     where.OR = [
       { before: { contains: searchParams.q } },
@@ -55,6 +57,15 @@ export default async function AuditPage({
     distinctActions.map((a) => a.action.split(".")[0]).filter((s): s is string => !!s),
   )).sort();
 
+  // People who appear in the log → the "filter by user" dropdown, so an admin
+  // can isolate one coach's activity.
+  const userGroups = await prisma.auditLog.groupBy({ by: ["userId"], _count: true });
+  const userIds = userGroups.map((g) => g.userId).filter((id): id is string => !!id);
+  const users = userIds.length
+    ? await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, role: true } })
+    : [];
+  users.sort((a, b) => a.name.localeCompare(b.name));
+
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-3">
@@ -67,7 +78,17 @@ export default async function AuditPage({
       <Card>
         <CardHeader>
           <CardTitle>Events</CardTitle>
-          <form className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <form className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+            <select aria-label="Filter by user"
+              name="user"
+              defaultValue={searchParams.user ?? ""}
+              className="h-9 rounded-md border bg-background px-2 text-sm"
+            >
+              <option value="">All Users</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+              ))}
+            </select>
             <select aria-label="Filter by action"
               name="action"
               defaultValue={searchParams.action ?? ""}
@@ -109,24 +130,22 @@ export default async function AuditPage({
                   <th className="pb-2">User</th>
                   <th className="pb-2">Action</th>
                   <th className="pb-2">Table</th>
-                  <th className="pb-2">Row</th>
-                  <th className="pb-2">IP</th>
+                  <th className="pb-2">Changes</th>
                 </tr>
               </thead>
               <tbody>
                 {logs.map((l) => (
-                  <tr key={l.id} className="border-t">
+                  <tr key={l.id} className="border-t align-top">
                     <td className="py-2 whitespace-nowrap">{formatDate(l.at)}</td>
                     <td className="py-2">{l.user?.name ?? "—"}</td>
                     <td className="py-2">{l.action}</td>
                     <td className="py-2">{l.tableName}</td>
-                    <td className="py-2 font-mono text-xs">{l.rowId.slice(0, 8)}…</td>
-                    <td className="py-2 font-mono text-xs">{l.ip ?? "—"}</td>
+                    <td className="py-2"><ChangeDetail before={l.before} after={l.after} /></td>
                   </tr>
                 ))}
                 {logs.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
                       No audit entries yet.
                     </td>
                   </tr>
@@ -138,5 +157,62 @@ export default async function AuditPage({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// before/after are stringified JSON payloads on each audit row. Parse to an
+// object (null if not an object) so we can show a field-level diff.
+function parseObj(s: string | null): Record<string, unknown> | null {
+  if (!s) return null;
+  try {
+    const v = JSON.parse(s);
+    return v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+function fmtVal(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  if (typeof v === "object") return JSON.stringify(v);
+  return String(v);
+}
+
+// Expandable per-row detail: shows which fields changed (before → after), or
+// the recorded values for create/one-sided events. Native <details> — no JS.
+function ChangeDetail({ before, after }: { before: string | null; after: string | null }) {
+  const b = parseObj(before);
+  const a = parseObj(after);
+  const keys = Array.from(new Set([...(a ? Object.keys(a) : []), ...(b ? Object.keys(b) : [])]));
+  if (keys.length === 0) {
+    const raw = after ?? before;
+    return <span className="text-muted-foreground">{raw ? raw.slice(0, 60) : "—"}</span>;
+  }
+  const changed = keys.filter((k) => JSON.stringify(b?.[k]) !== JSON.stringify(a?.[k]));
+  const list = (changed.length ? changed : keys).slice(0, 8);
+  return (
+    <details className="text-xs">
+      <summary className="cursor-pointer text-primary">
+        {changed.length ? `${changed.length} field${changed.length === 1 ? "" : "s"} changed` : "view"}
+      </summary>
+      <div className="mt-1 space-y-0.5">
+        {list.map((k) => {
+          const isChanged = !!b && JSON.stringify(b[k]) !== JSON.stringify(a?.[k]);
+          return (
+            <div key={k}>
+              <span className="font-mono text-muted-foreground">{k}:</span>{" "}
+              {isChanged ? (
+                <>
+                  <span className="text-rose-600 line-through">{fmtVal(b[k])}</span>{" → "}
+                  <span className="text-emerald-700">{fmtVal(a?.[k])}</span>
+                </>
+              ) : (
+                <span>{fmtVal(a ? a[k] : b?.[k])}</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </details>
   );
 }

@@ -13,11 +13,18 @@ import { formatDate } from "@/lib/utils";
 import { pendingItems, parseWaived } from "@/lib/onboarding-items";
 import { employeeFormRows, employeeDocs } from "@/lib/employee-profile";
 import { GenerateLinkButton, ApproveControl, RejectControl, WaiveControl, LinkShareButtons } from "./onboarding-actions";
+import { EditSubmission } from "./edit-submission";
 
 export const dynamic = "force-dynamic";
 
 const CAN_MANAGE = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"];
 const STAFF_ROLES = ROLES.filter((r) => !["SUPER_ADMIN", "ADMIN", "RIDER", "PARENT"].includes(r));
+
+// Date → YYYY-MM-DD for prefilling <input type="date"> (stored at UTC noon).
+function ymd(d: Date | null | undefined): string {
+  return d ? new Date(d).toISOString().slice(0, 10) : "";
+}
+const s = (v: unknown): string => (v === null || v === undefined ? "" : String(v));
 
 // Thumbnail tile for one uploaded document — image preview (click to open full)
 // or a PDF tile. Same look as the staff profile's document grid.
@@ -138,6 +145,32 @@ export default async function StaffOnboardingPage() {
                 <p className="mt-3 text-[11px] text-muted-foreground">
                   Declaration accepted by typing: <span className="font-medium text-foreground">{r.declarationName ?? "—"}</span>
                 </p>
+
+                {/* Correct a mistyped submission (name/bank/aadhaar/…) before approving. */}
+                <div className="mt-2 border-t pt-2">
+                  <EditSubmission
+                    id={r.id}
+                    initial={{
+                      fullName: s(r.fullName),
+                      email: s(r.email),
+                      fatherName: s(r.fatherName),
+                      emergencyContact: s(r.emergencyContact),
+                      dob: ymd(r.dob),
+                      permanentAddress: s(r.permanentAddress),
+                      maritalStatus: s(r.maritalStatus),
+                      panNumber: s(r.panNumber),
+                      bankName: s(r.bankName),
+                      bankAccountName: s(r.bankAccountName),
+                      bankAccountNumber: s(r.bankAccountNumber),
+                      bankIfsc: s(r.bankIfsc),
+                      agreedSalary: s(r.agreedSalary),
+                      foodCharges: s(r.foodCharges),
+                      employmentType: s(r.employmentType),
+                      dateOfJoining: ymd(r.dateOfJoining),
+                      references: s(r.references),
+                    }}
+                  />
+                </div>
               </div>
               );
             })
