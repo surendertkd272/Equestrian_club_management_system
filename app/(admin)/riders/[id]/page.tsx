@@ -159,7 +159,17 @@ export default async function RiderProfile({ params }: { params: { id: string } 
                     rel="noreferrer"
                     className="rounded border bg-card px-2 py-0.5 text-[10px] hover:bg-muted"
                   >
-                    View scan
+                    Front
+                  </a>
+                )}
+                {rider.aadhaarBackDocUrl && (
+                  <a
+                    href={rider.aadhaarBackDocUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded border bg-card px-2 py-0.5 text-[10px] hover:bg-muted"
+                  >
+                    Back
                   </a>
                 )}
               </dd>

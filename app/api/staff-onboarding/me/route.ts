@@ -45,6 +45,7 @@ export async function PATCH(req: NextRequest) {
   if (ob.createdStaffId) {
     const staffData: Record<string, unknown> = {};
     if (d.aadhaarUrl) staffData.aadhaarUrl = d.aadhaarUrl;
+    if (d.aadhaarBackUrl) staffData.aadhaarBackUrl = d.aadhaarBackUrl;
     if (d.policeVerificationUrl) {
       staffData.policeVerificationUrl = d.policeVerificationUrl;
       staffData.policeVerifiedAt = new Date();

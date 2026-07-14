@@ -105,6 +105,17 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
                   </div>
                   {v.address && <div className="mt-1 text-xs text-muted-foreground">{v.address}</div>}
                   {v.notes && <div className="mt-1 text-xs italic text-muted-foreground">{v.notes}</div>}
+                  {/* Fix a wrong self-registration in place before approving. */}
+                  <div className="mt-2">
+                    <EditVendor
+                      vendor={{
+                        id: v.id, name: v.name, category: v.category, deliveryScope: v.deliveryScope,
+                        contactName: v.contactName, phone: v.phone, email: v.email, address: v.address,
+                        gstin: v.gstin, bankAccountName: v.bankAccountName, bankName: v.bankName,
+                        bankAccountNumber: v.bankAccountNumber, bankIfsc: v.bankIfsc, upiId: v.upiId, notes: v.notes,
+                      }}
+                    />
+                  </div>
                 </li>
               ))}
             </ul>
@@ -189,6 +200,7 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
                         vendor={{
                           id: v.id,
                           name: v.name,
+                          category: v.category,
                           deliveryScope: v.deliveryScope,
                           contactName: v.contactName,
                           phone: v.phone,

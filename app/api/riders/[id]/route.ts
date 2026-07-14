@@ -66,7 +66,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const data: Record<string, unknown> = {};
   const editable = [
     "firstName", "lastName", "photoUrl", "placeOfBirth", "nationality",
-    "gender", "maritalStatus", "aadhaarNo", "aadhaarDocUrl",
+    "gender", "maritalStatus", "aadhaarNo", "aadhaarDocUrl", "aadhaarBackDocUrl",
     "mobile", "email", "preferredLanguage", "school", "education", "occupation",
     "addressPresent", "addressPermanent", "pincode",
     "fatherName", "fatherPhone", "motherName", "motherPhone",

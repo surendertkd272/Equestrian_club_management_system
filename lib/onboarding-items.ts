@@ -29,7 +29,8 @@ export const ONBOARDING_ITEMS: OnboardingItem[] = [
   { key: "references", label: "Two references", type: "detail" },
   // Documents
   { key: "photoUrl", label: "Passport photo", type: "doc" },
-  { key: "aadhaarUrl", label: "Aadhaar card", type: "doc" },
+  { key: "aadhaarUrl", label: "Aadhaar card (front)", type: "doc" },
+  { key: "aadhaarBackUrl", label: "Aadhaar card (back)", type: "doc" },
   { key: "panUrl", label: "PAN card", type: "doc" },
   { key: "bankProofUrl", label: "Bank proof (cancelled cheque / passbook)", type: "doc" },
   { key: "prevEmploymentUrl", label: "Previous-employment certificate", type: "doc" },

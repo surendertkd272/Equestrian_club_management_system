@@ -821,7 +821,8 @@ model Rider {
   // form. aadhaarDocUrl is a storage path to the scan, not the number.
   aadhaarNo      String?
   aadhaarLast4   String?   // last 4 digits, for masked display without decrypting
-  aadhaarDocUrl  String?
+  aadhaarDocUrl  String?   // Aadhaar front side scan
+  aadhaarBackDocUrl String? // Aadhaar back side scan
   // Contact
   mobile         String
   email          String?
@@ -1072,7 +1073,8 @@ model Staff {
   // Aadhaar is the Indian national ID — captured for every staff hire.
   // Police verification is a govt-issued clearance certificate; mandatory
   // before letting any staff member work with minors at the club.
-  aadhaarUrl              String?
+  aadhaarUrl              String?  // Aadhaar front side
+  aadhaarBackUrl          String?  // Aadhaar back side
   policeVerificationUrl   String?
   policeVerifiedAt        DateTime?
 
@@ -1125,6 +1127,7 @@ model EmployeeOnboarding {
   // Uploaded document URLs (lib/storage.ts)
   photoUrl              String?
   aadhaarUrl            String?
+  aadhaarBackUrl        String?
   panUrl                String?
   bankProofUrl          String?
   prevEmploymentUrl     String?

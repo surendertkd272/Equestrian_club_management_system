@@ -22,6 +22,7 @@ export const personalSchema = z.object({
   email: z.string().email().optional().or(z.literal("")),
   aadhaarNo: z.string().regex(/^\d{12}$/, "12 digits").optional().or(z.literal("")),
   aadhaarDocUrl: uploadedUrl,
+  aadhaarBackDocUrl: uploadedUrl,
   photoUrl: uploadedUrl,
   school: z.string().max(150).optional(),
   education: z.string().optional(),

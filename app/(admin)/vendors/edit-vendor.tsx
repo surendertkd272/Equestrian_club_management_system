@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { VENDOR_CATEGORIES, VENDOR_CATEGORY_LABEL } from "@/lib/schemas/vendor";
 
 export type EditableVendor = {
   id: string;
   name: string;
+  category: string;
   deliveryScope: string;
   contactName: string | null;
   phone: string | null;
@@ -35,6 +37,7 @@ export function EditVendor({ vendor }: { vendor: EditableVendor }) {
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
     name: vendor.name,
+    category: vendor.category || "other",
     deliveryScope: (vendor.deliveryScope === "national" ? "national" : "centre") as "centre" | "national",
     contactName: vendor.contactName ?? "",
     phone: vendor.phone ?? "",
@@ -84,6 +87,14 @@ export function EditVendor({ vendor }: { vendor: EditableVendor }) {
   return (
     <div className="mt-2 grid gap-2 rounded-md border bg-card p-3 text-left md:grid-cols-2">
       <div><Label className="text-xs">Name</Label><Input aria-label="Name" value={form.name} onChange={(e) => set("name", e.target.value)} /></div>
+      <div>
+        <Label className="text-xs">Category</Label>
+        <Select aria-label="Category" value={form.category} onChange={(e) => set("category", e.target.value)}>
+          {VENDOR_CATEGORIES.map((c) => (
+            <option key={c} value={c}>{VENDOR_CATEGORY_LABEL[c]}</option>
+          ))}
+        </Select>
+      </div>
       <div>
         <Label className="text-xs">Delivery Coverage</Label>
         <Select aria-label="Delivery coverage" value={form.deliveryScope} onChange={(e) => set("deliveryScope", e.target.value)}>

@@ -76,6 +76,13 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  // photo / PAN / bank-proof live in kycDocsJson (same keys synthRecordFromStaff
+  // reads for the profile + print packet). Only store keys that were provided.
+  const kyc: Record<string, string> = {};
+  if (d.photoUrl) kyc.photoUrl = d.photoUrl;
+  if (d.panUrl) kyc.panUrl = d.panUrl;
+  if (d.bankProofUrl) kyc.bankProofUrl = d.bankProofUrl;
+
   const staff = await prisma.staff.create({
     data: {
       centreId,
@@ -85,8 +92,10 @@ export async function POST(req: NextRequest) {
       ...(d.joiningDate ? { joiningDate: new Date(d.joiningDate) } : {}),
       status: "active",
       aadhaarUrl: d.aadhaarUrl || null,
+      aadhaarBackUrl: d.aadhaarBackUrl || null,
       policeVerificationUrl: d.policeVerificationUrl || null,
       policeVerifiedAt: d.policeVerificationUrl ? new Date() : null,
+      ...(Object.keys(kyc).length ? { kycDocsJson: kyc } : {}),
     },
   });
 

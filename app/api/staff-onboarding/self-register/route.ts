@@ -83,6 +83,7 @@ export async function POST(req: NextRequest) {
       references: d.references ?? null,
       photoUrl: d.photoUrl ?? null,
       aadhaarUrl: d.aadhaarUrl ?? null,
+      aadhaarBackUrl: d.aadhaarBackUrl ?? null,
       panUrl: d.panUrl ?? null,
       bankProofUrl: d.bankProofUrl ?? null,
       prevEmploymentUrl: d.prevEmploymentUrl ?? null,

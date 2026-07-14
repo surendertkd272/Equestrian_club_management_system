@@ -10,10 +10,20 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { ASSIGNABLE_STAFF_ROLES } from "@/lib/schemas/staff";
 
-type UploadField = "aadhaarUrl" | "policeVerificationUrl";
+type UploadField =
+  | "photoUrl"
+  | "aadhaarUrl"
+  | "aadhaarBackUrl"
+  | "panUrl"
+  | "bankProofUrl"
+  | "policeVerificationUrl";
 
 const UPLOAD_KIND: Record<UploadField, string> = {
+  photoUrl: "user_photo",
   aadhaarUrl: "staff_aadhaar",
+  aadhaarBackUrl: "staff_aadhaar",
+  panUrl: "generic",
+  bankProofUrl: "generic",
   policeVerificationUrl: "staff_police_verification",
 };
 
@@ -29,7 +39,11 @@ export function NewStaffForm() {
     salaryBand: "",
     joiningDate: "",
     password: "password123",
+    photoUrl: "",
     aadhaarUrl: "",
+    aadhaarBackUrl: "",
+    panUrl: "",
+    bankProofUrl: "",
     policeVerificationUrl: "",
   });
 
@@ -133,12 +147,44 @@ export function NewStaffForm() {
         <div className="text-sm font-semibold">KYC documents <span className="text-xs font-normal text-muted-foreground">(optional — can be added later)</span></div>
         <div className="grid gap-4 md:grid-cols-2">
           <UploadRow
-            label="Aadhaar Card"
+            label="Passport Photo"
+            field="photoUrl"
+            url={form.photoUrl}
+            busy={uploading === "photoUrl"}
+            onPick={(f) => onUpload("photoUrl", f)}
+            onClear={() => set("photoUrl", "")}
+          />
+          <UploadRow
+            label="Aadhaar Card — Front"
             field="aadhaarUrl"
             url={form.aadhaarUrl}
             busy={uploading === "aadhaarUrl"}
             onPick={(f) => onUpload("aadhaarUrl", f)}
             onClear={() => set("aadhaarUrl", "")}
+          />
+          <UploadRow
+            label="Aadhaar Card — Back"
+            field="aadhaarBackUrl"
+            url={form.aadhaarBackUrl}
+            busy={uploading === "aadhaarBackUrl"}
+            onPick={(f) => onUpload("aadhaarBackUrl", f)}
+            onClear={() => set("aadhaarBackUrl", "")}
+          />
+          <UploadRow
+            label="PAN Card"
+            field="panUrl"
+            url={form.panUrl}
+            busy={uploading === "panUrl"}
+            onPick={(f) => onUpload("panUrl", f)}
+            onClear={() => set("panUrl", "")}
+          />
+          <UploadRow
+            label="Bank Passbook / Cheque"
+            field="bankProofUrl"
+            url={form.bankProofUrl}
+            busy={uploading === "bankProofUrl"}
+            onPick={(f) => onUpload("bankProofUrl", f)}
+            onClear={() => set("bankProofUrl", "")}
           />
           <UploadRow
             label="Police Verification Certificate"

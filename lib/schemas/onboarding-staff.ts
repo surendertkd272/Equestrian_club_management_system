@@ -58,6 +58,7 @@ export const submitOnboardingSchema = z.object({
   // Uploaded document URLs.
   photoUrl: optUrl,
   aadhaarUrl: optUrl,
+  aadhaarBackUrl: optUrl,
   panUrl: optUrl,
   bankProofUrl: optUrl,
   prevEmploymentUrl: optUrl,

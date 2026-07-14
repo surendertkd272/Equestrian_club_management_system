@@ -100,6 +100,7 @@ export const EQUIPMENT_CATALOG: CatalogSeedItem[] = [
   { category: "stable", code: "stable_watering_pipe", name: "Ground Watering Pipe", unit: "piece", defaultThreshold: 2 },
   { category: "stable", code: "stable_sprinklers", name: "Sprinklers", unit: "piece", defaultThreshold: 2 },
   { category: "stable", code: "stable_plants", name: "Plants", unit: "piece", defaultThreshold: 5 },
+  { category: "stable", code: "stable_utensils", name: "Utensils", unit: "piece", defaultThreshold: 5, notes: "Feed/stable utensils — buckets, scoops, tubs, feeding bowls" },
 
   // ── Rider's Equipment ──
   { category: "rider", code: "rider_helmet", name: "Helmet", unit: "piece", defaultThreshold: 5 },
@@ -190,4 +191,5 @@ export const EQUIPMENT_CATALOG: CatalogSeedItem[] = [
   { category: "other", code: "other_teachers_mic", name: "Teacher's Mic", unit: "piece", defaultThreshold: 1 },
   { category: "other", code: "other_tube_light", name: "Tube Light", unit: "piece", defaultThreshold: 2 },
   { category: "other", code: "other_bulb", name: "Bulb", unit: "piece", defaultThreshold: 2 },
+  { category: "other", code: "other_bike", name: "Bike", unit: "piece", defaultThreshold: 1, notes: "Cycle / two-wheeler used around the property" },
 ];

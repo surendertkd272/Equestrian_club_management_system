@@ -72,6 +72,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (!c) return NextResponse.json({ error: "CENTRE_NOT_FOUND" }, { status: 404 });
   }
 
+  // A role change or a suspension must take effect on the user's NEXT request,
+  // not up to 8h later when their JWT expires — bump tokenVersion to invalidate
+  // their current session (getSession compares it). Without this, e.g. a
+  // suspended/demoted coach keeps their old access until the token lapses.
+  const kickSession = willDemoteRole || willSuspend;
+
   const updated = await prisma.user.update({
     where: { id: target.id },
     data: {
@@ -81,8 +87,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(d.role !== undefined ? { role: d.role } : {}),
       ...(d.centreId !== undefined ? { centreId: d.centreId } : {}),
       ...(d.status !== undefined ? { status: d.status } : {}),
+      ...(kickSession ? { tokenVersion: { increment: 1 } } : {}),
     },
   });
+
+  // Keep the linked Staff record's role in lock-step with the User role. Staff
+  // has its own `role` column (used by the staff profile / gate log / print
+  // packet); without this, changing a user COACH→GROOM in /users left the staff
+  // profile still showing COACH. updateMany is a no-op for non-staff users.
+  if (willDemoteRole && d.role !== undefined) {
+    await prisma.staff.updateMany({ where: { userId: target.id }, data: { role: d.role } });
+  }
 
   await audit({
     userId: session.userId,

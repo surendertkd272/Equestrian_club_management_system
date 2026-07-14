@@ -38,6 +38,7 @@ export const updateRiderSchema = z.object({
     .nullable()
     .or(z.literal("").transform(() => null)),
   aadhaarDocUrl: uploadedUrl,
+  aadhaarBackDocUrl: uploadedUrl,
   // Contact
   mobile: z.string().min(7).max(20),
   email: z

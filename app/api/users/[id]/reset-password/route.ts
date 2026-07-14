@@ -49,7 +49,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     where: { id: target.id },
     // A generated temp is a handoff secret — force rotation. A manually set
     // password was chosen on purpose; don't force the user to change it.
-    data: { passwordHash, mustChangePassword: !manual },
+    // Bump tokenVersion so the reset also kills any active session on the old
+    // password (important when resetting a departed/compromised account).
+    data: { passwordHash, mustChangePassword: !manual, tokenVersion: { increment: 1 } },
   });
 
   await audit({

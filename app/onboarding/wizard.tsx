@@ -306,10 +306,18 @@ function PersonalStep({ initial, onNext }: { initial: WizardData; onNext: (d: Pe
           <UploadField
             methods={methods}
             name="aadhaarDocUrl"
-            label="Aadhaar Scan / PDF"
+            label="Aadhaar — Front"
             kind="rider_aadhaar"
             accept="image/jpeg,image/png,application/pdf"
             hint="JPG / PNG / PDF, up to 5 MB. Stored privately on our managed cloud."
+          />
+          <UploadField
+            methods={methods}
+            name="aadhaarBackDocUrl"
+            label="Aadhaar — Back"
+            kind="rider_aadhaar"
+            accept="image/jpeg,image/png,application/pdf"
+            hint="JPG / PNG / PDF, up to 5 MB."
           />
         </div>
       </div>

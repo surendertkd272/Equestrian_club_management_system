@@ -100,6 +100,7 @@ export async function POST(req: NextRequest) {
       aadhaarNo: encryptPII(d.aadhaarNo || null),
       aadhaarLast4: last4(d.aadhaarNo || null),
       aadhaarDocUrl: d.aadhaarDocUrl || null,
+      aadhaarBackDocUrl: d.aadhaarBackDocUrl || null,
       photoUrl: d.photoUrl || null,
       school: d.school || null,
       education: d.education || null,

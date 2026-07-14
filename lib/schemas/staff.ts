@@ -9,6 +9,11 @@ const STAFF_ROLES = ROLES.filter(
   (r) => !["SUPER_ADMIN", "ADMIN", "RIDER", "PARENT", "EXAMINER"].includes(r),
 ) as readonly string[];
 
+// Uploaded-document reference: a relative "/uploads/<file>" path (Supabase /
+// local) or an absolute S3 URL. Deliberately NOT z.string().url() — that
+// rejects the relative paths /api/upload actually returns.
+const docUrl = z.string().max(500).optional().or(z.literal(""));
+
 export const createStaffSchema = z.object({
   name: z.string().min(2).max(80),
   email: z.string().email(),
@@ -25,10 +30,19 @@ export const createStaffSchema = z.object({
     .optional()
     .or(z.literal("")),
   password: z.string().min(8, "8+ chars").default("password123"),
-  // Optional KYC artefacts — URLs returned from /api/upload after the form
-  // uploads the actual files. Empty string means "not provided yet".
-  aadhaarUrl: z.string().url().optional().or(z.literal("")),
-  policeVerificationUrl: z.string().url().optional().or(z.literal("")),
+  // Optional KYC artefacts — paths returned from /api/upload after the form
+  // uploads the files. NOTE: /api/upload returns a RELATIVE "/uploads/<file>"
+  // path (Supabase/local), which z.string().url() REJECTS — that bug made
+  // every Add-Staff submission fail the moment a document was attached. Accept
+  // the relative path (or an absolute S3 URL) as a plain bounded string.
+  aadhaarUrl: docUrl,
+  aadhaarBackUrl: docUrl,
+  policeVerificationUrl: docUrl,
+  // Full KYC document set (previously only self-registration captured these;
+  // Add Staff now does too). photo/PAN/bank-proof are stored in kycDocsJson.
+  photoUrl: docUrl,
+  panUrl: docUrl,
+  bankProofUrl: docUrl,
 });
 
 export type CreateStaffInput = z.infer<typeof createStaffSchema>;

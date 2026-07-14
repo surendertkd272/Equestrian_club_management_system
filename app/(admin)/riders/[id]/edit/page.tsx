@@ -41,6 +41,7 @@ export default async function EditRiderPage({ params }: { params: { id: string }
     maritalStatus: rider.maritalStatus ?? "",
     aadhaarNo: decryptPIISafe(rider.aadhaarNo) ?? "", // decrypt for editing; re-encrypted on save
     aadhaarDocUrl: rider.aadhaarDocUrl ?? "",
+    aadhaarBackDocUrl: rider.aadhaarBackDocUrl ?? "",
     mobile: rider.mobile,
     email: rider.email ?? "",
     preferredLanguage: rider.preferredLanguage ?? "",

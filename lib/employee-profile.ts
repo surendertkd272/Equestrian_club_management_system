@@ -14,7 +14,8 @@ export type EmployeeDoc = { key: string; label: string; url: string; isPdf: bool
 // The uploadable documents, in the order they appear on the form.
 const DOC_LABELS: Record<string, string> = {
   photoUrl: "Passport photo",
-  aadhaarUrl: "Aadhaar card",
+  aadhaarUrl: "Aadhaar card (front)",
+  aadhaarBackUrl: "Aadhaar card (back)",
   panUrl: "PAN card",
   bankProofUrl: "Bank proof (cheque / passbook)",
   prevEmploymentUrl: "Previous-employment certificate",
@@ -73,7 +74,7 @@ export function employeeFormRows(rec: Record<string, unknown>): FormRow[] {
 // Build the unified record from a manually-added staff member (no onboarding row).
 // kyc mirrors the keys the approve route writes onto Staff.kycDocsJson.
 export function synthRecordFromStaff(
-  staff: { joiningDate: Date; aadhaarUrl: string | null; policeVerificationUrl: string | null; kycDocsJson: unknown },
+  staff: { joiningDate: Date; aadhaarUrl: string | null; aadhaarBackUrl?: string | null; policeVerificationUrl: string | null; kycDocsJson: unknown },
   user: { name: string; email: string; photoUrl: string | null },
 ): Record<string, unknown> {
   const kyc = (staff.kycDocsJson && typeof staff.kycDocsJson === "object" ? staff.kycDocsJson : {}) as Record<
@@ -106,6 +107,7 @@ export function synthRecordFromStaff(
     // Documents
     photoUrl: kyc.photoUrl ?? user.photoUrl,
     aadhaarUrl: staff.aadhaarUrl,
+    aadhaarBackUrl: staff.aadhaarBackUrl ?? null,
     panUrl: kyc.panUrl,
     bankProofUrl: kyc.bankProofUrl,
     prevEmploymentUrl: kyc.prevEmploymentUrl,

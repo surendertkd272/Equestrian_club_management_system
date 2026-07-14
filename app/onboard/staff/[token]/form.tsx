@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 type DocField =
   | "photoUrl"
   | "aadhaarUrl"
+  | "aadhaarBackUrl"
   | "panUrl"
   | "bankProofUrl"
   | "prevEmploymentUrl"
@@ -60,6 +61,7 @@ export function OnboardingForm({
   const [docs, setDocs] = useState<Record<DocField, string>>({
     photoUrl: "",
     aadhaarUrl: "",
+    aadhaarBackUrl: "",
     panUrl: "",
     bankProofUrl: "",
     prevEmploymentUrl: "",
@@ -206,7 +208,8 @@ export function OnboardingForm({
         <CardHeader><CardTitle className="text-base">Identity &amp; Bank</CardTitle></CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1"><Label>Aadhaar Number</Label><Input aria-label="Aadhaar number" value={f.aadhaarNumber} onChange={(e) => set("aadhaarNumber", e.target.value)} /></div>
-          <Upload field="aadhaarUrl" label="Aadhaar Card" />
+          <Upload field="aadhaarUrl" label="Aadhaar Card — Front" />
+          <Upload field="aadhaarBackUrl" label="Aadhaar Card — Back" />
           <div className="space-y-1"><Label>PAN Number</Label><Input aria-label="PAN number" value={f.panNumber} onChange={(e) => set("panNumber", e.target.value.toUpperCase())} /></div>
           <Upload field="panUrl" label="PAN Card" />
           <div className="space-y-1"><Label>Bank Name</Label><Input aria-label="Bank name" value={f.bankName} onChange={(e) => set("bankName", e.target.value)} /></div>

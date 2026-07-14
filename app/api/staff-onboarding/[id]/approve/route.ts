@@ -96,6 +96,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         status: "active",
         joiningDate: ob.dateOfJoining ?? new Date(),
         aadhaarUrl: ob.aadhaarUrl ?? null,
+        aadhaarBackUrl: ob.aadhaarBackUrl ?? null,
         policeVerificationUrl: ob.policeVerificationUrl ?? null,
         policeVerifiedAt: ob.policeVerificationUrl ? new Date() : null,
         kycDocsJson: kyc as Prisma.InputJsonValue,

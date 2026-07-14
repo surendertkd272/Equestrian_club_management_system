@@ -20,7 +20,7 @@ type FormState = Record<string, string>;
 // explicit null, so a previously-set value gets cleared.
 const NULLABLE_KEYS = new Set([
   "photoUrl", "placeOfBirth", "nationality", "gender", "maritalStatus",
-  "aadhaarNo", "aadhaarDocUrl", "email", "preferredLanguage",
+  "aadhaarNo", "aadhaarDocUrl", "aadhaarBackDocUrl", "email", "preferredLanguage",
   "school", "education", "occupation",
   "addressPresent", "addressPermanent", "pincode",
   "fatherName", "fatherPhone", "motherName", "motherPhone",
@@ -154,10 +154,17 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
             maxLength={12}
           />
         </Field>
-        <Field label="Aadhaar Document URL">
+        <Field label="Aadhaar Document URL (Front)">
           <Input
             value={state.aadhaarDocUrl}
             onChange={(e) => update("aadhaarDocUrl", e.target.value)}
+            placeholder="/uploads/<file>"
+          />
+        </Field>
+        <Field label="Aadhaar Document URL (Back)">
+          <Input
+            value={state.aadhaarBackDocUrl}
+            onChange={(e) => update("aadhaarBackDocUrl", e.target.value)}
             placeholder="/uploads/<file>"
           />
         </Field>
