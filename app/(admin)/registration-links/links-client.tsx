@@ -7,11 +7,12 @@ import { Copy, Check, MessageCircle } from "lucide-react";
 type LinkDef = { label: string; path: string; blurb: string };
 
 // One shareable public registration link with copy + WhatsApp buttons. The
-// absolute URL is built client-side from window.location.origin so it works on
-// whatever domain the app is served from.
-function LinkRow({ def }: { def: LinkDef }) {
+// absolute URL is built from the server-provided base (falling back to
+// window.location.origin) so both the DISPLAYED link and the copied/shared link
+// are always a full https://… URL that opens on a phone — never a bare path.
+function LinkRow({ def, baseUrl }: { def: LinkDef; baseUrl: string }) {
   const [copied, setCopied] = useState(false);
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const origin = baseUrl || (typeof window !== "undefined" ? window.location.origin : "");
   const url = origin + def.path;
 
   async function copy() {
@@ -42,12 +43,12 @@ function LinkRow({ def }: { def: LinkDef }) {
         </div>
       </div>
       <p className="mt-0.5 text-[11px] text-muted-foreground">{def.blurb}</p>
-      <code className="mt-1 block truncate rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">{def.path}</code>
+      <code className="mt-1 block truncate rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">{url}</code>
     </div>
   );
 }
 
-export function RegistrationLinks({ slug }: { slug: string }) {
+export function RegistrationLinks({ slug, baseUrl }: { slug: string; baseUrl: string }) {
   const links: LinkDef[] = [
     { label: "Students / Riders", path: `/onboarding?centre=${slug}`, blurb: "Parents/riders self-register. Lands in Enrolment Approvals." },
     { label: "Employees / Staff", path: `/onboard/staff?centre=${slug}`, blurb: "Staff apply to join. Lands in Employee Onboarding for approval." },
@@ -56,7 +57,7 @@ export function RegistrationLinks({ slug }: { slug: string }) {
   return (
     <div className="grid gap-2">
       {links.map((l) => (
-        <LinkRow key={l.path} def={l} />
+        <LinkRow key={l.path} def={l} baseUrl={baseUrl} />
       ))}
     </div>
   );

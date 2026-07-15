@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
@@ -16,6 +17,17 @@ export default async function RegistrationLinksPage() {
   const session = await assertRoute("/registration-links");
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/dashboard");
+
+  // Build the ABSOLUTE base URL server-side from the request host, so the link
+  // we show (and copy/share) is always a full, tappable https://… URL — never a
+  // bare path (a path shared over WhatsApp/SMS won't open on a phone). Falls
+  // back to the configured app URL, then the known production domain.
+  const h = headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const baseUrl = host
+    ? `${proto}://${host}`
+    : process.env.NEXT_PUBLIC_APP_URL ?? "https://cms.bharatsportsventure.com";
 
   // Centre-scoped users see their own club; HQ sees every club in the org.
   const centreId = scopeCentre(session);
@@ -46,7 +58,7 @@ export default async function RegistrationLinksPage() {
               <CardDescription>Public registration links for this club</CardDescription>
             </CardHeader>
             <CardContent>
-              <RegistrationLinks slug={c.slug} />
+              <RegistrationLinks slug={c.slug} baseUrl={baseUrl} />
             </CardContent>
           </Card>
         ))

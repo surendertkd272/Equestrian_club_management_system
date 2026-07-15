@@ -8,6 +8,7 @@ import { AllocationGrid } from "./allocation-grid";
 import { LessonStatusPanel } from "./status-panel";
 import { LessonTimeEditor } from "./time-editor";
 import { wallPartsInTz } from "@/lib/tz";
+import { ENROLLED_RIDER_STATUSES } from "@/lib/rider-status";
 import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,9 @@ export default async function LessonDetailPage({ params }: { params: { id: strin
   // Riders + active horses for this centre — the picker pool.
   const [riders, horses] = await Promise.all([
     prisma.rider.findMany({
-      where: { centreId: lesson.centreId, status: "active" },
+      // Enrolled riders (incl. fee-pending) so a lesson can be allocated to any
+      // attending rider, not only those who paid online. See lib/rider-status.
+      where: { centreId: lesson.centreId, status: { in: [...ENROLLED_RIDER_STATUSES] } },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
       select: { id: true, firstName: true, lastName: true },
     }),

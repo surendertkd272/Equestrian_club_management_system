@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +19,14 @@ export default async function CentresPage() {
   // ADMIN can now create / edit / delete clubs (per the "everything" scope).
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/dashboard");
   const canManageClubs = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+
+  // Absolute base URL (from the request host) so the public signup link is a
+  // full, tappable https://… URL rather than a bare path that won't open on a
+  // phone. Same approach as the Registration Links page.
+  const h = headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const baseUrl = host ? `${proto}://${host}` : process.env.NEXT_PUBLIC_APP_URL ?? "https://cms.bharatsportsventure.com";
 
   const centres = await prisma.centre.findMany({
     orderBy: { name: "asc" },
@@ -71,7 +80,7 @@ export default async function CentresPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <CardTitle>{c.name}</CardTitle>
-                    <SignupLink slug={c.slug} />
+                    <SignupLink slug={c.slug} baseUrl={baseUrl} />
                   </div>
                   <div className="flex flex-wrap items-start gap-1.5 text-[10px]">
                     <Badge variant="outline">{c._count.users} users</Badge>

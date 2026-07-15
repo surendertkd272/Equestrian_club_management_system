@@ -14,12 +14,12 @@ import { Copy, Check } from "lucide-react";
 // The centre's public signup link. The slug stays lowercase (it's a URL), but
 // we present it as the actual shareable link with a copy button rather than a
 // bare "slug:" token, so it reads as a URL and is genuinely useful.
-export function SignupLink({ slug }: { slug: string }) {
+export function SignupLink({ slug, baseUrl }: { slug: string; baseUrl: string }) {
   const [copied, setCopied] = useState(false);
   const path = `/onboarding?centre=${slug}`;
+  const url = (baseUrl || (typeof window !== "undefined" ? window.location.origin : "")) + path;
 
   async function copy() {
-    const url = typeof window !== "undefined" ? window.location.origin + path : path;
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);

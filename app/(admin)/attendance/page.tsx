@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { parseDateOnly, toDateOnly } from "@/lib/schemas/attendance";
+import { ENROLLED_RIDER_STATUSES } from "@/lib/rider-status";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AttendanceMarker } from "./marker";
@@ -42,8 +43,11 @@ export default async function AttendancePage({
   let existing: { riderId: string; status: string; reason: string | null }[] = [];
 
   if (selectedBatch) {
+    // Show every ENROLLED rider in the batch — including "pending_payment"
+    // (fee not yet collected online). A child attending class must be markable
+    // regardless of fee status; only unapproved self-enrolments stay hidden.
     roster = await prisma.rider.findMany({
-      where: { batchId: selectedBatch.id, status: "active" },
+      where: { batchId: selectedBatch.id, status: { in: [...ENROLLED_RIDER_STATUSES] } },
       select: { id: true, firstName: true, lastName: true },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     });
@@ -112,7 +116,7 @@ export default async function AttendancePage({
             </div>
           </CardHeader>
           <CardContent className="py-12 text-center text-muted-foreground">
-            No active riders assigned to this batch.{" "}
+            No riders assigned to this batch yet.{" "}
             <Link className="text-primary underline" href="/riders">
               Assign one from Riders
             </Link>
