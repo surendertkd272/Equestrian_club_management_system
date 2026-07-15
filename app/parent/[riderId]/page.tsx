@@ -69,7 +69,7 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
                 <li key={a.id} className="flex items-center justify-between py-2">
                   <div>
                     <div className="font-medium">
-                      {new Date(a.startAt).toLocaleString("en-IN", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      {new Date(a.startAt).toLocaleString("en-IN", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: rider.centre.timezone })}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {a.lesson?.batch?.name ?? "Ad-hoc"}{a.lesson?.batch?.level ? ` · ${a.lesson.batch.level}` : ""} · Horse: {a.horse.name}{a.horse.stableNo ? ` (${a.horse.stableNo})` : ""}

@@ -5,7 +5,7 @@ import { can } from "@/lib/permissions";
 import { createLessonSchema } from "@/lib/schemas/lesson";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
-import { startOfDayInTz, endOfDayInTz } from "@/lib/tz";
+import { startOfDayInTz, endOfDayInTz, parseWallTimeInTz } from "@/lib/tz";
 
 // GET /api/lessons?date=YYYY-MM-DD — lessons for that calendar day,
 // scoped to the caller's centre (SUPER_ADMIN can pass ?centreId=).
@@ -76,12 +76,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // The form sends the picked wall-clock time ("YYYY-MM-DDTHH:MM"); interpret it
+  // in the CENTRE's zone, not the server's (UTC on Vercel) or the admin's
+  // browser. Otherwise an HQ admin in another zone — or the UTC server — would
+  // store the wrong instant, and "6 AM" would come back as 11:30 AM / 12:30 AM.
+  const centre = await prisma.centre.findUnique({ where: { id: centreId }, select: { timezone: true } });
+  const tz = centre?.timezone ?? "Asia/Kolkata";
+
   const lesson = await prisma.lesson.create({
     data: {
       centreId,
       batchId: d.batchId ?? null,
-      date: new Date(d.date),
-      endAt: new Date(d.endAt),
+      date: parseWallTimeInTz(d.date, tz),
+      endAt: parseWallTimeInTz(d.endAt, tz),
       coachId: d.coachId ?? null,
       notes: d.notes ?? null,
       createdBy: session.userId,

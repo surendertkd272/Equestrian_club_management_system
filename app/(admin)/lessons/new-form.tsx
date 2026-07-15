@@ -42,8 +42,11 @@ export function NewLessonForm({
     const res = await postJson("/api/lessons", {
       batchId: batchId || null,
       centreId,
-      date: new Date(`${date}T${start}`).toISOString(),
-      endAt: new Date(`${date}T${end}`).toISOString(),
+      // Send the picked wall-clock time; the server interprets it in the
+      // centre's zone (see POST /api/lessons). Don't .toISOString() here — that
+      // would bake in the admin's browser zone.
+      date: `${date}T${start}`,
+      endAt: `${date}T${end}`,
       notes: notes.trim() || null,
     });
     setBusy(false);

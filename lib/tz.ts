@@ -52,6 +52,26 @@ export function sameLocalDay(a: Date, b: Date, timeZone: string): boolean {
   return startOfDayInTz(a, timeZone).getTime() === startOfDayInTz(b, timeZone).getTime();
 }
 
+// Wall-clock parts (calendar date + HH:MM) of an instant, as read in `timeZone`.
+// For prefilling <input type="date"> / <input type="time"> and computing "today"
+// so the values shown match the centre-local times the rest of the UI displays
+// (rather than the server's UTC wall clock on Vercel).
+export function wallPartsInTz(at: Date, timeZone: string): { date: string; time: string } {
+  const dtf = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const p = Object.fromEntries(
+    dtf.formatToParts(at).filter((x) => x.type !== "literal").map((x) => [x.type, x.value]),
+  ) as Record<string, string>;
+  return { date: `${p.year}-${p.month}-${p.day}`, time: `${p.hour}:${p.minute}` };
+}
+
 // Parse a ZONELESS wall-clock string ("YYYY-MM-DD", "YYYY-MM-DDTHH:MM[:SS]") as
 // local time in `timeZone`, returning the correct UTC instant. A bare
 // `new Date("2026-06-18T06:00")` is parsed in the SERVER zone (UTC on Vercel),

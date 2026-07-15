@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
-import { startOfDayInTz, endOfDayInTz } from "@/lib/tz";
+import { startOfDayInTz, endOfDayInTz, wallPartsInTz } from "@/lib/tz";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,13 +25,19 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/dashboard");
 
-  const date = searchParams.date ?? new Date().toISOString().slice(0, 10);
-  // Bucket by the centre's local day, not the server's UTC day — matches
-  // GET /api/lessons (#132). A noon-UTC anchor pins the right calendar date
-  // before bucketing for IST-like (positive-offset) zones.
-  const safeDate = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : new Date().toISOString().slice(0, 10);
   const centre = await prisma.centre.findUnique({ where: { id: centreId }, select: { timezone: true } });
   const tz = centre?.timezone ?? "Asia/Kolkata";
+  // Default to the centre's local "today" — the server's UTC date is already
+  // yesterday/tomorrow for part of the IST day, which would open the wrong page.
+  const todayLocal = wallPartsInTz(new Date(), tz).date;
+  const rawDate = searchParams.date ?? todayLocal;
+  // Bucket by the centre's local day, not the server's UTC day — matches
+  // GET /api/lessons (#132). A noon-UTC anchor pins the right calendar date
+  // before bucketing for IST-like (positive-offset) zones. `date` is always a
+  // valid YYYY-MM-DD (falls back to local today) so the form + nav links can't
+  // build an invalid Date.
+  const safeDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) ? rawDate : todayLocal;
+  const date = safeDate;
   const ref = new Date(`${safeDate}T12:00:00Z`);
   const dayStart = startOfDayInTz(ref, tz);
   const dayEnd = endOfDayInTz(ref, tz);
@@ -98,9 +104,9 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">
-                        {new Date(l.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(l.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: tz })}
                         {" – "}
-                        {new Date(l.endAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                        {new Date(l.endAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: tz })}
                       </span>
                       {l.batch ? (
                         <Badge variant="outline" className="text-xs">{l.batch.name}{l.batch.level ? ` · ${l.batch.level}` : ""}</Badge>
@@ -131,7 +137,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
                     {can(session.role, "lesson.write") && (
                       <LessonDeleteButton
                         id={l.id}
-                        timeLabel={`${new Date(l.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}`}
+                        timeLabel={`${new Date(l.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: tz })}`}
                         riderCount={l.allocations.length}
                       />
                     )}

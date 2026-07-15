@@ -125,7 +125,7 @@ export async function getChildIfLinked(parentUserId: string, riderId: string) {
   const rider = await runWithRlsBypass(() =>
     prisma.rider.findUnique({
       where: { id: riderId },
-      include: { centre: { select: { name: true, orgId: true } }, batch: { select: { name: true, startTime: true, endTime: true } } },
+      include: { centre: { select: { name: true, orgId: true, timezone: true } }, batch: { select: { name: true, startTime: true, endTime: true } } },
     }),
   );
   bindTenantOrg(rider?.centre.orgId ?? null);

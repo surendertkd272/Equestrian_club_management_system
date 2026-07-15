@@ -222,7 +222,7 @@ export default async function StudentHome() {
                 <li key={a.id} className="flex items-center justify-between py-2">
                   <div>
                     <div className="font-medium">
-                      {new Date(a.startAt).toLocaleString("en-IN", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      {new Date(a.startAt).toLocaleString("en-IN", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: detail.rider.centre.timezone })}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {a.lesson?.batch?.name ?? "Ad-hoc"} · You'll ride <strong>{a.horse.name}</strong>{a.horse.stableNo ? ` (${a.horse.stableNo})` : ""}

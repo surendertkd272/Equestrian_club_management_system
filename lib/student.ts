@@ -25,7 +25,7 @@ export async function getRiderForUser(userId: string) {
     prisma.rider.findFirst({
       where: { userId },
       include: {
-        centre: { select: { name: true, slug: true, orgId: true } },
+        centre: { select: { name: true, slug: true, orgId: true, timezone: true } },
         batch: { select: { name: true, dayOfWeek: true, startTime: true, endTime: true } },
       },
     }),
