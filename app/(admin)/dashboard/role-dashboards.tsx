@@ -394,7 +394,7 @@ export async function GroomDashboard({ centreId, userId, features }: { centreId:
             title={firstAlloc ? firstAlloc.horse.name : "Nothing scheduled"}
             subtitle={
               firstAlloc
-                ? `First up · ${new Date(firstAlloc.startAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false })}`
+                ? `First up · ${new Date(firstAlloc.startAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz })}`
                 : "No allocations today"
             }
             icon={<Sparkles />}
@@ -429,7 +429,7 @@ export async function GroomDashboard({ centreId, userId, features }: { centreId:
                       <span className="ml-2 text-[10px] text-muted-foreground">{formatEnum(a.purpose)}</span>
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {new Date(a.startAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false })}
+                      {new Date(a.startAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: tz })}
                     </span>
                   </li>
                 ))}

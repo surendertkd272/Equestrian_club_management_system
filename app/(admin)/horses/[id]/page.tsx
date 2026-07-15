@@ -396,8 +396,8 @@ export default async function HorseProfile({ params }: { params: { id: string } 
                   return (
                     <tr key={a.id} className="border-t">
                       <td className="py-2 font-mono text-xs">
-                        {a.startAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} –{" "}
-                        {a.endAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                        {a.startAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: horse.centre.timezone })} –{" "}
+                        {a.endAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: horse.centre.timezone })}
                       </td>
                       <td className="py-2 capitalize">{formatEnum(a.purpose)}</td>
                       <td className="py-2">
@@ -448,6 +448,7 @@ export default async function HorseProfile({ params }: { params: { id: string } 
                       month: "short",
                       hour: "2-digit",
                       minute: "2-digit",
+                      timeZone: horse.centre.timezone,
                     })}
                     {" · "}
                     <span className="capitalize">{formatEnum(a.purpose)}</span>
