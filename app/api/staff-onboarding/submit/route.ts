@@ -9,6 +9,8 @@ import { submitOnboardingSchema } from "@/lib/schemas/onboarding-staff";
 import { hashOnboardingToken } from "@/lib/onboarding-token";
 import { encryptPII } from "@/lib/pii";
 import { bindRlsBypass } from "@/lib/tenant-context";
+import { audit } from "@/lib/audit";
+import { employeeConsentProof } from "@/lib/consent";
 
 export const runtime = "nodejs";
 
@@ -74,6 +76,18 @@ export async function POST(req: NextRequest) {
       submittedAt: new Date(),
       shareToken: null, // link consumed — no longer re-shareable
     },
+  });
+
+  // Immutable proof of what wording (version + hash) was accepted, in which
+  // language, by whom, and when — so a later "I never agreed to that" dispute
+  // can be answered exactly. IP/UA captured for evidentiary weight.
+  await audit({
+    action: "staff_onboarding.consent",
+    tableName: "employeeOnboarding",
+    rowId: row.id,
+    after: employeeConsentProof(d.consentLang, d.declarationName),
+    ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+    userAgent: req.headers.get("user-agent") ?? null,
   });
 
   await notifyCentreManager(row.centreId, {

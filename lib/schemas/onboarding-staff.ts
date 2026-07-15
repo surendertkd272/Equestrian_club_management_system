@@ -19,6 +19,32 @@ export const ONBOARDING_DECLARATION = `I hereby declare that:
 
 I accept this declaration by typing my full name below, which constitutes my legal electronic signature.`;
 
+// Version tags for the consent text. Bump these WHENEVER the wording above
+// changes, so every acceptance is provably tied to the exact text shown. The
+// submission flow records the version (+ a hash) it displayed, so you can always
+// prove which wording a given employee agreed to — even after a later edit.
+export const ONBOARDING_AGREEMENT_VERSION = "2026-07-15";
+export const ONBOARDING_DECLARATION_VERSION = "2026-07-15";
+
+// Hindi rendering of the same agreement + declaration, shown alongside English
+// so a non-English-reading employee genuinely understands what they accept
+// (removes the "someone ticked it, I don't read English" dispute). The English
+// text remains the legally-operative version; Hindi is a faithful translation.
+export const ONBOARDING_AGREEMENT_HI = `यह फ़ॉर्म जमा करके मैं सहमति देता/देती हूँ कि:
+• नौकरी छोड़ने से पहले मैं कंपनी को कम से कम तीन (3) महीने का नोटिस दूँगा/दूँगी। ऐसा न करने पर मैं नोटिस अवधि के बराबर राशि का भुगतान करूँगा/करूँगी, और कोई भी बकाया राशि ज़ब्त की जा सकती है।
+• मैं स्कूल परिसर के अंदर शराब, पान मसाला/गुटखा या सिगरेट/बीड़ी का सेवन नहीं करूँगा/करूँगी, ऐसा करने पर मुझे तुरंत नौकरी से हटाया जा सकता है।
+• मैं स्कूल के स्टाफ़ और विद्यार्थियों के साथ हमेशा शालीनता से पेश आऊँगा/आऊँगी और किसी भी स्थिति में अभद्र व्यवहार नहीं करूँगा/करूँगी। मैं साफ़-सुथरा रहूँगा/रहूँगी और क्लास के समय राइडिंग यूनिफ़ॉर्म पहनूँगा/पहनूँगी।
+• मैं अपने पिछले संस्थान से चरित्र प्रमाण-पत्र जमा करूँगा/करूँगी और दो संदर्भ (references) उनके संपर्क विवरण सहित दूँगा/दूँगी।`;
+
+export const ONBOARDING_DECLARATION_HI = `मैं एतद्द्वारा घोषणा करता/करती हूँ कि:
+1. इस फ़ॉर्म में मेरे द्वारा दी गई सभी जानकारी और दस्तावेज़ मेरी सर्वोत्तम जानकारी के अनुसार सत्य, सही और असली हैं।
+2. मेरे विरुद्ध कोई आपराधिक मामला लंबित या विचाराधीन नहीं है, और मुझे किसी भी न्यायालय द्वारा कभी किसी अपराध के लिए दोषी नहीं ठहराया गया है।
+3. मैं अपने पद के कर्तव्यों को निभाने के लिए चिकित्सकीय रूप से स्वस्थ हूँ।
+4. मैंने ऊपर दी गई एग्रीमेंट और आचरण संबंधी शर्तों को पढ़ लिया है, समझ लिया है और स्वीकार करता/करती हूँ।
+5. मैं समझता/समझती हूँ कि कोई भी झूठी घोषणा या तथ्यों को छिपाना, मेरी अपनी जोखिम और ज़िम्मेदारी पर, मेरी नियुक्ति की तत्काल समाप्ति का कारण बन सकता है।
+
+मैं नीचे अपना पूरा नाम टाइप करके इस घोषणा को स्वीकार करता/करती हूँ, जो मेरे कानूनी इलेक्ट्रॉनिक हस्ताक्षर के रूप में मान्य है।`;
+
 const optStr = (max: number) => z.string().max(max).optional().or(z.literal("")).transform((v) => v || undefined);
 // Document URLs come from our own /api/upload, which returns a relative
 // "/uploads/<file>" path (local) or an absolute S3 URL — so accept either,
@@ -68,6 +94,9 @@ export const submitOnboardingSchema = z.object({
   agreementAccepted: z.literal(true),
   declarationAccepted: z.literal(true),
   declarationName: z.string().min(2).max(120),
+  // Which language the employee read + accepted the consent in ("en"|"hi").
+  // Recorded for proof; English remains the legally-operative text.
+  consentLang: z.enum(["en", "hi"]).optional().default("en"),
 });
 export type SubmitOnboardingInput = z.infer<typeof submitOnboardingSchema>;
 

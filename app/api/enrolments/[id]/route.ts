@@ -129,9 +129,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const regAmount = regPlan?.registrationAmount ?? 3000;
 
   const invoice = await prisma.$transaction(async (tx) => {
+    // Approve → the rider is ACTIVE and usable across the app immediately
+    // (attendance, lessons, progress). The registration fee is still tracked
+    // via the "due" invoice below + the registrationPaid flag (flipped on
+    // payment) — payment is NOT a gate on being an enrolled, attending rider.
     await tx.rider.update({
       where: { id: rider.id },
-      data: { status: "pending_payment", approvedByUserId: session.userId, approvedAt: new Date() },
+      data: { status: "active", approvedByUserId: session.userId, approvedAt: new Date() },
     });
     return tx.invoice.create({
       data: {
@@ -152,7 +156,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     tableName: "rider",
     rowId: rider.id,
     before: { status: "pending_approval" },
-    after: { status: "pending_payment", invoiceId: invoice.id, regAmount },
+    after: { status: "active", invoiceId: invoice.id, regAmount },
   });
 
   // Notify the parent that the rider was approved + give them the

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ONBOARDING_AGREEMENT_HI, ONBOARDING_DECLARATION_HI } from "@/lib/schemas/onboarding-staff";
 
 type DocField =
   | "photoUrl"
@@ -69,6 +70,9 @@ export function OnboardingForm({
     characterCertUrl: "",
   });
   const [pfEsicConsent, setPfEsicConsent] = useState(false);
+  // Language the employee reads the agreement/declaration in. English is the
+  // legally-operative text; Hindi is shown for understanding. Recorded on submit.
+  const [lang, setLang] = useState<"en" | "hi">("en");
   const [agreeOk, setAgreeOk] = useState(false);
   const [declareOk, setDeclareOk] = useState(false);
   const [declarationName, setDeclarationName] = useState("");
@@ -122,6 +126,7 @@ export function OnboardingForm({
         agreementAccepted: true,
         declarationAccepted: true,
         declarationName,
+        consentLang: lang,
       };
       // Numbers: omit when blank so the optional schema doesn't coerce "" → 0.
       if (!f.agreedSalary) delete payload.agreedSalary;
@@ -248,24 +253,47 @@ export function OnboardingForm({
         </CardContent>
       </Card>
 
+      {/* Language toggle for the consent text — read in English or Hindi. */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">Read in / भाषा:</span>
+        <div className="inline-flex overflow-hidden rounded-md border">
+          <button
+            type="button"
+            onClick={() => setLang("en")}
+            className={`px-3 py-1 text-xs ${lang === "en" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted"}`}
+          >
+            English
+          </button>
+          <button
+            type="button"
+            onClick={() => setLang("hi")}
+            className={`px-3 py-1 text-xs ${lang === "hi" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted"}`}
+          >
+            हिंदी
+          </button>
+        </div>
+      </div>
+
       <Card>
-        <CardHeader><CardTitle className="text-base">Agreement</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">{lang === "hi" ? "एग्रीमेंट (Agreement)" : "Agreement"}</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <pre className="whitespace-pre-wrap rounded-md border bg-muted/30 p-3 text-xs leading-relaxed text-foreground">{agreement}</pre>
+          <pre className="whitespace-pre-wrap rounded-md border bg-muted/30 p-3 text-xs leading-relaxed text-foreground">{lang === "hi" ? ONBOARDING_AGREEMENT_HI : agreement}</pre>
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-0.5" checked={agreeOk} onChange={(e) => setAgreeOk(e.target.checked)} />
-            I have read and accept the agreement and conduct terms above.
+            {lang === "hi"
+              ? "मैंने ऊपर दी गई एग्रीमेंट और आचरण संबंधी शर्तें पढ़ ली हैं और उन्हें स्वीकार करता/करती हूँ।"
+              : "I have read and accept the agreement and conduct terms above."}
           </label>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Self-Declaration</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">{lang === "hi" ? "स्व-घोषणा (Self-Declaration)" : "Self-Declaration"}</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <pre className="whitespace-pre-wrap rounded-md border bg-muted/30 p-3 text-xs leading-relaxed text-foreground">{declaration}</pre>
+          <pre className="whitespace-pre-wrap rounded-md border bg-muted/30 p-3 text-xs leading-relaxed text-foreground">{lang === "hi" ? ONBOARDING_DECLARATION_HI : declaration}</pre>
           <label className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-0.5" checked={declareOk} onChange={(e) => setDeclareOk(e.target.checked)} />
-            I accept the self-declaration above.
+            {lang === "hi" ? "मैं ऊपर दी गई स्व-घोषणा स्वीकार करता/करती हूँ।" : "I accept the self-declaration above."}
           </label>
           <div className="space-y-1">
             <Label>Type Your Full Name to Accept (legal e-signature) *</Label>

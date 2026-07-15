@@ -16,6 +16,8 @@ import { submitOnboardingSchema } from "@/lib/schemas/onboarding-staff";
 import { encryptPII } from "@/lib/pii";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 import { bindRlsBypass } from "@/lib/tenant-context";
+import { audit } from "@/lib/audit";
+import { employeeConsentProof } from "@/lib/consent";
 
 export const runtime = "nodejs";
 
@@ -93,6 +95,16 @@ export async function POST(req: NextRequest) {
       declarationAccepted: true,
       declarationName: d.declarationName,
     },
+  });
+
+  // Proof of accepted consent (version + hash + language + signer + time).
+  await audit({
+    action: "staff_onboarding.consent",
+    tableName: "employeeOnboarding",
+    rowId: row.id,
+    after: employeeConsentProof(d.consentLang, d.declarationName),
+    ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+    userAgent: req.headers.get("user-agent") ?? null,
   });
 
   await notifyCentreManager(centre.id, {

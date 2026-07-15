@@ -26,23 +26,14 @@ export default async function TeamDailyUpdatesPage({
   const session = (await getSession())!;
   if (!CAN_VIEW.includes(session.role)) redirect("/daily-update");
 
-  const centreId = scopeCentre(session);
-  if (!centreId) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Team Daily Updates</h1>
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            Pick a club from the top bar to see its coaches' daily updates. HQ accounts aren't tied
-            to a single centre.
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/dashboard");
+  // HQ (SUPER_ADMIN/ADMIN) with no club picked → show the WHOLE org's updates
+  // (each labelled with its club) instead of dead-ending on "pick a club".
+  // Centre-scoped roles resolve to their own club.
+  // scopeCentre → the picked club for centre-scoped roles, or null for HQ with
+  // no club selected (which tenantWhere widens to the whole org).
+  const centreId = scopeCentre(session);
 
   const dateStr = DATE_RE.test(searchParams.date ?? "") ? searchParams.date! : istTodayStr();
   const dateKey = coachUpdateDateKey(dateStr);
@@ -50,8 +41,8 @@ export default async function TeamDailyUpdatesPage({
   const [updates, coaches] = await Promise.all([
     prisma.coachDailyUpdate.findMany({
       where: { ...tenantWhere(centreId, orgId), date: dateKey },
-      include: { coach: { select: { name: true } } },
-      orderBy: { coach: { name: "asc" } },
+      include: { coach: { select: { name: true } }, centre: { select: { name: true } } },
+      orderBy: [{ centre: { name: "asc" } }, { coach: { name: "asc" } }],
     }),
     prisma.user.findMany({
       where: { ...tenantWhere(centreId, orgId), status: "active", role: { in: [...DAILY_UPDATE_ROLES] } },
@@ -97,7 +88,10 @@ export default async function TeamDailyUpdatesPage({
               {updates.map((u) => (
                 <li key={u.id} className="border-b pb-3 last:border-0">
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">{u.coach.name}</span>
+                    <span className="font-medium">
+                      {u.coach.name}
+                      {u.centre?.name && <span className="ml-2 text-[11px] font-normal text-muted-foreground">· {u.centre.name}</span>}
+                    </span>
                     <span className="flex gap-2 text-[11px] text-muted-foreground">
                       {u.horsesWorked != null && <span>{u.horsesWorked} horses</span>}
                       {u.ridersTaught != null && <span>{u.ridersTaught} riders</span>}

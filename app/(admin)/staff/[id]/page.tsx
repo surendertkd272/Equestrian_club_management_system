@@ -8,12 +8,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { loadEmployeeProfile, employeeFormRows } from "@/lib/employee-profile";
+import {
+  ONBOARDING_AGREEMENT,
+  ONBOARDING_DECLARATION,
+  ONBOARDING_AGREEMENT_HI,
+  ONBOARDING_DECLARATION_HI,
+  ONBOARDING_AGREEMENT_VERSION,
+  ONBOARDING_DECLARATION_VERSION,
+} from "@/lib/schemas/onboarding-staff";
 import { PrintControl } from "./print-control";
 import { formatEnum, roleLabel } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
-// Per the request, the profile + print packet are an admin / super-admin tool.
-const CAN_VIEW = ["SUPER_ADMIN", "ADMIN"];
+// Profile + consent record: SUPER_ADMIN + ADMIN + CENTRE_MANAGER (a manager can
+// view their own centre's staff — the load is already centre-scoped). Managers
+// need this to answer an employee's "I never agreed to that" dispute.
+const CAN_VIEW = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"];
 
 export default async function StaffProfilePage({ params }: { params: { id: string } }) {
   const session = (await getSession())!;
@@ -24,6 +34,13 @@ export default async function StaffProfilePage({ params }: { params: { id: strin
 
   const { staff, docs, declarationName, hasOnboarding } = profile;
   const rows = employeeFormRows(profile.record);
+
+  // Consent record — what the employee accepted, for showing back to them later.
+  const rec = profile.record;
+  const agreementAccepted = rec.agreementAccepted === true;
+  const declarationAccepted = rec.declarationAccepted === true;
+  const submittedAt = rec.submittedAt ? new Date(rec.submittedAt as string | number | Date) : null;
+  const hasConsent = agreementAccepted || declarationAccepted || !!declarationName;
 
   return (
     <div className="space-y-6">
@@ -69,11 +86,60 @@ export default async function StaffProfilePage({ params }: { params: { id: strin
               </div>
             ))}
           </dl>
-          {declarationName && (
-            <p className="mt-3 text-[11px] text-muted-foreground">
-              Self-declaration accepted by typing: <span className="font-medium text-foreground">{declarationName}</span>
+        </CardContent>
+      </Card>
+
+      {/* Proof of consent — the exact agreement + declaration the employee
+          accepted, so you can show it back to them if they later dispute it. */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Consent &amp; Agreement</CardTitle>
+          <CardDescription>
+            {hasConsent
+              ? "What this employee read and accepted during registration. Expand to see the exact wording."
+              : "No recorded consent on file (added manually, not via the self-registration form)."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={agreementAccepted ? "success" : "outline"}>
+              {agreementAccepted ? "✓ Employee Agreement accepted" : "Agreement — not recorded"}
+            </Badge>
+            <Badge variant={declarationAccepted ? "success" : "outline"}>
+              {declarationAccepted ? "✓ Self-Declaration accepted" : "Declaration — not recorded"}
+            </Badge>
+          </div>
+
+          {(declarationName || submittedAt) && (
+            <p className="text-xs text-muted-foreground">
+              {declarationName && (
+                <>Signed by typing full name: <span className="font-medium text-foreground">{declarationName}</span></>
+              )}
+              {submittedAt && <> · on <span className="font-medium text-foreground">{formatDate(submittedAt)}</span></>}
+              {" "}(legal e-signature).
             </p>
           )}
+
+          <details className="rounded-md border bg-muted/20 p-2">
+            <summary className="cursor-pointer text-xs font-medium text-primary">
+              View Employee Agreement (English + हिंदी) · version {ONBOARDING_AGREEMENT_VERSION}
+            </summary>
+            <pre className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-foreground">{ONBOARDING_AGREEMENT}</pre>
+            <pre className="mt-3 whitespace-pre-wrap border-t pt-2 text-xs leading-relaxed text-foreground">{ONBOARDING_AGREEMENT_HI}</pre>
+          </details>
+
+          <details className="rounded-md border bg-muted/20 p-2">
+            <summary className="cursor-pointer text-xs font-medium text-primary">
+              View Self-Declaration (English + हिंदी) · version {ONBOARDING_DECLARATION_VERSION}
+            </summary>
+            <pre className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-foreground">{ONBOARDING_DECLARATION}</pre>
+            <pre className="mt-3 whitespace-pre-wrap border-t pt-2 text-xs leading-relaxed text-foreground">{ONBOARDING_DECLARATION_HI}</pre>
+          </details>
+
+          <p className="text-[11px] text-muted-foreground">
+            This is the exact wording on file. Each registration also records a tamper-evident proof
+            (version + content fingerprint + language + time) in the Audit Log.
+          </p>
         </CardContent>
       </Card>
 
