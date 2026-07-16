@@ -37,6 +37,78 @@ export function AccountForm({
   const [confirmPwd, setConfirmPwd] = useState("");
   const [savingPwd, setSavingPwd] = useState(false);
 
+  // Self-service login-email change: idle → enter (new email + password) →
+  // code (6-digit sent to the new address). Email only switches on confirm.
+  const [currentEmail, setCurrentEmail] = useState(initial.email);
+  const [emailStep, setEmailStep] = useState<"idle" | "enter" | "code">("idle");
+  const [newEmail, setNewEmail] = useState("");
+  const [emailPwd, setEmailPwd] = useState("");
+  const [emailCode, setEmailCode] = useState("");
+  const [emailBusy, setEmailBusy] = useState(false);
+
+  function resetEmailFlow() {
+    setEmailStep("idle");
+    setNewEmail("");
+    setEmailPwd("");
+    setEmailCode("");
+  }
+
+  async function requestEmailCode() {
+    setEmailBusy(true);
+    try {
+      const res = await fetch("/api/account/email/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newEmail, currentPassword: emailPwd }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(
+          data.error === "BAD_CURRENT_PASSWORD" ? "Current password is wrong."
+          : data.error === "EMAIL_TAKEN" ? "That email is already in use by another account."
+          : data.error === "SAME_EMAIL" ? "That's already your login email."
+          : data.error === "RATE_LIMITED" ? "Too many attempts. Try again later."
+          : data.error === "VALIDATION" ? "Enter a valid email address."
+          : (data.message ?? data.error ?? "Failed"),
+        );
+        return;
+      }
+      toast.success(`Code sent to ${newEmail}`);
+      setEmailStep("code");
+    } finally {
+      setEmailBusy(false);
+    }
+  }
+
+  async function confirmEmailChange() {
+    setEmailBusy(true);
+    try {
+      const res = await fetch("/api/account/email/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: emailCode }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(
+          data.error === "INVALID_CODE" ? "That code isn't right."
+          : data.error === "CODE_EXPIRED" ? "Code expired — send a new one."
+          : data.error === "TOO_MANY_ATTEMPTS" ? "Too many attempts — send a new code."
+          : data.error === "CODE_USED" ? "That code was already used — send a new one."
+          : data.error === "EMAIL_TAKEN" ? "That email was just taken by another account."
+          : (data.message ?? data.error ?? "Failed"),
+        );
+        return;
+      }
+      setCurrentEmail(data.email);
+      resetEmailFlow();
+      toast.success("Login email updated. Use it next time you sign in.");
+      router.refresh();
+    } finally {
+      setEmailBusy(false);
+    }
+  }
+
   const profileDirty = name !== initial.name || phone !== initial.phone || photoUrl !== (initial.photoUrl ?? null);
 
   async function onPhotoFile(file: File | null) {
@@ -125,7 +197,7 @@ export function AccountForm({
         <CardHeader>
           <CardTitle>Profile</CardTitle>
           <CardDescription>
-            Email and role aren't editable here — contact HQ if either needs to change.
+            Your role isn't editable here — contact HQ if it needs to change.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -170,10 +242,6 @@ export function AccountForm({
               <Input id="acc-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
             </div>
             <div>
-              <Label>Email</Label>
-              <Input aria-label="Email" value={initial.email} disabled />
-            </div>
-            <div>
               <Label>Role</Label>
               <Input aria-label="Role" value={initial.role} disabled />
             </div>
@@ -189,6 +257,96 @@ export function AccountForm({
               {savingProfile ? "Saving…" : "Save Profile"}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Login Email</CardTitle>
+          <CardDescription>
+            The email you sign in with. Changing it sends a 6-digit code to the new
+            address — the change only takes effect once you enter that code, so a typo
+            can't lock you out.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div>
+            <Label>Current Email</Label>
+            <Input aria-label="Current email" value={currentEmail} disabled />
+          </div>
+
+          {emailStep === "idle" && (
+            <Button variant="outline" onClick={() => setEmailStep("enter")}>
+              Change Email
+            </Button>
+          )}
+
+          {emailStep === "enter" && (
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+              <div>
+                <Label htmlFor="acc-new-email">New Email</Label>
+                <Input
+                  id="acc-new-email"
+                  type="email"
+                  autoComplete="off"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="acc-email-pwd">Current Password</Label>
+                <Input
+                  id="acc-email-pwd"
+                  type="password"
+                  autoComplete="current-password"
+                  value={emailPwd}
+                  onChange={(e) => setEmailPwd(e.target.value)}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Confirm it's you before we send a code.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={requestEmailCode} disabled={!newEmail || !emailPwd || emailBusy}>
+                  {emailBusy ? "Sending…" : "Send Code"}
+                </Button>
+                <Button variant="ghost" onClick={resetEmailFlow} disabled={emailBusy}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {emailStep === "code" && (
+            <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+              <p className="text-sm text-muted-foreground">
+                Enter the 6-digit code sent to <b className="text-foreground">{newEmail}</b>. It
+                expires in 10 minutes.
+              </p>
+              <div>
+                <Label htmlFor="acc-email-code">Verification Code</Label>
+                <Input
+                  id="acc-email-code"
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="000000"
+                  value={emailCode}
+                  onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={confirmEmailChange} disabled={emailCode.length !== 6 || emailBusy}>
+                  {emailBusy ? "Confirming…" : "Confirm Change"}
+                </Button>
+                <Button variant="ghost" onClick={requestEmailCode} disabled={emailBusy}>
+                  Resend Code
+                </Button>
+                <Button variant="ghost" onClick={resetEmailFlow} disabled={emailBusy}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

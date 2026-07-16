@@ -117,6 +117,50 @@ export async function peekEmailVerifyCode(
   return { ok: true, userId: user.id, tokenId: row.id };
 }
 
+// Email-CHANGE variant. The pending new address rides in the token's `email`
+// column (issueEmailVerifyCode(userId, newEmail)); User.email is left untouched
+// until the code is confirmed, so login keeps working on the old address in the
+// meantime. On success we switch User.email to the token's address and stamp
+// emailVerifiedAt, consuming the token — all in one transaction so a duplicate
+// email (claimed by someone else between request and confirm) rolls the switch
+// back rather than half-applying it.
+export async function redeemEmailChange(
+  userId: string,
+  code: string,
+): Promise<{ ok: true; email: string } | { ok: false; error: string }> {
+  const row = await prisma.emailVerifyToken.findFirst({
+    where: { userId, usedAt: null },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!row) return { ok: false, error: "INVALID_CODE" };
+  if (row.expiresAt < new Date()) return { ok: false, error: "CODE_EXPIRED" };
+  if (row.attempts >= VERIFY_MAX_ATTEMPTS) return { ok: false, error: "TOO_MANY_ATTEMPTS" };
+  if (hashCode(code) !== row.codeHash) {
+    await prisma.emailVerifyToken.update({ where: { id: row.id }, data: { attempts: { increment: 1 } } });
+    return { ok: false, error: "INVALID_CODE" };
+  }
+
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const consumed = await tx.emailVerifyToken.updateMany({
+        where: { id: row.id, usedAt: null },
+        data: { usedAt: new Date() },
+      });
+      if (consumed.count === 0) return { ok: false as const, error: "CODE_USED" };
+      // The @unique on User.email is the backstop: if the address was taken
+      // since the request, this throws P2002 and the whole tx rolls back.
+      await tx.user.update({
+        where: { id: userId },
+        data: { email: row.email, emailVerifiedAt: new Date() },
+      });
+      return { ok: true as const, email: row.email };
+    });
+  } catch (err) {
+    if ((err as { code?: string }).code === "P2002") return { ok: false, error: "EMAIL_TAKEN" };
+    throw err;
+  }
+}
+
 // Mark a peeked code used (single-use guard) + stamp emailVerifiedAt. Returns
 // false if it was already consumed by a concurrent request.
 export async function consumeEmailVerifyCode(tokenId: string, userId: string): Promise<boolean> {
