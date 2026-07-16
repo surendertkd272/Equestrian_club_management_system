@@ -52,11 +52,16 @@ export function DailyUpdateForm({ date, initial }: { date: string; initial: Init
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(data.message ?? data.error ?? "Failed");
+        toast.error(data.message ?? data.error ?? "Couldn't save — please try again.");
         return;
       }
-      toast.success("Saved today's update");
+      toast.success("Saved ✓ — your update is now filed for today.");
       router.refresh();
+    } catch {
+      // A silently-swallowed network error here (common on flaky mobile
+      // connections) is how a coach ends up believing they filed when nothing
+      // was saved. Always surface a failure so they know to retry.
+      toast.error("Couldn't save — check your connection and tap Save again.");
     } finally {
       setBusy(false);
     }
