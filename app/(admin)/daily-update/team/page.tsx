@@ -35,7 +35,20 @@ export default async function TeamDailyUpdatesPage({
   // no club selected (which tenantWhere widens to the whole org).
   const centreId = scopeCentre(session);
 
-  const dateStr = DATE_RE.test(searchParams.date ?? "") ? searchParams.date! : istTodayStr();
+  // Coaches file sporadically, so defaulting to "today" left this page almost
+  // always empty ("No updates filed for this day") and reading as broken. When
+  // the viewer hasn't picked a date, open on the most recent day that actually
+  // has updates in scope — falling back to today only when none exist at all.
+  const explicitDate = DATE_RE.test(searchParams.date ?? "") ? searchParams.date! : null;
+  let dateStr = explicitDate ?? istTodayStr();
+  if (!explicitDate) {
+    const latest = await prisma.coachDailyUpdate.findFirst({
+      where: tenantWhere(centreId, orgId),
+      orderBy: { date: "desc" },
+      select: { date: true },
+    });
+    if (latest) dateStr = latest.date.toISOString().slice(0, 10);
+  }
   const dateKey = coachUpdateDateKey(dateStr);
 
   const [updates, coaches] = await Promise.all([
@@ -82,7 +95,10 @@ export default async function TeamDailyUpdatesPage({
         </CardHeader>
         <CardContent>
           {updates.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">No updates filed for this day.</p>
+            <p className="py-4 text-center text-sm text-muted-foreground">
+              No updates were filed on this date. Coaches file their end-of-day note from
+              &ldquo;Daily Coach Update&rdquo; &mdash; pick another date above to see earlier reports.
+            </p>
           ) : (
             <ul className="space-y-3 text-sm">
               {updates.map((u) => (
