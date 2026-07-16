@@ -67,6 +67,35 @@ export default async function TeamDailyUpdatesPage({
   const filedIds = new Set(updates.map((u) => u.coachUserId));
   const notFiled = coaches.filter((c) => !filedIds.has(c.id));
 
+  // When the current view is empty, look PAST the club filter so the empty
+  // state can explain *why* it's empty — the recurring "the page is broken"
+  // report is almost always an HQ user filtered to one club while the coach
+  // who filed sits in another. Distinguish three cases:
+  //   • updates exist under a different club  → tell them to pick "All Centres"
+  //   • nobody in the org has filed at all    → the coach's submit never landed
+  //   • filed, but on a different date        → point at that date
+  const clubName = centreId
+    ? (await prisma.centre.findUnique({ where: { id: centreId }, select: { name: true } }))?.name ?? null
+    : null;
+  let latestAnywhere:
+    | { date: Date; coachName: string; centreName: string | null; sameClub: boolean }
+    | null = null;
+  if (updates.length === 0) {
+    const row = await prisma.coachDailyUpdate.findFirst({
+      where: tenantWhere(null, orgId), // org-wide — deliberately ignores the club filter
+      orderBy: { date: "desc" },
+      include: { coach: { select: { name: true } }, centre: { select: { name: true } } },
+    });
+    if (row) {
+      latestAnywhere = {
+        date: row.date,
+        coachName: row.coach.name,
+        centreName: row.centre?.name ?? null,
+        sameClub: centreId != null && row.centreId === centreId,
+      };
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -95,10 +124,32 @@ export default async function TeamDailyUpdatesPage({
         </CardHeader>
         <CardContent>
           {updates.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">
-              No updates were filed on this date. Coaches file their end-of-day note from
-              &ldquo;Daily Coach Update&rdquo; &mdash; pick another date above to see earlier reports.
-            </p>
+            <div className="space-y-2 py-4 text-center text-sm text-muted-foreground">
+              <p>
+                No updates were filed on this date
+                {clubName ? <> for <span className="font-medium">{clubName}</span></> : null}.
+              </p>
+              {!latestAnywhere ? (
+                <p>
+                  No coach in your organisation has filed a daily update yet. Coaches file theirs from
+                  &ldquo;Daily Coach Update&rdquo; in their own login &mdash; if a coach says they submitted,
+                  ask them to reopen it and check it shows &ldquo;Already filed&rdquo;.
+                </p>
+              ) : clubName && !latestAnywhere.sameClub ? (
+                <p className="font-medium text-amber-700">
+                  A coach <span className="font-semibold">has</span> filed &mdash; just under a different club.
+                  The most recent is {latestAnywhere.coachName}
+                  {latestAnywhere.centreName ? <> at {latestAnywhere.centreName}</> : null} on{" "}
+                  {formatDate(latestAnywhere.date)}. Set the club picker at the top of the page to
+                  &ldquo;All Centres&rdquo; to see every club&apos;s updates.
+                </p>
+              ) : (
+                <p>
+                  The most recent update was filed on {formatDate(latestAnywhere.date)} &mdash; pick that
+                  date above to read it.
+                </p>
+              )}
+            </div>
           ) : (
             <ul className="space-y-3 text-sm">
               {updates.map((u) => (
