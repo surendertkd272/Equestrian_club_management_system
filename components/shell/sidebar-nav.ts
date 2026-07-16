@@ -219,8 +219,10 @@ export function canReachPath(role: Role, pathname: string): boolean {
 // daily flow is too varied for shortcuts to help.
 const ROLE_PINS: Partial<Record<Role, string[]>> = {
   // Coach's day: check today's lessons → mark attendance as riders arrive
-  // → log skill progress during/after → end-of-day daily checklist.
-  COACH: ["/lessons", "/attendance", "/progress", "/checklists"],
+  // → log skill progress during/after → end-of-day daily checklist + update.
+  // /daily-update pinned so the end-of-day note is one tap away on mobile
+  // (it was buried in "Staff & Operations" and coaches couldn't find it).
+  COACH: ["/lessons", "/attendance", "/progress", "/checklists", "/daily-update"],
   // Head Coach is a coach + the team's first-line approver.
   HEAD_COACH: ["/lessons", "/attendance", "/approvals", "/daily-update"],
   // Groom's morning is structured by the daily checklist; the rest are
