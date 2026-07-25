@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentreForRoute } from "@/lib/tenancy";
 import { createVendorSchema } from "@/lib/schemas/finance";
 import { vendorScopeWhere } from "@/lib/vendor-scope";
 import { audit } from "@/lib/audit";
@@ -44,7 +44,9 @@ export async function POST(req: NextRequest) {
   // Owner centre: centre-scoped users use their own; HQ admins on the
   // all-centres view pick it via the form (parsed.data.centreId).
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  let centreId = scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  let centreId = scoped.centreId;
   if (!centreId && isHQ && parsed.data.centreId) centreId = parsed.data.centreId;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
   // Guard cross-tenant: the chosen centre must exist (and, for HQ picking

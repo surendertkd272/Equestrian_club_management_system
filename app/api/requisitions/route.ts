@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { createRequisitionSchema } from "@/lib/schemas/requisition";
 import { audit } from "@/lib/audit";
@@ -22,7 +22,9 @@ export async function GET(req: NextRequest) {
 
   const orgId = await getOrgIdForSession(session);
   if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
-  const centreId = scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = scoped.centreId;
   const url = new URL(req.url);
   const mine = url.searchParams.get("mine") === "1";
   const queue = url.searchParams.get("queue");
@@ -68,7 +70,9 @@ export async function POST(req: NextRequest) {
   // Centre resolution: session pin for centre-scoped users; body for SUPER_ADMIN.
   // Validate ownership for HQ so they can't post a requisition into someone
   // else's organisation.
-  let centreId: string | null = scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  let centreId: string | null = scoped.centreId;
   if (!centreId && session.role === "SUPER_ADMIN" && parsed.data.centreId) {
     const c = await prisma.centre.findUnique({
       where: { id: parsed.data.centreId },

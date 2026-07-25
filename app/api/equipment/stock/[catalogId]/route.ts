@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentreForRoute } from "@/lib/tenancy";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { updateStockSchema } from "@/lib/schemas/equipment";
 import { audit } from "@/lib/audit";
@@ -43,7 +43,9 @@ export async function PATCH(
   const requested = url.searchParams.get("centreId");
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
   const fromParam = requested && isHQ;
-  const centreId = fromParam ? requested : scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = fromParam ? requested : scoped.centreId;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
 
   // Cross-org guard (C1): an HQ user targeting a centre by ?centreId= must not

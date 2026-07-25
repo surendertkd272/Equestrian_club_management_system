@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 import { createAccreditationSchema } from "@/lib/schemas/accreditation";
 import { audit } from "@/lib/audit";
 import { blockIfFeatureOff, getOrgIdForSession } from "@/lib/features-gate";
@@ -25,7 +25,9 @@ export async function GET(req: NextRequest) {
   if (riderId) where.riderId = riderId;
   // Tenant scoping via the rider relation: a specific centre for centre-scoped
   // roles, org-bounded for HQ ("all centres"). A foreign centreId yields 0 rows.
-  where.rider = tenantWhere(scopeCentre(session), orgId);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  where.rider = tenantWhere(scoped.centreId, orgId);
 
   const rows = await prisma.accreditation.findMany({
     where,

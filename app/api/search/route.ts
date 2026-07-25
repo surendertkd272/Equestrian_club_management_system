@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 
 // GET /api/search?q=… — backing for the Cmd+K palette.
@@ -42,7 +42,9 @@ export async function GET(req: NextRequest) {
   // caller's org, never every tenant's data. Fail closed if org unresolved.
   const orgId = await getOrgIdForSession(session);
   if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
-  const centreId = scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = scoped.centreId;
   // { centreId?, centre: { orgId } } — narrows to one centre for centre-scoped
   // roles, org-bounds for HQ. Applies to every centre-owned table below.
   const tWhere = tenantWhere(centreId, orgId);
