@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
-import { updateExamScoreSchema, parseRubric, computeTotal, findScoreViolations } from "@/lib/schemas/exam";
+import { updateExamScoreSchema, parseRubric, computeTotal, findScoreViolations, countUnscored } from "@/lib/schemas/exam";
 import { audit } from "@/lib/audit";
 import { generateUniqueSerial, verifyUrl } from "@/lib/cert";
 import { notifyCentreManager, notify, notifyRiderAndParents } from "@/lib/notify";
@@ -25,7 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!parsed.success) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
-  const { scores, final, judgeId, deductions, timeFaults } = parsed.data;
+  const { scores, final, judgeId, deductions, timeFaults, allowIncomplete } = parsed.data;
 
   const exam = await prisma.exam.findUnique({
     where: { id: params.id },
@@ -71,6 +71,25 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const violations = findScoreViolations(rubric, scores);
   if (violations.length > 0) {
     return NextResponse.json({ error: "SCORE_OUT_OF_RANGE", violations }, { status: 400 });
+  }
+
+  // Locking a half-filled card is almost always a slip, and it is irreversible:
+  // unscored items count as zero, the exam completes, and the parents are
+  // notified of a result the child did not actually get. Refuse unless the
+  // examiner has explicitly confirmed a partial card.
+  if (final && !allowIncomplete) {
+    const { unscored, total: itemCount } = countUnscored(rubric, scores);
+    if (unscored > 0) {
+      return NextResponse.json(
+        {
+          error: "INCOMPLETE_CARD",
+          unscored,
+          itemCount,
+          message: `${unscored} of ${itemCount} rubric items have no score. Unscored items count as zero, so submitting now would record a lower result than the rider earned.`,
+        },
+        { status: 400 },
+      );
+    }
   }
 
   // Per-judge subtotal first.
