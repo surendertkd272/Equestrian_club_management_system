@@ -13,6 +13,7 @@ import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { formatDate } from "@/lib/utils";
+import { PrintButton } from "./print-button";
 
 export const dynamic = "force-dynamic";
 
@@ -67,20 +68,12 @@ export default async function RequisitionPOPage({ params }: { params: { id: stri
         <Link href="/requisitions" className="text-xs text-primary underline">
           ← Back to requisitions
         </Link>
-        <button
-          onClick={() => {}}
-          // eslint-disable-next-line react/jsx-no-bind
-          // The onClick is satisfied by the inline script below — Server
-          // Component can't bind an onClick directly, so we use a script.
-          className="rounded-md bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground"
-        >
-          Print / save as PDF
-        </button>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `document.currentScript.previousElementSibling.addEventListener('click', () => window.print());`,
-          }}
-        />
+        {/* Client component, like every other print view (certificates,
+            invoices, SaaS invoices). A Server Component cannot pass an
+            onClick at all — React refuses to serialise the function prop and
+            the whole page renders blank with a 200, which is what the
+            previous inline-script workaround actually did in production. */}
+        <PrintButton />
       </div>
 
       {/* Header band — vendor-facing letterhead */}

@@ -76,8 +76,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     select: { name: true },
   });
   const centreName = centre?.name ?? "Equiwings";
-  const parentPhone = rider.fatherPhone ?? rider.motherPhone ?? rider.mobile;
-  const parentEmail = rider.email;
+  // Fall back to the guardian's details captured in the DPDPA consent step.
+  // Most riders here are children who have no email address of their own, so
+  // `rider.email` alone was routinely null: the approval and the payment link
+  // were generated, logged as sent, and delivered to nobody — the family just
+  // never heard back, and the club had no idea.
+  const consent = (rider.parentalConsentJson ?? null) as { parentPhone?: string; parentEmail?: string } | null;
+  const parentPhone =
+    rider.fatherPhone ?? rider.motherPhone ?? consent?.parentPhone ?? rider.mobile;
+  const parentEmail = rider.email || consent?.parentEmail || null;
   const riderFullName = `${rider.firstName} ${rider.lastName}`;
 
   if (!feesOn) {

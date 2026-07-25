@@ -3,9 +3,33 @@ import { z } from "zod";
 export const ATTENDANCE_STATUSES = ["present", "absent", "late", "excused"] as const;
 export type AttendanceStatus = (typeof ATTENDANCE_STATUSES)[number];
 
+// How far either side of today a register may be filled. Coaches legitimately
+// back-fill a day or two ("forgot to mark Saturday") and occasionally pre-mark
+// an excused absence, but a mistyped year used to be accepted silently: a
+// register dated 2030 landed in the table, skewed every attendance percentage
+// and absence-streak alert, and was invisible on every screen that shows
+// "this month".
+const BACKFILL_DAYS = 60;
+const FORWARD_DAYS = 30;
+
+function withinAttendanceWindow(s: string): boolean {
+  const [y, m, d] = s.split("-").map(Number);
+  const when = Date.UTC(y, m - 1, d, 12, 0, 0);
+  if (Number.isNaN(when)) return false;
+  const now = Date.now();
+  return (
+    when >= now - BACKFILL_DAYS * 86_400_000 && when <= now + FORWARD_DAYS * 86_400_000
+  );
+}
+
 export const markAttendanceSchema = z.object({
   batchId: z.string().min(1),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD")
+    .refine(withinAttendanceWindow, {
+      message: `Date must be within the last ${BACKFILL_DAYS} days or the next ${FORWARD_DAYS} — check the year`,
+    }),
   entries: z
     .array(
       z.object({

@@ -56,6 +56,14 @@ const PUBLIC_PREFIXES = [
   // Vendor self-registration — reusable per-club link + its submit endpoint.
   "/onboard/vendor",
   "/api/vendor-registration",
+  // Parent payment surface. /api/enrolments/[id] SMSes, WhatsApps and emails
+  // `${baseUrl}/pay/${invoice.id}` to the parent the moment an enrolment is
+  // approved, and app/pay/[invoiceId]/page.tsx is written as a public page
+  // ("no auth required" — it bindRlsBypass()es and looks the invoice up by
+  // unguessable cuid). Without this prefix the middleware bounced every one
+  // of those links to /login, where a parent has no account: the club could
+  // not collect a single registration fee online.
+  "/pay/",
   // Venue booking confirmation — public, read-only. Renter sees their
   // booking details from URL params; the underlying FacilityBooking row
   // still requires auth to mutate.

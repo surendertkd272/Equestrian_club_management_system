@@ -10,15 +10,60 @@ const uploadedUrl = z
   .optional()
   .or(z.literal(""));
 
+// Phone numbers as Indian parents actually type them — "9811045566",
+// "+91 98110 45566", "098110-45566". We strip the separators, insist on a
+// real number, and store the bare digits so dispatch is consistent.
+//
+// The previous `min(10)` was length-only: "nine eight one" and 12-digit
+// fat-fingers both passed, and every SMS / WhatsApp / email to those riders
+// was then dropped silently at the dispatch layer — the club believed the
+// parent had been told about a fee or an exam result and they never were.
+const stripSeparators = (s: string) => s.replace(/[\s()\-.]/g, "");
+
+const indianMobile = (msg = "Enter a 10-digit Indian mobile number") =>
+  z
+    .string()
+    .transform(stripSeparators)
+    .refine((s) => /^(?:\+?91|0)?[6-9]\d{9}$/.test(s), msg)
+    .transform((s) => s.replace(/^(?:\+?91|0)/, ""));
+
+// Emergency contacts are often a clinic or a landline, so this one also
+// accepts an STD-code landline (e.g. 0120-2345678). Still not free text.
+const indianPhone = (msg = "Enter a valid Indian phone number") =>
+  z
+    .string()
+    .transform(stripSeparators)
+    .refine(
+      (s) => /^(?:\+?91|0)?[6-9]\d{9}$/.test(s) || /^0\d{2,4}\d{6,8}$/.test(s),
+      msg,
+    );
+
+// A date of birth must parse, sit in the past, and be humanly plausible.
+// Without the bounds, fumbling the year on an Android date spinner had two
+// silent consequences: a future DOB was stored as-is, and a 1916 DOB made a
+// 9-year-old read as an adult, so the DPDPA parental-consent block the parent
+// had just filled in was discarded and never written to the record.
+const dobString = z
+  .string()
+  .min(1, "Required")
+  .refine((s) => {
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return false;
+    const now = new Date();
+    if (d.getTime() > now.getTime()) return false;
+    const oldest = new Date(now.getFullYear() - 100, now.getMonth(), now.getDate());
+    return d.getTime() >= oldest.getTime();
+  }, "Enter a real date of birth (in the past, within the last 100 years)");
+
 export const personalSchema = z.object({
   firstName: z.string().min(1, "Required"),
   lastName: z.string().min(1, "Required"),
-  dob: z.string().min(1, "Required"),
+  dob: dobString,
   placeOfBirth: z.string().optional(),
   nationality: z.string().optional(),
   gender: z.enum(["male", "female", "other"]),
   maritalStatus: z.string().optional(),
-  mobile: z.string().min(10, "10-digit number"),
+  mobile: indianMobile(),
   email: z.string().email().optional().or(z.literal("")),
   aadhaarNo: z.string().regex(/^\d{12}$/, "12 digits").optional().or(z.literal("")),
   aadhaarDocUrl: uploadedUrl,
@@ -37,11 +82,11 @@ export const addressSchema = z.object({
 
 export const parentsSchema = z.object({
   fatherName: z.string().optional(),
-  fatherPhone: z.string().optional(),
+  fatherPhone: indianMobile().optional().or(z.literal("")),
   motherName: z.string().optional(),
-  motherPhone: z.string().optional(),
+  motherPhone: indianMobile().optional().or(z.literal("")),
   emergencyName: z.string().min(1, "Required"),
-  emergencyPhone: z.string().min(10, "Required"),
+  emergencyPhone: indianPhone("Enter a reachable emergency number"),
 });
 
 // Height/weight are OPTIONAL at registration (field feedback: medical data
@@ -103,7 +148,7 @@ export const INDEMNITY_TEXT =
 export const parentalConsentSchema = z.object({
   parentName: z.string().min(1).max(120).optional(),
   parentRelation: z.enum(["father", "mother", "guardian"]).optional(),
-  parentPhone: z.string().min(10).max(20).optional(),
+  parentPhone: indianMobile().optional().or(z.literal("")),
   parentEmail: z.string().email().optional().or(z.literal("")),
   parentConsentAgreed: z.boolean().optional(),
 });
@@ -119,7 +164,7 @@ export const parentalConsentRequiredSchema = z.object({
   parentRelation: z.enum(["father", "mother", "guardian"], {
     errorMap: () => ({ message: "Select a relation" }),
   }),
-  parentPhone: z.string().min(10, "10+ digits").max(20),
+  parentPhone: indianMobile("Parent's 10-digit mobile number"),
   parentEmail: z.string().email("Valid email").optional().or(z.literal("")),
   parentConsentAgreed: z.literal(true, {
     errorMap: () => ({ message: "Parent must agree to the consent text" }),

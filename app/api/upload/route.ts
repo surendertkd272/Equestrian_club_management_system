@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { uploadFile, type UploadKind } from "@/lib/storage";
 import { audit } from "@/lib/audit";
 import { getSession } from "@/lib/auth";
+import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 
 // Mixed endpoint — most kinds (rider_* during onboarding) need to work
 // pre-auth, but user_photo is an authed self-service action. The route
@@ -19,6 +20,23 @@ export const runtime = "nodejs"; // we use node:fs in the storage impl
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
+  // This endpoint is reachable without a session (the onboarding wizard uploads
+  // a child's Aadhaar scan before any account exists) and had no throttle at
+  // all — anyone could push files into the club's storage bucket in a loop, at
+  // the tenant's expense. Sized well above a real registration (photo + two
+  // Aadhaar sides + indemnity ≈ 4 files, a few retries) and far below abuse.
+  const rl = checkRate(`upload:${clientFingerprint(req)}`, 40, 60 * 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      {
+        error: "RATE_LIMITED",
+        retryAfterSec: rl.retryAfterSec,
+        message: "Too many uploads from this connection. Please wait a few minutes and try again.",
+      },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
+  }
+
   const formData = await req.formData().catch(() => null);
   if (!formData) {
     return NextResponse.json({ error: "BAD_FORM_DATA" }, { status: 400 });

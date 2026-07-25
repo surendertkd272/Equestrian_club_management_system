@@ -36,6 +36,7 @@ export const FEATURE_GUIDES: Record<string, FeatureGuide> = {
   // ── Riders & Training
   "/riders": { title: "Riders", blurb: "The rider roster — profiles, levels, contacts, and history.", help: "Search and open a rider to see their level, batch, parent links, and progress." },
   "/enrolments": { title: "Enrolment Approvals", blurb: "Approve or reject public sign-ups.", help: "Vet riders who signed up via your public link before they become registrations." },
+  "/registration-links": { title: "Registration Links", blurb: "Shareable sign-up links and QR codes.", help: "Generate a link or QR code for riders, employees, or vendors to register themselves — share it on WhatsApp or print it for the noticeboard. Submissions land in the matching approval queue." },
   "/batches": { title: "Batches", blurb: "Recurring class slots (day, time, level, coach).", help: "Create a class with the new batch form, then assign riders and mark attendance against it." },
   "/lessons": { title: "Lessons", blurb: "Individual class sessions on a date.", help: "Schedule, reschedule, cancel or complete a session, and assign which horse each rider takes." },
   "/attendance": { title: "Attendance", blurb: "Mark riders present, absent, or late per class.", help: "Pick a batch and date, tap each rider's status, and save." },
