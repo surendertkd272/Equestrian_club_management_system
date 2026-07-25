@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { PrintButton } from "./print-button";
 import { qrSvg, verifyUrl } from "@/lib/cert";
 
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 // Browser's Cmd/Ctrl+P → Save as PDF produces the same output a paid
 // PDF library would, without the dependency cost.
 export default async function CertificatePrintPage({ params }: { params: { id: string } }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const cert = await prisma.certificate.findUnique({
     where: { id: params.id },
     include: {

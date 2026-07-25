@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
@@ -31,7 +31,7 @@ const STATUS_VARIANT: Record<string, "success" | "warning" | "outline"> = {
 };
 
 export default async function HorseProfile({ params }: { params: { id: string } }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
   if (!orgId) notFound();

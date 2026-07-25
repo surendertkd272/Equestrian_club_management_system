@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { toCsv, csvResponse } from "@/lib/csv";
 
@@ -31,7 +31,9 @@ export async function GET(req: Request, { params }: { params: { entity: string }
   // MY org", never every tenant's data. Fail closed if the org can't resolve.
   const orgId = await getOrgIdForSession(session);
   if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
-  const centreId = scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = scoped.centreId;
   const where = tenantWhere(centreId, orgId);
   const ts = new Date().toISOString().slice(0, 10);
 

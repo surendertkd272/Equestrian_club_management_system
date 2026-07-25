@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { parseDateOnly, toDateOnly } from "@/lib/schemas/attendance";
@@ -18,7 +18,7 @@ export default async function AttendancePage({
 }: {
   searchParams: { date?: string; batch?: string };
 }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/dashboard");

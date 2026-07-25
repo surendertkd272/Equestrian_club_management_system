@@ -6,7 +6,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,7 @@ export default async function GateSummaryPage({
 }: {
   searchParams: { centre?: string; date?: string };
 }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!can(session.role, "staff.attendance")) redirect("/dashboard");
 
   // Resolve centre context (same picker dance as the kiosk).

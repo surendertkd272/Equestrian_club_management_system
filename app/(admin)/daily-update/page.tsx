@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -14,7 +14,7 @@ const CAN_LOG = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"
 // Coach's daily 5-minute update — the quick end-of-day narrative the client
 // asked for ("Daily 5 minute Task Update from Coach"). One per coach per day.
 export default async function DailyUpdatePage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!CAN_LOG.includes(session.role)) redirect("/dashboard");
   if (!session.centreId) {
     return (

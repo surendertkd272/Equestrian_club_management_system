@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ export default async function NotificationsPage({
 }: {
   searchParams: { filter?: string };
 }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   // ?filter=unread mirrors the topbar dropdown's slice so "View all" is a
   // continuation rather than a context switch.
   const unreadOnly = searchParams.filter === "unread";

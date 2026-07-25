@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 // with a colour indicator (red = below threshold, amber = close, green =
 // ok). Totals row at the bottom.
 export default async function HqEquipmentMatrix() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (session.role !== "SUPER_ADMIN") redirect("/equipment");
 
   const [catalog, centres, stocks] = await Promise.all([

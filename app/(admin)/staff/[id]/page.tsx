@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, FileText, Pencil } from "lucide-react";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +26,7 @@ export const dynamic = "force-dynamic";
 const CAN_VIEW = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"];
 
 export default async function StaffProfilePage({ params }: { params: { id: string } }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!CAN_VIEW.includes(session.role)) redirect("/staff");
 
   const profile = await loadEmployeeProfile(params.id, scopeCentre(session), await getOrgIdForSession(session));

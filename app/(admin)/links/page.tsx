@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
@@ -11,7 +11,7 @@ import { LinkList } from "./link-list";
 export const dynamic = "force-dynamic";
 
 export default async function LinksPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   // Mirror the API gate in app/api/short-links/route.ts — admins + senior
   // centre staff (Head Coach, Stable Manager) can self-serve generate links.
   const canManage =

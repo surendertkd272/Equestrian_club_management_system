@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { StatTile } from "@/components/ui/stat-tile";
 import { ChartCard, HeroCard } from "@/components/dashboard/visuals";
 import { MiniBars, RingGauge } from "@/components/ui/charts";
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 // want one screen to compare attendance, fees, pass rate, etc. across all
 // their centres at once. HQ-tier only (SUPER_ADMIN + ADMIN).
 export default async function HQDashboardPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/dashboard");
   // Window for "recent" metrics. Tweakable: 30 days feels right for
   // attendance, 90 for exam pass rate. The page is read-only so we don't

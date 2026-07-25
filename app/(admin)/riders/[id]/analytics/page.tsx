@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,7 @@ import { formatDate } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 export default async function RiderAnalytics({ params }: { params: { id: string } }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
 
   const rider = await prisma.rider.findUnique({

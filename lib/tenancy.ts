@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import type { SessionPayload } from "./auth";
 import { cookies } from "next/headers";
 
@@ -29,6 +30,42 @@ export function scopeCentre(session: SessionPayload, requestedCentreId?: string 
     throw new Error("FORBIDDEN_CROSS_CENTRE");
   }
   return session.centreId;
+}
+
+// API-route wrapper around scopeCentre. Returns the resolved centre, or a
+// ready-to-return NextResponse when the caller has no centre scope at all.
+//
+// scopeCentre() throws for a centre-less non-HQ user, and 25 API routes call it
+// bare. Nothing catches it, so Next turns the throw into a 500 — a PARENT (whose
+// centreId is legitimately null) fetching a certificate PDF or an export got a
+// server error instead of a clean refusal, which reads as "your app is broken"
+// to the user and as a real incident to whoever watches error reporting.
+//
+// Use this instead of scopeCentre() in any route a centre-less role can reach:
+//   const scoped = scopeCentreForRoute(session);
+//   if ("error" in scoped) return scoped.error;
+//   const centreId = scoped.centreId;
+export function scopeCentreForRoute(
+  session: SessionPayload,
+  requestedCentreId?: string | null,
+): { centreId: string | null; error?: never } | { centreId?: never; error: NextResponse } {
+  try {
+    return { centreId: scopeCentre(session, requestedCentreId) };
+  } catch (e) {
+    const code = e instanceof Error ? e.message : "FORBIDDEN";
+    const forbidden = code === "FORBIDDEN_CROSS_CENTRE";
+    return {
+      error: NextResponse.json(
+        {
+          error: code,
+          message: forbidden
+            ? "That record belongs to another centre."
+            : "Your account isn't attached to a centre, so it can't use this feature.",
+        },
+        { status: 403 },
+      ),
+    };
+  }
 }
 
 // Build a Prisma `where` fragment that enforces centre scope.

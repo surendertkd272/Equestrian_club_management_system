@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
@@ -14,7 +14,7 @@ export default async function AuditPage({
 }: {
   searchParams: { page?: string; pageSize?: string; action?: string; table?: string; user?: string; q?: string };
 }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (session.role !== "SUPER_ADMIN") redirect("/dashboard");
 
   const { page, pageSize, skip, take } = parsePaging(searchParams, { pageSize: 50 });

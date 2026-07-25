@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { startOfDayInTz, endOfDayInTz, wallPartsInTz } from "@/lib/tz";
@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 type SP = { date?: string };
 
 export default async function LessonsPage({ searchParams }: { searchParams: SP }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
   if (!centreId) {
     return <div className="p-6 text-sm text-muted-foreground">Pick a centre to see lessons.</div>;

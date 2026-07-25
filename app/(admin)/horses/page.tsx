@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { DEFAULT_WORKLOAD_CAP_MIN } from "@/lib/schemas/horse";
@@ -29,7 +29,7 @@ export default async function HorsesPage({
 }: {
   searchParams: { q?: string; status?: string; ownership?: string; page?: string; pageSize?: string };
 }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/dashboard");

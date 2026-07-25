@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 // Org-level settings the two HQ roles manage themselves. Today: the public
 // contact details shown to users on the Help Center + portals.
 export default async function SettingsPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/dashboard");
 
   const orgId = await getOrgIdForSession(session);

@@ -9,7 +9,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { formatDate } from "@/lib/utils";
@@ -20,7 +20,7 @@ export const dynamic = "force-dynamic";
 type Item = { name: string; qty: number; unit?: string; estimatedUnitCost: number; notes?: string };
 
 export default async function RequisitionPOPage({ params }: { params: { id: string } }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/dashboard");

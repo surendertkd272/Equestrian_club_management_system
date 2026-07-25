@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { startOfTodayForCentre } from "@/lib/centre-tz";
 import { pendingItems, parseWaived } from "@/lib/onboarding-items";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { MyDocumentsForm } from "./form";
 export const dynamic = "force-dynamic";
 
 export default async function MyDocumentsPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const ob = await prisma.employeeOnboarding.findFirst({
     where: { createdUserId: session.userId, status: "approved" },
   });

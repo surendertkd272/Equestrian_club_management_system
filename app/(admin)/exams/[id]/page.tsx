@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { isReadOnly } from "@/lib/roles";
 import { scopeCentre } from "@/lib/tenancy";
@@ -20,7 +20,7 @@ import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function ExamPage({ params }: { params: { id: string } }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   // Read-only roles (SCHOOL_ADMINISTRATOR) see exam detail without the
   // ability to score. Everyone else needs exam.score to land here.
   const readOnly = isReadOnly(session.role);

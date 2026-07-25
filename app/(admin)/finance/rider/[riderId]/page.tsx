@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
@@ -23,7 +23,7 @@ function inr(n: number): string {
 }
 
 export default async function RiderStatement({ params }: { params: { riderId: string } }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!can(session.role, "finance.read")) {
     return notFound();
   }

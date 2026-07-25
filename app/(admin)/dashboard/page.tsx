@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { getFeaturesForSession, getOrgIdForSession } from "@/lib/features-gate";
 import { istTodayStr, coachUpdateDateKey, DAILY_UPDATE_ROLES } from "@/lib/coach-update";
@@ -31,7 +31,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
   // Bind every centre-scoped query to the caller's org. For an HQ user on
   // "all centres" (centreId=null) the old centreWhere produced an EMPTY

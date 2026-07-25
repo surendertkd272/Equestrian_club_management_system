@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
@@ -16,7 +16,7 @@ import { ResponsiveTable } from "@/components/ui/responsive-table";
 export const dynamic = "force-dynamic";
 
 export default async function BatchesPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   // scopeCentre resolves the working centre: explicit topbar cookie pick
   // for HQ admins, session.centreId for centre-scoped users. This is the
   // centre the form POSTs against — for HQ admins it's the cookie pick,

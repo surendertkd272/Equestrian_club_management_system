@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { startOfDayInTz } from "@/lib/tz";
@@ -14,7 +14,7 @@ import { VaccinationsClient } from "./vaccinations-client";
 export const dynamic = "force-dynamic";
 
 export default async function VaccinationsPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/dashboard");
   const centreId = scopeCentre(session);

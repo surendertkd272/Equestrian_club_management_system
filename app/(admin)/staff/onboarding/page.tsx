@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { startOfTodayForCentre } from "@/lib/centre-tz";
@@ -48,7 +48,7 @@ function DocTile({ url, label, isPdf }: { url: string; label: string; isPdf: boo
 }
 
 export default async function StaffOnboardingPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!CAN_MANAGE.includes(session.role)) redirect("/staff");
 
   const orgId = await getOrgIdForSession(session);

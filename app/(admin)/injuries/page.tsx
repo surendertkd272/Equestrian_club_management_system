@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,7 @@ import { ResponsiveTable } from "@/components/ui/responsive-table";
 export const dynamic = "force-dynamic";
 
 export default async function InjuriesPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
   // Bind to the caller's org so an HQ user's "all centres" (centreId=null)
   // can't return every org's rows. Fail closed if the org can't be resolved.

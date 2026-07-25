@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +20,7 @@ export default async function EquipmentPage({
 }: {
   searchParams: { centreId?: string; q?: string };
 }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   // HQ-tier admins (SUPER_ADMIN + ADMIN) without a centre context (via
   // ?centreId or topbar HQ filter) land on the HQ matrix instead.
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";

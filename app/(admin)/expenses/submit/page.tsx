@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { SubmitExpenseForm } from "./form";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 export const dynamic = "force-dynamic";
 
 export default async function SubmitExpensePage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!can(session.role, "expense.submit")) redirect("/dashboard");
 
   // Category list for the dropdown — optional pick. Anyone in the same

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -14,7 +14,7 @@ import { parseEmergencyContacts } from "@/lib/json-narrow";
 export const dynamic = "force-dynamic";
 
 export default async function CentresPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   // HQ-tier only — clubs are a brand-level concept. Both SUPER_ADMIN and
   // ADMIN can now create / edit / delete clubs (per the "everything" scope).
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/dashboard");

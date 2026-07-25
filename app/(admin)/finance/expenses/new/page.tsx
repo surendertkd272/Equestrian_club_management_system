@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { vendorScopeWhere } from "@/lib/vendor-scope";
@@ -9,7 +9,7 @@ import { NewExpenseForm } from "./form";
 export const dynamic = "force-dynamic";
 
 export default async function NewExpensePage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!can(session.role, "expense.manage")) redirect("/finance");
 
   // Vendors bookable here = this centre's own + national (all-India) vendors.

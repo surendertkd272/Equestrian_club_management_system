@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
@@ -22,7 +22,7 @@ const STAGE_BADGE: Record<string, { label: string; variant: "warning" | "success
 };
 
 export default async function RequisitionsPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!can(session.role, "requisition.submit")) redirect("/dashboard");
 
   const centreId = scopeCentre(session);

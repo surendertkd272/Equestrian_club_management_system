@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { PrintButton } from "./print-button";
 import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 // invoices to forward to accountants. Same Print → Save as PDF flow as
 // the SaaS-side invoice page; no library dep.
 export default async function TenantInvoicePrintPage({ params }: { params: { id: string } }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const invoice = await prisma.invoice.findUnique({
     where: { id: params.id },
     include: {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { qrSvg, verifyUrl } from "@/lib/cert";
@@ -22,7 +22,7 @@ const SEND_RESULT_ROLES = new Set([
 export const dynamic = "force-dynamic";
 
 export default async function CertificateView({ params }: { params: { id: string } }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
 
   const cert = await prisma.certificate.findUnique({

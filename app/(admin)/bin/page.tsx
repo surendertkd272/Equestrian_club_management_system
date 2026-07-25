@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 // Recycle bin — soft-deleted catalog rows, recoverable until the 30-day
 // auto-purge (daily sweep). Restore or permanently delete from here.
 export default async function BinPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!canManageCatalog(session.role)) redirect("/dashboard");
 
   const centreId = scopeCentre(session);

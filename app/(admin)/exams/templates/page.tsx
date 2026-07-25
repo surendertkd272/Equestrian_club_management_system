@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,7 @@ import { TemplateEditor } from "./editor";
 export const dynamic = "force-dynamic";
 
 export default async function TemplatesPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/exams");
 
   const orgId = await getOrgIdForSession(session);

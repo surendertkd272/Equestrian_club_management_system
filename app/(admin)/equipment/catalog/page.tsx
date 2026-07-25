@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
@@ -10,7 +10,7 @@ import { CatalogManager } from "./catalog-manager";
 export const dynamic = "force-dynamic";
 
 export default async function EquipmentCatalogPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   // Sprint 3.5: ADMIN joins SUPER_ADMIN on the catalog-edit privilege.
   // Centre tier still can't add/edit/delete — they only see their stock.
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/equipment");

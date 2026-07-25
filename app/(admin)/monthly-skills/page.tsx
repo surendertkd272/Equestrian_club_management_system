@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { isReadOnly } from "@/lib/roles";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
@@ -24,7 +24,7 @@ export default async function MonthlySkillsPage({
 }: {
   searchParams: { month?: string };
 }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   // Read-only roles (SCHOOL_ADMINISTRATOR) see the page; everyone else
   // needs progress.write to land here. The client is told whether to
   // render edit UI via canEdit below.

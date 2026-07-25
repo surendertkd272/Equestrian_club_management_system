@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +18,7 @@ const APPROVER_ROLES = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "SCHOOL_ADMINI
 // Centre Manager approves (→ pending_payment + registration invoice) or
 // rejects them.
 export default async function EnrolmentsPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!APPROVER_ROLES.includes(session.role)) redirect("/dashboard");
 
   const centreId = scopeCentre(session);

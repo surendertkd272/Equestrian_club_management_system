@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ import { LevelsManager } from "./levels-manager";
 export const dynamic = "force-dynamic";
 
 export default async function ExamLevelsPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/exams");
 
   const [levels, templateCounts] = await Promise.all([

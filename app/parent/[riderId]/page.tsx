@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { getChildDetail } from "@/lib/parent";
 import { getFeaturesForSession } from "@/lib/features-gate";
 import { loadRiderExamHistory } from "@/lib/exam-history";
@@ -12,7 +12,7 @@ import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function ParentChildPage({ params }: { params: { riderId: string } }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const [detail, features] = await Promise.all([
     getChildDetail(session.userId, params.riderId),
     getFeaturesForSession(session),

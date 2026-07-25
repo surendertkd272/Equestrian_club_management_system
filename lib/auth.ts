@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import type { Role } from "./roles";
 import { bindTenantOrg } from "./tenant-context";
+import { redirect } from "next/navigation";
 
 const COOKIE_NAME = "ew_session";
 
@@ -146,9 +147,26 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
   return payload;
 });
 
+// Page guard: return the session, or bounce to /login. Use this in every
+// server COMPONENT instead of `(await getSession())!`.
+//
+// The middleware only verifies the JWT signature and expiry. getSession() then
+// applies six further checks the cookie cannot know about, any of which turns a
+// structurally valid cookie into a null session mid-flight:
+//   • the user was deleted, or deactivated
+//   • tokenVersion moved on — "sign out everywhere", or a password reset
+//   • the user requested account deletion (DPDPA grace window)
+//   • the ORG was suspended — i.e. the club stopped paying
+//   • an impersonation window expired
+// With the old non-null assertion, every one of those rendered a TypeError on
+// the server and dumped the user on a blank bounce with no explanation. That is
+// not a rare edge: a club suspended for non-payment hits it on every request,
+// and it floods error reporting at exactly the moment someone is looking.
+//
+// Deliberately NOT for API routes — they must answer 401 JSON, not redirect.
 export async function requireSession(): Promise<SessionPayload> {
   const s = await getSession();
-  if (!s) throw new Error("UNAUTHENTICATED");
+  if (!s) redirect("/login?ended=1");
   return s;
 }
 

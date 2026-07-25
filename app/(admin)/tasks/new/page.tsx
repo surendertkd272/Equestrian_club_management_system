@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
@@ -14,7 +14,7 @@ import { NewTaskForm } from "./form";
 export const dynamic = "force-dynamic";
 
 export default async function NewTaskPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!can(session.role, "task.assign")) redirect("/tasks");
 
   // For HQ admins (SUPER_ADMIN / ADMIN with no session.centreId), the

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
@@ -15,7 +15,7 @@ export default async function GatePage({
 }: {
   searchParams: { centre?: string };
 }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!can(session.role, "staff.attendance")) redirect("/dashboard");
 
   // Centre context resolution. Centre-scoped users have session.centreId

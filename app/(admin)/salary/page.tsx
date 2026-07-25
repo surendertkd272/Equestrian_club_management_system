@@ -8,7 +8,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +26,7 @@ function canView(role: string): boolean {
 }
 
 export default async function SalaryPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!canView(session.role)) redirect("/dashboard");
 
   const orgId = await getOrgIdForSession(session);

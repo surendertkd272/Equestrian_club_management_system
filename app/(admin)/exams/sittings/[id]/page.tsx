@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ const CAN_VIEW = ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMI
 // Marking queue for a sitting: pool of examiners + riders. Pool examiners pick
 // (claim) an unassigned rider to mark; claimed riders lock to their examiner.
 export default async function SittingDetail({ params }: { params: { id: string } }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!CAN_VIEW.includes(session.role)) redirect("/exams");
 
   const sitting = await prisma.examSitting.findUnique({

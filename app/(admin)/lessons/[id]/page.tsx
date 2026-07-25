@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AllocationGrid } from "./allocation-grid";
@@ -13,7 +13,7 @@ import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function LessonDetailPage({ params }: { params: { id: string } }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const lesson = await prisma.lesson.findUnique({
     where: { id: params.id },
     include: {

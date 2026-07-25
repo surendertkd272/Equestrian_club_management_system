@@ -3,7 +3,7 @@ import { LoginForm } from "./form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { currentDomain } from "@/lib/custom-domain";
 
-export default async function LoginPage({ searchParams }: { searchParams: { next?: string } }) {
+export default async function LoginPage({ searchParams }: { searchParams: { next?: string; ended?: string } }) {
   // If the request arrived via a tenant's custom domain (e.g. academy.club.com)
   // greet the user with that tenant's name so it's clear which club they're
   // signing in to.
@@ -38,6 +38,18 @@ export default async function LoginPage({ searchParams }: { searchParams: { next
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* requireSession() bounces here with ?ended=1 when a signed-in
+              session stops being valid mid-use — deactivated account, "sign out
+              everywhere", a password reset, or the club's account being
+              suspended. Without a word of explanation that bounce just looks
+              like the app logged you out at random. */}
+          {searchParams.ended === "1" && (
+            <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              Your session has ended. This happens after signing out everywhere, a password change,
+              or if your account access changed. Please sign in again — if it keeps happening,
+              contact your centre.
+            </div>
+          )}
           <LoginForm next={searchParams.next ?? "/dashboard"} quickPickEnabled={devMode && !tenantBranding} />
           <div className="mt-3 text-center text-xs">
             <Link href="/forgot-password" className="text-muted-foreground hover:underline">

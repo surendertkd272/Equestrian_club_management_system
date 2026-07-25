@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,7 +26,7 @@ const inr = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
 // Club-wise procurement snapshot: for each club, the MOST RECENT purchase in
 // each category — last date, rate, qty, amount, payment, vendor.
 export default async function ProcurementReportPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!CAN_VIEW.includes(session.role)) redirect("/dashboard");
 
   // Scope: centre-bound users see their own club; HQ admins see every club

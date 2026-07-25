@@ -11,7 +11,7 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -32,7 +32,7 @@ function canView(role: string): boolean {
 }
 
 export default async function BatchShiftsPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!canView(session.role)) redirect("/dashboard");
 
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";

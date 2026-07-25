@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { loadInspectionRuns } from "@/lib/inspections";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ const CAN_INSPECT = ["INSPECTION_OFFICER", "SUPER_ADMIN", "ADMIN", "CENTRE_MANAG
 // walks the SOP sheet, marking each line pass/fail with remarks. Admins +
 // centre manager can also run one.
 export default async function InspectionsPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!CAN_INSPECT.includes(session.role)) redirect("/dashboard");
 
   // Data-fetching (org resolution + centre scope + the org-wide-when-no-centre

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
@@ -15,7 +15,7 @@ import { formatEnum, roleLabel } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function ApprovalsPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
   const canReview = can(session.role, "leave.approve");
 
