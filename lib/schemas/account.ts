@@ -1,10 +1,11 @@
 import { z } from "zod";
+import { storedUrl } from "@/lib/schemas/url";
 
 export const updateProfileSchema = z
   .object({
     name: z.string().min(2).max(120).optional(),
     phone: z.string().max(40).nullable().optional(),
-    photoUrl: z.string().url().nullable().optional(),
+    photoUrl: storedUrl.nullable().optional(),
   })
   .strict();
 

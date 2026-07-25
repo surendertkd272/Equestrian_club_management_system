@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { storedUrl } from "@/lib/schemas/url";
 
 const dateLike = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -14,7 +15,7 @@ export const createHqExpenseSchema = z.object({
   paid: z.boolean().default(false),
   paidAt: dateLike.optional(),
   method: z.enum(["cash", "bank", "cheque", "upi", "card"]).optional(),
-  attachmentUrl: z.string().url(),
+  attachmentUrl: storedUrl,
 });
 
 export type CreateHqExpenseInput = z.infer<typeof createHqExpenseSchema>;

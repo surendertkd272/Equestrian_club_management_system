@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { storedUrl } from "@/lib/schemas/url";
 
 // Staff-side invoice submission. Tighter than createExpenseSchema:
 // invoice file is mandatory, `paid` is always false (accountant marks it
@@ -14,7 +15,7 @@ export const submitExpenseSchema = z.object({
   vendorName: z.string().max(120).optional(),
   invoiceRef: z.string().max(60).optional(),
   categoryId: z.string().min(1).optional(),
-  attachmentUrl: z.string().url(),
+  attachmentUrl: storedUrl,
 });
 
 export type SubmitExpenseInput = z.infer<typeof submitExpenseSchema>;

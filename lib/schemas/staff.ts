@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ROLES } from "@/lib/roles";
+import { optionalStoredUrl } from "@/lib/schemas/url";
 
 // PARENT users are minted from the rider profile flow (one parent per rider
 // link), not from Add Staff. EXAMINER + JURY users come in via the Exam
@@ -11,8 +12,10 @@ const STAFF_ROLES = ROLES.filter(
 
 // Uploaded-document reference: a relative "/uploads/<file>" path (Supabase /
 // local) or an absolute S3 URL. Deliberately NOT z.string().url() — that
-// rejects the relative paths /api/upload actually returns.
-const docUrl = z.string().max(500).optional().or(z.literal(""));
+// rejects the relative paths /api/upload actually returns. Now shares the
+// project-wide validator, which additionally blocks javascript: and data:
+// (these paths render as "view document" links on the staff profile).
+const docUrl = optionalStoredUrl;
 
 export const createStaffSchema = z.object({
   name: z.string().min(2).max(80),

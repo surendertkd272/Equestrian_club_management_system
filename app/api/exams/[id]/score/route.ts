@@ -76,10 +76,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   // Per-judge subtotal first.
   const { total: thisJudgeTotal, max } = computeTotal(rubric, scores);
 
-  // If this is a co-judge submission, persist their card. Then aggregate
-  // across every submitted judge card (mean of submitted subtotals). For
-  // legacy single-judge exams we just take thisJudgeTotal directly.
-  let aggregate: number;
+  // Aggregate across EVERY submitted card on the panel — the lead examiner's
+  // and each co-judge's — and take the mean.
+  //
+  // The lead's card is not an ExamJudge row: claiming an exam doesn't create
+  // one, so her marks live on Exam.scoresJson. Averaging only the ExamJudge
+  // rows therefore threw the lead examiner's card away entirely. Observed on
+  // a two-judge panel: lead marked 91/91 (pass), co-judge marked 0/91, and
+  // the exam was recorded as 0 / FAIL — not the 45.5 a mean would give. The
+  // mirror case was just as wrong: when the lead submitted last, `aggregate =
+  // thisJudgeTotal` discarded every co-judge instead.
+  //
+  // Recompute the lead's subtotal from her stored score map rather than
+  // reusing exam.totalScore, which has already had deductions and time faults
+  // applied and would double-count them below.
+  const subtotals: number[] = [];
   if (judgeRow) {
     await prisma.examJudge.update({
       where: { id: judgeRow.id },
@@ -90,17 +101,22 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         submittedAt: final ? new Date() : null,
       },
     });
-    const allJudges = await prisma.examJudge.findMany({ where: { examId: exam.id } });
-    const submitted = allJudges.filter((j) => typeof j.subTotal === "number");
-    if (submitted.length === 0) {
-      aggregate = thisJudgeTotal;
-    } else {
-      aggregate =
-        submitted.reduce((s, j) => s + (j.subTotal ?? 0), 0) / submitted.length;
+    const leadScores = exam.scoresJson as Record<string, number | string> | null;
+    if (leadScores && typeof leadScores === "object" && Object.keys(leadScores).length > 0) {
+      subtotals.push(computeTotal(rubric, leadScores).total);
     }
   } else {
-    aggregate = thisJudgeTotal;
+    subtotals.push(thisJudgeTotal);
   }
+  // Read AFTER the update above so the submitting co-judge's own card is
+  // included here exactly once (it is deliberately not pushed in the branch).
+  const allJudges = await prisma.examJudge.findMany({ where: { examId: exam.id } });
+  for (const j of allJudges) {
+    if (typeof j.subTotal === "number") subtotals.push(j.subTotal);
+  }
+  const aggregate = subtotals.length > 0
+    ? subtotals.reduce((s, v) => s + v, 0) / subtotals.length
+    : thisJudgeTotal;
 
   const effectiveDeductions = deductions ?? exam.deductions;
   const effectiveTimeFaults = timeFaults ?? exam.timeFaults;
@@ -209,31 +225,49 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
   }
   if (final && passed === true) {
-    const serial = await generateUniqueSerial(exam.level);
-    const cert = await prisma.certificate.create({
-      data: {
-        centreId: exam.centreId,
+    // One live certificate per rider per level. Re-scoring an exam, or sitting
+    // the same level twice, used to mint a second serial — and both then
+    // verified as authentic on the public page, so a rider could hold two
+    // valid Level 1 certificates with different numbers. A revoked one does
+    // not count, so a legitimate re-sit after revocation still issues.
+    const alreadyHeld = await prisma.certificate.findFirst({
+      where: {
         riderId: exam.riderId,
-        examId: exam.id,
-        type: "promotion",
         levelName: template.levelName,
-        serialNo: serial,
-        qrCode: verifyUrl(serial),
-        signedBy: session.userId,
+        type: "promotion",
+        revokedAt: null,
       },
+      select: { id: true },
     });
-    certificateId = cert.id;
-    await prisma.rider.update({
-      where: { id: exam.riderId },
-      data: { currentLevel: template.levelName },
-    });
-    await audit({
-      userId: session.userId,
-      action: "certificate.auto_issue",
-      tableName: "certificate",
-      rowId: cert.id,
-      after: { serial, levelName: template.levelName, riderId: exam.riderId, examId: exam.id },
-    });
+    if (alreadyHeld) {
+      certificateId = alreadyHeld.id;
+    } else {
+      const serial = await generateUniqueSerial(exam.level);
+      const cert = await prisma.certificate.create({
+        data: {
+          centreId: exam.centreId,
+          riderId: exam.riderId,
+          examId: exam.id,
+          type: "promotion",
+          levelName: template.levelName,
+          serialNo: serial,
+          qrCode: verifyUrl(serial),
+          signedBy: session.userId,
+        },
+      });
+      certificateId = cert.id;
+      await prisma.rider.update({
+        where: { id: exam.riderId },
+        data: { currentLevel: template.levelName },
+      });
+      await audit({
+        userId: session.userId,
+        action: "certificate.auto_issue",
+        tableName: "certificate",
+        rowId: cert.id,
+        after: { serial, levelName: template.levelName, riderId: exam.riderId, examId: exam.id },
+      });
+    }
   }
 
   await audit({

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { PrintButton } from "./print-button";
+import { qrSvg, verifyUrl } from "@/lib/cert";
 
 export const dynamic = "force-dynamic";
 
@@ -39,13 +40,15 @@ export default async function CertificatePrintPage({ params }: { params: { id: s
       ? `Level ${cert.exam.level} promotion · ${new Date(cert.exam.date).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}`
       : null;
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
-  const verifyUrl = `${baseUrl}/verify/${cert.serialNo}`;
+  const verifyHref = verifyUrl(cert.serialNo);
 
-  // A small inline QR code via Google Charts API. Avoids a runtime dep on
-  // a QR library; the cert page is server-rendered + the QR URL is the
-  // public verify endpoint so no auth signal leaks.
-  const qrSrc = `https://chart.googleapis.com/chart?cht=qr&chs=160x160&chl=${encodeURIComponent(verifyUrl)}`;
+  // Rendered locally with the `qrcode` package, exactly like the certificate
+  // detail page. This used to point at Google's Charts/Infographics QR
+  // endpoint — which Google has since switched off, so every certificate this
+  // page printed carried a QR that resolved to a 404 image. Generating it here
+  // also means printing works offline and no certificate serial is handed to a
+  // third party on every render.
+  const qr = await qrSvg(verifyHref, { size: 160 });
 
   return (
     <main className="mx-auto min-h-screen max-w-[210mm] bg-white p-12 text-slate-900 print:p-0">
@@ -116,8 +119,11 @@ export default async function CertificatePrintPage({ params }: { params: { id: s
           </div>
 
           <div className="text-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={qrSrc} alt="Verify QR" width={120} height={120} className="mx-auto" />
+            <div
+              className="mx-auto h-[120px] w-[120px]"
+              dangerouslySetInnerHTML={{ __html: qr }}
+              aria-label={`QR code for verifying ${cert.serialNo}`}
+            />
             <div className="mt-1 font-mono text-[10px] text-slate-500">{cert.serialNo}</div>
             <div className="text-[9px] text-slate-400">Scan to verify</div>
           </div>

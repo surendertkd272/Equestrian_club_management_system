@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { optionalStoredUrl } from "@/lib/schemas/url";
 
 // Lab tests done on a horse. Two of these (Coggins / Glanders) are
 // compliance-mandated for inter-state and competition transport in India;
@@ -14,7 +15,7 @@ export const createHorseTestSchema = z.object({
   testedAt: z.string().datetime().optional(),
   nextDueAt: z.string().datetime().nullable().optional(),
   labName: z.string().max(120).optional(),
-  reportUrl: z.string().url().optional().or(z.literal("")),
+  reportUrl: optionalStoredUrl,
   notes: z.string().max(500).optional(),
 });
 

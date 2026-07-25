@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ROLES } from "@/lib/roles";
+import { optionalStoredUrl } from "@/lib/schemas/url";
 
 export const createCourseSchema = z.object({
   title: z.string().min(1).max(120),
@@ -26,7 +27,7 @@ export const issueCertSchema = z.object({
   issuer: z.string().max(120).optional(),
   serialNo: z.string().max(80).optional(),
   validUntil: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  fileUrl: z.string().url().optional().or(z.literal("")),
+  fileUrl: optionalStoredUrl,
 });
 
 export type CreateCourseInput = z.infer<typeof createCourseSchema>;

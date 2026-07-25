@@ -4,9 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { storedUrl } from "@/lib/schemas/url";
 
+// The attachment URL renders straight into an <a href> on the exam page.
+// `z.string().url()` was wrong in both directions here: it accepted
+// `javascript:alert(...)` (any scheme parses as a URL) and rejected the
+// relative "/uploads/<file>" path /api/upload actually returns, so attaching a
+// scanned judge card failed every time. See lib/schemas/url.ts.
 const schema = z.object({
-  url: z.string().url(),
+  url: storedUrl,
   kind: z.enum(["video", "photo", "sheet", "other"]),
   caption: z.string().max(200).optional(),
 });
