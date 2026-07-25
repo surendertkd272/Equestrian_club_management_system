@@ -6,13 +6,21 @@ import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { parseCsv } from "@/lib/csv-parse";
 import { isRealYMD } from "@/lib/utils";
+import { indianMobile } from "@/lib/schemas/phone";
 
 // Schema for a single row in the import payload. Accepts a generous set
 // of column aliases so CSV authors don't have to use exact field names.
 const rowSchema = z.object({
   first_name: z.string().min(1).max(80),
   last_name: z.string().min(1).max(80),
-  mobile: z.string().min(7).max(20),
+  // Same rule as the public signup form. This was a length-only check, so a
+  // spreadsheet cell reading "nine-eight-one" imported as a contact number and
+  // every SMS / WhatsApp to that family then failed silently at dispatch —
+  // bulk import being the one path where nobody eyeballs each value. Also
+  // normalises "+91 98123 45671" and "098123…" to bare digits, which makes the
+  // duplicate check below compare like with like instead of treating the same
+  // number in two formats as two people.
+  mobile: indianMobile("Not a valid Indian mobile number"),
   email: z.string().email().optional().or(z.literal("")).transform((v) => v || undefined),
   dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "DOB must be YYYY-MM-DD").refine(isRealYMD, "DOB isn't a real calendar date"),
   gender: z
@@ -159,6 +167,14 @@ export async function POST(req: NextRequest) {
       rowErrors.push({ line, reason: `Email already used: ${r.data.email}` });
       return;
     }
+    // Claim the mobile/email HERE, not just when the row is written. These
+    // sets were only added to inside the create transaction, which runs after
+    // this whole loop — so two identical lines in one spreadsheet both passed
+    // validation and imported as two riders, while the dry run cheerfully
+    // reported "duplicates: 0". Repeated rows are ordinary in a club's Excel
+    // sheet, which is exactly what this endpoint exists to ingest.
+    existingMobile.add(r.data.mobile);
+    if (r.data.email) existingEmail.add(r.data.email);
     valid.push({ row: r.data, line });
   });
 

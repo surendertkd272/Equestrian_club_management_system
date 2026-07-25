@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { indianMobile, indianPhone } from "@/lib/schemas/phone";
 
 // Internal-URL whitelist for uploaded files. lib/storage.ts returns `/uploads/<file>`
 // from both backends (local FS in dev, S3 via next.config rewrite in prod), so this regex
@@ -9,34 +10,6 @@ const uploadedUrl = z
   .regex(/^\/uploads\/[a-z0-9._-]+$/i, "Must be an /uploads/ URL from our upload endpoint")
   .optional()
   .or(z.literal(""));
-
-// Phone numbers as Indian parents actually type them — "9811045566",
-// "+91 98110 45566", "098110-45566". We strip the separators, insist on a
-// real number, and store the bare digits so dispatch is consistent.
-//
-// The previous `min(10)` was length-only: "nine eight one" and 12-digit
-// fat-fingers both passed, and every SMS / WhatsApp / email to those riders
-// was then dropped silently at the dispatch layer — the club believed the
-// parent had been told about a fee or an exam result and they never were.
-const stripSeparators = (s: string) => s.replace(/[\s()\-.]/g, "");
-
-const indianMobile = (msg = "Enter a 10-digit Indian mobile number") =>
-  z
-    .string()
-    .transform(stripSeparators)
-    .refine((s) => /^(?:\+?91|0)?[6-9]\d{9}$/.test(s), msg)
-    .transform((s) => s.replace(/^(?:\+?91|0)/, ""));
-
-// Emergency contacts are often a clinic or a landline, so this one also
-// accepts an STD-code landline (e.g. 0120-2345678). Still not free text.
-const indianPhone = (msg = "Enter a valid Indian phone number") =>
-  z
-    .string()
-    .transform(stripSeparators)
-    .refine(
-      (s) => /^(?:\+?91|0)?[6-9]\d{9}$/.test(s) || /^0\d{2,4}\d{6,8}$/.test(s),
-      msg,
-    );
 
 // A date of birth must parse, sit in the past, and be humanly plausible.
 // Without the bounds, fumbling the year on an Android date spinner had two

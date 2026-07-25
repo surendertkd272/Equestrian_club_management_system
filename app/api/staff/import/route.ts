@@ -8,6 +8,7 @@ import { isRole } from "@/lib/roles";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { parseCsv } from "@/lib/csv-parse";
+import { indianMobile } from "@/lib/schemas/phone";
 
 // Bulk staff import. Creates a User per row + a linked Staff row.
 // Each user gets a temp password (printed in the response) and
@@ -24,7 +25,10 @@ import { parseCsv } from "@/lib/csv-parse";
 const rowSchema = z.object({
   name: z.string().min(1).max(120),
   email: z.string().email(),
-  phone: z.string().max(20).optional().transform((v) => v?.trim() || undefined),
+  // Optional, but if a number IS given it has to be a real one — an
+  // unreachable staff number is how a shift-change or an injury alert
+  // silently fails to arrive. Same rule as every other capture path.
+  phone: indianMobile("Not a valid Indian mobile number").optional().or(z.literal("").transform(() => undefined)),
   role: z.string().transform((v) => v.trim().toUpperCase()),
   joining_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   salary_band: z.string().max(40).optional().transform((v) => v?.trim() || undefined),
