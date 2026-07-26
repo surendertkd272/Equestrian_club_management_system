@@ -18,7 +18,12 @@ export async function assertRoute(
   opts: { unauthRedirect?: string; denyRedirect?: string } = {},
 ): Promise<SessionPayload> {
   const session = await getSession();
-  if (!session) redirect(opts.unauthRedirect ?? "/login");
+  // ?ended=1 matches requireSession(). Reaching here with no session means the
+  // cookie verified at the middleware but the session was revoked underneath it
+  // (deactivated user, sign-out-everywhere, suspended org…), so the login page
+  // should say so rather than silently re-prompt. A genuinely logged-out
+  // request never gets this far — middleware redirects it with ?next= instead.
+  if (!session) redirect(opts.unauthRedirect ?? "/login?ended=1");
   if (!canAccessRoute(session.role as Role, href)) redirect(opts.denyRedirect ?? "/dashboard");
   return session;
 }

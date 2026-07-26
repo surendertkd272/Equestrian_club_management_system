@@ -43,7 +43,11 @@ export type Permission =
   // (POST /api/staff, onboarding approval, cert issuance), so coaches must
   // NOT get it — that would be a privilege-escalation hole. Managing the
   // training roster is a separate, coach-appropriate concern.
-  | "batch.manage";
+  | "batch.manage"
+  // Close or annotate an injury record. Logging one stays open to anyone at
+  // the centre (a groom is often first to notice); amending a child's medical
+  // record is a clinical/supervisory act and is not.
+  | "injury.manage";
 
 const matrix: Record<Role, Permission[]> = {
   SUPER_ADMIN: [
@@ -55,6 +59,7 @@ const matrix: Record<Role, Permission[]> = {
     "finance.read", "finance.write", "certificate.issue", "certificate.bulk", "audit.read",
     "requisition.submit", "requisition.approve_manager", "requisition.approve_accountant",
     "lesson.write", "batch.manage",
+    "injury.manage",
   ],
   CENTRE_MANAGER: [
     "rider.read", "rider.write", "rider.onboard", "attendance.mark", "progress.write",
@@ -64,6 +69,7 @@ const matrix: Record<Role, Permission[]> = {
     "finance.read", "finance.write", "certificate.issue", "certificate.bulk",
     "requisition.submit", "requisition.approve_manager", "requisition.approve_accountant",
     "lesson.write", "batch.manage",
+    "injury.manage",
   ],
   HEAD_COACH: [
     // Senior trainer — broader than a regular coach. Can schedule exams and supervise other coaches'
@@ -74,13 +80,15 @@ const matrix: Record<Role, Permission[]> = {
     "task.assign", "task.complete", "horse.manage", "expense.submit", "team.manage",
     "requisition.submit", "requisition.approve_manager",
     "lesson.write", "batch.manage",
+    "injury.manage",
   ],
-  COACH: ["rider.read", "attendance.mark", "progress.write", "task.complete", "leave.request", "expense.submit", "requisition.submit", "lesson.write", "batch.manage"],
+  COACH: ["rider.read", "attendance.mark", "progress.write", "task.complete", "leave.request", "expense.submit", "requisition.submit", "lesson.write", "batch.manage", "injury.manage"],
   STABLE_MANAGER: [
     // Owns the stable + horse roster + the tack/grooming kit needed for daily ops.
     "horse.manage", "asset.manage", "task.assign", "task.complete",
     "staff.attendance", "leave.request", "leave.approve", "expense.submit",
     "requisition.submit", "requisition.approve_manager",
+    "injury.manage",
   ],
   INVENTORY_MANAGER: [
     // Tack, school equipment, medicine inventory (stock side — vet still prescribes).
@@ -92,7 +100,7 @@ const matrix: Record<Role, Permission[]> = {
     // Specialist labour — logs shoeing tasks against horses; otherwise read-only.
     "horse.manage", "task.complete", "leave.request", "expense.submit", "requisition.submit",
   ],
-  VET: ["medicine.manage", "medicine.prescribe", "horse.manage", "task.complete", "leave.request", "expense.submit", "requisition.submit"],
+  VET: ["medicine.manage", "medicine.prescribe", "horse.manage", "task.complete", "leave.request", "expense.submit", "requisition.submit", "injury.manage"],
   ACCOUNTANT: [
     "medicine.manage", "finance.read", "finance.write", "expense.manage", "expense.submit", "leave.request",
     "requisition.submit", "requisition.approve_accountant",
@@ -115,6 +123,7 @@ const matrix: Record<Role, Permission[]> = {
     // Note: no "audit.read" — ADMIN gets read-only audit access via a
     // role check at /audit, but doesn't carry the global perm. Keeps the
     // permission matrix the source of truth for write-side actions.
+    "injury.manage",
   ],
   // SCHOOL_ADMINISTRATOR — read-only oversight of one club's riders.
   // Sees attendance, exam levels, skills. No write access anywhere.

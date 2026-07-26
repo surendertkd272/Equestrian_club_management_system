@@ -137,6 +137,10 @@ describe("permissionsFor", () => {
       "requisition.submit",
       "lesson.write",
       "batch.manage",
+      // A coach is usually first on the scene when a rider comes off, so they
+      // close and annotate the injury record. Grooms, farriers, inventory and
+      // the portal roles deliberately do NOT get this.
+      "injury.manage",
     ]);
   });
   it("returns [] for unknown role", () => {
