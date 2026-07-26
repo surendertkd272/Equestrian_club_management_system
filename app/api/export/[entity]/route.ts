@@ -4,6 +4,8 @@ import { getSession } from "@/lib/auth";
 import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { toCsv, csvResponse } from "@/lib/csv";
+import { resolveCentreTz } from "@/lib/centre-tz";
+import { endOfDayInTz } from "@/lib/tz";
 
 // Single dispatcher for CSV exports — saves on boilerplate (auth + scoping +
 // content-type plumbing) so adding a new export is just a clause in the
@@ -104,7 +106,13 @@ export async function GET(req: Request, { params }: { params: { entity: string }
     const from = url.searchParams.get("from");
     const to = url.searchParams.get("to");
     const fromDate = from ? new Date(from) : new Date(Date.now() - 30 * 86400000);
-    const toDate = to ? new Date(to) : new Date();
+    // Upper bound must be the END of the club's day, not "now". Attendance rows
+    // are stored at UTC noon (parseDateOnly), so an unbounded export taken
+    // before 12:00 UTC — i.e. before 17:30 IST, which is most of a working day
+    // — silently excluded today's entire register with no warning. Marking a
+    // 6 AM batch and exporting it at 9 AM produced a file without it.
+    const tz = await resolveCentreTz(centreId);
+    const toDate = to ? endOfDayInTz(new Date(to), tz) : endOfDayInTz(new Date(), tz);
     const attWhere = {
       date: { gte: fromDate, lte: toDate },
       // Org-bind via the batch's centre; narrow to one centre when scoped.
