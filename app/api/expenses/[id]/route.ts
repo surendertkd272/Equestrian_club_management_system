@@ -88,6 +88,26 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   }
 
   await prisma.expense.delete({ where: { id: row.id } });
-  await audit({ userId: session.userId, action: "expense.delete", tableName: "expense", rowId: row.id });
+  // Record WHAT was destroyed. This wrote only the row id, so a booked — and
+  // possibly already-paid — expense could be hard-deleted and the audit trail
+  // could not tell you the amount, the vendor, the category or whether cash had
+  // moved. An auditor cannot reconstruct the books from "something was deleted".
+  await audit({
+    userId: session.userId,
+    action: "expense.delete",
+    tableName: "expense",
+    rowId: row.id,
+    before: {
+      amount: row.amount,
+      gstAmount: row.gstAmount,
+      paid: row.paid,
+      paidAt: row.paidAt,
+      method: row.method,
+      spentAt: row.spentAt,
+      vendorId: row.vendorId,
+      categoryId: row.categoryId,
+      description: row.description,
+    },
+  });
   return NextResponse.json({ ok: true });
 }

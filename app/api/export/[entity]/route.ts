@@ -17,6 +17,14 @@ const ALLOWED = new Set([
   "horses",
   "attendance",
   "invoices",
+  // Money out and money in. Invoices were the ONLY financial entity a club
+  // could get out of the product, so an accountant reconciling a month had no
+  // way to export what was actually collected, what was spent, or what was
+  // paid to staff — the numbers existed only on screen.
+  "payments",
+  "expenses",
+  "salary",
+  "advances",
   "audit",
 ]);
 
@@ -159,6 +167,138 @@ export async function GET(req: Request, { params }: { params: { entity: string }
       ]),
     );
     return csvResponse(`invoices-${ts}.csv`, csv, { total, returned: rows.length, truncated: total > rows.length });
+  }
+
+  if (params.entity === "payments") {
+    const invWhere = { invoice: where };
+    const [total, rows] = await Promise.all([
+      prisma.payment.count({ where: invWhere }),
+      prisma.payment.findMany({
+        where: invWhere,
+        include: {
+          invoice: {
+            include: { rider: { select: { firstName: true, lastName: true } }, centre: { select: { name: true } } },
+          },
+        },
+        orderBy: { paidAt: "desc" },
+        take: ROW_CAP,
+      }),
+    ]);
+    const csv = toCsv(
+      ["Receipt", "Invoice", "Rider", "Amount", "Method", "Reference", "Paid on", "Cleared on", "Centre"],
+      rows.map((p) => [
+        p.id.slice(0, 8),
+        p.invoiceId.slice(0, 8),
+        `${p.invoice.rider?.firstName ?? ""} ${p.invoice.rider?.lastName ?? ""}`.trim(),
+        p.amount,
+        p.method,
+        p.txnRef ?? "",
+        p.paidAt.toISOString().slice(0, 10),
+        p.clearedAt ? p.clearedAt.toISOString().slice(0, 10) : "",
+        p.invoice.centre?.name ?? "",
+      ]),
+    );
+    return csvResponse(`payments-${ts}.csv`, csv, { total, returned: rows.length, truncated: total > rows.length });
+  }
+
+  if (params.entity === "expenses") {
+    const [total, rows] = await Promise.all([
+      prisma.expense.count({ where }),
+      prisma.expense.findMany({
+        where,
+        include: {
+          vendor: { select: { name: true } },
+          category: { select: { name: true } },
+          centre: { select: { name: true } },
+        },
+        orderBy: { spentAt: "desc" },
+        take: ROW_CAP,
+      }),
+    ]);
+    const csv = toCsv(
+      ["Ref", "Spent on", "Category", "Vendor", "Amount", "GST", "Total", "Paid", "Paid on", "Method", "Description", "Centre"],
+      rows.map((e) => [
+        e.id.slice(0, 8),
+        e.spentAt.toISOString().slice(0, 10),
+        e.category?.name ?? "",
+        e.vendor?.name ?? "",
+        e.amount,
+        e.gstAmount,
+        e.amount + e.gstAmount,
+        e.paid ? "yes" : "no",
+        e.paidAt ? e.paidAt.toISOString().slice(0, 10) : "",
+        e.method ?? "",
+        e.description ?? "",
+        e.centre?.name ?? "",
+      ]),
+    );
+    return csvResponse(`expenses-${ts}.csv`, csv, { total, returned: rows.length, truncated: total > rows.length });
+  }
+
+  if (params.entity === "salary") {
+    const [total, rows] = await Promise.all([
+      prisma.salaryPayment.count({ where }),
+      prisma.salaryPayment.findMany({
+        where,
+        include: { user: { select: { name: true, role: true } }, centre: { select: { name: true } } },
+        orderBy: [{ periodMonth: "desc" }, { createdAt: "desc" }],
+        take: ROW_CAP,
+      }),
+    ]);
+    const csv = toCsv(
+      ["Ref", "Month", "Staff", "Role", "Gross", "Advance recovered", "Attendance deduction", "Other deductions", "Net", "Method", "Paid on", "Centre"],
+      rows.map((sp) => [
+        sp.id.slice(0, 8),
+        sp.periodMonth,
+        sp.user?.name ?? "",
+        sp.user?.role ?? "",
+        sp.grossAmount,
+        sp.advanceDeducted,
+        sp.attendanceDeducted,
+        sp.otherDeductions,
+        sp.netAmount,
+        sp.method ?? "",
+        sp.paidAt ? sp.paidAt.toISOString().slice(0, 10) : "",
+        sp.centre?.name ?? "",
+      ]),
+    );
+    return csvResponse(`salary-${ts}.csv`, csv, { total, returned: rows.length, truncated: total > rows.length });
+  }
+
+  if (params.entity === "advances") {
+    const [total, rows] = await Promise.all([
+      prisma.employeeAdvance.count({ where }),
+      prisma.employeeAdvance.findMany({
+        where,
+        include: {
+          user: { select: { name: true, role: true } },
+          centre: { select: { name: true } },
+          // Outstanding is derived, not stored — sum what has been repaid.
+          repayments: { select: { amount: true } },
+        },
+        orderBy: { givenAt: "desc" },
+        take: ROW_CAP,
+      }),
+    ]);
+    const csv = toCsv(
+      ["Ref", "Staff", "Role", "Reason", "Amount", "Repaid", "Outstanding", "Status", "Issued", "Centre"],
+      rows.map((a) => {
+        const repaid = a.repayments.reduce((t, r) => t + r.amount, 0);
+        return [
+          a.id.slice(0, 8),
+          a.user?.name ?? "",
+          a.user?.role ?? "",
+          a.reason,
+          a.amount,
+          repaid,
+          Math.max(0, a.amount - repaid),
+          a.status,
+          a.givenAt.toISOString().slice(0, 10),
+          a.centre?.name ?? "",
+        ];
+      }),
+    );
+    return csvResponse(`advances-${ts}.csv`, csv, { total, returned: rows.length, truncated: total > rows.length });
   }
 
   if (params.entity === "audit") {

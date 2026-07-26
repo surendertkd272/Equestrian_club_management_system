@@ -9,9 +9,14 @@ import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { salaryStructureSchema } from "@/lib/schemas/payroll";
 
-// Only SUPER_ADMIN defines staff salaries.
+// Who defines staff salaries. This read `role === "SUPER_ADMIN"` while the
+// file header above declared SUPER_ADMIN / ADMIN / ACCOUNTANT — and the code
+// won. The consequence was that the accountant, whose job this is, could not
+// set a single salary: 10 of 12 staff at the sandbox club had no structure, so
+// payroll refused for them with a bare NO_SALARY_STRUCTURE and there was no
+// in-app way to resolve it without an HQ login.
 function canEdit(role: string): boolean {
-  return role === "SUPER_ADMIN";
+  return role === "SUPER_ADMIN" || role === "ADMIN" || role === "ACCOUNTANT";
 }
 
 function dateOnly(s: string): Date {
