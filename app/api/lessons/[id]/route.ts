@@ -5,10 +5,11 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { updateLessonSchema } from "@/lib/schemas/lesson";
 import { audit } from "@/lib/audit";
+import { notifyRiderAndParents } from "@/lib/notify";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { AllocConflict } from "@/lib/allocation-guard";
 import { DEFAULT_WORKLOAD_CAP_MIN } from "@/lib/schemas/horse";
-import { parseWallTimeInTz, startOfDayInTz, endOfDayInTz, sameLocalDay } from "@/lib/tz";
+import { parseWallTimeInTz, startOfDayInTz, endOfDayInTz, sameLocalDay, wallPartsInTz } from "@/lib/tz";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -42,7 +43,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const lesson = await prisma.lesson.findUnique({
     where: { id: params.id },
-    include: { centre: { select: { timezone: true } }, allocations: { select: { horseId: true } } },
+    // riderId comes along so a cancellation/reschedule can notify the families
+    // whose children were actually booked into this session.
+    include: { centre: { select: { timezone: true } }, allocations: { select: { horseId: true, riderId: true } } },
   });
   if (!lesson) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
@@ -159,6 +162,28 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       before: { status: lesson.status, date: lesson.date },
       after: { status: updated.status, date: updated.date },
     });
+
+    // Tell the families. A cancelled or moved lesson previously notified nobody
+    // — the allocation was released cleanly and the riders' parents still drove
+    // to the centre. The riders to tell are the ones who had a horse allocated
+    // to this session; a lesson with no allocations has no one to warn.
+    const riderIds = Array.from(new Set(lesson.allocations.map((a) => a.riderId).filter(Boolean))) as string[];
+    if (riderIds.length > 0 && (willCancel || timeChanged)) {
+      const w = wallPartsInTz(lesson.date, tz);
+      const when = `${w.date} ${w.time}`;
+      for (const riderId of riderIds) {
+        await notifyRiderAndParents(riderId, {
+          type: willCancel ? "lesson.cancelled" : "lesson.rescheduled",
+          title: willCancel ? `Lesson cancelled — ${when}` : `Lesson moved — was ${when}`,
+          body: willCancel
+            ? `The session on ${when} has been cancelled${d.notes ? `: ${d.notes}` : "."} Please contact the centre if you need a make-up.`
+            : (() => { const n = wallPartsInTz(effDate, tz); return `That session now starts ${n.date} ${n.time}.`; })(),
+          link: `/parent`,
+          criticality: "critical",
+        });
+      }
+    }
+
     return NextResponse.json({ ok: true });
   } catch (e) {
     if (e instanceof AllocConflict) {

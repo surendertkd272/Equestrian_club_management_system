@@ -5,6 +5,8 @@ import { blockIfFeatureOff } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { updateTaskSchema } from "@/lib/schemas/task";
 import { audit } from "@/lib/audit";
+import { notify } from "@/lib/notify";
+import { formatDate } from "@/lib/utils";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -89,6 +91,33 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     before: task,
     after: updated,
   });
+
+  // Hand-over notifications. Creating a task notifies the assignee, but
+  // REASSIGNING one notified nobody: the new owner never learned they had it,
+  // and the previous owner kept a "New task" notification for work that was no
+  // longer theirs. Both sides need to know a task changed hands.
+  if (d.assigneeId !== undefined && d.assigneeId !== task.assigneeId) {
+    if (d.assigneeId) {
+      await notify({
+        userId: d.assigneeId,
+        centreId: task.centreId,
+        type: "task.assigned",
+        title: `Task reassigned to you: ${updated.title}`,
+        body: updated.dueAt ? `Due ${formatDate(updated.dueAt)}.` : "No due date set.",
+        link: `/tasks`,
+      });
+    }
+    if (task.assigneeId) {
+      await notify({
+        userId: task.assigneeId,
+        centreId: task.centreId,
+        type: "task.reassigned_away",
+        title: `No longer yours: ${updated.title}`,
+        body: `${session.name} moved this task to someone else.`,
+        link: `/tasks`,
+      });
+    }
+  }
 
   return NextResponse.json({ ok: true, status: updated.status });
 }
