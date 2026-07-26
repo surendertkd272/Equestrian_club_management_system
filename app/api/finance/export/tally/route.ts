@@ -57,8 +57,21 @@ export async function GET(req: NextRequest) {
       orderBy: { paidAt: "asc" },
       take: 5000,
     }),
+    // Select each expense on the SAME axis it is posted on, or vouchers fall
+    // outside the window they were asked for. A bill spent in June and paid in
+    // July was selected by the June query and then dated 20 July — twenty days
+    // past the end of the requested range — so a month's export contained
+    // vouchers belonging to the next month and omitted ones belonging to it.
+    //   paid   → a Payment voucher dated paidAt   → select on paidAt
+    //   unpaid → a Journal accrual dated spentAt  → select on spentAt
     prisma.expense.findMany({
-      where: { ...where, spentAt: { gte: from, lte: to } },
+      where: {
+        ...where,
+        OR: [
+          { paid: true, paidAt: { gte: from, lte: to } },
+          { paid: false, spentAt: { gte: from, lte: to } },
+        ],
+      },
       include: { vendor: { select: { name: true } }, category: { select: { name: true } } },
       orderBy: { spentAt: "asc" },
       take: 5000,
@@ -192,11 +205,23 @@ export async function GET(req: NextRequest) {
   // to its own ledger so the voucher balances and the advance recovery is
   // visible in the books rather than only inside the payslip.
   for (const s of salaries) {
-    const deductions: Array<[string, number]> = [
+    // A voucher MUST balance or Tally rejects the entire import batch — so the
+    // export derives the deduction total from the two figures that are
+    // authoritative (what was earned, what was actually paid) and distributes
+    // it across the ledgers in the stored proportions. Historic rows written
+    // before the deduction was capped at gross would otherwise emit an
+    // unbalanced voucher and take the whole month's import down with them.
+    const rawDeductions: Array<[string, number]> = [
       ["Staff Advances", s.advanceDeducted],
       ["Salary Deductions - Attendance", s.attendanceDeducted],
       ["Salary Deductions - Other", s.otherDeductions],
     ].filter(([, v]) => (v as number) > 0) as Array<[string, number]>;
+    const rawTotal = rawDeductions.reduce((t, [, v]) => t + v, 0);
+    const mustTotal = Math.max(0, s.grossAmount - s.netAmount);
+    const factor = rawTotal > 0 ? mustTotal / rawTotal : 0;
+    const deductions: Array<[string, number]> = rawDeductions
+      .map(([name, v]) => [name, v * factor] as [string, number])
+      .filter(([, v]) => v > 0.005);
     vouchers.push(
       `<VOUCHER VCHTYPE="Payment" ACTION="Create">
   <DATE>${ddmmyyyy(s.paidAt!)}</DATE>

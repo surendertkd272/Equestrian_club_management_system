@@ -94,7 +94,16 @@ export async function POST(req: NextRequest) {
   // Apply the org's configured per-status rates. Without this the policy screen
   // was decorative: it saved, echoed back, and payroll used a derived rate.
   const deductionRules = await deductionRulesForCentre(staffUser.centreId);
-  const { total: attendanceDeducted, breakdown } = computeAbsenceDeduction(gross, counts, deductionRules);
+  const { total: rawAttendanceDeducted, breakdown: rawBreakdown } = computeAbsenceDeduction(gross, counts, deductionRules);
+  // A deduction can never exceed the salary it is deducted from. netAmount was
+  // already clamped at 0, but attendanceDeducted was stored uncapped — so the
+  // row failed its own invariant (gross - deductions != net) and the Tally
+  // salary voucher built from it did not balance, which makes Tally reject the
+  // whole import batch. Scale the breakdown with it so the payslip still
+  // explains the figure actually applied.
+  const attendanceDeducted = Math.min(rawAttendanceDeducted, gross);
+  const scale = rawAttendanceDeducted > 0 ? attendanceDeducted / rawAttendanceDeducted : 1;
+  const breakdown = scale === 1 ? rawBreakdown : rawBreakdown.map((b) => ({ ...b, amount: b.amount * scale }));
   const absentDays = counts["absent"] ?? 0;
 
   // Guard: "other deductions" can't exceed what's left after the attendance cut

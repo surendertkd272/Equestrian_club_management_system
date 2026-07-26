@@ -21,7 +21,13 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const parsed = markAttendanceSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
+    // Surface the first field message. humanizeError() prefers an explicit
+  // `message` over the generic code, so without this a coach who typed the
+  // wrong year saw only "Some fields need fixing" with nothing highlighted.
+  return NextResponse.json(
+      { error: "VALIDATION", message: parsed.error.issues[0]?.message, details: parsed.error.flatten() },
+      { status: 400 },
+    );
   }
   const { batchId, date, entries } = parsed.data;
 

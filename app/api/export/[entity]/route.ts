@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { can, type Permission } from "@/lib/permissions";
 import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { toCsv, csvResponse } from "@/lib/csv";
@@ -32,10 +33,38 @@ const ALLOWED = new Set([
 
 const ROW_CAP = 5000;
 
+// What each export requires. The route previously checked only that a session
+// existed, so ANY signed-in user — a coach, an examiner, a 15-year-old on the
+// student portal — could download the full rider list with phone numbers and
+// email addresses, the invoice ledger, and (once the financial exports were
+// added) the entire staff payroll with every colleague's gross and net pay.
+// Only `audit` was gated.
+//
+// Mapped to the permission that already governs the same data elsewhere, so a
+// role that can read something on screen can still export it and nobody gains
+// or loses anything they legitimately had: coaches keep the attendance export
+// their own page offers, finance stays with finance.
+const EXPORT_PERMISSION: Record<string, Permission> = {
+  riders: "rider.read",
+  attendance: "rider.read",
+  horses: "horse.manage",
+  invoices: "finance.read",
+  payments: "finance.read",
+  expenses: "finance.read",
+  salary: "finance.read",
+  advances: "finance.read",
+  // audit keeps its own stricter SUPER_ADMIN-only check further down.
+};
+
 export async function GET(req: Request, { params }: { params: { entity: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (!ALLOWED.has(params.entity)) return NextResponse.json({ error: "UNKNOWN_ENTITY" }, { status: 404 });
+
+  const needed = EXPORT_PERMISSION[params.entity];
+  if (needed && !can(session.role, needed)) {
+    return NextResponse.json({ error: "FORBIDDEN", needed }, { status: 403 });
+  }
 
   // Org-scope everything: an HQ user's "all centres" must mean "all centres in
   // MY org", never every tenant's data. Fail closed if the org can't resolve.
