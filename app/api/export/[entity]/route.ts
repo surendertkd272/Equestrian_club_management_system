@@ -56,10 +56,24 @@ const EXPORT_PERMISSION: Record<string, Permission> = {
   // audit keeps its own stricter SUPER_ADMIN-only check further down.
 };
 
+// A per-row read permission is NOT a licence to dump the whole table.
+// rider.read is held by RIDER and PARENT so the portals can show a child their
+// own record — mapping the roster export to it therefore handed a 15-year-old
+// the full rider list with every family's phone number and email, and the
+// complete attendance register. INSPECTION_OFFICER is an external auditor
+// scoped to inventory checks and has no business bulk-exporting children's
+// contact details either. These roles have their own scoped endpoints
+// (/api/parent/children, /api/student/me) and never need a bulk export.
+const NO_BULK_EXPORT: readonly string[] = ["RIDER", "PARENT", "INSPECTION_OFFICER"];
+
 export async function GET(req: Request, { params }: { params: { entity: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (!ALLOWED.has(params.entity)) return NextResponse.json({ error: "UNKNOWN_ENTITY" }, { status: 404 });
+
+  if (NO_BULK_EXPORT.includes(session.role)) {
+    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  }
 
   const needed = EXPORT_PERMISSION[params.entity];
   if (needed && !can(session.role, needed)) {
