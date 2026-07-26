@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
-import { parseDateOnly, toDateOnly } from "@/lib/schemas/attendance";
+import { parseDateOnly } from "@/lib/schemas/attendance";
+import { todayYmdForCentre } from "@/lib/centre-tz";
 import { ENROLLED_RIDER_STATUSES } from "@/lib/rider-status";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +25,10 @@ export default async function AttendancePage({
   if (!orgId) redirect("/dashboard");
   const where = tenantWhere(centreId, orgId);
 
-  const today = toDateOnly(new Date());
+  // The centre's calendar date, not the server's. toDateOnly(new Date()) is
+  // the UTC date, so for the first 5½ hours of every Indian day the register
+  // opened on YESTERDAY and today was not even selectable in the picker.
+  const today = await todayYmdForCentre(centreId);
   const date = searchParams.date && /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date) ? searchParams.date : today;
 
   // Coaches only see their own batches; managers/admins see all.

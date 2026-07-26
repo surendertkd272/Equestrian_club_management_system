@@ -27,6 +27,7 @@ import {
   HeadCoachDashboard,
   CoachDashboard,
 } from "./role-dashboards";
+import { startOfTodayForCentre, endOfTodayForCentre } from "@/lib/centre-tz";
 
 export const dynamic = "force-dynamic";
 
@@ -61,9 +62,12 @@ export default async function DashboardPage() {
   // External auditor — their only job is the inspection sheet; send them there.
   if (session.role === "INSPECTION_OFFICER") redirect("/inspections");
 
-  const todayStart = new Date();
-  todayStart.setUTCHours(0, 0, 0, 0);
-  const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+  // "Today" means the centre's day, not the server's. setUTCHours(0,0,0,0) made
+  // every today-tile report a UTC midnight-to-midnight window — the wrong 24
+  // hours for an Indian club by five and a half of them, so before 05:30 IST
+  // the dashboard showed yesterday's numbers.
+  const todayStart = await startOfTodayForCentre(centreId);
+  const todayEnd = await endOfTodayForCentre(centreId);
 
   // New-feature widget queries — kept side-by-side with the existing tiles
   // so the dashboard renders in one trip. Each is centre-scoped via `where`.
