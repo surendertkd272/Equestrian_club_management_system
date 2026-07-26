@@ -125,7 +125,10 @@ export default async function DashboardPage() {
         },
         _sum: { amount: true },
       }),
-      prisma.horse.count({ where }),
+      // "on Roster" must mean on the roster. This counted every Horse row,
+      // including retired and sold animals, so the number crept up forever and
+      // never matched what the stable actually has.
+      prisma.horse.count({ where: { ...where, status: { not: "retired" } } }),
       prisma.medicine.count({ where: { ...where, qty: { lte: 5 } } }),
       prisma.medicine.count({
         where: { ...where, expDate: { lte: new Date(Date.now() + 30 * 86400000) } },
