@@ -47,7 +47,13 @@ export type Permission =
   // Close or annotate an injury record. Logging one stays open to anyone at
   // the centre (a groom is often first to notice); amending a child's medical
   // record is a clinical/supervisory act and is not.
-  | "injury.manage";
+  | "injury.manage"
+  // Schedule and complete farrier (shoeing) visits. Split out from
+  // horse.manage so a visiting contractor can do their job without also
+  // being able to create or retire horses on the club roster — the FARRIER
+  // entry below always claimed to be "otherwise read-only" while holding
+  // the permission that gates the whole horse CRUD surface.
+  | "farriery.manage";
 
 const matrix: Record<Role, Permission[]> = {
   SUPER_ADMIN: [
@@ -59,7 +65,7 @@ const matrix: Record<Role, Permission[]> = {
     "finance.read", "finance.write", "certificate.issue", "certificate.bulk", "audit.read",
     "requisition.submit", "requisition.approve_manager", "requisition.approve_accountant",
     "lesson.write", "batch.manage",
-    "injury.manage",
+    "injury.manage", "farriery.manage",
   ],
   CENTRE_MANAGER: [
     "rider.read", "rider.write", "rider.onboard", "attendance.mark", "progress.write",
@@ -69,7 +75,7 @@ const matrix: Record<Role, Permission[]> = {
     "finance.read", "finance.write", "certificate.issue", "certificate.bulk",
     "requisition.submit", "requisition.approve_manager", "requisition.approve_accountant",
     "lesson.write", "batch.manage",
-    "injury.manage",
+    "injury.manage", "farriery.manage",
   ],
   HEAD_COACH: [
     // Senior trainer — broader than a regular coach. Can schedule exams and supervise other coaches'
@@ -88,7 +94,7 @@ const matrix: Record<Role, Permission[]> = {
     "horse.manage", "asset.manage", "task.assign", "task.complete",
     "staff.attendance", "leave.request", "leave.approve", "expense.submit",
     "requisition.submit", "requisition.approve_manager",
-    "injury.manage",
+    "injury.manage", "farriery.manage",
   ],
   INVENTORY_MANAGER: [
     // Tack, school equipment, medicine inventory (stock side — vet still prescribes).
@@ -97,10 +103,12 @@ const matrix: Record<Role, Permission[]> = {
   ],
   GROOM: ["task.assign", "task.complete", "asset.manage", "leave.request", "expense.submit", "requisition.submit"],
   FARRIER: [
-    // Specialist labour — logs shoeing tasks against horses; otherwise read-only.
-    "horse.manage", "task.complete", "leave.request", "expense.submit", "requisition.submit",
+    // Specialist labour — logs shoeing visits against horses; otherwise read-only.
+    // Deliberately NOT horse.manage: that gates creating and retiring horses,
+    // and a visiting contractor was able to do both.
+    "farriery.manage", "task.complete", "leave.request", "expense.submit", "requisition.submit",
   ],
-  VET: ["medicine.manage", "medicine.prescribe", "horse.manage", "task.complete", "leave.request", "expense.submit", "requisition.submit", "injury.manage"],
+  VET: ["medicine.manage", "medicine.prescribe", "horse.manage", "task.complete", "leave.request", "expense.submit", "requisition.submit", "injury.manage", "farriery.manage"],
   ACCOUNTANT: [
     "medicine.manage", "finance.read", "finance.write", "expense.manage", "expense.submit", "leave.request",
     "requisition.submit", "requisition.approve_accountant",
@@ -123,7 +131,7 @@ const matrix: Record<Role, Permission[]> = {
     // Note: no "audit.read" — ADMIN gets read-only audit access via a
     // role check at /audit, but doesn't carry the global perm. Keeps the
     // permission matrix the source of truth for write-side actions.
-    "injury.manage",
+    "injury.manage", "farriery.manage",
   ],
   // SCHOOL_ADMINISTRATOR — read-only oversight of one club's riders.
   // Sees attendance, exam levels, skills. No write access anywhere.

@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  if (!can(session.role, "horse.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  if (!can(session.role, "farriery.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   const featureBlock = await blockIfFeatureOff(session, "farriery");
   if (featureBlock) return featureBlock;
   const readOnlyBlock = await blockIfReadOnly(session);

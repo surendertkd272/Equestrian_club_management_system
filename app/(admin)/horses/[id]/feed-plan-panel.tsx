@@ -11,7 +11,14 @@ import { toast } from "sonner";
 type Item = { feed: string; qty: number; unit: string };
 type Ration = { time: string; items: Item[] };
 
-const DEFAULT_PLAN: Ration[] = [
+// A STARTING TEMPLATE for someone writing a new plan — never a display value.
+//
+// This used to be the fallback whenever a horse had no saved plan, so every
+// unplanned horse's page showed "Hay 5 kg / Oats 2 kg / Hay 5 kg" indistinguish-
+// ably from a real, vet-approved ration. A groom reading that page would feed
+// to it, which for a laminitic, ulcer-prone or box-rested horse is a welfare
+// incident. "No plan recorded" and "this is the plan" must never look the same.
+const STARTER_TEMPLATE: Ration[] = [
   { time: "morning", items: [{ feed: "Hay", qty: 5, unit: "kg" }] },
   { time: "noon", items: [{ feed: "Oats", qty: 2, unit: "kg" }] },
   { time: "evening", items: [{ feed: "Hay", qty: 5, unit: "kg" }] },
@@ -31,16 +38,18 @@ export function FeedPlanPanel({
   const router = useRouter();
   // Tolerant narrow: jsonb returns the parsed value directly, but if a legacy
   // row stored it as a string we still want to recover it. Bad data → defaults.
+  // Empty means empty. Only a genuinely saved plan is ever rendered as one.
   const seedRations: Ration[] = (() => {
     const v = initial?.rations;
-    if (!v) return DEFAULT_PLAN;
+    if (!v) return [];
     try {
       const arr = typeof v === "string" ? JSON.parse(v) : v;
-      return Array.isArray(arr) ? (arr as Ration[]) : DEFAULT_PLAN;
+      return Array.isArray(arr) ? (arr as Ration[]) : [];
     } catch {
-      return DEFAULT_PLAN;
+      return [];
     }
   })();
+  const hasSavedPlan = seedRations.length > 0;
   const [rations, setRations] = useState<Ration[]>(seedRations);
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [busy, setBusy] = useState(false);
@@ -129,12 +138,23 @@ export function FeedPlanPanel({
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-muted-foreground">No feed plan set yet.</p>
+          <p className="text-sm text-muted-foreground">
+            No feed plan recorded for this horse. Ask the stable manager or vet before feeding.
+          </p>
         )}
         {initial?.notes ? <p className="text-xs italic text-muted-foreground">{initial.notes}</p> : null}
         {canManage && (
-          <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-            {seedRations.length ? "Edit plan" : "Set up feed plan"}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              // Load the starter template only when someone deliberately begins
+              // writing a plan — never as a passive default on the read view.
+              if (!hasSavedPlan) setRations(STARTER_TEMPLATE);
+              setEditing(true);
+            }}
+          >
+            {hasSavedPlan ? "Edit plan" : "Set up feed plan"}
           </Button>
         )}
       </div>

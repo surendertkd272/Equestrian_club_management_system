@@ -61,8 +61,13 @@ describe("can", () => {
     expect(can("INVENTORY_MANAGER", "task.assign")).toBe(false);
   });
 
-  it("FARRIER is specialist labour — task complete + horse read, nothing else", () => {
-    expect(can("FARRIER", "horse.manage")).toBe(true);
+  it("FARRIER is specialist labour — shoeing visits only, no roster control", () => {
+    // This test's own name always said "horse read, nothing else" while
+    // asserting horse.manage === true. It didn't: horse.manage gates the whole
+    // horse CRUD surface, so a visiting contractor could create and retire
+    // horses on the club roster. Farriery is now its own permission.
+    expect(can("FARRIER", "farriery.manage")).toBe(true);
+    expect(can("FARRIER", "horse.manage")).toBe(false);
     expect(can("FARRIER", "task.complete")).toBe(true);
     expect(can("FARRIER", "leave.request")).toBe(true);
     expect(can("FARRIER", "task.assign")).toBe(false);
