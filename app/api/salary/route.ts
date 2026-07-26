@@ -137,6 +137,9 @@ export async function POST(req: NextRequest) {
   const netAmount = Math.max(0, gross - d.otherDeductions - attendanceDeducted - advanceDeducted);
 
   const result = await prisma.$transaction(async (tx) => {
+    // Track what this run recovers so it can be linked to the payroll row
+    // below — voiding the run then releases exactly these amounts.
+    const repaymentIds: string[] = [];
     let remaining = advanceDeducted;
     for (const adv of openAdvances) {
       if (remaining <= 0.01) break;
@@ -144,7 +147,7 @@ export async function POST(req: NextRequest) {
       const advRemaining = Math.max(0, adv.amount - repaid);
       if (advRemaining <= 0.01) continue;
       const take = Math.min(advRemaining, remaining);
-      await tx.advanceRepayment.create({
+      const rep = await tx.advanceRepayment.create({
         data: {
           advanceId: adv.id,
           amount: take,
@@ -152,12 +155,13 @@ export async function POST(req: NextRequest) {
           notes: `Auto-deducted from ${d.periodMonth} salary`,
         },
       });
+      repaymentIds.push(rep.id);
       const newStatus = repaid + take >= adv.amount - 0.01 ? "repaid" : "partially_repaid";
       await tx.employeeAdvance.update({ where: { id: adv.id }, data: { status: newStatus } });
       remaining -= take;
     }
 
-    return tx.salaryPayment.create({
+    const created = await tx.salaryPayment.create({
       data: {
         centreId: staffUser.centreId!,
         userId: d.userId,
@@ -176,6 +180,13 @@ export async function POST(req: NextRequest) {
         recordedByUserId: session.userId,
       },
     });
+    if (repaymentIds.length > 0) {
+      await tx.advanceRepayment.updateMany({
+        where: { id: { in: repaymentIds } },
+        data: { salaryPaymentId: created.id },
+      });
+    }
+    return created;
   });
 
   await audit({

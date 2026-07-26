@@ -25,53 +25,53 @@ datasource db {
 // ──────────────────────────────────────────────────────────────────────────
 
 model Organisation {
-  id        String   @id @default(cuid())
-  slug      String   @unique // URL identifier — e.g. "equiwings"
-  name      String
-  logoUrl   String?
+  id      String  @id @default(cuid())
+  slug    String  @unique // URL identifier — e.g. "equiwings"
+  name    String
+  logoUrl String?
 
   // Lifecycle / billing (plan drives the feature set via lib/plans.ts)
-  status             String    @default("active") // active | trial | past_due | suspended
+  status                     String    @default("active") // active | trial | past_due | suspended
   // When the org most recently entered past_due. Dunning reminders and the
   // 7-day suspend countdown anchor on THIS, not updatedAt — updatedAt is bumped
   // by any unrelated org write (settings change, logo upload…), which used to
   // silently reset the overdue clock and skip dunning / delay suspension.
   // Set on entering past_due (only if not already past_due, so the clock isn't
   // reset by repeated webhooks); cleared (null) on returning to active/suspended.
-  pastDueSince       DateTime?
-  plan               String    @default("starter") // starter | pro | enterprise (lib/plans.ts)
-  contactName        String?
-  billingEmail       String?
-  phone              String?
+  pastDueSince               DateTime?
+  plan                       String    @default("starter") // starter | pro | enterprise (lib/plans.ts)
+  contactName                String?
+  billingEmail               String?
+  phone                      String?
   // Public-facing contact details shown to users on the Help Center + portals,
   // editable by SUPER_ADMIN/ADMIN in /settings. Distinct from billingEmail/phone
   // (billing/ops). Fall back to DEFAULT_SUPPORT_EMAIL (lib/contact.ts) when null.
-  supportEmail       String?
-  supportPhone       String?
-  trialEndsAt        DateTime?
-  onboardedAt        DateTime  @default(now())
+  supportEmail               String?
+  supportPhone               String?
+  trialEndsAt                DateTime?
+  onboardedAt                DateTime  @default(now())
   // Offboarding lifecycle. When the owner schedules a tenant for
   // decommission, offboardingScheduledAt + offboardingNotes are stamped
   // and status moves to "offboarding". The sweep at lib/sweeps.ts hard-
   // deletes everything after the grace period.
-  offboardingScheduledAt DateTime?
-  offboardingNotes       String?
-  offboardingScrubbedAt  DateTime?
+  offboardingScheduledAt     DateTime?
+  offboardingNotes           String?
+  offboardingScrubbedAt      DateTime?
   // Stripe — columns staged for V1.1 wire-up; status is hand-flippable until then.
-  stripeCustomerId   String?
-  subscriptionStatus String?
-  currentPeriodEnd   DateTime?
+  stripeCustomerId           String?
+  subscriptionStatus         String?
+  currentPeriodEnd           DateTime?
   // Razorpay Subscriptions — used in India where Stripe card recurring
   // is unreliable. One subscription per org; status mirrors Razorpay
   // states (created/authenticated/active/halted/cancelled).
-  razorpaySubscriptionId String?
+  razorpaySubscriptionId     String?
   razorpaySubscriptionStatus String?
 
   // Custom domain — tenant points a CNAME (e.g. app.royalriders.com) at our
   // host. SSL + DNS verification happen at the hosting layer; this column is
   // metadata so the owner portal can record + display the alias. Null = the
   // tenant uses the platform default host (with optional /t/<slug>/ prefix).
-  customDomain          String?   @unique
+  customDomain           String?   @unique
   customDomainVerifiedAt DateTime?
 
   settings  String? // JSON-as-text for SQLite portability
@@ -85,15 +85,15 @@ model Organisation {
   billingState   String?
   billingAddress String?
 
-  centres  Centre[]
-  features OrgFeature[]
-  saasInvoices SaasInvoice[]
-  hqExpenses   HqExpense[]
-  legalTexts   LegalText[]
+  centres       Centre[]
+  features      OrgFeature[]
+  saasInvoices  SaasInvoice[]
+  hqExpenses    HqExpense[]
+  legalTexts    LegalText[]
   // HQ users (typically SUPER_ADMIN) whose centreId is null — the org link
   // is recorded here directly. Centre-scoped users find their org via the
   // centre table instead.
-  hqUsers  User[]       @relation("HqUsers")
+  hqUsers       User[]         @relation("HqUsers")
   payrollConfig PayrollConfig?
 }
 
@@ -107,16 +107,16 @@ model Organisation {
 // override the platform default. Today we only have one tenant so all
 // rows share the same orgId.
 model LegalText {
-  id          String   @id @default(cuid())
-  orgId       String
+  id                String   @id @default(cuid())
+  orgId             String
   // terms | indemnity | rules
-  kind        String
+  kind              String
   // Free-form version label set by the admin who publishes ("v1", "2026-05", "draft").
-  version     String
+  version           String
   // Markdown / plain text content shown to the user. Stored as text so a
   // future admin editor can serialise rich content here.
-  content     String
-  publishedAt DateTime @default(now())
+  content           String
+  publishedAt       DateTime @default(now())
   publishedByUserId String
 
   org Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
@@ -136,13 +136,13 @@ model LegalText {
 // submissions but keeps it on older ones.
 
 model ChecklistTemplate {
-  id          String   @id @default(cuid())
-  centreId    String
-  scope       String   // general | per_horse
-  name        String   // "Daily ops" | "Per-horse daily report"
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  centreId  String
+  scope     String // general | per_horse
+  name      String // "Daily ops" | "Per-horse daily report"
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   centre      Centre                @relation(fields: [centreId], references: [id], onDelete: Cascade)
   items       ChecklistItem[]
@@ -153,14 +153,14 @@ model ChecklistTemplate {
 }
 
 model ChecklistItem {
-  id          String   @id @default(cuid())
-  templateId  String
-  label       String
-  orderIndex  Int      @default(0)
-  section     String?  // optional grouping header ("Horse Health & Welfare")
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  templateId String
+  label      String
+  orderIndex Int      @default(0)
+  section    String? // optional grouping header ("Horse Health & Welfare")
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   template ChecklistTemplate         @relation(fields: [templateId], references: [id], onDelete: Cascade)
   results  ChecklistSubmissionItem[]
@@ -169,25 +169,25 @@ model ChecklistItem {
 }
 
 model ChecklistSubmission {
-  id                String   @id @default(cuid())
+  id                String    @id @default(cuid())
   templateId        String
   centreId          String
   submittedByUserId String
-  horseId           String?  // set for per_horse submissions
-  submittedAt       DateTime @default(now())
+  horseId           String? // set for per_horse submissions
+  submittedAt       DateTime  @default(now())
   generalNotes      String?
-  shift             String?  // morning | evening (daily coach checklist)
+  shift             String? // morning | evening (daily coach checklist)
   // Coach's truthful-submission declaration (the PDF's certify line). The
   // submitter is already recorded via submittedByUserId — this is the explicit
   // tick that the checks were really done.
-  declarationAgreed Boolean  @default(false)
+  declarationAgreed Boolean   @default(false)
   // Stable-manager countersign (the PDF's manager signature line).
   reviewedByUserId  String?
   reviewedAt        DateTime?
 
-  template ChecklistTemplate          @relation(fields: [templateId], references: [id])
-  centre   Centre                     @relation(fields: [centreId], references: [id])
-  horse    Horse?                     @relation(fields: [horseId], references: [id], onDelete: SetNull)
+  template ChecklistTemplate         @relation(fields: [templateId], references: [id])
+  centre   Centre                    @relation(fields: [centreId], references: [id])
+  horse    Horse?                    @relation(fields: [horseId], references: [id], onDelete: SetNull)
   items    ChecklistSubmissionItem[]
 
   @@index([centreId, submittedAt])
@@ -196,13 +196,13 @@ model ChecklistSubmission {
 }
 
 model ChecklistSubmissionItem {
-  id              String   @id @default(cuid())
-  submissionId    String
-  itemId          String
-  itemLabel       String   // snapshotted at submit time
-  itemSection     String?
-  status          String   // done | not_done | na
-  remarks         String?
+  id           String  @id @default(cuid())
+  submissionId String
+  itemId       String
+  itemLabel    String // snapshotted at submit time
+  itemSection  String?
+  status       String // done | not_done | na
+  remarks      String?
 
   submission ChecklistSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   item       ChecklistItem       @relation(fields: [itemId], references: [id])
@@ -215,16 +215,16 @@ model ChecklistSubmissionItem {
 // the cadence (every 8-12 weeks rotating drugs) and the drug choice are
 // different. Tracked alongside vaccines in the Medical Records tab.
 model DewormingSchedule {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   horseId       String
-  product       String   // "Ivermectin Paste" | "Praziquantel" etc.
+  product       String // "Ivermectin Paste" | "Praziquantel" etc.
   scheduledAt   DateTime
   givenAt       DateTime?
   givenByUserId String?
   nextDueAt     DateTime?
   notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   horse Horse @relation(fields: [horseId], references: [id], onDelete: Cascade)
 
@@ -237,7 +237,7 @@ model DewormingSchedule {
 model MonthlySkillCatalog {
   id         String   @id @default(cuid())
   centreId   String
-  yearMonth  String   // "2026-05"
+  yearMonth  String // "2026-05"
   skillLabel String
   orderIndex Int      @default(0)
   active     Boolean  @default(true)
@@ -277,23 +277,23 @@ model MonthlySkillMark {
 // for "what does this employee still owe back". When a Payroll module
 // lands we'll wire deductions to AdvanceRepayment rows.
 model EmployeeAdvance {
-  id              String   @id @default(cuid())
-  userId          String
-  centreId        String
-  amount          Float    // INR
-  reason          String   // "School fees", "medical", etc.
-  givenAt         DateTime @default(now())
-  givenByUserId   String
+  id            String   @id @default(cuid())
+  userId        String
+  centreId      String
+  amount        Float // INR
+  reason        String // "School fees", "medical", etc.
+  givenAt       DateTime @default(now())
+  givenByUserId String
   // Status flips to repaid when sum(repayments.amount) >= amount, or
   // written_off if HR cancels the balance.
-  status          String   @default("outstanding") // outstanding | partially_repaid | repaid | written_off
-  notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  status        String   @default("outstanding") // outstanding | partially_repaid | repaid | written_off
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  user        User    @relation("EmployeeAdvanceUser", fields: [userId], references: [id])
-  centre      Centre  @relation(fields: [centreId], references: [id])
-  repayments  AdvanceRepayment[]
+  user       User               @relation("EmployeeAdvanceUser", fields: [userId], references: [id])
+  centre     Centre             @relation(fields: [centreId], references: [id])
+  repayments AdvanceRepayment[]
 
   @@index([userId, status])
   @@index([centreId, status])
@@ -303,16 +303,23 @@ model EmployeeAdvance {
 // accountant when running payroll. Sum across repayments must not exceed
 // EmployeeAdvance.amount (enforced in the API, not the schema).
 model AdvanceRepayment {
-  id            String   @id @default(cuid())
-  advanceId     String
-  amount        Float
-  deductedAt    DateTime @default(now())
+  id               String   @id @default(cuid())
+  advanceId        String
+  amount           Float
+  deductedAt       DateTime @default(now())
   recordedByUserId String
-  notes         String?
+  notes            String?
+
+  // Which payroll run recovered this, so voiding that run can release exactly
+  // the right amounts back to the employee instead of guessing. Null for a
+  // repayment recorded by hand.
+  salaryPaymentId String?
+  salaryPayment   SalaryPayment? @relation(fields: [salaryPaymentId], references: [id], onDelete: SetNull)
 
   advance EmployeeAdvance @relation(fields: [advanceId], references: [id], onDelete: Cascade)
 
   @@index([advanceId, deductedAt])
+  @@index([salaryPaymentId])
 }
 
 // Employee separation — Admin / Super Admin sends a "you have been asked
@@ -325,25 +332,25 @@ model AdvanceRepayment {
 // the user's own reason. Each row is ONE event; if the admin issues
 // multiple notices, each gets its own row.
 model SeparationNotice {
-  id              String   @id @default(cuid())
-  userId          String   // the staff member separating
-  centreId        String?  // null for HQ-tier users
+  id             String    @id @default(cuid())
+  userId         String // the staff member separating
+  centreId       String? // null for HQ-tier users
   // termination = company-initiated; resignation_request = the user is
   // resigning and the admin is issuing the form for them to fill.
-  kind            String   // termination | resignation_request
+  kind           String // termination | resignation_request
   // What the admin wrote in the notice (reason / context).
-  noticeText      String
-  issuedByUserId  String
-  issuedAt        DateTime @default(now())
+  noticeText     String
+  issuedByUserId String
+  issuedAt       DateTime  @default(now())
   // User's response — what they write back. Blank until they submit.
-  responseText    String?
-  respondedAt     DateTime?
+  responseText   String?
+  respondedAt    DateTime?
   // Outcome — once the user submits, status flips. "withdrawn" is for
   // when the admin rescinds the notice before the user responds.
-  status          String   @default("pending") // pending | submitted | withdrawn
+  status         String    @default("pending") // pending | submitted | withdrawn
   // Effective date — when the separation takes effect (after notice period).
   // The admin sets this on issue; if blank, defaults to issuedAt + 30 days.
-  effectiveAt     DateTime?
+  effectiveAt    DateTime?
 
   user   User    @relation("SeparationUser", fields: [userId], references: [id])
   centre Centre? @relation(fields: [centreId], references: [id])
@@ -404,31 +411,31 @@ model PlatformPricing {
 // riders). One row is expected; we use a fixed id="default" so upserts
 // stay simple. Owner-portal-managed; read-only to tenants.
 model PlatformBillingConfig {
-  id              String   @id @default("default")
-  legalName       String   @default("Equiwings Technologies Pvt Ltd")
-  gstin           String?  // e.g. 29ABCDE1234F1Z5 — 15 chars
-  hsnCode         String?  @default("9984") // SAC for "Education services" (sample default)
-  panNo           String?  // standalone PAN for non-GST invoices
-  addressLine1    String?
-  addressLine2    String?
-  city            String?
-  state           String?
-  pincode         String?
-  country         String   @default("IN")
+  id             String   @id @default("default")
+  legalName      String   @default("Equiwings Technologies Pvt Ltd")
+  gstin          String? // e.g. 29ABCDE1234F1Z5 — 15 chars
+  hsnCode        String?  @default("9984") // SAC for "Education services" (sample default)
+  panNo          String? // standalone PAN for non-GST invoices
+  addressLine1   String?
+  addressLine2   String?
+  city           String?
+  state          String?
+  pincode        String?
+  country        String   @default("IN")
   // Billing email + support email shown on invoices and in welcome flows.
-  billingEmail    String?
-  supportEmail    String?
+  billingEmail   String?
+  supportEmail   String?
   // Invoice numbering. Prefix + zero-padded counter — bumped atomically
   // each time the platform issues an invoice. Format: EW-2026-000123.
-  invoicePrefix   String   @default("EW")
-  invoiceCounter  Int      @default(0)
+  invoicePrefix  String   @default("EW")
+  invoiceCounter Int      @default(0)
   // Default tax rate in basis points (1800 = 18%). India's standard GST
   // on SaaS services is 18% in 2026; legal entity / customer state may
   // require IGST vs CGST+SGST split — the actual invoice-time calc lives
   // in lib/saas-billing.ts and reads this default.
-  defaultTaxBps   Int      @default(1800)
-  updatedAt       DateTime @updatedAt
-  updatedBy       String?
+  defaultTaxBps  Int      @default(1800)
+  updatedAt      DateTime @updatedAt
+  updatedBy      String?
 }
 
 // Platform-to-tenant invoice. Generated when a tenant is charged for the
@@ -441,22 +448,22 @@ model PlatformBillingConfig {
 // each one shows up at the top of the dashboard until the user dismisses.
 // Targeted via planFilter / roleFilter (CSV; "*" or null = everyone).
 model Announcement {
-  id           String   @id @default(cuid())
-  title        String
-  body         String
+  id          String    @id @default(cuid())
+  title       String
+  body        String
   // Optional CTA link rendered as a button on the dashboard card.
-  ctaLabel     String?
-  ctaHref      String?
-  severity     String   @default("info") // info | success | warning | maintenance
-  planFilter   String?  // CSV of plan keys, e.g. "starter,pro" — null = all
-  roleFilter   String?  // CSV of tenant roles — null = all
-  publishedAt  DateTime?
-  expiresAt    DateTime?
-  createdBy    String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  ctaLabel    String?
+  ctaHref     String?
+  severity    String    @default("info") // info | success | warning | maintenance
+  planFilter  String? // CSV of plan keys, e.g. "starter,pro" — null = all
+  roleFilter  String? // CSV of tenant roles — null = all
+  publishedAt DateTime?
+  expiresAt   DateTime?
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  dismissals   AnnouncementDismissal[]
+  dismissals AnnouncementDismissal[]
 
   @@index([publishedAt, expiresAt])
 }
@@ -479,11 +486,11 @@ model AnnouncementDismissal {
 // widget; surfaces in the owner portal aggregate dashboard.
 model NpsResponse {
   id        String   @id @default(cuid())
-  userId    String?  // null when the user is no longer reachable (deletion sweep)
+  userId    String? // null when the user is no longer reachable (deletion sweep)
   orgId     String?
-  score     Int      // 0–10
+  score     Int // 0–10
   comment   String?
-  context   String?  // free-text page slug or feature name
+  context   String? // free-text page slug or feature name
   createdAt DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -493,32 +500,32 @@ model NpsResponse {
 }
 
 model SaasInvoice {
-  id              String   @id @default(cuid())
-  orgId           String
-  number          String   @unique // e.g. EW-2026-000123
-  periodStart     DateTime
-  periodEnd       DateTime
-  plan            String   // starter | pro | enterprise — snapshot
+  id           String    @id @default(cuid())
+  orgId        String
+  number       String    @unique // e.g. EW-2026-000123
+  periodStart  DateTime
+  periodEnd    DateTime
+  plan         String // starter | pro | enterprise — snapshot
   // Amounts in INR rupees. Subtotal + tax = total. We snapshot the line
   // text so a later plan rename doesn't retroactively mutate old invoices.
-  description     String
-  subtotal        Int
-  taxBps          Int      // 1800 = 18%
-  taxAmount       Int
-  total           Int
-  currency        String   @default("INR")
+  description  String
+  subtotal     Int
+  taxBps       Int // 1800 = 18%
+  taxAmount    Int
+  total        Int
+  currency     String    @default("INR")
   // Tenant-side billing snapshot at issue time (frozen).
-  billingName     String?
-  billingGstin    String?
-  billingEmail    String?
-  billingState    String?
+  billingName  String?
+  billingGstin String?
+  billingEmail String?
+  billingState String?
   // Status: due → paid (via Stripe/Razorpay) or void (manually cancelled).
-  status          String   @default("due") // due | paid | void
-  issuedAt        DateTime @default(now())
-  paidAt          DateTime?
+  status       String    @default("due") // due | paid | void
+  issuedAt     DateTime  @default(now())
+  paidAt       DateTime?
   // External payment ref — Razorpay subscription id or Stripe invoice id.
-  externalRef     String?
-  pdfUrl          String?
+  externalRef  String?
+  pdfUrl       String?
 
   org Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
@@ -530,29 +537,29 @@ model SaasInvoice {
 // separate session) from tenant Users to prevent any chance of cross-leak.
 // Roles: OWNER_ADMIN (full), OWNER_EDITOR (no billing / no suspend), OWNER_BILLING.
 model PlatformUser {
-  id           String   @id @default(cuid())
-  role         String   @default("OWNER_ADMIN") // OWNER_ADMIN | OWNER_EDITOR | OWNER_BILLING
-  name         String
-  email        String   @unique
-  passwordHash String
-  status       String   @default("active") // active | suspended
-  twoFactor    Boolean  @default(false)
+  id                    String   @id @default(cuid())
+  role                  String   @default("OWNER_ADMIN") // OWNER_ADMIN | OWNER_EDITOR | OWNER_BILLING
+  name                  String
+  email                 String   @unique
+  passwordHash          String
+  status                String   @default("active") // active | suspended
+  twoFactor             Boolean  @default(false)
   // Base32-encoded TOTP shared secret. Populated by /owner/account/security
   // enrollment; cleared when the user disables 2FA.
-  totpSecret   String?
+  totpSecret            String?
   // Replay protection — counter step of the last accepted TOTP code. A
   // second login attempt with the same code (within the ±1 step window)
   // is rejected because it can't strictly increase this number.
-  totpLastStep BigInt?
+  totpLastStep          BigInt?
   // SHA-256 hashes of one-shot recovery codes. JSON array. Used as a
   // fallback when the user has lost their authenticator. Each entry is
   // removed when consumed so no code is reusable.
   totpRecoveryCodesJson Json?
   // Same purpose as User.tokenVersion — bumped on password reset / 2FA
   // disable / "sign out everywhere" to invalidate any active owner session.
-  tokenVersion Int @default(0)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  tokenVersion          Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   auditLogs           PlatformAuditLog[]
   passwordResetTokens OwnerPasswordResetToken[]
@@ -578,14 +585,14 @@ model PlatformAuditLog {
 }
 
 model Centre {
-  id        String   @id @default(cuid())
-  orgId     String
-  name      String
-  slug      String   @unique
-  address   String?
-  gstNo     String?
-  managerId String?
-  settings  String?
+  id                    String   @id @default(cuid())
+  orgId                 String
+  name                  String
+  slug                  String   @unique
+  address               String?
+  gstNo                 String?
+  managerId             String?
+  settings              String?
   // PDF §3 — Emergency Contact Board. JSON array of
   // { label, number, type } so each centre lists its on-call vet, nearest
   // equine hospital, ambulance, electricity / water emergency, etc.
@@ -593,140 +600,140 @@ model Centre {
   // IANA timezone for centre-local day boundaries (workload-cap bucketing,
   // "today" windows). Server runs in UTC; without this, day-bucketing is off
   // by the local offset (IST = +05:30). Defaults to India.
-  timezone  String   @default("Asia/Kolkata")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  timezone              String   @default("Asia/Kolkata")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
-  org              Organisation     @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  users            User[]
-  riders           Rider[]
-  staff            Staff[]
-  batches          Batch[]
-  horses           Horse[]
-  medicines        Medicine[]
-  tasks            Task[]
-  facilities       Facility[]
-  feePlans         FeePlan[]
-  invoices         Invoice[]
-  certificates     Certificate[]
-  assessments      Assessment[]
-  progressLevels   ProgressLevel[]
-  exams            Exam[]
-  examSittings     ExamSitting[]
-  scoringTemplates ScoringTemplate[]
-  staffAttendances StaffAttendance[]
-  leaveRequests    LeaveRequest[]
-  equipmentStocks  EquipmentStock[]
-  events           Event[]
-  vendors          Vendor[]
-  expenses         Expense[]
-  lessons          Lesson[]
-  feedPlans        FeedPlan[]
-  vetVisits        VetVisit[]
-  requisitions     Requisition[]
-  shortLinks       ShortLink[]
-  gateEvents       StaffGateEvent[]
-  separationNotices SeparationNotice[]
-  employeeAdvances  EmployeeAdvance[]
-  checklistTemplates ChecklistTemplate[]
+  org                  Organisation          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  users                User[]
+  riders               Rider[]
+  staff                Staff[]
+  batches              Batch[]
+  horses               Horse[]
+  medicines            Medicine[]
+  tasks                Task[]
+  facilities           Facility[]
+  feePlans             FeePlan[]
+  invoices             Invoice[]
+  certificates         Certificate[]
+  assessments          Assessment[]
+  progressLevels       ProgressLevel[]
+  exams                Exam[]
+  examSittings         ExamSitting[]
+  scoringTemplates     ScoringTemplate[]
+  staffAttendances     StaffAttendance[]
+  leaveRequests        LeaveRequest[]
+  equipmentStocks      EquipmentStock[]
+  events               Event[]
+  vendors              Vendor[]
+  expenses             Expense[]
+  lessons              Lesson[]
+  feedPlans            FeedPlan[]
+  vetVisits            VetVisit[]
+  requisitions         Requisition[]
+  shortLinks           ShortLink[]
+  gateEvents           StaffGateEvent[]
+  separationNotices    SeparationNotice[]
+  employeeAdvances     EmployeeAdvance[]
+  checklistTemplates   ChecklistTemplate[]
   checklistSubmissions ChecklistSubmission[]
   monthlySkillCatalogs MonthlySkillCatalog[]
-  salaryPayments    SalaryPayment[]
-  salaryStructures  SalaryStructure[]
-  coachDailyUpdates CoachDailyUpdate[]
-  employeeOnboardings EmployeeOnboarding[]
-  venueTrips        VenueTrip[]
-  auditRuns         AuditRun[]
-  injuryLogs        InjuryLog[]
-  teams             Team[]
+  salaryPayments       SalaryPayment[]
+  salaryStructures     SalaryStructure[]
+  coachDailyUpdates    CoachDailyUpdate[]
+  employeeOnboardings  EmployeeOnboarding[]
+  venueTrips           VenueTrip[]
+  auditRuns            AuditRun[]
+  injuryLogs           InjuryLog[]
+  teams                Team[]
 }
 
 // Role is a string union enforced at the app layer (see lib/roles.ts).
 // SQLite doesn't support Prisma enums; on Postgres you can convert this to a native enum.
 
 model User {
-  id           String   @id @default(cuid())
-  centreId     String?  // null for HQ super admins
+  id                    String    @id @default(cuid())
+  centreId              String? // null for HQ super admins
   // Explicit org binding for HQ users whose centreId is null (SUPER_ADMIN).
   // Centre-scoped users derive their org via centre.orgId; the column is
   // optional so existing rows pre-backfill continue to work. New
   // SUPER_ADMIN provisioning sets this; tenancy checks (suspended-tenant
   // block, owner impersonation belongs-check) prefer it when present and
   // fall back to centre.orgId when absent.
-  orgId        String?
-  role         String   // Role (lib/roles.ts)
-  name         String
-  email        String   @unique
-  phone        String?
-  passwordHash String
-  status       String   @default("active") // active | suspended
-  twoFactor    Boolean  @default(false)
+  orgId                 String?
+  role                  String // Role (lib/roles.ts)
+  name                  String
+  email                 String    @unique
+  phone                 String?
+  passwordHash          String
+  status                String    @default("active") // active | suspended
+  twoFactor             Boolean   @default(false)
   // TOTP secret for tenant-side 2FA. Same shape as PlatformUser TOTP
   // (base32-encoded shared secret, last-step replay protection,
   // hashed recovery codes). Cleared when the user disables 2FA.
-  totpSecret               String?
-  totpLastStep             BigInt?
-  totpRecoveryCodesJson    Json?
+  totpSecret            String?
+  totpLastStep          BigInt?
+  totpRecoveryCodesJson Json?
   // DPDPA Section 12 right-to-erasure. When set, the user has formally
   // requested account deletion. A 30-day grace window lets the user
   // cancel — the sweep at lib/sweeps.ts:sweepDpdpaDeletions hard-deletes
   // after the grace expires. While in this state the session is killed
   // (getSession sees status≠active via the deletion gate) and the user
   // can sign in only to cancel the request.
-  deletionRequestedAt DateTime?
+  deletionRequestedAt   DateTime?
   // Email-verification gate. Null when a verified email is on file
   // (legacy rows + admin-created users with status="active" treated as
   // verified). Non-null = pending: the verifyEmailToken row is the active
   // proof and certain sensitive ops (impersonation target, password
   // reset trigger) are blocked until verification.
-  emailVerifiedAt DateTime?
+  emailVerifiedAt       DateTime?
   // Set true whenever HQ generates a temp password (create / reset). The
   // session middleware forces the user through /account/rotate on next sign-in
   // before reaching any other page. Cleared once they pick a new password.
-  mustChangePassword Boolean @default(false)
+  mustChangePassword    Boolean   @default(false)
   // Monotonic counter embedded in every JWT for this user. Incrementing
   // invalidates every active session for the user at once — used on
   // password reset / "sign out everywhere". Without this, a stolen JWT
   // cookie remains valid until expiry even after a forced password change.
-  tokenVersion Int @default(0)
+  tokenVersion          Int       @default(0)
   // Per-user notification delivery preferences. JSON shape:
   //   { inApp: true, email: true, sms: false, whatsapp: true,
   //     quietHoursStart: "22:00", quietHoursEnd: "07:00" }
   // Missing fields fall back to safe defaults in lib/notify-prefs.ts.
-  notifPrefsJson Json?
+  notifPrefsJson        Json?
   // In-app onboarding state — guided tour + (future) activation checklist.
   // JSON shape: { tourCompletedAt?: ISO string, checklist?: { [key]: bool },
   // dismissedTips?: string[] }. Null = brand-new user (first-run tour fires).
-  onboardingJson Json?
+  onboardingJson        Json?
   // Avatar URL, served from the upload route. Empty falls back to initials.
-  photoUrl     String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  photoUrl              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  centre   Centre?  @relation(fields: [centreId], references: [id])
-  org      Organisation? @relation("HqUsers", fields: [orgId], references: [id])
-  rider    Rider?
-  staff    Staff?
+  centre Centre?       @relation(fields: [centreId], references: [id])
+  org    Organisation? @relation("HqUsers", fields: [orgId], references: [id])
+  rider  Rider?
+  staff  Staff?
 
-  auditLogs        AuditLog[]
-  notifications    Notification[]
-  staffAttendances StaffAttendance[]
-  leaveRequests    LeaveRequest[]
-  parentLinks      ParentLink[]
-  passwordResetTokens PasswordResetToken[]
-  emailVerifyTokens EmailVerifyToken[]
+  auditLogs              AuditLog[]
+  notifications          Notification[]
+  staffAttendances       StaffAttendance[]
+  leaveRequests          LeaveRequest[]
+  parentLinks            ParentLink[]
+  passwordResetTokens    PasswordResetToken[]
+  emailVerifyTokens      EmailVerifyToken[]
   announcementDismissals AnnouncementDismissal[]
   npsResponses           NpsResponse[]
-  vetVisits        VetVisit[]
-  requisitions     Requisition[]
-  gateEvents       StaffGateEvent[] @relation("StaffGateStaff")
-  separationNotices SeparationNotice[] @relation("SeparationUser")
-  advances          EmployeeAdvance[]  @relation("EmployeeAdvanceUser")
-  salaryPayments    SalaryPayment[]    @relation("SalaryPaymentUser")
-  salaryStructures  SalaryStructure[]  @relation("SalaryStructureUser")
-  coachDailyUpdates CoachDailyUpdate[] @relation("CoachDailyUpdateCoach")
-  auditRuns         AuditRun[]         @relation("AuditRunInspector")
-  batchShiftDecisions BatchShiftRequest[] @relation("BatchShiftDecidedBy")
+  vetVisits              VetVisit[]
+  requisitions           Requisition[]
+  gateEvents             StaffGateEvent[]        @relation("StaffGateStaff")
+  separationNotices      SeparationNotice[]      @relation("SeparationUser")
+  advances               EmployeeAdvance[]       @relation("EmployeeAdvanceUser")
+  salaryPayments         SalaryPayment[]         @relation("SalaryPaymentUser")
+  salaryStructures       SalaryStructure[]       @relation("SalaryStructureUser")
+  coachDailyUpdates      CoachDailyUpdate[]      @relation("CoachDailyUpdateCoach")
+  auditRuns              AuditRun[]              @relation("AuditRunInspector")
+  batchShiftDecisions    BatchShiftRequest[]     @relation("BatchShiftDecidedBy")
 
   // Admin /users and /approvals filter by (centreId, status) — pending
   // approvals list, centre staff roster. Without this it's a scan-and-filter.
@@ -739,15 +746,15 @@ model User {
 // the email/SMS carries the plaintext. The unhashed value is never stored.
 // Single-use: tokenUsedAt flips on first redeem. 30-min expiry by default.
 model PasswordResetToken {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
   // SHA-256 of the plaintext token. We compare a fresh hash of the inbound
   // value against this column at redeem time.
-  tokenHash   String   @unique
+  tokenHash   String    @unique
   expiresAt   DateTime
   usedAt      DateTime?
   requestedIp String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -766,14 +773,14 @@ model PasswordResetToken {
 // guesses per issued code; issuing a new code invalidates any still-live one
 // for the same user so at most one code is guessable at a time.
 model EmailVerifyToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  email     String   // snapshot of the address being verified (in case it changes mid-flow)
+  email     String // snapshot of the address being verified (in case it changes mid-flow)
   codeHash  String
-  attempts  Int      @default(0)
+  attempts  Int       @default(0)
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -784,13 +791,13 @@ model EmailVerifyToken {
 // as a separate model so the FK constraint can cascade properly and the two
 // auth domains never share table state.
 model OwnerPasswordResetToken {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   ownerId     String
-  tokenHash   String   @unique
+  tokenHash   String    @unique
   expiresAt   DateTime
   usedAt      DateTime?
   requestedIp String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
   owner PlatformUser @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
@@ -802,74 +809,74 @@ model OwnerPasswordResetToken {
 // ──────────────────────────────────────────────────────────────────────────
 
 model Rider {
-  id             String    @id @default(cuid())
-  centreId       String
-  userId         String?   @unique
+  id                   String    @id @default(cuid())
+  centreId             String
+  userId               String?   @unique
   // Personal
-  firstName      String
-  lastName       String
-  photoUrl       String?
-  dob            DateTime
-  placeOfBirth   String?
-  nationality    String?
-  gender         String?   // male | female | other
-  maritalStatus  String?
+  firstName            String
+  lastName             String
+  photoUrl             String?
+  dob                  DateTime
+  placeOfBirth         String?
+  nationality          String?
+  gender               String? // male | female | other
+  maritalStatus        String?
   // ID. aadhaarNo holds the full number encrypted at rest (lib/pii.ts,
   // AES-256-GCM, "v1." prefix) once PII_ENCRYPTION_KEY is provisioned; legacy
   // rows stay plaintext until the backfill runs. The UI never reads aadhaarNo
   // directly — it shows aadhaarLast4 (masked) and only decrypts for the edit
   // form. aadhaarDocUrl is a storage path to the scan, not the number.
-  aadhaarNo      String?
-  aadhaarLast4   String?   // last 4 digits, for masked display without decrypting
-  aadhaarDocUrl  String?   // Aadhaar front side scan
-  aadhaarBackDocUrl String? // Aadhaar back side scan
+  aadhaarNo            String?
+  aadhaarLast4         String? // last 4 digits, for masked display without decrypting
+  aadhaarDocUrl        String? // Aadhaar front side scan
+  aadhaarBackDocUrl    String? // Aadhaar back side scan
   // Contact
-  mobile         String
-  email          String?
+  mobile               String
+  email                String?
   // Preferred language for parent communications (SMS / WhatsApp / email).
   // Two-letter ISO 639-1 code; lib/sms.ts looks up the matching template
   // body in lib/i18n-sms.ts. Defaults to "en" when null.
-  preferredLanguage String?  // en | hi | ta | te | bn | mr | gu | kn | ml | pa
-  school         String?   // PRD §4 Module 1 — name of the rider's school
-  education      String?
-  occupation     String?
+  preferredLanguage    String? // en | hi | ta | te | bn | mr | gu | kn | ml | pa
+  school               String? // PRD §4 Module 1 — name of the rider's school
+  education            String?
+  occupation           String?
   // Address
-  addressPresent   String?
-  addressPermanent String?
-  pincode          String?
+  addressPresent       String?
+  addressPermanent     String?
+  pincode              String?
   // Parents
-  fatherName     String?
-  fatherPhone    String?
-  motherName     String?
-  motherPhone    String?
+  fatherName           String?
+  fatherPhone          String?
+  motherName           String?
+  motherPhone          String?
   // Emergency
-  emergencyName  String?
-  emergencyPhone String?
+  emergencyName        String?
+  emergencyPhone       String?
   // Anthropometrics — latest measurement only. Historical entries live in
   // BmiMeasurement so a rider's growth trend is preserved.
-  heightCm       Float?
-  weightKg       Float?
-  bmi            Float?
-  bmiMeasuredAt  DateTime?
+  heightCm             Float?
+  weightKg             Float?
+  bmi                  Float?
+  bmiMeasuredAt        DateTime?
   // Medical
-  medicalNotes   String?
-  allergies      String?
+  medicalNotes         String?
+  allergies            String?
   // Riding profile
-  currentLevel   String?   // links logically to ProgressLevel.name
-  joiningDate    DateTime  @default(now())
-  batchId        String?
-  coachId        String?
+  currentLevel         String? // links logically to ProgressLevel.name
+  joiningDate          DateTime  @default(now())
+  batchId              String?
+  coachId              String?
   // State / national rider IDs. Optional — only riders competing at state
   // or above need one. Tracked at the rider level (one per rider) rather
   // than via Accreditation (which is per-card / per-membership).
-  stateRiderId   String?
-  efiRiderId     String?
+  stateRiderId         String?
+  efiRiderId           String?
   // Indemnity (audit trail)
-  indemnitySignedAt   DateTime?
-  indemnitySignerIp   String?
-  indemnitySignerUa   String?
-  indemnityDocUrl     String?
-  indemnityVersion    String?
+  indemnitySignedAt    DateTime?
+  indemnitySignerIp    String?
+  indemnitySignerUa    String?
+  indemnityDocUrl      String?
+  indemnityVersion     String?
   // Content-of-consent for the indemnity step — what was typed + which
   // versioned texts were shown at sign time. Pairs with the columns above
   // (which capture WHEN/FROM-WHERE the signature happened). Schema:
@@ -879,10 +886,10 @@ model Rider {
   // Click-to-accept tracking for T&C + Rules. Version is the LegalText
   // row's `version` that was live when the rider accepted; lets HQ swap
   // the published text later without re-prompting old riders.
-  tcsAcceptedAt       DateTime?
-  tcsVersion          String?
-  rulesAcceptedAt     DateTime?
-  rulesVersion        String?
+  tcsAcceptedAt        DateTime?
+  tcsVersion           String?
+  rulesAcceptedAt      DateTime?
+  rulesVersion         String?
   // DPDPA Section 9 — verifiable parental consent for minors. Captured at
   // registration when dob makes the rider < 18. Stored together as one
   // JSON blob so the audit trail keeps the exact wording the parent
@@ -890,33 +897,33 @@ model Rider {
   //   { signedAt, parentName, parentRelation, parentPhone, ip, ua,
   //     consentText: "...", consentVersion: "v1" }
   // Null for adult riders or pre-DPDPA records.
-  parentalConsentJson Json?
+  parentalConsentJson  Json?
   // Status
-  status         String    @default("pending_payment") // pending_approval | pending_payment | active | suspended | cancelled | rejected
-  registrationPaid Boolean @default(false)
+  status               String    @default("pending_payment") // pending_approval | pending_payment | active | suspended | cancelled | rejected
+  registrationPaid     Boolean   @default(false)
   // True when the rider came in via the public self-enrol link (vs. created
   // by staff). Self-enrolled riders land in status="pending_approval" and a
   // School Admin / Centre Manager must approve before they progress to
   // pending_payment. See app/api/onboarding + app/(admin)/enrolments.
-  selfEnrolled   Boolean   @default(false)
-  approvedByUserId String?
-  approvedAt     DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  selfEnrolled         Boolean   @default(false)
+  approvedByUserId     String?
+  approvedAt           DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  centre   Centre @relation(fields: [centreId], references: [id])
-  user     User?  @relation(fields: [userId], references: [id])
-  batch    Batch? @relation(fields: [batchId], references: [id])
-  attendances Attendance[]
-  invoices    Invoice[]
-  skillStatus RiderSkillStatus[]
-  monthlySkillMarks MonthlySkillMark[]
-  certificates Certificate[]
-  horseAllocations HorseAllocation[]
-  exams       Exam[]
-  parentLinks ParentLink[]
+  centre             Centre              @relation(fields: [centreId], references: [id])
+  user               User?               @relation(fields: [userId], references: [id])
+  batch              Batch?              @relation(fields: [batchId], references: [id])
+  attendances        Attendance[]
+  invoices           Invoice[]
+  skillStatus        RiderSkillStatus[]
+  monthlySkillMarks  MonthlySkillMark[]
+  certificates       Certificate[]
+  horseAllocations   HorseAllocation[]
+  exams              Exam[]
+  parentLinks        ParentLink[]
   eventRegistrations EventRegistration[]
-  accreditations Accreditation[]
+  accreditations     Accreditation[]
   batchShiftRequests BatchShiftRequest[]
 
   @@index([centreId])
@@ -930,20 +937,20 @@ model Rider {
 }
 
 model Batch {
-  id        String  @id @default(cuid())
+  id        String   @id @default(cuid())
   centreId  String
   name      String
-  dayOfWeek String  // CSV: "Mon,Wed,Fri"
-  startTime String  // "06:00"
-  endTime   String  // "07:00"
+  dayOfWeek String // CSV: "Mon,Wed,Fri"
+  startTime String // "06:00"
+  endTime   String // "07:00"
   coachId   String?
   level     String?
   createdAt DateTime @default(now())
 
-  centre   Centre  @relation(fields: [centreId], references: [id])
-  riders   Rider[]
-  attendances Attendance[]
-  lessons  Lesson[]
+  centre            Centre              @relation(fields: [centreId], references: [id])
+  riders            Rider[]
+  attendances       Attendance[]
+  lessons           Lesson[]
   shiftRequestsFrom BatchShiftRequest[] @relation("BatchShiftFrom")
   shiftRequestsTo   BatchShiftRequest[] @relation("BatchShiftTo")
 
@@ -951,14 +958,14 @@ model Batch {
 }
 
 model Attendance {
-  id        String   @id @default(cuid())
-  riderId   String
-  batchId   String
-  date      DateTime
-  status    String   // present | absent | late | excused
-  reason    String?
-  markedBy  String?
-  markedAt  DateTime @default(now())
+  id       String   @id @default(cuid())
+  riderId  String
+  batchId  String
+  date     DateTime
+  status   String // present | absent | late | excused
+  reason   String?
+  markedBy String?
+  markedAt DateTime @default(now())
 
   rider Rider @relation(fields: [riderId], references: [id], onDelete: Cascade)
   batch Batch @relation(fields: [batchId], references: [id])
@@ -977,22 +984,22 @@ model Attendance {
 // the session complete, and bind per-rider horse allocations to the
 // session — none of which the static Batch row can model.
 model Lesson {
-  id        String   @id @default(cuid())
-  centreId  String
-  batchId   String?  // null when the lesson was created ad-hoc (make-up, clinic)
-  date      DateTime // the date+start time of the session
-  endAt     DateTime
-  coachId   String?  // overrides batch.coachId for this one session
-  status    String   @default("scheduled") // scheduled | completed | cancelled | rescheduled
-  notes     String?
+  id              String   @id @default(cuid())
+  centreId        String
+  batchId         String? // null when the lesson was created ad-hoc (make-up, clinic)
+  date            DateTime // the date+start time of the session
+  endAt           DateTime
+  coachId         String? // overrides batch.coachId for this one session
+  status          String   @default("scheduled") // scheduled | completed | cancelled | rescheduled
+  notes           String?
   // When status=rescheduled, points at the make-up Lesson that replaces it.
   rescheduledToId String?
-  createdBy String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdBy       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  centre Centre @relation(fields: [centreId], references: [id])
-  batch  Batch? @relation(fields: [batchId], references: [id])
+  centre      Centre            @relation(fields: [centreId], references: [id])
+  batch       Batch?            @relation(fields: [batchId], references: [id])
   allocations HorseAllocation[]
 
   @@index([centreId, date])
@@ -1004,32 +1011,32 @@ model Lesson {
 // ──────────────────────────────────────────────────────────────────────────
 
 model ProgressLevel {
-  id        String @id @default(cuid())
-  centreId  String
-  name      String
-  order     Int
-  centre    Centre @relation(fields: [centreId], references: [id])
-  skills    Skill[]
+  id          String       @id @default(cuid())
+  centreId    String
+  name        String
+  order       Int
+  centre      Centre       @relation(fields: [centreId], references: [id])
+  skills      Skill[]
   assessments Assessment[]
 
   @@unique([centreId, name])
 }
 
 model Skill {
-  id          String @id @default(cuid())
+  id          String  @id @default(cuid())
   levelId     String
-  discipline  String  // normal | gymkhana | dressage | tent_pegging | endurance | jumping
+  discipline  String // normal | gymkhana | dressage | tent_pegging | endurance | jumping
   name        String
   description String?
 
-  level   ProgressLevel @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  level       ProgressLevel      @relation(fields: [levelId], references: [id], onDelete: Cascade)
   riderStatus RiderSkillStatus[]
 }
 
 model RiderSkillStatus {
   riderId    String
   skillId    String
-  status     String   // not_started | in_progress | mastered
+  status     String // not_started | in_progress | mastered
   coachNotes String?
   videoUrl   String?
   updatedAt  DateTime @updatedAt
@@ -1044,7 +1051,7 @@ model Assessment {
   id          String   @id @default(cuid())
   centreId    String
   levelId     String?
-  type        String   // theory | practical | oral | stable_mgmt
+  type        String // theory | practical | oral | stable_mgmt
   scheduledAt DateTime
   examinerId  String?
   horseId     String?
@@ -1060,23 +1067,23 @@ model Assessment {
 // ──────────────────────────────────────────────────────────────────────────
 
 model Staff {
-  id           String   @id @default(cuid())
-  centreId     String
-  userId       String   @unique
-  role         String   // Role (lib/roles.ts)
-  joiningDate  DateTime @default(now())
-  kycDocsJson  Json?
-  salaryBand   String?
-  status       String   @default("active")
+  id          String   @id @default(cuid())
+  centreId    String
+  userId      String   @unique
+  role        String // Role (lib/roles.ts)
+  joiningDate DateTime @default(now())
+  kycDocsJson Json?
+  salaryBand  String?
+  status      String   @default("active")
 
   // KYC + clearance documents. Stored as upload URLs (lib/storage.ts).
   // Aadhaar is the Indian national ID — captured for every staff hire.
   // Police verification is a govt-issued clearance certificate; mandatory
   // before letting any staff member work with minors at the club.
-  aadhaarUrl              String?  // Aadhaar front side
-  aadhaarBackUrl          String?  // Aadhaar back side
-  policeVerificationUrl   String?
-  policeVerifiedAt        DateTime?
+  aadhaarUrl            String? // Aadhaar front side
+  aadhaarBackUrl        String? // Aadhaar back side
+  policeVerificationUrl String?
+  policeVerifiedAt      DateTime?
 
   centre Centre @relation(fields: [centreId], references: [id])
   user   User   @relation(fields: [userId], references: [id])
@@ -1090,39 +1097,39 @@ model Staff {
 // and submits. Admin reviews and approves → creates the User + Staff records.
 // Mirrors the rider self-enrolment + external-entry-token patterns.
 model EmployeeOnboarding {
-  id        String   @id @default(cuid())
-  centreId  String
-  tokenHash String   @unique // SHA-256 of the link token; used to validate the URL
+  id         String   @id @default(cuid())
+  centreId   String
+  tokenHash  String   @unique // SHA-256 of the link token; used to validate the URL
   // Plaintext token kept so the admin can re-copy / re-share the link later
   // (Copy + WhatsApp from the list). Low-sensitivity: it only opens a public
   // registration form. Nulled once the form is submitted.
   shareToken String?
-  expiresAt DateTime
-  status    String   @default("draft") // draft | submitted | approved | rejected
+  expiresAt  DateTime
+  status     String   @default("draft") // draft | submitted | approved | rejected
 
   // Personal
-  fullName         String?
-  fatherName       String?
-  emergencyContact String?
-  dob              DateTime?
-  permanentAddress String?
-  email            String?
-  maritalStatus    String?
-  aadhaarNumber    String?
-  panNumber        String?
-  bankAccountName   String?
-  bankAccountNumber String?
-  bankIfsc          String?
-  bankName          String?
-  prevEmployment   String?
-  agreedSalary     Float?
-  foodCharges      Float?
-  otherAllowances  String?
-  pfEsicConsent    Boolean  @default(false)
+  fullName                  String?
+  fatherName                String?
+  emergencyContact          String?
+  dob                       DateTime?
+  permanentAddress          String?
+  email                     String?
+  maritalStatus             String?
+  aadhaarNumber             String?
+  panNumber                 String?
+  bankAccountName           String?
+  bankAccountNumber         String?
+  bankIfsc                  String?
+  bankName                  String?
+  prevEmployment            String?
+  agreedSalary              Float?
+  foodCharges               Float?
+  otherAllowances           String?
+  pfEsicConsent             Boolean   @default(false)
   policeVerificationDetails String?
-  employmentType   String?  // full_time | trainee_stipend
-  dateOfJoining    DateTime?
-  references       String?
+  employmentType            String? // full_time | trainee_stipend
+  dateOfJoining             DateTime?
+  references                String?
 
   // Uploaded document URLs (lib/storage.ts)
   photoUrl              String?
@@ -1140,21 +1147,21 @@ model EmployeeOnboarding {
   declarationName     String? // typed full name = legal e-acceptance
 
   // Lifecycle
-  createdByUserId  String?
-  intendedRole     String?  // role chosen at link generation; pre-fills approval
-  submittedAt      DateTime?
-  reviewedByUserId String?
-  reviewNotes      String?
-  approvedAt       DateTime?
-  createdStaffId   String?
-  createdUserId    String?  // the login created on approval — for "my documents"
+  createdByUserId   String?
+  intendedRole      String? // role chosen at link generation; pre-fills approval
+  submittedAt       DateTime?
+  reviewedByUserId  String?
+  reviewNotes       String?
+  approvedAt        DateTime?
+  createdStaffId    String?
+  createdUserId     String? // the login created on approval — for "my documents"
   // Post-approval completion of any blank fields: 15-day deadline, waived item
   // keys (admin/super-admin can waive what doesn't apply), overdue-notify dedup.
   documentsDueAt    DateTime?
-  waivedItemsJson   Json?    // string[] of item keys waived by an admin
+  waivedItemsJson   Json? // string[] of item keys waived by an admin
   overdueNotifiedAt DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   centre Centre @relation(fields: [centreId], references: [id], onDelete: Cascade)
 
@@ -1167,52 +1174,52 @@ model EmployeeOnboarding {
 // ──────────────────────────────────────────────────────────────────────────
 
 model Horse {
-  id          String   @id @default(cuid())
-  centreId    String
-  name        String
-  breed       String?
-  sex         String?
+  id                 String    @id @default(cuid())
+  centreId           String
+  name               String
+  breed              String?
+  sex                String?
   // Date of birth — the form collects this and age is derived from it for
   // display. `ageYears` is retained as a fallback for horses entered before
   // DOB capture (and for CSV imports that only carry an age).
-  dob         DateTime?
-  ageYears    Int?
-  heightIn    Float?  // height in INCHES (pre-2026-07 this column held hands; migration converted)
-  microchip   String?
+  dob                DateTime?
+  ageYears           Int?
+  heightIn           Float? // height in INCHES (pre-2026-07 this column held hands; migration converted)
+  microchip          String?
   // Equestrian Federation of India horse ID. Optional — only horses
   // competing at national or above need one. Different from microchip
   // (which is the implanted RFID).
-  efiHorseId  String?
+  efiHorseId         String?
   // Free-text "home club" — useful for visiting / privately-owned horses
   // that belong to another club but are stabled here temporarily. Distinct
   // from `centreId` which is the operational owner inside Equiwings.
-  homeClub    String?
-  ownership   String?  // club | private
+  homeClub           String?
+  ownership          String? // club | private
   // PDF §4 "Insurance Records" — structured fields rather than just a URL.
   // Expiry is surfaced via lib/sweeps.ts so the manager gets a heads-up
   // before the policy lapses.
-  insuranceDocUrl     String?
-  insurerName         String?
-  insurancePolicyNo   String?
-  insurancePremium    Float?   // INR
-  insuranceValidFrom  DateTime?
-  insuranceValidTo    DateTime?
-  stableNo    String?
-  diet        String?
-  status      String   @default("active") // active | rest | retired
-  createdAt   DateTime @default(now())
+  insuranceDocUrl    String?
+  insurerName        String?
+  insurancePolicyNo  String?
+  insurancePremium   Float? // INR
+  insuranceValidFrom DateTime?
+  insuranceValidTo   DateTime?
+  stableNo           String?
+  diet               String?
+  status             String    @default("active") // active | rest | retired
+  createdAt          DateTime  @default(now())
 
-  centre      Centre @relation(fields: [centreId], references: [id])
-  allocations HorseAllocation[]
-  usages      MedicineUsage[]
-  farrierVisits      FarrierVisit[]
-  healthLogs         HorseHealthLog[]
-  injuries           InjuryLog[]
+  centre               Centre                @relation(fields: [centreId], references: [id])
+  allocations          HorseAllocation[]
+  usages               MedicineUsage[]
+  farrierVisits        FarrierVisit[]
+  healthLogs           HorseHealthLog[]
+  injuries             InjuryLog[]
   vaccinationSchedules VaccinationSchedule[]
   feedPlan             FeedPlan?
   vetVisits            VetVisit[]
-  tests              HorseTest[]
-  dewormingSchedules DewormingSchedule[]
+  tests                HorseTest[]
+  dewormingSchedules   DewormingSchedule[]
   checklistSubmissions ChecklistSubmission[]
 
   @@index([centreId])
@@ -1226,19 +1233,19 @@ model Horse {
 // Distinct from VetVisit prescriptions: a test is a one-time procedure
 // with a pass/fail outcome, often run by an external lab.
 model HorseTest {
-  id          String   @id @default(cuid())
-  horseId     String
+  id               String    @id @default(cuid())
+  horseId          String
   // coggins | glanders | urination
-  testType    String
+  testType         String
   // negative | positive | pending | inconclusive
-  result      String   @default("pending")
-  testedAt    DateTime @default(now())
+  result           String    @default("pending")
+  testedAt         DateTime  @default(now())
   // Compliance tests (Coggins / Glanders) repeat on a cadence; this is
   // when the next test is due. Null for one-off diagnostics like urination.
-  nextDueAt   DateTime?
-  labName     String?
-  reportUrl   String?
-  notes       String?
+  nextDueAt        DateTime?
+  labName          String?
+  reportUrl        String?
+  notes            String?
   recordedByUserId String
 
   horse Horse @relation(fields: [horseId], references: [id], onDelete: Cascade)
@@ -1253,16 +1260,16 @@ model HorseTest {
 // Level 1", "Stable Safety Refresher". Each Course has enrolments (which staff
 // signed up) and certifications (who passed, when, valid-until).
 model Course {
-  id           String   @id @default(cuid())
-  centreId     String
-  title        String
-  description  String?
-  targetRoles  String?  // CSV of Role keys this course is aimed at
-  durationHrs  Int?
-  passingMark  Int?     // optional pct
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(cuid())
+  centreId    String
+  title       String
+  description String?
+  targetRoles String? // CSV of Role keys this course is aimed at
+  durationHrs Int?
+  passingMark Int? // optional pct
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   enrolments     CourseEnrolment[]
   certifications StaffCertification[]
@@ -1271,13 +1278,13 @@ model Course {
 }
 
 model CourseEnrolment {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   courseId   String
-  userId     String   // staff user
-  startedAt  DateTime @default(now())
+  userId     String // staff user
+  startedAt  DateTime  @default(now())
   finishedAt DateTime?
-  status     String   @default("enrolled") // enrolled | in_progress | completed | dropped
-  finalMark  Int?     // 0–100
+  status     String    @default("enrolled") // enrolled | in_progress | completed | dropped
+  finalMark  Int? // 0–100
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
@@ -1289,16 +1296,16 @@ model CourseEnrolment {
 // also record external certifications (BHS / EFI / EQ-IND etc) by leaving
 // courseId null and filling in issuer fields.
 model StaffCertification {
-  id           String   @id @default(cuid())
-  centreId     String
-  userId       String
-  courseId     String?
-  title        String
-  issuer       String?  // external issuer name when courseId is null
-  serialNo     String?  @unique
-  issuedAt     DateTime @default(now())
-  validUntil   DateTime?
-  fileUrl      String?
+  id         String    @id @default(cuid())
+  centreId   String
+  userId     String
+  courseId   String?
+  title      String
+  issuer     String? // external issuer name when courseId is null
+  serialNo   String?   @unique
+  issuedAt   DateTime  @default(now())
+  validUntil DateTime?
+  fileUrl    String?
 
   course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
 
@@ -1312,18 +1319,18 @@ model StaffCertification {
 // A facility (indoor arena, outdoor arena, classroom) booked for a window.
 // Insert enforces no overlap per (facilityId × [startAt, endAt)).
 model FacilityBooking {
-  id          String   @id @default(cuid())
-  facilityId  String
-  centreId    String
-  purpose     String   // exam | competition | lesson | maintenance | other
-  refType     String?  // exam | competition | task | other (free-text)
-  refId       String?  // foreign key into the referencing module
-  title       String
-  startAt     DateTime
-  endAt       DateTime
-  createdBy   String?
-  notes       String?
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  facilityId String
+  centreId   String
+  purpose    String // exam | competition | lesson | maintenance | other
+  refType    String? // exam | competition | task | other (free-text)
+  refId      String? // foreign key into the referencing module
+  title      String
+  startAt    DateTime
+  endAt      DateTime
+  createdBy  String?
+  notes      String?
+  createdAt  DateTime @default(now())
 
   @@index([facilityId, startAt])
   @@index([centreId, startAt])
@@ -1336,19 +1343,19 @@ model FacilityBooking {
 // issuances + (future) PO requests, but the entityType / entityId free-text
 // pattern means we can hang it off anything without bloating Asset.
 model ApprovalRequest {
-  id            String   @id @default(cuid())
-  centreId      String
-  entityType    String   // asset_issuance | po_request | event_expense | ...
-  entityId      String   // free-text id into the originating table
-  title         String
-  body          String?
-  requestedBy   String   // user.id
-  status        String   @default("pending") // pending | approved | rejected | cancelled
-  reviewedBy    String?
-  reviewedAt    DateTime?
-  reviewNotes   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String    @id @default(cuid())
+  centreId    String
+  entityType  String // asset_issuance | po_request | event_expense | ...
+  entityId    String // free-text id into the originating table
+  title       String
+  body        String?
+  requestedBy String // user.id
+  status      String    @default("pending") // pending | approved | rejected | cancelled
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  reviewNotes String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([centreId, status])
   @@index([entityType, entityId])
@@ -1363,20 +1370,20 @@ model ApprovalRequest {
 // gauze, vet wrap, cotton, disposable gloves, bandage scissors — usage drops
 // the count, reorder threshold triggers a sweep notification.
 model Consumable {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   centreId         String
-  name             String   // "Sterile gauze pad — 10x10cm"
-  category         String   // bandage | dressing | hygiene | tool | other
-  unit             String   // "pad" | "roll" | "bottle" | "pack" | "pair" | "each"
-  qty              Int      @default(0)
-  reorderThreshold Int      @default(10)
+  name             String // "Sterile gauze pad — 10x10cm"
+  category         String // bandage | dressing | hygiene | tool | other
+  unit             String // "pad" | "roll" | "bottle" | "pack" | "pair" | "each"
+  qty              Int       @default(0)
+  reorderThreshold Int       @default(10)
   supplier         String?
   storageLocation  String?
   notes            String?
-  active           Boolean  @default(true) // soft-delete: hidden from lists when false
+  active           Boolean   @default(true) // soft-delete: hidden from lists when false
   deletedAt        DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   movements ConsumableMovement[]
 
@@ -1389,9 +1396,9 @@ model Consumable {
 model ConsumableMovement {
   id           String   @id @default(cuid())
   consumableId String
-  direction    String   // in | out | adjust
-  qty          Int      // positive integer; direction encodes sign
-  reason       String?  // "first-aid kit refill", "stock count correction"
+  direction    String // in | out | adjust
+  qty          Int // positive integer; direction encodes sign
+  reason       String? // "first-aid kit refill", "stock count correction"
   byUserId     String?
   at           DateTime @default(now())
 
@@ -1410,31 +1417,28 @@ model ConsumableMovement {
 // "Draw of lots" is handled inline: a single Competition-level boolean
 // (`drawCompleted`) plus per-entry `drawOrder`. No separate table needed.
 
-
-
-
 // PDF §4 — Farrier Schedule. One row per visit (past or planned). Combined
 // with the FARRIER role + farriery feature flag this completes the spec.
 // `scheduledAt` is when the visit is *planned*; `completedAt` records when it
 // actually happened. `farrierName` is denormalised so historical visits
 // survive a farrier leaving the club.
 model FarrierVisit {
-  id           String   @id @default(cuid())
-  centreId     String
-  horseId      String
-  farrierName  String
+  id            String    @id @default(cuid())
+  centreId      String
+  horseId       String
+  farrierName   String
   farrierUserId String? // null for external farriers we don't onboard as users
-  scheduledAt  DateTime
-  completedAt  DateTime?
-  workType     String   // trim | shoe_full | shoe_partial | reset | other
-  hoofNotes    String?  // e.g. "left fore — slight crack, sealed"
-  cost         Float?
-  nextDueAt    DateTime? // computed at completion (typically +6 weeks)
-  status       String   @default("scheduled") // scheduled | completed | skipped | cancelled
-  createdBy    String?
-  createdAt    DateTime @default(now())
+  scheduledAt   DateTime
+  completedAt   DateTime?
+  workType      String // trim | shoe_full | shoe_partial | reset | other
+  hoofNotes     String? // e.g. "left fore — slight crack, sealed"
+  cost          Float?
+  nextDueAt     DateTime? // computed at completion (typically +6 weeks)
+  status        String    @default("scheduled") // scheduled | completed | skipped | cancelled
+  createdBy     String?
+  createdAt     DateTime  @default(now())
 
-  horse  Horse  @relation(fields: [horseId], references: [id], onDelete: Cascade)
+  horse Horse @relation(fields: [horseId], references: [id], onDelete: Cascade)
 
   @@index([centreId, scheduledAt])
   @@index([horseId, scheduledAt])
@@ -1446,20 +1450,20 @@ model FarrierVisit {
 // spot trends; we store one row per check-in (a horse may be checked AM/PM
 // when ill so we don't dedup by date).
 model HorseHealthLog {
-  id            String   @id @default(cuid())
-  horseId       String
-  centreId      String
-  recordedAt    DateTime @default(now())
-  recordedBy    String?  // user.id
-  tempC         Float?   // normal range 37.2 – 38.3
-  heartRateBpm  Int?     // normal 28 – 44 at rest
-  respirationRpm Int?    // normal 8 – 16 at rest
-  weightKg      Float?
-  appetite      String?  // good | reduced | none
-  manure        String?  // normal | dry | loose | watery | none
-  notes         String?
+  id             String   @id @default(cuid())
+  horseId        String
+  centreId       String
+  recordedAt     DateTime @default(now())
+  recordedBy     String? // user.id
+  tempC          Float? // normal range 37.2 – 38.3
+  heartRateBpm   Int? // normal 28 – 44 at rest
+  respirationRpm Int? // normal 8 – 16 at rest
+  weightKg       Float?
+  appetite       String? // good | reduced | none
+  manure         String? // normal | dry | loose | watery | none
+  notes          String?
 
-  horse  Horse  @relation(fields: [horseId], references: [id], onDelete: Cascade)
+  horse Horse @relation(fields: [horseId], references: [id], onDelete: Cascade)
 
   @@index([horseId, recordedAt])
   @@index([centreId, recordedAt])
@@ -1469,26 +1473,26 @@ model HorseHealthLog {
 // recovery. `subjectType` is "horse" or "rider" so we don't need two parallel
 // models; subjectId points at the right table by convention.
 model InjuryLog {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   centreId      String
-  subjectType   String   // horse | rider
+  subjectType   String // horse | rider
   subjectId     String
   occurredAt    DateTime
-  location      String?  // e.g. "left fore fetlock"
-  severity      String   @default("minor") // minor | moderate | severe
+  location      String? // e.g. "left fore fetlock"
+  severity      String    @default("minor") // minor | moderate | severe
   cause         String?
   initialNotes  String
-  treatmentJson Json?  // serialised array of { at, by, treatment, notes }
+  treatmentJson Json? // serialised array of { at, by, treatment, notes }
   recoveredAt   DateTime?
-  status        String   @default("active") // active | recovering | recovered | chronic
+  status        String    @default("active") // active | recovering | recovered | chronic
   reportedBy    String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   // centre-owned (like every other per-centre table) so tenantWhere()'s
   // `centre: { orgId }` org-scope filter is valid on this model.
-  centre Centre @relation(fields: [centreId], references: [id])
-  horse Horse? @relation(fields: [horseSubjectId], references: [id], onDelete: SetNull)
+  centre         Centre  @relation(fields: [centreId], references: [id])
+  horse          Horse?  @relation(fields: [horseSubjectId], references: [id], onDelete: SetNull)
   // Prisma needs an explicit relation column for the optional horse link; we
   // mirror subjectId into horseSubjectId when subjectType="horse" so we can
   // surface "all injuries for this horse" with a fast join.
@@ -1503,18 +1507,18 @@ model InjuryLog {
 // type). When an actual dose is administered via MedicineUsage, the sweep
 // re-stamps `lastGivenAt` and recomputes `nextDueAt = lastGivenAt + intervalDays`.
 model VaccinationSchedule {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   centreId     String
   horseId      String
-  vaccineKey   String   // tetanus | ehv | influenza | rabies | dewormer | custom
-  vaccineLabel String   // free-text label, copied from Medicine.name when known
-  intervalDays Int      // 365 for tetanus annual, 180 for biannual, etc.
+  vaccineKey   String // tetanus | ehv | influenza | rabies | dewormer | custom
+  vaccineLabel String // free-text label, copied from Medicine.name when known
+  intervalDays Int // 365 for tetanus annual, 180 for biannual, etc.
   firstDueAt   DateTime?
   lastGivenAt  DateTime?
   nextDueAt    DateTime
   notes        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   horse Horse @relation(fields: [horseId], references: [id], onDelete: Cascade)
 
@@ -1523,19 +1527,19 @@ model VaccinationSchedule {
 }
 
 model HorseAllocation {
-  id         String   @id @default(cuid())
-  horseId    String
-  riderId    String?
-  purpose    String   // lesson | exam | competition
+  id        String   @id @default(cuid())
+  horseId   String
+  riderId   String?
+  purpose   String // lesson | exam | competition
   // When purpose=lesson and the allocation is for a concrete session,
   // this points at the Lesson row. Older allocations created before the
   // Lesson model existed leave it null and use startAt/endAt directly.
-  lessonId   String?
-  startAt    DateTime
-  endAt      DateTime
-  notes      String?
-  createdBy  String?
-  createdAt  DateTime @default(now())
+  lessonId  String?
+  startAt   DateTime
+  endAt     DateTime
+  notes     String?
+  createdBy String?
+  createdAt DateTime @default(now())
 
   horse  Horse   @relation(fields: [horseId], references: [id])
   rider  Rider?  @relation(fields: [riderId], references: [id])
@@ -1603,22 +1607,22 @@ model Facility {
 // ──────────────────────────────────────────────────────────────────────────
 
 model Medicine {
-  id              String   @id @default(cuid())
-  centreId        String
-  name            String
-  generic         String?
-  category        String   // nsaid | antibiotic | wound | supplement | vaccine | dewormer
-  schedule        String?  // schedule_h | schedule_x | null
-  batchNo         String
-  mfgDate         DateTime?
-  expDate         DateTime
-  qty             Int      @default(0)
-  reorderThreshold Int     @default(5)
-  supplier        String?
-  storageLocation String?
-  coldChain       Boolean  @default(false)
-  active          Boolean  @default(true) // soft-delete: hidden from lists when false
-  deletedAt       DateTime?
+  id               String    @id @default(cuid())
+  centreId         String
+  name             String
+  generic          String?
+  category         String // nsaid | antibiotic | wound | supplement | vaccine | dewormer
+  schedule         String? // schedule_h | schedule_x | null
+  batchNo          String
+  mfgDate          DateTime?
+  expDate          DateTime
+  qty              Int       @default(0)
+  reorderThreshold Int       @default(5)
+  supplier         String?
+  storageLocation  String?
+  coldChain        Boolean   @default(false)
+  active           Boolean   @default(true) // soft-delete: hidden from lists when false
+  deletedAt        DateTime?
 
   centre        Centre            @relation(fields: [centreId], references: [id])
   usages        MedicineUsage[]
@@ -1628,19 +1632,19 @@ model Medicine {
 }
 
 model MedicineUsage {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   medicineId      String
   horseId         String
   vetUserId       String
   dose            String
-  route           String   // oral | im | iv | topical
+  route           String // oral | im | iv | topical
   reason          String?
-  usedAt          DateTime @default(now())
+  usedAt          DateTime  @default(now())
   withdrawalUntil DateTime?
   // Client-generated idempotency key: a double-click / network retry of the
   // same submit re-sends the same key; the unique index turns the duplicate
   // into a replay instead of a second stock decrement.
-  requestKey      String?  @unique
+  requestKey      String?   @unique
 
   medicine Medicine @relation(fields: [medicineId], references: [id])
   horse    Horse    @relation(fields: [horseId], references: [id])
@@ -1662,15 +1666,15 @@ model MedicineUsage {
 // visit can prescribe multiple meds over a duration, and may exist without
 // any meds (purely diagnostic).
 model VetVisit {
-  id          String   @id @default(cuid())
-  centreId    String
-  horseId     String
-  vetUserId   String
-  visitDate   DateTime @default(now())
-  reason      String?  // chief complaint / why the vet was called
-  notes       String   // findings + diagnosis (free text)
-  followUpAt  DateTime?
-  createdAt   DateTime @default(now())
+  id         String    @id @default(cuid())
+  centreId   String
+  horseId    String
+  vetUserId  String
+  visitDate  DateTime  @default(now())
+  reason     String? // chief complaint / why the vet was called
+  notes      String // findings + diagnosis (free text)
+  followUpAt DateTime?
+  createdAt  DateTime  @default(now())
 
   centre        Centre            @relation(fields: [centreId], references: [id])
   horse         Horse             @relation(fields: [horseId], references: [id], onDelete: Cascade)
@@ -1682,18 +1686,18 @@ model VetVisit {
 }
 
 model VetPrescription {
-  id            String   @id @default(cuid())
-  visitId       String
+  id           String  @id @default(cuid())
+  visitId      String
   // Nullable: vet may prescribe a med not in stock (will need ordering) or
   // free-text instructions. We always store the typed-in name for audit
   // even when medicineId is set.
-  medicineId    String?
-  medicineName  String
-  dose          String   // e.g. "10 ml" / "2 sachets"
-  route         String?  // oral | im | iv | topical
-  durationDays  Int?
-  frequency     String?  // "once daily" / "BID" / "as needed"
-  notes         String?
+  medicineId   String?
+  medicineName String
+  dose         String // e.g. "10 ml" / "2 sachets"
+  route        String? // oral | im | iv | topical
+  durationDays Int?
+  frequency    String? // "once daily" / "BID" / "as needed"
+  notes        String?
 
   visit    VetVisit  @relation(fields: [visitId], references: [id], onDelete: Cascade)
   medicine Medicine? @relation(fields: [medicineId], references: [id], onDelete: SetNull)
@@ -1707,41 +1711,41 @@ model VetPrescription {
 // ──────────────────────────────────────────────────────────────────────────
 
 model Task {
-  id          String   @id @default(cuid())
-  centreId    String
-  title       String
-  description String?
+  id                  String    @id @default(cuid())
+  centreId            String
+  title               String
+  description         String?
   // Categorises the task — lets us pull "all dress rehearsals" or "all stable
   // cleaning tasks" with one query. PDF Phase-1 explicitly calls out dress
   // rehearsals; we don't model them as a separate table.
-  kind        String?  // generic | dress_rehearsal | stable | feeding | rehearsal | …
-  assigneeId  String?
+  kind                String? // generic | dress_rehearsal | stable | feeding | rehearsal | …
+  assigneeId          String?
   // Who delegated the task. Powers the "Tasks Given" view + the delegation
   // hierarchy (Super Admin → Admin/HR, Admin → Coach). Null for self-created
   // or system-generated tasks.
-  assignedById String?
-  dueAt       DateTime?
+  assignedById        String?
+  dueAt               DateTime?
   // Immutable overdue anchor (set to the first dueAt the task is given, never
   // bumped by later dueAt edits). The board's overdue/escalated derivation
   // reads this so nudging dueAt forward can't cosmetically erase a task's
   // overdue history. Cleared if the due date is removed. Legacy rows are null
   // and fall back to dueAt.
-  overdueSince DateTime?
-  recurrence  String?
+  overdueSince        DateTime?
+  recurrence          String?
   // Set once, by sweepRecurringTasks, when this task has spawned its next
   // occurrence — the idempotency guard so the expander never double-generates
   // (even if the cron runs twice or overlaps). Null = not yet spawned.
   recurrenceSpawnedAt DateTime?
-  status      String   @default("open") // open | in_progress | done | overdue | escalated
-  proofUrl    String?
+  status              String    @default("open") // open | in_progress | done | overdue | escalated
+  proofUrl            String?
   // Stamped when status flips to done — lets the "Tasks Completed" view show
   // when, and feeds completion-rate reporting.
-  completedAt DateTime?
+  completedAt         DateTime?
   // Stamped by sweepTaskEscalation when an overdue task is escalated (manager +
   // delegator notified). Dedup guard so escalation fires once, and powers a
   // truthful "escalated" badge/filter without re-deriving from dueAt.
-  escalatedAt DateTime?
-  createdAt   DateTime @default(now())
+  escalatedAt         DateTime?
+  createdAt           DateTime  @default(now())
 
   centre Centre @relation(fields: [centreId], references: [id])
 
@@ -1756,8 +1760,6 @@ model Task {
 // ──────────────────────────────────────────────────────────────────────────
 // COMPETITIONS (§4.14)
 // ──────────────────────────────────────────────────────────────────────────
-
-
 
 // One round / heat / phase within a class. Examples:
 //   • Jumping: round 1 + jump-off → two rows per class
@@ -1806,7 +1808,6 @@ model Task {
 // scoringType "time" → fastest wins (faults add penaltyPerFault seconds);
 // scoringType "points" → highest points wins (judge-assigned).
 
-
 // Course design — fence-by-fence layout. Renders as a strip chart on the
 // round detail page + appears on the printed course program.
 
@@ -1853,10 +1854,10 @@ model Task {
 // ──────────────────────────────────────────────────────────────────────────
 
 model FeePlan {
-  id                String  @id @default(cuid())
-  centreId          String
-  levelName         String
-  monthlyAmount     Float
+  id                 String @id @default(cuid())
+  centreId           String
+  levelName          String
+  monthlyAmount      Float
   registrationAmount Float
 
   centre Centre @relation(fields: [centreId], references: [id])
@@ -1871,12 +1872,30 @@ model Invoice {
   amount    Float
   gstAmount Float    @default(0)
   dueDate   DateTime
-  status    String   @default("due") // due | paid | overdue | refunded
-  kind      String   // registration | monthly | exam | event
+  // due | paid | overdue | void. "refunded" is legacy and no longer written —
+  // a refund is now a credit note (a linked negative invoice), because an
+  // invoice that was really issued should never silently change meaning.
+  status    String   @default("due")
+  kind      String // registration | monthly | exam | event | credit_note
   createdAt DateTime @default(now())
 
-  centre   Centre   @relation(fields: [centreId], references: [id])
-  rider    Rider    @relation(fields: [riderId], references: [id])
+  // Void — the invoice should never have existed (raised in error, duplicate).
+  // Only permitted while nothing has been paid against it; once money has
+  // moved, the correct instrument is a credit note. Soft, never deleted: the
+  // number was issued and an audit trail has to keep it.
+  voidedAt       DateTime?
+  voidedByUserId String?
+  voidReason     String?
+
+  // Credit note — a linked negative invoice that offsets an original which has
+  // already been paid or part-paid (over-billing, mid-term withdrawal, goodwill).
+  // The pair nets to what the family actually owes, and both stay on the ledger.
+  creditNoteForId String?
+  creditNoteFor   Invoice?  @relation("InvoiceCreditNote", fields: [creditNoteForId], references: [id], onDelete: SetNull)
+  creditNotes     Invoice[] @relation("InvoiceCreditNote")
+
+  centre   Centre    @relation(fields: [centreId], references: [id])
+  rider    Rider     @relation(fields: [riderId], references: [id])
   payments Payment[]
 
   // fee-due sweep filters by (status, dueDate); without this index the query
@@ -1891,17 +1910,26 @@ model Invoice {
 }
 
 model Payment {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   invoiceId String
   amount    Float
-  method    String   // razorpay | cash | cheque | upi
+  method    String // razorpay | cash | cheque | upi
   // Gateway/transaction reference. UNIQUE so a re-delivered webhook (or the
   // verify redirect racing the webhook) can't double-apply a payment — the
   // second insert hits P2002 and is treated as already-applied. Postgres
   // allows multiple NULLs, so cash payments without a ref are unaffected.
-  txnRef    String?  @unique
-  paidAt    DateTime @default(now())
+  txnRef    String?   @unique
+  paidAt    DateTime  @default(now())
   clearedAt DateTime?
+
+  // A reversal is a NEW row with a negative amount pointing at the original —
+  // a bounced cheque, a receipt entered against the wrong rider, a refund. It
+  // is never an edit or a delete, so the ledger keeps both halves and every
+  // existing `sum(amount)` query recomputes the balance for free.
+  reversalOfId String?
+  reversalOf   Payment?  @relation("PaymentReversal", fields: [reversalOfId], references: [id], onDelete: SetNull)
+  reversals    Payment[] @relation("PaymentReversal")
+  reason       String?
 
   invoice Invoice @relation(fields: [invoiceId], references: [id])
 
@@ -1914,41 +1942,41 @@ model Payment {
 // ──────────────────────────────────────────────────────────────────────────
 
 model Certificate {
-  id        String   @id @default(cuid())
-  centreId  String
-  riderId   String
+  id                String    @id @default(cuid())
+  centreId          String
+  riderId           String
   // Source exam for promotion certificates. Optional so participation and
   // winner-style certs (issued without a formal exam) still fit the table.
-  examId    String?
+  examId            String?
   // Source competition for winner / participation certificates. Issued
   // automatically when an entry is placed (1st/2nd/3rd) or when a comp is
   // marked complete (all non-withdrawn entries get participation certs).
-  type      String   // promotion | participation | winner | event_attendance
-  levelName String?
-  serialNo  String   @unique
-  pdfUrl    String?
-  qrCode    String
-  signedBy  String?
+  type              String // promotion | participation | winner | event_attendance
+  levelName         String?
+  serialNo          String    @unique
+  pdfUrl            String?
+  qrCode            String
+  signedBy          String?
   // Bulk-issue grouping. When the bulk panel mints N certs from one
   // event/exam-sitting/competition, every cert in the batch shares this
   // value so we can show "Bulk batch · 27 issued · 14 Mar".
-  batchTag  String?
+  batchTag          String?
   // Revocation — soft state so the verify page can render REVOKED instead
   // of a normal cert page. Hard delete is avoided so audit history stays.
-  revokedAt DateTime?
-  revokedBy String?
-  revokeReason String?
+  revokedAt         DateTime?
+  revokedBy         String?
+  revokeReason      String?
   // Parent-notification tracking. Email is NOT auto-sent on cert issue —
   // staff click 'Send result to parent' on the cert detail/list page when
   // they're ready. resultEmailSentAt is set on the click; if null the
   // UI shows the action as primary (otherwise as 'Resend').
   resultEmailSentAt DateTime?
   resultEmailSentBy String?
-  issuedAt  DateTime @default(now())
+  issuedAt          DateTime  @default(now())
 
-  centre      Centre       @relation(fields: [centreId], references: [id])
-  rider       Rider        @relation(fields: [riderId], references: [id])
-  exam        Exam?        @relation(fields: [examId], references: [id], onDelete: SetNull)
+  centre Centre @relation(fields: [centreId], references: [id])
+  rider  Rider  @relation(fields: [riderId], references: [id])
+  exam   Exam?  @relation(fields: [examId], references: [id], onDelete: SetNull)
 
   @@index([examId])
   @@index([centreId, revokedAt])
@@ -1970,22 +1998,22 @@ model Certificate {
 // ScoringTemplate; without an override, ScoringTemplate falls back to
 // ExamLevel.defaultRubricJson.
 model ExamLevel {
-  id              String   @id @default(cuid())
+  id                String   @id @default(cuid())
   // Discipline track this level belongs to (general / dressage / jumping /
   // eventing / gymkhana / endurance / vaulting / polo). Matches the
   // disciplines used in lib/discipline.ts.
-  discipline      String   @default("general")
+  discipline        String   @default("general")
   // Sort order within a discipline. 1 = entry level, increases with
   // difficulty.
-  orderIndex      Int
+  orderIndex        Int
   // Short identifier shown in lists (e.g. "1", "Stage 2", "D", "Adv-I").
-  code            String
+  code              String
   // Long human-friendly name shown on certificates ("Beginner",
   // "Foundation", "Preliminary").
-  name            String
+  name              String
   // Percentage pass threshold for this level. Cascaded into
   // ScoringTemplate at create time but each centre can override.
-  passThreshold   Int      @default(70)
+  passThreshold     Int      @default(70)
   // Default rubric (JSON of ScoringCategory[]). Centres can override per
   // centre via a custom ScoringTemplate row.
   defaultRubricJson Json?
@@ -1993,11 +2021,11 @@ model ExamLevel {
   // ExaminerAuthority covers this level can lead an exam at this level.
   // Soft hint for now; not strictly enforced.
   minExaminerLevel  Int?
-  description     String?
-  active          Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  updatedBy       String?
+  description       String?
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  updatedBy         String?
 
   templates ScoringTemplate[]
 
@@ -2007,17 +2035,17 @@ model ExamLevel {
 }
 
 model ScoringTemplate {
-  id            String   @id @default(cuid())
-  centreId      String
+  id             String   @id @default(cuid())
+  centreId       String
   // Soft link to the canonical level row. Optional so legacy templates
   // created before the catalog existed keep working.
-  examLevelId   String?
-  levelKey      String   // "1" | "2" | "3" | "4" — matches Exam.level
-  levelName     String   // "Level 1 — Beginner", etc.
-  passThreshold Int      @default(70) // percentage to pass
-  categoriesJson Json  // serialized ScoringCategory[]
-  updatedAt     DateTime @updatedAt
-  updatedBy     String?
+  examLevelId    String?
+  levelKey       String // "1" | "2" | "3" | "4" — matches Exam.level
+  levelName      String // "Level 1 — Beginner", etc.
+  passThreshold  Int      @default(70) // percentage to pass
+  categoriesJson Json // serialized ScoringCategory[]
+  updatedAt      DateTime @updatedAt
+  updatedBy      String?
 
   centre    Centre     @relation(fields: [centreId], references: [id], onDelete: Cascade)
   examLevel ExamLevel? @relation(fields: [examLevelId], references: [id], onDelete: SetNull)
@@ -2027,24 +2055,24 @@ model ScoringTemplate {
 }
 
 model Exam {
-  id            String   @id @default(cuid())
-  centreId      String
-  riderId       String
+  id                 String   @id @default(cuid())
+  centreId           String
+  riderId            String
   // Assigned examiner. NULL = unassigned: scheduled from a sitting pool and not
   // yet claimed. An examiner claims a rider from the pool (first-come), which
   // sets these and locks scoring to them. Single-exam scheduling sets it up front.
-  examinerId    String?  // FK to User
-  examinerName  String?  // denormalised so historical exams survive renames
-  level         Int      // 1..N, matches ScoringTemplate.levelKey
-  date          DateTime // exam day (date-only, stored as UTC midnight)
-  time          String   @default("09:00") // HH:MM 24h
-  status        String   @default("scheduled") // scheduled | in_progress | completed
+  examinerId         String? // FK to User
+  examinerName       String? // denormalised so historical exams survive renames
+  level              Int // 1..N, matches ScoringTemplate.levelKey
+  date               DateTime // exam day (date-only, stored as UTC midnight)
+  time               String   @default("09:00") // HH:MM 24h
+  status             String   @default("scheduled") // scheduled | in_progress | completed
   // Numeric total. When the exam has co-judges, this is the average of each
   // judge's numericSum() over the rubric (so a single field still drives
   // rider-facing UI, certificates, parent SMS, etc.).
-  totalScore    Float?
+  totalScore         Float?
   // Legacy single-judge score map. Co-judge data lives on ExamJudge.scoresJson.
-  scoresJson    Json?
+  scoresJson         Json?
   // Frozen copy of the centre's ScoringTemplate.categoriesJson at the moment
   // the exam was created. Read-only after that — historical exams render
   // their breakdown against THIS, not the live ScoringTemplate, so admins
@@ -2052,33 +2080,33 @@ model Exam {
   // Null on legacy rows that pre-date this column; loadRiderExamHistory +
   // the result-sheet PDF fall back to the live template when null.
   rubricSnapshotJson Json?
-  passed        Boolean?
+  passed             Boolean?
   // Deductions are subtracted from the rubric total before pass/fail. Used
   // for course faults, time penalties, refusals, etc. that aren't rubric
   // items per se.
-  deductions    Float    @default(0)
-  timeFaults    Float    @default(0)
+  deductions         Float    @default(0)
+  timeFaults         Float    @default(0)
   // PRD "Test-day support" — grooms / helpers assigned to this exam.
   // JSON array of user.id strings; never deep enough to warrant its own table.
-  supportStaffJson Json?
+  supportStaffJson   Json?
   // Re-attempt link — points to the previous failed exam at this level for
   // the same rider. Lets the result card show "Attempt 2".
-  previousExamId  String?
-  attemptNumber   Int     @default(1)
+  previousExamId     String?
+  attemptNumber      Int      @default(1)
   // Sitting groups multiple exams happening on the same day with the same
   // examiner / level (saves typing each one in).
-  sittingId       String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  sittingId          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  centre       Centre        @relation(fields: [centreId], references: [id], onDelete: Cascade)
-  rider        Rider         @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  centre       Centre           @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  rider        Rider            @relation(fields: [riderId], references: [id], onDelete: Cascade)
   certificates Certificate[]
   judges       ExamJudge[]
   attachments  ExamAttachment[]
-  previousExam Exam?         @relation("ExamReattempt", fields: [previousExamId], references: [id], onDelete: SetNull)
-  retakes      Exam[]        @relation("ExamReattempt")
-  sitting      ExamSitting?  @relation(fields: [sittingId], references: [id], onDelete: SetNull)
+  previousExam Exam?            @relation("ExamReattempt", fields: [previousExamId], references: [id], onDelete: SetNull)
+  retakes      Exam[]           @relation("ExamReattempt")
+  sitting      ExamSitting?     @relation(fields: [sittingId], references: [id], onDelete: SetNull)
 
   @@index([centreId, status])
   @@index([examinerId])
@@ -2090,11 +2118,11 @@ model Exam {
 // is mirrored here as the row with `position = 1` — keeps the math uniform
 // when the exam has only one judge.
 model ExamJudge {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   examId      String
-  judgeId     String   // FK to User
-  judgeName   String   // denormalised
-  position    Int      @default(1) // 1 = lead, 2 = co-judge, …
+  judgeId     String // FK to User
+  judgeName   String // denormalised
+  position    Int       @default(1) // 1 = lead, 2 = co-judge, …
   // Per-judge score map and computed numeric total. Null until the judge
   // submits their card.
   scoresJson  Json?
@@ -2113,7 +2141,7 @@ model ExamJudge {
 model ExamAttachment {
   id         String   @id @default(cuid())
   examId     String
-  kind       String   // video | photo | sheet | other
+  kind       String // video | photo | sheet | other
   url        String
   caption    String?
   uploadedBy String?
@@ -2167,21 +2195,21 @@ model ExamSittingExaminer {
 // A named group of riders the centre fields together — e.g. "Senior Show
 // Jumping Squad 2026". Riders can be on multiple teams (junior + senior).
 model Team {
-  id        String   @id @default(cuid())
-  centreId  String
-  name      String
-  season    String?  // free text — "2026", "Spring 2026", etc.
+  id         String    @id @default(cuid())
+  centreId   String
+  name       String
+  season     String? // free text — "2026", "Spring 2026", etc.
   discipline String?
-  captainId String?  // rider.id
-  active    Boolean  @default(true)
-  deletedAt DateTime?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  captainId  String? // rider.id
+  active     Boolean   @default(true)
+  deletedAt  DateTime?
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   // centre-owned so tenantWhere()'s `centre: { orgId }` org-scope is valid here.
-  centre           Centre @relation(fields: [centreId], references: [id])
-  members          TeamMember[]
+  centre  Centre       @relation(fields: [centreId], references: [id])
+  members TeamMember[]
 
   @@index([centreId, active])
 }
@@ -2190,7 +2218,7 @@ model TeamMember {
   id       String   @id @default(cuid())
   teamId   String
   riderId  String
-  position String?  // free text — "Captain", "Reserve", or domain-specific
+  position String? // free text — "Captain", "Reserve", or domain-specific
   joinedAt DateTime @default(now())
 
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -2207,14 +2235,14 @@ model TeamMember {
 
 model Notification {
   id        String    @id @default(cuid())
-  userId    String    // recipient
-  centreId  String?   // for cross-centre filtering on HQ dashboards
-  type      String    // "rider.onboarded" | "exam.passed" | "exam.failed" | "medicine.withdrawal" | "task.assigned" | ...
+  userId    String // recipient
+  centreId  String? // for cross-centre filtering on HQ dashboards
+  type      String // "rider.onboarded" | "exam.passed" | "exam.failed" | "medicine.withdrawal" | "task.assigned" | ...
   title     String
   body      String
-  link      String?   // optional in-app URL the click takes you to
+  link      String? // optional in-app URL the click takes you to
   channel   String    @default("in_app") // in_app | sms | email | whatsapp
-  payload   String?   // serialised metadata (JSON)
+  payload   String? // serialised metadata (JSON)
   readAt    DateTime?
   createdAt DateTime  @default(now())
 
@@ -2257,12 +2285,12 @@ model StaffAttendance {
   userId        String
   centreId      String
   date          DateTime
-  status        String    // present | absent | late | leave
+  status        String // present | absent | late | leave
   checkInAt     DateTime?
   checkOutAt    DateTime?
   overtimeHours Float?
   notes         String?
-  markedBy      String?   // user.id who marked it; plain string (no FK)
+  markedBy      String? // user.id who marked it; plain string (no FK)
   markedAt      DateTime  @default(now())
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -2282,7 +2310,7 @@ model ParentLink {
   id           String   @id @default(cuid())
   parentUserId String
   riderId      String
-  relationship String   // father | mother | guardian
+  relationship String // father | mother | guardian
   createdAt    DateTime @default(now())
 
   parent User  @relation(fields: [parentUserId], references: [id], onDelete: Cascade)
@@ -2335,20 +2363,20 @@ model LeaveRequest {
 // SUPER_ADMIN. Dedup is by lastLowNotifiedAt vs. lastRestockedAt.
 
 model EquipmentCatalog {
-  id              String  @id @default(cuid())
-  category        String  // saddlery | bridlery | protection | rider | stable | grooming | feed | tackroom | arena | vet
-  name            String
+  id               String   @id @default(cuid())
+  category         String // saddlery | bridlery | protection | rider | stable | grooming | feed | tackroom | arena | vet
+  name             String
   // Shorter token used as a column header on HQ matrix views.
-  code            String  @unique
-  unit            String  @default("piece") // piece | pair | set | metre | kg | litre
-  defaultThreshold Int    @default(5) // reorder point applied when no per-centre override
-  notes           String?
+  code             String   @unique
+  unit             String   @default("piece") // piece | pair | set | metre | kg | litre
+  defaultThreshold Int      @default(5) // reorder point applied when no per-centre override
+  notes            String?
   // Item photo (upload URL via /api/upload kind=asset_photo) — shown as a
   // thumbnail on inventory rows so staff can identify gear at a glance.
-  photoUrl        String?
-  active          Boolean @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  photoUrl         String?
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   stocks EquipmentStock[]
 
@@ -2356,40 +2384,40 @@ model EquipmentCatalog {
 }
 
 model EquipmentStock {
-  id          String   @id @default(cuid())
-  centreId    String
-  catalogId   String
+  id                String    @id @default(cuid())
+  centreId          String
+  catalogId         String
   // Legacy single-qty column kept for historical reads + bulk-stock
   // queries. The four condition-state columns below are the new source
   // of truth; qty stays in sync via API writes (qty = unused + inUse).
   // Low-stock alerts compare (qtyUnused + qtyInUse) to threshold so
   // damaged + for-repair items aren't double-counted as "in stock".
-  qty         Int      @default(0)
-  qtyUnused   Int      @default(0)
-  qtyInUse    Int      @default(0)
-  qtyForRepair Int     @default(0)
-  qtyDamaged  Int      @default(0)
+  qty               Int       @default(0)
+  qtyUnused         Int       @default(0)
+  qtyInUse          Int       @default(0)
+  qtyForRepair      Int       @default(0)
+  qtyDamaged        Int       @default(0)
   // "New Required" — qty admin still needs to buy. Drives the
   // procurement queue alongside requisitions.
-  newRequired Int      @default(0)
+  newRequired       Int       @default(0)
   // Free-text owner label. Used by Sports Equipment to mark whether a
   // mallet/lance belongs to the club or a specific rider. Other
   // categories typically leave this null.
-  owner       String?
+  owner             String?
   // Per-centre override of the catalog default. Null → use catalog.
-  threshold   Int?
-  notes       String?
+  threshold         Int?
+  notes             String?
   // Used by the low-stock sweep to dedup notifications. If a centre keeps
   // ordering 2 of an item that needs 5, we don't want a notify every day.
   // A restock (qty increase) resets lastLowNotifiedAt so the next time we
   // dip below threshold, the sweep fires again.
   lastLowNotifiedAt DateTime?
   lastRestockedAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  centre  Centre           @relation(fields: [centreId], references: [id], onDelete: Cascade)
-  catalog EquipmentCatalog @relation(fields: [catalogId], references: [id], onDelete: Cascade)
+  centre    Centre                   @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  catalog   EquipmentCatalog         @relation(fields: [catalogId], references: [id], onDelete: Cascade)
   movements EquipmentStockMovement[]
 
   @@unique([centreId, catalogId])
@@ -2399,13 +2427,13 @@ model EquipmentStock {
 // Per-stock audit trail: who changed qty, by how much, and why. Lets HQ
 // reconstruct shrinkage or theft questions later.
 model EquipmentStockMovement {
-  id        String   @id @default(cuid())
-  stockId   String
-  delta     Int      // positive = restock, negative = consumption/loss
-  reason    String   // restock | consumed | lost | damaged | adjustment | initial
-  notes     String?
-  actorId   String?
-  at        DateTime @default(now())
+  id      String   @id @default(cuid())
+  stockId String
+  delta   Int // positive = restock, negative = consumption/loss
+  reason  String // restock | consumed | lost | damaged | adjustment | initial
+  notes   String?
+  actorId String?
+  at      DateTime @default(now())
 
   stock EquipmentStock @relation(fields: [stockId], references: [id], onDelete: Cascade)
 
@@ -2422,31 +2450,31 @@ model EquipmentStockMovement {
 // "external" events are off-site (members travelling to another club).
 
 model Event {
-  id          String   @id @default(cuid())
-  centreId    String   // host centre, even for externals (the centre running the trip)
-  title       String
-  type        String   // clinic | schooling | demo | parent_day | fundraiser | external_show | camp | open_house | other
-  description String?
+  id              String   @id @default(cuid())
+  centreId        String // host centre, even for externals (the centre running the trip)
+  title           String
+  type            String // clinic | schooling | demo | parent_day | fundraiser | external_show | camp | open_house | other
+  description     String?
   // External-event metadata. Null for in-house events.
   externalVenue   String?
   externalHostOrg String?
-  startDate   DateTime
-  endDate     DateTime
+  startDate       DateTime
+  endDate         DateTime
   // Optional registration fee per rider; 0 means free attendance.
-  fee         Float    @default(0)
+  fee             Float    @default(0)
   // Soft capacity. Null = unlimited. Hit-cap is a UI hint, not enforced
   // server-side (waitlists belong to a future iteration).
-  capacity    Int?
+  capacity        Int?
   // Visibility — published events show on the public /events/<slug>/page;
   // private events are admin-only.
-  isPublic    Boolean  @default(false)
-  slug        String?  @unique
-  status      String   @default("draft") // draft | open | live | completed | cancelled
-  contactName String?
-  contactPhone String?
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isPublic        Boolean  @default(false)
+  slug            String?  @unique
+  status          String   @default("draft") // draft | open | live | completed | cancelled
+  contactName     String?
+  contactPhone    String?
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   centre        Centre              @relation(fields: [centreId], references: [id], onDelete: Cascade)
   registrations EventRegistration[]
@@ -2456,15 +2484,15 @@ model Event {
 }
 
 model EventRegistration {
-  id          String   @id @default(cuid())
-  eventId     String
-  riderId     String
-  status      String   @default("registered") // registered | attended | no_show | cancelled
-  paid        Boolean  @default(false)
+  id        String   @id @default(cuid())
+  eventId   String
+  riderId   String
+  status    String   @default("registered") // registered | attended | no_show | cancelled
+  paid      Boolean  @default(false)
   // Optional notes from the registration form (dietary, room sharing, …).
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   rider Rider @relation(fields: [riderId], references: [id], onDelete: Cascade)
@@ -2488,7 +2516,7 @@ model ExpenseCategory {
   // books against the same chart of accounts so HQ rollups are sensible).
   code      String   @unique
   name      String
-  group     String   // operating | salaries | vet | feed | maintenance | utilities | tax | other
+  group     String // operating | salaries | vet | feed | maintenance | utilities | tax | other
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
@@ -2497,51 +2525,51 @@ model ExpenseCategory {
 }
 
 model Vendor {
-  id        String   @id @default(cuid())
-  centreId  String   // the centre that registered the vendor (owner). For
-                     // deliveryScope="national" the vendor is still owned here
-                     // but visible to every centre in the same org.
+  id                   String    @id @default(cuid())
+  centreId             String // the centre that registered the vendor (owner). For
+  // deliveryScope="national" the vendor is still owned here
+  // but visible to every centre in the same org.
   // Delivery coverage: "centre" = local supplier, visible only to its own
   // club; "national" = all-India delivery, visible to every club in the org.
-  deliveryScope String @default("centre")
-  name      String
+  deliveryScope        String    @default("centre")
+  name                 String
   // Category drives the contact-database UX — admins filter by type when
   // looking for "an ambulance" vs "a feed supplier". Free-text-ish but
   // standardised in the UI dropdown (see /vendors page).
   // vet | farrier | horse_ambulance | truck | feed | equipment_gear | other
-  category    String   @default("other")
+  category             String    @default("other")
   // Per-category extra info — Vet Doctor: VCI #, qualification, specialty,
   // years practice, on-call flag, clinic affiliation. Farrier: years
   // experience, specialisations, available days, carries-forge, hourly
   // rate. Free-form JSON so adding a new vendor type doesn't require
   // another schema migration. Shape per kind is in lib/schemas/vendor.ts.
   categorySpecificJson Json?
-  contactName String?
-  phone     String?
-  email     String?
-  address   String?
-  gstin     String?
+  contactName          String?
+  phone                String?
+  email                String?
+  address              String?
+  gstin                String?
   // Bank details for payment runs. Optional — most centres pay vendors by
   // UPI/cash for small bills, but recurring contracts (feed suppliers,
   // ambulance retainers) want NEFT/IMPS via these fields. Branch is
   // derivable from IFSC so we skip storing it.
-  bankAccountName   String?
-  bankAccountNumber String?
-  bankIfsc          String?
-  bankName          String?
+  bankAccountName      String?
+  bankAccountNumber    String?
+  bankIfsc             String?
+  bankName             String?
   // UPI VPA for instant payouts (e.g. vendor@okhdfcbank). Alternative to NEFT.
-  upiId             String?
-  notes     String?
-  active    Boolean  @default(true)
+  upiId                String?
+  notes                String?
+  active               Boolean   @default(true)
   // Review state. "active" = normal (admin-created or approved). "pending" =
   // self-registered via the public vendor link, awaiting admin approval — kept
   // out of the working vendor list + expense pickers until approved. "rejected"
   // = declined. Self-registrations also set active=false so existing
   // active-filtered queries never surface an unreviewed row.
-  status    String   @default("active") // active | pending | rejected
-  createdAt DateTime @default(now())
-  deletedAt DateTime?  // set on soft-delete; bin purges 30 days later
-  updatedAt DateTime @updatedAt
+  status               String    @default("active") // active | pending | rejected
+  createdAt            DateTime  @default(now())
+  deletedAt            DateTime? // set on soft-delete; bin purges 30 days later
+  updatedAt            DateTime  @updatedAt
 
   centre   Centre    @relation(fields: [centreId], references: [id], onDelete: Cascade)
   expenses Expense[]
@@ -2559,27 +2587,27 @@ model Vendor {
 // Tag rows to one or more centres so HQ rollup reports can allocate cost
 // per club; leave taggedCentreIds empty for purely-HQ overheads.
 model HqExpense {
-  id          String   @id @default(cuid())
-  orgId       String
-  categoryId  String?  // optional — uses platform ExpenseCategory codes
-  amount      Float
-  gstAmount   Float    @default(0)
-  spentAt     DateTime
-  description String
-  vendorName  String?  // free-text; no Vendor row (HQ-side vendors aren't
-                       // centre-scoped, so the existing Vendor model doesn't fit)
-  invoiceRef  String?
+  id                 String    @id @default(cuid())
+  orgId              String
+  categoryId         String? // optional — uses platform ExpenseCategory codes
+  amount             Float
+  gstAmount          Float     @default(0)
+  spentAt            DateTime
+  description        String
+  vendorName         String? // free-text; no Vendor row (HQ-side vendors aren't
+  // centre-scoped, so the existing Vendor model doesn't fit)
+  invoiceRef         String?
   // Comma-separated centre IDs this expense allocates to. Empty/null = pure
   // HQ overhead (not allocated). One value = single-club expense the HQ
   // paid for. Many values = shared across listed clubs.
   taggedCentreIdsCsv String?
-  paid        Boolean  @default(false)
-  paidAt      DateTime?
-  method      String?  // cash | bank | cheque | upi | card
-  attachmentUrl String  // required — HQ invoices must have a doc
-  createdBy   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  paid               Boolean   @default(false)
+  paidAt             DateTime?
+  method             String? // cash | bank | cheque | upi | card
+  attachmentUrl      String // required — HQ invoices must have a doc
+  createdBy          String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   org      Organisation     @relation(fields: [orgId], references: [id], onDelete: Cascade)
   category ExpenseCategory? @relation("HqExpenseCategory", fields: [categoryId], references: [id])
@@ -2597,15 +2625,15 @@ model HqExpense {
 // the coach in the arena for the 6am batch?). Gate events answer
 // "what time did Ravi come in this morning?"
 model StaffGateEvent {
-  id              String   @id @default(cuid())
-  centreId        String
-  staffUserId     String
-  direction       String   // "in" | "out"
-  occurredAt      DateTime @default(now())
-  notes           String?
+  id               String   @id @default(cuid())
+  centreId         String
+  staffUserId      String
+  direction        String // "in" | "out"
+  occurredAt       DateTime @default(now())
+  notes            String?
   // The user who recorded the event — guard / receptionist / manager.
   recordedByUserId String
-  createdAt       DateTime @default(now())
+  createdAt        DateTime @default(now())
 
   centre Centre @relation(fields: [centreId], references: [id], onDelete: Cascade)
   staff  User   @relation("StaffGateStaff", fields: [staffUserId], references: [id])
@@ -2624,8 +2652,8 @@ model StaffGateEvent {
 // Code is an 8-char base32 (Crockford) so it's typeable, copy-safe, and
 // short enough to fit comfortably in a WhatsApp message.
 model ShortLink {
-  id              String   @id @default(cuid())
-  code            String   @unique
+  id              String    @id @default(cuid())
+  code            String    @unique
   // Centre-scoped — admins can only generate links for their own centre.
   centreId        String
   // Categorises the link. Used for analytics + to map to a form template.
@@ -2643,11 +2671,11 @@ model ShortLink {
   expiresAt       DateTime?
   // singleUse links self-expire on first redeem so a shared WhatsApp link
   // can't be forwarded onward.
-  singleUse       Boolean  @default(false)
-  redeemCount     Int      @default(0)
+  singleUse       Boolean   @default(false)
+  redeemCount     Int       @default(0)
   lastRedeemedAt  DateTime?
   createdByUserId String
-  createdAt       DateTime @default(now())
+  createdAt       DateTime  @default(now())
 
   centre Centre @relation(fields: [centreId], references: [id], onDelete: Cascade)
 
@@ -2664,57 +2692,57 @@ model ShortLink {
 // Items are stored as JSON rather than a child table to keep the model
 // simple — a requisition is usually 1-5 line items, never bulk catalog data.
 model Requisition {
-  id                  String   @id @default(cuid())
-  centreId            String
-  requestedByUserId   String
+  id                        String    @id @default(cuid())
+  centreId                  String
+  requestedByUserId         String
   // JSON: [{ name, qty, unit, estimatedUnitCost, notes? }]
-  itemsJson           Json
-  totalEstimatedCost  Float
-  reason              String?  // why this is needed
+  itemsJson                 Json
+  totalEstimatedCost        Float
+  reason                    String? // why this is needed
   // Two-stage workflow. pending_manager → pending_accountant → approved.
   // rejected can happen at either stage; rejectedReason captures the why.
-  stage               String   @default("pending_manager")
+  stage                     String    @default("pending_manager")
   managerDecidedByUserId    String?
   managerDecidedAt          DateTime?
   managerNotes              String?
   accountantDecidedByUserId String?
   accountantDecidedAt       DateTime?
   accountantNotes           String?
-  rejectedReason     String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  rejectedReason            String?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
 
-  centre        Centre @relation(fields: [centreId], references: [id])
-  requestedBy   User   @relation(fields: [requestedByUserId], references: [id])
+  centre      Centre @relation(fields: [centreId], references: [id])
+  requestedBy User   @relation(fields: [requestedByUserId], references: [id])
 
   @@index([centreId, stage])
   @@index([requestedByUserId])
 }
 
 model Expense {
-  id          String   @id @default(cuid())
-  centreId    String
-  categoryId  String
-  vendorId    String?
-  amount      Float
-  gstAmount   Float    @default(0)
+  id            String    @id @default(cuid())
+  centreId      String
+  categoryId    String
+  vendorId      String?
+  amount        Float
+  gstAmount     Float     @default(0)
   // Optional quantity + per-unit rate for procurement that's bought by
   // measure (fodder/hay by kg/bale, etc.). `amount` stays the authoritative
   // total (qty × unitRate when both set). Null for lump-sum expenses.
-  qty         Float?
-  unitRate    Float?
+  qty           Float?
+  unitRate      Float?
   // Date of the expense as it actually occurred (vs createdAt = when it
   // was booked into the system). Used for P&L window queries.
-  spentAt     DateTime
-  description String
-  invoiceRef  String?  // vendor invoice number / receipt ref
-  paid        Boolean  @default(false)
-  paidAt      DateTime?
-  method      String?  // cash | bank | cheque | upi | card
+  spentAt       DateTime
+  description   String
+  invoiceRef    String? // vendor invoice number / receipt ref
+  paid          Boolean   @default(false)
+  paidAt        DateTime?
+  method        String? // cash | bank | cheque | upi | card
   attachmentUrl String?
-  createdBy   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdBy     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   centre   Centre          @relation(fields: [centreId], references: [id], onDelete: Cascade)
   category ExpenseCategory @relation(fields: [categoryId], references: [id])
@@ -2734,28 +2762,28 @@ model Expense {
 // eligibility (only nationally-licensed riders can enter a National Show).
 
 model Accreditation {
-  id          String   @id @default(cuid())
-  riderId     String
+  id         String    @id @default(cuid())
+  riderId    String
   // Body issuing the credential (e.g. "EFI", "BHS", "FEI", state federation).
-  body        String
+  body       String
   // What kind of credential. Free-text by design — federations vary widely.
-  title       String   // "EFI Junior Membership" | "BHS Stage 2" | "FEI Pony Rider Eligibility"
-  discipline  String?  // optional — dressage / jumping / eventing / general
-  level       String?  // optional — "Stage 2", "Cat-B", etc.
-  serialNo    String?
+  title      String // "EFI Junior Membership" | "BHS Stage 2" | "FEI Pony Rider Eligibility"
+  discipline String? // optional — dressage / jumping / eventing / general
+  level      String? // optional — "Stage 2", "Cat-B", etc.
+  serialNo   String?
   // When the credential was issued and when it expires (some federation
   // memberships renew annually).
-  issuedAt    DateTime
-  expiresAt   DateTime?
-  fileUrl     String?  // scan of the original card/cert
+  issuedAt   DateTime
+  expiresAt  DateTime?
+  fileUrl    String? // scan of the original card/cert
   // Operational status — verified by a centre manager after seeing the
   // physical card; revoked if the body cancels it.
-  status      String   @default("active") // active | expired | revoked
-  verifiedBy  String?  // userId who confirmed it
-  verifiedAt  DateTime?
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  status     String    @default("active") // active | expired | revoked
+  verifiedBy String? // userId who confirmed it
+  verifiedAt DateTime?
+  notes      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   rider Rider @relation(fields: [riderId], references: [id], onDelete: Cascade)
 
@@ -2773,28 +2801,36 @@ model Accreditation {
 // AdvanceRepayment rows are written, so "advance debited from salary" is one
 // action. net = gross - advanceDeducted - otherDeductions.
 model SalaryPayment {
-  id               String   @id @default(cuid())
-  centreId         String
-  userId           String
-  periodMonth      String   // "2026-05"
-  grossAmount      Float
-  advanceDeducted  Float    @default(0)
-  otherDeductions  Float    @default(0)
+  id                     String    @id @default(cuid())
+  centreId               String
+  userId                 String
+  periodMonth            String // "2026-05"
+  grossAmount            Float
+  advanceDeducted        Float     @default(0)
+  otherDeductions        Float     @default(0)
   // Attendance-driven deduction for the month: absentDays etc × the global
   // per-status rate (PayrollConfig). deductionBreakdownJson keeps the
   // per-status counts + amounts so the payslip is fully explainable.
-  attendanceDeducted     Float   @default(0)
-  absentDays             Int     @default(0)
+  attendanceDeducted     Float     @default(0)
+  absentDays             Int       @default(0)
   deductionBreakdownJson Json?
-  netAmount        Float
-  method           String?  // cash | bank | upi | cheque
-  paidAt           DateTime?
-  notes            String?
-  recordedByUserId String
-  createdAt        DateTime @default(now())
+  netAmount              Float
+  method                 String? // cash | bank | upi | cheque
+  paidAt                 DateTime?
+  notes                  String?
+  recordedByUserId       String
+  createdAt              DateTime  @default(now())
 
-  centre Centre @relation(fields: [centreId], references: [id])
-  user   User   @relation("SalaryPaymentUser", fields: [userId], references: [id])
+  // Void a payroll run recorded in error. Soft, so the payslip history and the
+  // audit trail survive; a voided row is excluded from every total and its
+  // advance recovery is released back to the employee's outstanding balance.
+  voidedAt       DateTime?
+  voidedByUserId String?
+  voidReason     String?
+
+  centre     Centre             @relation(fields: [centreId], references: [id])
+  user       User               @relation("SalaryPaymentUser", fields: [userId], references: [id])
+  repayments AdvanceRepayment[]
 
   @@unique([userId, periodMonth])
   @@index([centreId, periodMonth])
@@ -2810,7 +2846,7 @@ model SalaryStructure {
   centreId        String
   monthlySalary   Float
   effectiveFrom   DateTime // date-only (UTC noon)
-  note            String?  // "Annual increment", "Promotion to Head Coach", etc.
+  note            String? // "Annual increment", "Promotion to Head Coach", etc.
   createdByUserId String
   createdAt       DateTime @default(now())
 
@@ -2829,7 +2865,7 @@ model SalaryStructure {
 model PayrollConfig {
   id                 String   @id @default(cuid())
   orgId              String   @unique
-  deductionRulesJson Json   @default("{}")
+  deductionRulesJson Json     @default("{}")
   updatedByUserId    String?
   updatedAt          DateTime @updatedAt
   createdAt          DateTime @default(now())
@@ -2863,19 +2899,19 @@ model CoachDailyUpdate {
 // checked OUT before departure and IN on return, so anything lost/damaged at
 // the venue is caught immediately. status: planned → departed → returned.
 model VenueTrip {
-  id             String   @id @default(cuid())
-  centreId       String
-  eventName      String
-  venue          String
-  departureAt    DateTime
-  returnAt       DateTime?
-  status         String   @default("planned") // planned | departed | returned | cancelled
-  notes          String?
+  id              String    @id @default(cuid())
+  centreId        String
+  eventName       String
+  venue           String
+  departureAt     DateTime
+  returnAt        DateTime?
+  status          String    @default("planned") // planned | departed | returned | cancelled
+  notes           String?
   createdByUserId String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  centre Centre @relation(fields: [centreId], references: [id])
+  centre Centre              @relation(fields: [centreId], references: [id])
   items  TripChecklistItem[]
 
   @@index([centreId, departureAt])
@@ -2883,18 +2919,18 @@ model VenueTrip {
 }
 
 model TripChecklistItem {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   tripId       String
-  category     String   // horse | tack | feed | equipment | medical | document | other
+  category     String // horse | tack | feed | equipment | medical | document | other
   label        String
-  qtyExpected  Int      @default(1)
+  qtyExpected  Int       @default(1)
   // Out = loaded before departure; In = verified back at the club.
-  checkedOut   Boolean  @default(false)
+  checkedOut   Boolean   @default(false)
   checkedOutAt DateTime?
-  conditionOut String?  // ok | damaged | note text
-  checkedIn    Boolean  @default(false)
+  conditionOut String? // ok | damaged | note text
+  checkedIn    Boolean   @default(false)
   checkedInAt  DateTime?
-  conditionIn  String?  // ok | damaged | missing | note text
+  conditionIn  String? // ok | damaged | missing | note text
   remarks      String?
 
   trip VenueTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
@@ -2906,17 +2942,17 @@ model TripChecklistItem {
 // auditor) or admin. Scoped to one centre; each line item is marked
 // pass/fail/na with remarks. Mirrors the paper SOP audit sheet.
 model AuditRun {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   centreId        String
   inspectorUserId String
-  scope           String   // inventory | vet_inventory | stable | full
-  status          String   @default("in_progress") // in_progress | completed
-  startedAt       DateTime @default(now())
+  scope           String // inventory | vet_inventory | stable | full
+  status          String    @default("in_progress") // in_progress | completed
+  startedAt       DateTime  @default(now())
   completedAt     DateTime?
   summary         String?
 
-  centre    Centre     @relation(fields: [centreId], references: [id])
-  inspector User       @relation("AuditRunInspector", fields: [inspectorUserId], references: [id])
+  centre    Centre      @relation(fields: [centreId], references: [id])
+  inspector User        @relation("AuditRunInspector", fields: [inspectorUserId], references: [id])
   items     AuditItem[]
 
   @@index([centreId, startedAt])
@@ -2924,12 +2960,12 @@ model AuditRun {
 }
 
 model AuditItem {
-  id       String  @id @default(cuid())
-  runId    String
-  area     String  // e.g. "Tack room", "Vet cabinet", "Feed store"
-  label    String
-  result   String  @default("pending") // pass | fail | na | pending
-  remarks  String?
+  id      String  @id @default(cuid())
+  runId   String
+  area    String // e.g. "Tack room", "Vet cabinet", "Feed store"
+  label   String
+  result  String  @default("pending") // pass | fail | na | pending
+  remarks String?
 
   run AuditRun @relation(fields: [runId], references: [id], onDelete: Cascade)
 
@@ -2952,7 +2988,7 @@ model NotificationDispatchLog {
   // dedupe window, so a crash-rerun can't re-send one channel while dropping
   // another — H5). Existing rows default to "failed".
   status    String   @default("failed")
-  channel   String   // "sms" | "email" | "whatsapp"
+  channel   String // "sms" | "email" | "whatsapp"
   // Error code from the dispatcher (lib/sms.ts etc.) — e.g. "TWILIO_429",
   // "META_400", "NETWORK", "INVALID_PHONE", "INVALID_ADDRESS". Empty for "sent".
   error     String
@@ -2998,35 +3034,35 @@ model CronLock {
 // for the date; permanent updates rider.batchId. Reject leaves no
 // side-effect beyond the audit + a denial notification to the rider.
 model BatchShiftRequest {
-  id           String   @id @default(cuid())
-  riderId      String
+  id              String    @id @default(cuid())
+  riderId         String
   // 'single_day' OR 'permanent' — drives the approver gate + the side-
   // effect on approval (see notes above).
-  kind         String
+  kind            String
   // The batch the rider currently belongs to (snapshot at request time
   // so a Permanent that gets approved months later still records the
   // original batch even if rider.batchId has since moved).
-  fromBatchId  String?
+  fromBatchId     String?
   // The batch the rider wants to move into.
-  toBatchId    String
+  toBatchId       String
   // For single_day: the specific date the rider wants to attend the
   // target batch. Null for permanent (no date applies; the change
   // takes effect from approval onward).
-  shiftDate    DateTime?
+  shiftDate       DateTime?
   // For permanent shifts: the date from which the new batch becomes
   // active. Defaults to approval timestamp if omitted by rider.
-  effectiveFrom DateTime?
-  reason       String?  // why the rider wants to shift; visible to approver
-  status       String   @default("pending") // pending | approved | rejected | cancelled
+  effectiveFrom   DateTime?
+  reason          String? // why the rider wants to shift; visible to approver
+  status          String    @default("pending") // pending | approved | rejected | cancelled
   decidedByUserId String?
-  decidedAt    DateTime?
-  decisionNote String?  // approver's note on accept/reject (visible to rider)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  decidedAt       DateTime?
+  decisionNote    String? // approver's note on accept/reject (visible to rider)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   rider     Rider  @relation(fields: [riderId], references: [id], onDelete: Cascade)
   fromBatch Batch? @relation("BatchShiftFrom", fields: [fromBatchId], references: [id])
-  toBatch   Batch  @relation("BatchShiftTo",   fields: [toBatchId],   references: [id])
+  toBatch   Batch  @relation("BatchShiftTo", fields: [toBatchId], references: [id])
   decidedBy User?  @relation("BatchShiftDecidedBy", fields: [decidedByUserId], references: [id])
 
   @@index([riderId, status])

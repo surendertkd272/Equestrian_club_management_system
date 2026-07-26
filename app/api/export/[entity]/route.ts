@@ -288,9 +288,10 @@ export async function GET(req: Request, { params }: { params: { entity: string }
 
   if (params.entity === "salary") {
     const [total, rows] = await Promise.all([
-      prisma.salaryPayment.count({ where }),
+      // Voided runs are excluded — they are corrections, not spend.
+      prisma.salaryPayment.count({ where: { ...where, voidedAt: null } }),
       prisma.salaryPayment.findMany({
-        where,
+        where: { ...where, voidedAt: null },
         include: { user: { select: { name: true, role: true } }, centre: { select: { name: true } } },
         orderBy: [{ periodMonth: "desc" }, { createdAt: "desc" }],
         take: ROW_CAP,

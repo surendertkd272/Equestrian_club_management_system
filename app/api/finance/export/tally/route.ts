@@ -82,7 +82,8 @@ export async function GET(req: NextRequest) {
     // simply did not exist in the books the accountant hands to Tally. Only
     // rows that have actually been PAID belong in a cash export.
     prisma.salaryPayment.findMany({
-      where: { ...where, paidAt: { gte: from, lte: to } },
+      // A voided run is not a payment — it must not reach the books.
+      where: { ...where, voidedAt: null, paidAt: { gte: from, lte: to } },
       include: { user: { select: { name: true } } },
       orderBy: { paidAt: "asc" },
       take: 5000,
