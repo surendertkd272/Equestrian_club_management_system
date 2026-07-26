@@ -131,7 +131,11 @@ export default async function StaffPage({
               { key: "email", header: "Email", cell: (s) => s.user.email },
               { key: "phone", header: "Phone", cell: (s) => s.user.phone ?? "—" },
               { key: "joined", header: "Joined", cell: (s) => formatDate(s.joiningDate) },
-              { key: "status", header: "Status", cell: (s) => <Badge variant={s.status === "active" ? "success" : "warning"}>{formatEnum(s.status)}</Badge> },
+              // One person, two status columns. The separation flow writes
+              // User.status ("resigned") and never touches Staff.status, so this
+              // list went on showing a departed employee as Active indefinitely.
+              // User.status is the one the exit process actually maintains.
+              { key: "status", header: "Status", cell: (s) => <Badge variant={s.user.status === "active" ? "success" : "warning"}>{formatEnum(s.user.status)}</Badge> },
             ]}
           />
           <Pagination total={total} page={page} pageSize={pageSize} />

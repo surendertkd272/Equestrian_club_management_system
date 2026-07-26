@@ -64,6 +64,15 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  // Keep the Staff record in step. A person has two status columns and this
+  // flow only ever wrote User.status, so /staff and the staff profile went on
+  // listing a departed employee as "Active" indefinitely — a manager doing a
+  // headcount, or picking someone to assign work to, saw them as available.
+  await prisma.staff.updateMany({
+    where: { userId: session.userId },
+    data: { status: newStatus },
+  });
+
   await audit({
     userId: session.userId,
     action: `separation.${notice.kind}.submitted`,

@@ -223,5 +223,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     });
   }
 
-  return NextResponse.json({ ok: true, status: "pending_payment", invoiceId: invoice.id, amount: regAmount, payUrl });
+  // The rider is set active above; reporting "pending_payment" (a status this
+  // flow stopped writing) made callers and the UI disagree with the database.
+  return NextResponse.json({ ok: true, status: "active", invoiceId: invoice.id, amount: regAmount, payUrl });
 }

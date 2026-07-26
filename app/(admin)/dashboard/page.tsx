@@ -97,7 +97,10 @@ export default async function DashboardPage() {
     coachUpdatesToday,
   ] = await Promise.all([
       prisma.rider.count({ where: { ...where, status: "active" } }),
-      prisma.rider.count({ where: { ...where, status: "pending_payment" } }),
+      // "pending_payment" became unreachable when enrolment approval started
+      // writing "active" directly, so this tile read 0 while 22 sign-ups were
+      // genuinely waiting for the manager.
+      prisma.rider.count({ where: { ...where, status: "pending_approval" } }),
       prisma.batch.count({ where }),
       prisma.invoice.count({ where: { ...where, status: "due" } }),
       prisma.payment.aggregate({
@@ -255,7 +258,7 @@ export default async function DashboardPage() {
   }));
 
   const tiles = [
-    { label: "Pending Sign-Ups", value: pendingRiders, hint: "awaiting payment", icon: <UserPlus className="h-5 w-5" /> },
+    { label: "Pending Sign-Ups", value: pendingRiders, hint: "awaiting your approval", icon: <UserPlus className="h-5 w-5" /> },
     { label: "Batches", value: batches, hint: "scheduled", icon: <CalendarClock className="h-5 w-5" /> },
     { label: "Open Invoices", value: openInvoices, hint: "status = due", icon: <Receipt className="h-5 w-5" /> },
     { label: "Horses on Roster", value: horses, icon: <PawPrint className="h-5 w-5" /> },
