@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
 
   const staffUser = await prisma.user.findUnique({
     where: { id: d.userId },
-    select: { id: true, centreId: true, name: true },
+    select: { id: true, centreId: true, name: true, status: true },
   });
   if (!staffUser || !staffUser.centreId) {
     return NextResponse.json({ error: "STAFF_NOT_FOUND" }, { status: 404 });
@@ -46,6 +46,36 @@ export async function POST(req: NextRequest) {
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
   if (!isHQ && session.centreId !== staffUser.centreId) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  }
+
+  // Don't pay someone who has left. There was no employment-status check at
+  // all, so a resigned or terminated employee could be run through payroll
+  // indefinitely — and nothing here is reversible once recorded. HQ can still
+  // force it for a genuine final settlement by passing an explicit gross.
+  if (staffUser.status !== "active" && d.grossOverride === undefined) {
+    return NextResponse.json(
+      {
+        error: "STAFF_NOT_ACTIVE",
+        status: staffUser.status,
+        message: `${staffUser.name} is ${staffUser.status}. To record a final settlement, enter the amount explicitly.`,
+      },
+      { status: 409 },
+    );
+  }
+
+  // Don't pay a month that hasn't happened. The period was regex-checked for
+  // shape but not for reality, so payroll could be run for 2027-12 today —
+  // overstating cost, consuming the advance balance, and (being irreversible)
+  // needing a DB edit to undo.
+  const nowMonth = new Date().toISOString().slice(0, 7);
+  if (d.periodMonth > nowMonth) {
+    return NextResponse.json(
+      {
+        error: "PERIOD_IN_FUTURE",
+        message: `Payroll can't be run for ${d.periodMonth} — that month hasn't started yet.`,
+      },
+      { status: 400 },
+    );
   }
 
   const dup = await prisma.salaryPayment.findUnique({

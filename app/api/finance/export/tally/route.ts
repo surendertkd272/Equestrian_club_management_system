@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
 
   const where = session.centreId ? { centreId: session.centreId } : {};
 
-  const [invoices, payments, expenses, centre] = await Promise.all([
+  const [invoices, payments, expenses, centre, salaries] = await Promise.all([
     prisma.invoice.findMany({
       where: { ...where, createdAt: { gte: from, lte: to } },
       include: { rider: { select: { firstName: true, lastName: true } } },
@@ -64,7 +64,27 @@ export async function GET(req: NextRequest) {
       take: 5000,
     }),
     session.centreId ? prisma.centre.findUnique({ where: { id: session.centreId }, select: { name: true } }) : Promise.resolve(null),
+    // Salaries. Payroll was absent from this export entirely, so the single
+    // largest cash outflow a club has — ₹76,500 in one month of the sandbox —
+    // simply did not exist in the books the accountant hands to Tally. Only
+    // rows that have actually been PAID belong in a cash export.
+    prisma.salaryPayment.findMany({
+      where: { ...where, paidAt: { gte: from, lte: to } },
+      include: { user: { select: { name: true } } },
+      orderBy: { paidAt: "asc" },
+      take: 5000,
+    }),
   ]);
+
+  // Map a payment method to the ledger the money actually moved through.
+  // Shared by receipts, expenses and salaries so the three can't drift.
+  const ledgerForMethod = (m: string | null | undefined): string =>
+    m === "cash" ? "Cash" :
+    m === "cheque" ? "Bank - Cheque" :
+    m === "upi" ? "Bank - UPI" :
+    m === "razorpay" ? "Bank - Razorpay" :
+    m === "card" ? "Bank - Card" :
+    "Bank";
 
   const vouchers: string[] = [];
 
@@ -105,12 +125,7 @@ export async function GET(req: NextRequest) {
   // ledger credited.
   for (const p of payments) {
     const partyLedger = `${p.invoice.rider.firstName} ${p.invoice.rider.lastName}`;
-    const bankLedger =
-      p.method === "cash" ? "Cash" :
-      p.method === "cheque" ? "Bank - Cheque" :
-      p.method === "upi" ? "Bank - UPI" :
-      p.method === "razorpay" ? "Bank - Razorpay" :
-      "Bank";
+    const bankLedger = ledgerForMethod(p.method);
     vouchers.push(
       `<VOUCHER VCHTYPE="Receipt" ACTION="Create">
   <DATE>${ddmmyyyy(p.paidAt)}</DATE>
@@ -131,23 +146,77 @@ export async function GET(req: NextRequest) {
     );
   }
 
+
   // Payment Vouchers — Expenses. Expense ledger debited; bank/cash credited.
+  //
+  // Three corrections here, all of which made the export disagree with the
+  // club's actual books:
+  //   • Input GST was dropped entirely — the credit side carried only the net
+  //     amount, so recoverable tax vanished and the voucher didn't balance
+  //     against a real bill.
+  //   • The credit ledger was hard-coded to "Cash" no matter how the expense
+  //     was actually settled, so bank and UPI spend was posted as cash out.
+  //   • UNPAID expenses were exported as though the cash had already left. An
+  //     accrued bill is a liability, not a payment, so it now posts against
+  //     Sundry Creditors instead of a bank/cash ledger.
   for (const e of expenses) {
+    const gross = e.amount + e.gstAmount;
+    const creditLedger = e.paid ? ledgerForMethod(e.method) : "Sundry Creditors";
     vouchers.push(
-      `<VOUCHER VCHTYPE="Payment" ACTION="Create">
-  <DATE>${ddmmyyyy(e.spentAt)}</DATE>
-  <NARRATION>${escapeXml(`${e.category?.name ?? "Expense"} · ${e.vendor?.name ?? "—"} · ${e.description ?? ""}`)}</NARRATION>
-  <VOUCHERTYPENAME>Payment</VOUCHERTYPENAME>
+      `<VOUCHER VCHTYPE="${e.paid ? "Payment" : "Journal"}" ACTION="Create">
+  <DATE>${ddmmyyyy(e.paid && e.paidAt ? e.paidAt : e.spentAt)}</DATE>
+  <NARRATION>${escapeXml(`${e.category?.name ?? "Expense"} · ${e.vendor?.name ?? "—"} · ${e.description ?? ""}${e.paid ? "" : " [UNPAID — accrual]"}`)}</NARRATION>
+  <VOUCHERTYPENAME>${e.paid ? "Payment" : "Journal"}</VOUCHERTYPENAME>
   <VOUCHERNUMBER>${escapeXml(e.id.slice(-12).toUpperCase())}</VOUCHERNUMBER>
   <ALLLEDGERENTRIES.LIST>
     <LEDGERNAME>${escapeXml(`Expense - ${e.category?.name ?? "General"}`)}</LEDGERNAME>
     <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
     <AMOUNT>-${e.amount.toFixed(2)}</AMOUNT>
   </ALLLEDGERENTRIES.LIST>
-  <ALLLEDGERENTRIES.LIST>
-    <LEDGERNAME>Cash</LEDGERNAME>
+  ${e.gstAmount > 0 ? `<ALLLEDGERENTRIES.LIST>
+    <LEDGERNAME>Input GST</LEDGERNAME>
+    <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+    <AMOUNT>-${e.gstAmount.toFixed(2)}</AMOUNT>
+  </ALLLEDGERENTRIES.LIST>
+  ` : ""}<ALLLEDGERENTRIES.LIST>
+    <LEDGERNAME>${escapeXml(creditLedger)}</LEDGERNAME>
     <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-    <AMOUNT>${e.amount.toFixed(2)}</AMOUNT>
+    <AMOUNT>${gross.toFixed(2)}</AMOUNT>
+  </ALLLEDGERENTRIES.LIST>
+</VOUCHER>`,
+    );
+  }
+
+  // Payment Vouchers — Salaries. Gross debited to Salaries & Wages; the net
+  // credited to the bank/cash ledger it was paid from; each deduction credited
+  // to its own ledger so the voucher balances and the advance recovery is
+  // visible in the books rather than only inside the payslip.
+  for (const s of salaries) {
+    const deductions: Array<[string, number]> = [
+      ["Staff Advances", s.advanceDeducted],
+      ["Salary Deductions - Attendance", s.attendanceDeducted],
+      ["Salary Deductions - Other", s.otherDeductions],
+    ].filter(([, v]) => (v as number) > 0) as Array<[string, number]>;
+    vouchers.push(
+      `<VOUCHER VCHTYPE="Payment" ACTION="Create">
+  <DATE>${ddmmyyyy(s.paidAt!)}</DATE>
+  <NARRATION>${escapeXml(`Salary ${s.periodMonth} · ${s.user.name}${s.advanceDeducted > 0 ? ` · advance recovered ₹${s.advanceDeducted}` : ""}`)}</NARRATION>
+  <VOUCHERTYPENAME>Payment</VOUCHERTYPENAME>
+  <VOUCHERNUMBER>${escapeXml(s.id.slice(-12).toUpperCase())}</VOUCHERNUMBER>
+  <ALLLEDGERENTRIES.LIST>
+    <LEDGERNAME>Salaries &amp; Wages</LEDGERNAME>
+    <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+    <AMOUNT>-${s.grossAmount.toFixed(2)}</AMOUNT>
+  </ALLLEDGERENTRIES.LIST>
+${deductions.map(([name, amt]) => `  <ALLLEDGERENTRIES.LIST>
+    <LEDGERNAME>${escapeXml(name)}</LEDGERNAME>
+    <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+    <AMOUNT>${amt.toFixed(2)}</AMOUNT>
+  </ALLLEDGERENTRIES.LIST>`).join("\n")}
+  <ALLLEDGERENTRIES.LIST>
+    <LEDGERNAME>${escapeXml(ledgerForMethod(s.method))}</LEDGERNAME>
+    <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+    <AMOUNT>${s.netAmount.toFixed(2)}</AMOUNT>
   </ALLLEDGERENTRIES.LIST>
 </VOUCHER>`,
     );
