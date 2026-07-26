@@ -46,7 +46,7 @@ export default async function InjuriesPage() {
     centreId
       ? prisma.centre.findFirst({
           where: { id: centreId, orgId },
-          select: { emergencyContactsJson: true },
+          select: { emergencyContactsJson: true, timezone: true },
         })
       : Promise.resolve(null),
   ]);
@@ -99,7 +99,7 @@ export default async function InjuriesPage() {
         <Kpi label="Recovered" value={rows.filter((r) => r.status === "recovered").length} />
       </div>
 
-      <InjuriesClient horses={horses} riders={riders} />
+      <InjuriesClient horses={horses} riders={riders} timezone={centre?.timezone ?? "Asia/Kolkata"} />
 
       <Card>
         <CardHeader>
