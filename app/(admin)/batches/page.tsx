@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { NewBatchForm } from "./new-form";
 import { BatchDeleteButton } from "./delete-button";
+import { BatchEditButton } from "./edit-button";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +48,33 @@ export default async function BatchesPage() {
       })
     : [];
 
+  // The edit dialog needs the coaches of the batch's OWN centre, which for an
+  // HQ admin viewing every centre at once is not the list above. Fetch across
+  // the same scope and index by centre so each row offers only its own.
+  const scopedCoaches = await prisma.user.findMany({
+    where: { ...where, role: "COACH", status: "active" },
+    select: { id: true, name: true, centreId: true },
+    orderBy: { name: "asc" },
+  });
+  const coachesByCentre = new Map<string, { id: string; name: string }[]>();
+  for (const c of scopedCoaches) {
+    if (!c.centreId) continue;
+    const list = coachesByCentre.get(c.centreId) ?? [];
+    list.push({ id: c.id, name: c.name });
+    coachesByCentre.set(c.centreId, list);
+  }
+
+  // Batch.coachId is a bare column with no relation, so resolve the names
+  // separately — and include coaches who have since gone inactive or changed
+  // role, or the column would render as "Unassigned" when it isn't.
+  const assignedIds = [...new Set(batches.map((b) => b.coachId).filter((v): v is string => !!v))];
+  const coachNames = new Map(
+    (assignedIds.length
+      ? await prisma.user.findMany({ where: { id: { in: assignedIds } }, select: { id: true, name: true } })
+      : []
+    ).map((u) => [u.id, u.name] as const),
+  );
+
   // batch.manage holders: SUPER_ADMIN, ADMIN, CENTRE_MANAGER, HEAD_COACH, COACH.
   // Read access to the list is open to everyone the sidebar lets in; only
   // write controls (create form + delete) are gated on the permission so a
@@ -80,6 +108,15 @@ export default async function BatchesPage() {
                   { key: "days", header: "Days", cell: (b) => b.dayOfWeek },
                   { key: "time", header: "Time", cell: (b) => <>{b.startTime}–{b.endTime}</> },
                   { key: "level", header: "Level", cell: (b) => b.level ?? "—" },
+                  {
+                    key: "coach",
+                    header: "Coach",
+                    className: "py-2 text-xs",
+                    cell: (b) =>
+                      (b.coachId && coachNames.get(b.coachId)) ?? (
+                        <span className="text-muted-foreground">Unassigned</span>
+                      ),
+                  },
                   { key: "riders", header: "Riders", cell: (b) => b._count.riders },
                   {
                     key: "actions",
@@ -90,7 +127,22 @@ export default async function BatchesPage() {
                           Mark Attendance →
                         </Link>
                         {canManage && (
-                          <BatchDeleteButton id={b.id} name={b.name} riderCount={b._count.riders} />
+                          <>
+                            <BatchEditButton
+                              batch={{
+                                id: b.id,
+                                name: b.name,
+                                dayOfWeek: b.dayOfWeek,
+                                startTime: b.startTime,
+                                endTime: b.endTime,
+                                level: b.level,
+                                coachId: b.coachId,
+                              }}
+                              coaches={coachesByCentre.get(b.centreId) ?? []}
+                              riderCount={b._count.riders}
+                            />
+                            <BatchDeleteButton id={b.id} name={b.name} riderCount={b._count.riders} />
+                          </>
                         )}
                       </div>
                     ),

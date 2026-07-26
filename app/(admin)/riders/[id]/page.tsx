@@ -19,6 +19,8 @@ import { bmiBand, bmiBandLabel, bmiBandTone, bmiNeedsAttention } from "@/lib/bmi
 import { loadRiderExamHistory } from "@/lib/exam-history";
 import { ExamHistoryList } from "@/components/exams/exam-history-list";
 import { formatEnum } from "@/lib/labels";
+import { WithdrawPanel, WithdrawnRiderBanner } from "./withdraw-panel";
+import { creditPosition } from "@/lib/credit-note";
 export const dynamic = "force-dynamic";
 
 function AttendanceSummary({ attendances }: { attendances: { status: string }[] }) {
@@ -44,7 +46,13 @@ export default async function RiderProfile({ params }: { params: { id: string } 
     include: {
       centre: { select: { id: true, name: true } },
       batch: { select: { name: true, startTime: true, endTime: true, dayOfWeek: true } },
-      invoices: { orderBy: { createdAt: "desc" } },
+      invoices: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          payments: { select: { amount: true } },
+          creditNotes: { select: { amount: true, gstAmount: true } },
+        },
+      },
       attendances: { orderBy: { date: "desc" }, take: 30 },
       parentLinks: {
         include: { parent: { select: { id: true, name: true, email: true, phone: true } } },
@@ -82,6 +90,15 @@ export default async function RiderProfile({ params }: { params: { id: string } 
   ]);
   const masteredCount = statuses.filter((s) => s.status === "mastered").length;
   const progressPct = allSkills > 0 ? Math.round((masteredCount / allSkills) * 100) : 0;
+
+  // What the family still owes, so off-boarding can state it rather than
+  // leaving the operator to work it out on another screen. Voided invoices and
+  // credit notes themselves are excluded; credits already issued are netted off
+  // inside creditPosition.
+  const outstanding = rider.invoices
+    .filter((inv) => !inv.voidedAt && !inv.creditNoteForId)
+    .reduce((t, inv) => t + creditPosition(inv).outstanding, 0);
+  const canOffBoard = can(session.role, "rider.write") && !isReadOnly(session.role);
 
   return (
     <div className="space-y-6">
@@ -130,9 +147,32 @@ export default async function RiderProfile({ params }: { params: { id: string } 
           >
             Report card
           </a>
-          <Badge variant={rider.status === "active" ? "success" : "warning"}>{formatEnum(rider.status)}</Badge>
+          {canOffBoard && (
+            <WithdrawPanel
+              riderId={rider.id}
+              riderName={rider.firstName}
+              status={rider.status}
+              outstanding={outstanding}
+              batchName={rider.batch?.name ?? null}
+            />
+          )}
+          <Badge variant={rider.status === "active" ? "success" : rider.status === "withdrawn" ? "outline" : "warning"}>
+            {formatEnum(rider.status)}
+          </Badge>
         </div>
       </div>
+
+      {rider.status === "withdrawn" && (
+        <WithdrawnRiderBanner
+          riderId={rider.id}
+          riderName={rider.firstName}
+          withdrawnAt={rider.withdrawnAt?.toISOString() ?? null}
+          withdrawalReason={rider.withdrawalReason}
+          lastDayAt={rider.lastDayAt?.toISOString() ?? null}
+          outstanding={outstanding}
+          canManage={canOffBoard}
+        />
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>

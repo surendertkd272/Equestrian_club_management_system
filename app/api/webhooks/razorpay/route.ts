@@ -111,7 +111,20 @@ export async function POST(req: NextRequest) {
       prisma.invoice.update({ where: { id: invoice.id }, data: { status: fullyPaid ? "paid" : "due" } }),
       // Activate the rider only once registration is FULLY paid.
       ...(fullyPaid && invoice.kind === "registration"
-        ? [prisma.rider.update({ where: { id: invoice.riderId }, data: { registrationPaid: true, status: "active" } })]
+        ? [
+            // Record the payment, but never resurrect a rider the club has
+            // off-boarded: a departed family settling an old registration
+            // invoice must not silently reappear on the roster. Withdrawal is
+            // undone deliberately, on /riders.
+            prisma.rider.updateMany({
+              where: { id: invoice.riderId, status: { not: "withdrawn" } },
+              data: { registrationPaid: true, status: "active" },
+            }),
+            prisma.rider.updateMany({
+              where: { id: invoice.riderId, status: "withdrawn" },
+              data: { registrationPaid: true },
+            }),
+          ]
         : []),
     ]);
   } catch (e: any) {

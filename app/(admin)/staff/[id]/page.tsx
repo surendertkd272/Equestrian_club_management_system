@@ -18,6 +18,8 @@ import {
 } from "@/lib/schemas/onboarding-staff";
 import { PrintControl } from "./print-control";
 import { formatEnum, roleLabel } from "@/lib/labels";
+import { SeparationTrigger } from "../../users/separation-trigger";
+import { isReadOnly } from "@/lib/roles";
 export const dynamic = "force-dynamic";
 
 // Profile + consent record: SUPER_ADMIN + ADMIN + CENTRE_MANAGER (a manager can
@@ -33,6 +35,18 @@ export default async function StaffProfilePage({ params }: { params: { id: strin
   if (!profile) notFound();
 
   const { staff, docs, declarationName, hasOnboarding } = profile;
+
+  // Off-boarding used to live only on /users, which is HQ-only — so the
+  // manager who knew the groom had left couldn't record it. It's here now,
+  // fenced to staff below the manager's own tier (enforced server-side in
+  // app/api/users/[id]/separation).
+  const canOffBoard =
+    staff.userStatus === "active" &&
+    staff.userId !== session.userId &&
+    !isReadOnly(session.role) &&
+    staff.role !== "SUPER_ADMIN" &&
+    staff.role !== "ADMIN" &&
+    (session.role === "SUPER_ADMIN" || session.role === "ADMIN" || staff.role !== "CENTRE_MANAGER");
   const rows = employeeFormRows(profile.record);
 
   // Consent record — what the employee accepted, for showing back to them later.
@@ -65,6 +79,7 @@ export default async function StaffProfilePage({ params }: { params: { id: strin
             <Pencil className="h-4 w-4" /> Edit
           </Link>
           <PrintControl staffId={staff.id} docs={docs.map((d) => ({ key: d.key, label: d.label }))} />
+          {canOffBoard && <SeparationTrigger userId={staff.userId} userName={staff.name} />}
         </div>
       </div>
 

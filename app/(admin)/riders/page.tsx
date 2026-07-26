@@ -22,6 +22,7 @@ export const dynamic = "force-dynamic";
 const statusVariant = (s: string) =>
   s === "active" ? "success" : s === "pending_payment" ? "warning" : s === "suspended" ? "destructive" : "outline";
 
+
 export default async function RidersPage({
   searchParams,
 }: {
@@ -36,7 +37,11 @@ export default async function RidersPage({
   if (!orgId) redirect("/dashboard");
   const centreId = scopeCentre(session);
   const where: any = { ...tenantWhere(centreId, orgId) };
+  // "All statuses" means all CURRENT riders — someone who left the club two
+  // years ago shouldn't be padding out the roll every time you open the page.
+  // They're one filter selection away, never gone.
   if (searchParams.status) where.status = searchParams.status;
+  else where.status = { not: "withdrawn" };
   if (searchParams.q) {
     where.OR = [
       { firstName: { contains: searchParams.q } },
@@ -122,10 +127,11 @@ export default async function RidersPage({
               defaultValue={searchParams.status ?? ""}
               className="h-9 rounded-md border border-input bg-background px-3 text-sm"
             >
-              <option value="">All statuses</option>
+              <option value="">All current riders</option>
               <option value="active">Active</option>
               <option value="pending_payment">Pending Payment</option>
               <option value="suspended">Suspended</option>
+              <option value="withdrawn">Withdrawn (left the club)</option>
               <option value="cancelled">Cancelled</option>
             </select>
             <Button type="submit" size="sm" variant="outline">

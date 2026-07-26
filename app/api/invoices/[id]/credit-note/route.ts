@@ -17,6 +17,7 @@ import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { blockIfFeatureOff } from "@/lib/features-gate";
 import { notifyRiderAndParents } from "@/lib/notify";
+import { creditPosition, writeCreditNote } from "@/lib/credit-note";
 
 const schema = z.object({
   // Omit to cancel what is still OWED — the common case, a family withdrawing
@@ -71,11 +72,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     );
   }
 
-  // How much of this invoice is still chargeable: face value, less anything
-  // already credited. Amounts credited are stored negative, hence the plus.
-  const face = inv.amount + inv.gstAmount;
-  const alreadyCredited = inv.creditNotes.reduce((t, c) => t + (c.amount + c.gstAmount), 0);
-  const creditable = face + alreadyCredited;
+  // How much of this invoice is still chargeable, what has been paid, and what
+  // is genuinely outstanding. Shared with rider withdrawal (lib/credit-note.ts)
+  // so the two paths can't disagree about the maths.
+  const position = creditPosition(inv);
+  const { face, creditable } = position;
   if (creditable <= 0.001) {
     return NextResponse.json(
       { error: "FULLY_CREDITED", message: "This invoice has already been credited in full." },
@@ -83,9 +84,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     );
   }
   // Default = the unpaid balance; explicit = anything up to the full invoice.
-  const received = inv.payments.reduce((t, p) => t + p.amount, 0);
-  const outstanding = Math.max(0, creditable - received);
-  const amount = parsed.data.amount ?? outstanding;
+  const amount = parsed.data.amount ?? position.outstanding;
   if (amount <= 0.001) {
     return NextResponse.json(
       {
@@ -108,32 +107,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     );
   }
 
-  // Split the credit across net and GST in the original's proportion, so the
-  // tax position reverses correctly rather than the whole credit landing on net.
-  const gstShare = face > 0 ? (inv.gstAmount / face) * amount : 0;
-  const netShare = amount - gstShare;
-
-  const note = await prisma.$transaction(async (tx) => {
-    const cn = await tx.invoice.create({
-      data: {
-        centreId: inv.centreId,
-        riderId: inv.riderId,
-        amount: -netShare,
-        gstAmount: -gstShare,
-        dueDate: new Date(),
-        status: "paid", // nothing is collectable on a credit note
-        kind: "credit_note",
-        creditNoteForId: inv.id,
-      },
-    });
-    // If the original is now fully covered by payments plus credits, it is
-    // settled — a withdrawing family shouldn't keep showing as owing.
-    const stillOwed = face + alreadyCredited - amount - received;
-    if (stillOwed <= 0.001 && inv.status !== "paid") {
-      await tx.invoice.update({ where: { id: inv.id }, data: { status: "paid" } });
-    }
-    return cn;
-  });
+  const note = await prisma.$transaction((tx) => writeCreditNote(tx, inv, position, amount));
 
   await audit({
     userId: session.userId,
@@ -143,8 +117,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     after: {
       creditNoteFor: inv.id,
       amount: -amount,
-      net: -netShare,
-      gst: -gstShare,
+      net: -note.net,
+      gst: -note.gst,
       reason: parsed.data.reason,
       riderId: inv.riderId,
     },
@@ -162,8 +136,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     ok: true,
     creditNoteId: note.id,
     amount,
-    net: netShare,
-    gst: gstShare,
+    net: note.net,
+    gst: note.gst,
     remainingCreditable: creditable - amount,
   });
 }

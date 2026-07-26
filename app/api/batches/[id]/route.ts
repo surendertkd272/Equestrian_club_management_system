@@ -15,6 +15,7 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { updateBatchSchema } from "@/lib/schemas/batch";
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -76,4 +77,87 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     before: { name: batch.name, centreId: batch.centreId, dayOfWeek: batch.dayOfWeek },
   });
   return NextResponse.json({ ok: true });
+}
+
+// PATCH /api/batches/[id] — edit a live batch.
+//
+// There was no update route: PATCH, PUT and POST all fell through to 405, so a
+// class whose time shifted, whose coach changed or whose name was wrong could
+// never be corrected — and DELETE refuses once it has riders, so the only
+// option was to abandon it and create another. Same permission as create.
+//
+// Changing the time here deliberately does NOT retime already-scheduled
+// Lesson rows: those are concrete sessions that may have horses allocated and
+// attendance marked against them, and silently moving them would break both.
+// The batch time is the template for FUTURE lessons; existing ones are edited
+// individually on /lessons.
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  if (!can(session.role, "batch.manage")) {
+    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  }
+  const readOnly = await blockIfReadOnly(session);
+  if (readOnly) return readOnly;
+
+  const body = await req.json().catch(() => null);
+  const parsed = updateBatchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "VALIDATION", message: parsed.error.issues[0]?.message, details: parsed.error.flatten() },
+      { status: 400 },
+    );
+  }
+  const d = parsed.data;
+
+  const batch = await prisma.batch.findUnique({ where: { id: params.id } });
+  if (!batch) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  if (session.role !== "SUPER_ADMIN" && batch.centreId !== session.centreId) {
+    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  }
+
+  // Merge over stored values before checking, so a one-sided edit can't invert
+  // the window (same class of bug as the lesson and event date guards).
+  const startTime = d.startTime ?? batch.startTime;
+  const endTime = d.endTime ?? batch.endTime;
+  if (endTime <= startTime) {
+    return NextResponse.json(
+      { error: "INVALID_TIME_RANGE", message: "End time must be after the start time." },
+      { status: 400 },
+    );
+  }
+
+  // A coach must exist, be active, and belong to this centre.
+  if (d.coachId) {
+    const coach = await prisma.user.findUnique({
+      where: { id: d.coachId },
+      select: { centreId: true, status: true, role: true, name: true },
+    });
+    if (!coach || coach.status !== "active" || coach.centreId !== batch.centreId) {
+      return NextResponse.json({ error: "INVALID_COACH" }, { status: 400 });
+    }
+  }
+
+  const updated = await prisma.batch.update({
+    where: { id: batch.id },
+    data: {
+      ...(d.name !== undefined ? { name: d.name } : {}),
+      ...(d.dayOfWeek !== undefined ? { dayOfWeek: d.dayOfWeek } : {}),
+      ...(d.startTime !== undefined ? { startTime: d.startTime } : {}),
+      ...(d.endTime !== undefined ? { endTime: d.endTime } : {}),
+      ...(d.level !== undefined ? { level: d.level } : {}),
+      ...(d.coachId !== undefined ? { coachId: d.coachId } : {}),
+    },
+  });
+
+  await audit({
+    userId: session.userId,
+    action: "batch.update",
+    tableName: "batch",
+    rowId: batch.id,
+    before: { name: batch.name, dayOfWeek: batch.dayOfWeek, startTime: batch.startTime, endTime: batch.endTime, coachId: batch.coachId, level: batch.level },
+    after: { name: updated.name, dayOfWeek: updated.dayOfWeek, startTime: updated.startTime, endTime: updated.endTime, coachId: updated.coachId, level: updated.level },
+  });
+
+  return NextResponse.json({ ok: true, batch: updated });
 }

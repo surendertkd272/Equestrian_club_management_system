@@ -120,8 +120,14 @@ export function synthRecordFromStaff(
 export type EmployeeProfile = {
   staff: {
     id: string;
+    // The login this staff record belongs to. Distinct from `id` (Staff.id) —
+    // user-account actions (separation, suspension) key on this, and passing
+    // the Staff id to them silently 404s.
+    userId: string;
     role: string;
     status: string;
+    /** User.status — the login's state, which can differ from Staff.status. */
+    userStatus: string;
     joiningDate: Date;
     name: string;
     email: string;
@@ -142,7 +148,7 @@ export async function loadEmployeeProfile(staffId: string, centreId: string | nu
   if (!orgId) return null;
   const staff = await prisma.staff.findFirst({
     where: { id: staffId, ...tenantWhere(centreId, orgId) },
-    include: { user: { select: { name: true, email: true, phone: true, photoUrl: true } } },
+    include: { user: { select: { name: true, email: true, phone: true, photoUrl: true, status: true } } },
   });
   if (!staff) return null;
 
@@ -163,8 +169,10 @@ export async function loadEmployeeProfile(staffId: string, centreId: string | nu
   return {
     staff: {
       id: staff.id,
+      userId: staff.userId,
       role: staff.role,
       status: staff.status,
+      userStatus: staff.user.status,
       joiningDate: staff.joiningDate,
       name: staff.user.name,
       email: staff.user.email,

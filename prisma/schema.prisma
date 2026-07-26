@@ -899,7 +899,20 @@ model Rider {
   // Null for adult riders or pre-DPDPA records.
   parentalConsentJson  Json?
   // Status
-  status               String    @default("pending_payment") // pending_approval | pending_payment | active | suspended | cancelled | rejected
+  status               String    @default("pending_payment") // pending_approval | pending_payment | active | suspended | withdrawn | cancelled | rejected
+  // Off-boarding. A family that leaves has to be able to LEAVE: until this
+  // existed a departed rider stayed "active" forever — still on the coach's
+  // roster, still counted in headcount, still chased for fees. Withdrawal is
+  // recorded, not deleted, because attendance, certificates and invoices all
+  // hang off the rider and the club may need them years later. Reversible:
+  // a family that comes back is re-activated, and withdrawnAt is cleared.
+  withdrawnAt          DateTime?
+  withdrawnByUserId    String?
+  withdrawalReason     String?
+  // The rider's last day at the club — often in the past (told us in April,
+  // recorded in May) or the future (notice given). Distinct from withdrawnAt,
+  // which is when the office recorded it.
+  lastDayAt            DateTime?
   registrationPaid     Boolean   @default(false)
   // True when the rider came in via the public self-enrol link (vs. created
   // by staff). Self-enrolled riders land in status="pending_approval" and a
