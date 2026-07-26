@@ -13,7 +13,7 @@ import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { recordSalarySchema } from "@/lib/schemas/payroll";
-import { effectiveSalary, attendanceCounts } from "@/lib/payroll";
+import { effectiveSalary, attendanceCounts, deductionRulesForCentre } from "@/lib/payroll";
 import { computeAbsenceDeduction } from "@/lib/schemas/payroll";
 
 function canManagePayroll(role: string): boolean {
@@ -91,7 +91,10 @@ export async function POST(req: NextRequest) {
 
   // Absence-based deduction: (base / 30) per absent day (half for half-days).
   const counts = await attendanceCounts(d.userId, d.periodMonth);
-  const { total: attendanceDeducted, breakdown } = computeAbsenceDeduction(gross, counts);
+  // Apply the org's configured per-status rates. Without this the policy screen
+  // was decorative: it saved, echoed back, and payroll used a derived rate.
+  const deductionRules = await deductionRulesForCentre(staffUser.centreId);
+  const { total: attendanceDeducted, breakdown } = computeAbsenceDeduction(gross, counts, deductionRules);
   const absentDays = counts["absent"] ?? 0;
 
   // Guard: "other deductions" can't exceed what's left after the attendance cut
