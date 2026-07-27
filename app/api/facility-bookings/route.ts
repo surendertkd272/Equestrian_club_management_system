@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { centreScopeWhere } from "@/lib/authz-centre";
 import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { blockIfFeatureOff } from "@/lib/features-gate";
@@ -21,7 +22,12 @@ export async function GET(req: NextRequest) {
   const facilityId = url.searchParams.get("facilityId");
 
   const where: Prisma.FacilityBookingWhereInput = {};
-  if (session.role !== "SUPER_ADMIN" && session.centreId) where.centreId = session.centreId;
+  // Centre-less roles fall straight through a `role !== "SUPER_ADMIN" &&
+  // session.centreId` conjunct with NO filter applied, so this list spanned
+  // every organisation on the platform. Same scope the pages use.
+  const scope = await centreScopeWhere(session);
+  if (!scope) return NextResponse.json({ error: "FORBIDDEN_NO_SCOPE" }, { status: 403 });
+  Object.assign(where, scope);
   if (facilityId) where.facilityId = facilityId;
   where.endAt = { gte: new Date(Date.now() - 24 * 86400000) }; // last 24h + upcoming
 

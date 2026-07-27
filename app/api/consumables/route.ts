@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { centreScopeWhere } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
@@ -23,7 +24,12 @@ export async function GET(req: NextRequest) {
   const low = url.searchParams.get("low");
 
   const where: Prisma.ConsumableWhereInput = {};
-  if (session.role !== "SUPER_ADMIN" && session.centreId) where.centreId = session.centreId;
+  // Centre-less roles fall straight through a `role !== "SUPER_ADMIN" &&
+  // session.centreId` conjunct with NO filter applied, so this list spanned
+  // every organisation on the platform. Same scope the pages use.
+  const scope = await centreScopeWhere(session);
+  if (!scope) return NextResponse.json({ error: "FORBIDDEN_NO_SCOPE" }, { status: 403 });
+  Object.assign(where, scope);
   if (category) where.category = category;
 
   const rows = await prisma.consumable.findMany({

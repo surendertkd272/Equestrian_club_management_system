@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { makeCentreFence } from "@/lib/authz-centre";
-import { creditPosition } from "@/lib/credit-note";
+import { creditPosition, lockAndLoadInvoice } from "@/lib/credit-note";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { bulkMarkPaidSchema } from "@/lib/schemas/payment";
@@ -67,23 +67,33 @@ export async function POST(req: NextRequest) {
       skipped.push({ invoiceId: inv.id, reason: "refunded" });
       continue;
     }
-    // Net of credit notes. Face value would collect money the club has already
-    // cancelled — the same hole that was closed on the manual payment path.
-    const remaining = creditPosition(inv).outstanding;
-    if (remaining < 0.01) {
-      skipped.push({ invoiceId: inv.id, reason: "nothing outstanding" });
+    // Everything below runs under the invoice's row lock, re-reading the
+    // position inside it. The pre-read above is only a fast path for the skip
+    // reasons: two operators hitting "mark paid" on the same list — or one
+    // impatient double-click — otherwise each banked the full outstanding
+    // amount against a stale snapshot, exactly the race the credit-note and
+    // reversal routes were fixed for. Same lock, same reason.
+    const outcome = await prisma.$transaction(async (tx) => {
+      const fresh = await lockAndLoadInvoice(tx, inv.id);
+      if (!fresh || fresh.voidedAt || fresh.creditNoteForId) return "gone" as const;
+      const remaining = creditPosition(fresh).outstanding;
+      if (remaining < 0.01) return "settled" as const;
+      await tx.payment.create({
+        data: {
+          invoiceId: inv.id,
+          amount: remaining,
+          method: parsed.data.method,
+          paidAt: new Date(),
+          clearedAt: parsed.data.method === "cheque" ? null : new Date(),
+        },
+      });
+      await tx.invoice.update({ where: { id: inv.id }, data: { status: "paid" } });
+      return "paid" as const;
+    });
+    if (outcome !== "paid") {
+      skipped.push({ invoiceId: inv.id, reason: outcome === "gone" ? "cancelled" : "nothing outstanding" });
       continue;
     }
-    await prisma.payment.create({
-      data: {
-        invoiceId: inv.id,
-        amount: remaining,
-        method: parsed.data.method,
-        paidAt: new Date(),
-        clearedAt: parsed.data.method === "cheque" ? null : new Date(),
-      },
-    });
-    await prisma.invoice.update({ where: { id: inv.id }, data: { status: "paid" } });
     marked++;
   }
 

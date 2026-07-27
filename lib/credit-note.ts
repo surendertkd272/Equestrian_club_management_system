@@ -56,6 +56,8 @@ export type CreditPosition = {
   face: number;
   /** Sum of credits already issued — negative. */
   alreadyCredited: number;
+  /** GST already credited back, as a positive magnitude. */
+  creditedGst: number;
   /** Face value less credits already issued: the ceiling on a new credit. */
   creditable: number;
   /** Payments net of reversals. */
@@ -68,10 +70,11 @@ export function creditPosition(inv: CreditPositionInput): CreditPosition {
   const face = inv.amount + inv.gstAmount;
   // Credits are stored as negative amounts, hence the plus.
   const alreadyCredited = inv.creditNotes.reduce((t, c) => t + (c.amount + c.gstAmount), 0);
+  const creditedGst = inv.creditNotes.reduce((t, c) => t + Math.abs(c.gstAmount), 0);
   const creditable = face + alreadyCredited;
   // Reversed payments are negative rows, so this is already net of them.
   const received = inv.payments.reduce((t, p) => t + p.amount, 0);
-  return { face, alreadyCredited, creditable, received, outstanding: Math.max(0, creditable - received) };
+  return { face, alreadyCredited, creditedGst, creditable, received, outstanding: Math.max(0, creditable - received) };
 }
 
 /**
@@ -87,9 +90,18 @@ export async function writeCreditNote(
 ): Promise<{ id: string; net: number; gst: number }> {
   // Split across net and GST in the original's proportion, so the tax position
   // reverses correctly rather than the whole credit landing on net.
-  // Round the split, or 6800 x 1800/11800 stores 1037.2881355932204 and the
-  // family's statement shows sub-paise figures the notification never promised.
-  const gstShare = round2(position.face > 0 ? (inv.gstAmount / position.face) * amount : 0);
+  // Split from the CUMULATIVE position, not this credit in isolation.
+  //
+  // Rounding each credit's tax share on its own drifts: a hundred ₹1 credits
+  // against a 15.25%-GST invoice each round to ₹0.15, implying 15.00% — the
+  // club under-reverses its output tax — and a 1-paisa credit puts the whole
+  // amount on net and nothing on GST at all. Deriving the share from the total
+  // credited so far makes each note absorb the residue, so the running split
+  // always matches the invoice's own rate.
+  const rate = position.face > 0 ? inv.gstAmount / position.face : 0;
+  const creditedSoFar = Math.abs(position.alreadyCredited);
+  const targetGstAfter = round2(rate * (creditedSoFar + amount));
+  const gstShare = round2(Math.max(0, targetGstAfter - position.creditedGst));
   const netShare = round2(amount - gstShare);
 
   const cn = await tx.invoice.create({

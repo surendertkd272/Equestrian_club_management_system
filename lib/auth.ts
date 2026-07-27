@@ -118,6 +118,7 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
         tokenVersion: true,
         status: true,
         deletionRequestedAt: true,
+        centreId: true,
         orgId: true,
         centre: { select: { orgId: true, org: { select: { status: true } } } },
         org: { select: { status: true } },
@@ -138,6 +139,14 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
     // under RLS_ENFORCE=1. No-op when the flag is off. Parent/Rider portals
     // (whose org comes from links, not User.orgId) re-bind in their resolvers.
     bindTenantOrg(u.orgId ?? u.centre?.orgId ?? null);
+    // The JWT's centreId is a SNAPSHOT from mint time, and moving a user to
+    // another centre does not bump tokenVersion — so a transferred employee
+    // kept acting on their old centre for the rest of the token's life, and
+    // every centre check in the product (centreFence included) believed them.
+    // The row is already loaded; take the centre from it.
+    if (u.centreId !== payload.centreId) {
+      payload.centreId = u.centreId;
+    }
   }
   // Honour explicit impersonation expiry too — separate from JWT exp so we
   // can cap impersonated sessions to 30 min regardless of the JWT TTL.

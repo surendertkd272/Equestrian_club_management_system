@@ -97,3 +97,28 @@ export function makeCentreFence(session: FenceSession) {
     return !mine || mine !== theirs ? "FORBIDDEN_CROSS_ORG" : null;
   };
 }
+
+/**
+ * The WHERE fragment that scopes a list query to what this caller may see.
+ *
+ * `tenantWhere` (lib/tenancy.ts) expresses the org half as a relation filter,
+ * `centre: { orgId }` — which only compiles on models that declare a `centre`
+ * relation. Several do not (Course, Farrier, Vaccination, Consumable,
+ * FacilityBooking all carry a bare centreId column), and Prisma rejects the
+ * query outright. This expresses the same scope as an id list, which works on
+ * anything with a centreId.
+ *
+ * Returns null when the caller has no legitimate scope at all, so the route can
+ * fail closed rather than list the platform.
+ */
+export async function centreScopeWhere(
+  session: FenceSession,
+): Promise<{ centreId: string } | { centreId: { in: string[] } } | null> {
+  if (session.centreId) return { centreId: session.centreId };
+  const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  if (!isHQ) return null; // a centre-less non-HQ role sees nothing here
+  const org = await orgOfHqUser(session.userId);
+  if (!org) return null;
+  const centres = await prisma.centre.findMany({ where: { orgId: org }, select: { id: true } });
+  return { centreId: { in: centres.map((c) => c.id) } };
+}
