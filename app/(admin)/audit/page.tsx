@@ -31,8 +31,19 @@ export default async function AuditPage({
   // disagreed.
   const auditOrgId = await getOrgIdForSession(session);
   if (!auditOrgId) redirect("/no-organisation");
+  // System-generated entries — cron sweeps, SMS/WhatsApp dispatch — carry no
+  // userId, and AuditLog has no tenant column of its own, so they cannot be
+  // attributed to an organisation at all. Requiring a related user hid them
+  // completely, which removes the single place you would look to answer "did
+  // last night's sweep run?". They are shown to HQ, who operate the platform,
+  // and withheld from centre staff — strictly tighter than before this screen
+  // was scoped at all, when everyone saw every tenant's rows.
+  const auditIsHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
   const where: any = {
-    user: { OR: [{ orgId: auditOrgId }, { centre: { orgId: auditOrgId } }] },
+    OR: [
+      { user: { OR: [{ orgId: auditOrgId }, { centre: { orgId: auditOrgId } }] } },
+      ...(auditIsHQ ? [{ userId: null }] : []),
+    ],
   };
   if (searchParams.action) where.action = { startsWith: searchParams.action };
   if (searchParams.table) where.tableName = searchParams.table;
