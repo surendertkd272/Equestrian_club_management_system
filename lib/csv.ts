@@ -15,7 +15,12 @@ function escapeField(v: unknown): string {
   //
   // Prefixing a single quote is the standard neutralisation: spreadsheets treat
   // the rest of the cell as literal text and don't display the quote itself.
-  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  // ...but a NUMBER can never be a formula, and reversibility introduced
+  // negatives everywhere (credit notes, payment reversals). Prefixing those
+  // made Excel read the cell as text: the column looked right and SUM quietly
+  // skipped it, so an accountant's totals were silently wrong.
+  const isNumber = typeof v === "number" || /^-?\d+(\.\d+)?$/.test(s);
+  if (!isNumber && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   if (s.includes('"') || s.includes(",") || s.includes("\n") || s.includes("\r")) {
     return `"${s.replace(/"/g, '""')}"`;
   }

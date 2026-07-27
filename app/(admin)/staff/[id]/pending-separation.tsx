@@ -24,6 +24,7 @@ export function PendingSeparationNotice({
   effectiveAt,
   noticeText,
   canWithdraw,
+  canFinalise,
 }: {
   userId: string;
   userName: string;
@@ -34,6 +35,8 @@ export function PendingSeparationNotice({
   effectiveAt: string | null;
   noticeText: string;
   canWithdraw: boolean;
+  /** Effective date has passed and the employee still hasn't responded. */
+  canFinalise: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -61,6 +64,33 @@ export function PendingSeparationNotice({
     router.refresh();
   }
 
+  async function finalise() {
+    const ok = await openConfirm({
+      title: `Close ${userName}'s separation?`,
+      body:
+        "The notice period has passed with no response. This ends their employment on the record, signs them out everywhere, and marks their staff record " +
+        (kind === "termination" ? "terminated" : "resigned") +
+        ". It cannot be undone from here.",
+      destructive: true,
+      confirmLabel: "Close separation",
+    });
+    if (!ok) return;
+    setBusy(true);
+    const res = await fetch(`/api/users/${userId}/separation`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ noticeId, action: "finalise" }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) {
+      toast.error(data.message ?? data.error ?? "Couldn't close the separation");
+      return;
+    }
+    toast.success(`${userName} is now ${data.newStatus}`);
+    router.refresh();
+  }
+
   const label = kind === "termination" ? "Termination notice" : "Resignation requested";
 
   return (
@@ -78,14 +108,23 @@ export function PendingSeparationNotice({
           </p>
           <p className="text-xs opacity-90">&ldquo;{noticeText}&rdquo;</p>
           <p className="text-xs opacity-80">
-            They stay active until they respond at /account/separation.
+            {canFinalise
+              ? "The notice period has passed and they haven't responded — you can close it without them."
+              : "They stay active until they respond at /account/separation."}
           </p>
         </div>
-        {canWithdraw && (
-          <Button size="sm" variant="outline" onClick={withdraw} disabled={busy}>
-            Withdraw notice
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {canWithdraw && (
+            <Button size="sm" variant="outline" onClick={withdraw} disabled={busy}>
+              Withdraw notice
+            </Button>
+          )}
+          {canFinalise && (
+            <Button size="sm" variant="destructive" onClick={finalise} disabled={busy}>
+              Close without response
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

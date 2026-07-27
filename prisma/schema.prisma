@@ -809,87 +809,87 @@ model OwnerPasswordResetToken {
 // ──────────────────────────────────────────────────────────────────────────
 
 model Rider {
-  id                   String    @id @default(cuid())
-  centreId             String
-  userId               String?   @unique
+  id                     String    @id @default(cuid())
+  centreId               String
+  userId                 String?   @unique
   // Personal
-  firstName            String
-  lastName             String
-  photoUrl             String?
-  dob                  DateTime
-  placeOfBirth         String?
-  nationality          String?
-  gender               String? // male | female | other
-  maritalStatus        String?
+  firstName              String
+  lastName               String
+  photoUrl               String?
+  dob                    DateTime
+  placeOfBirth           String?
+  nationality            String?
+  gender                 String? // male | female | other
+  maritalStatus          String?
   // ID. aadhaarNo holds the full number encrypted at rest (lib/pii.ts,
   // AES-256-GCM, "v1." prefix) once PII_ENCRYPTION_KEY is provisioned; legacy
   // rows stay plaintext until the backfill runs. The UI never reads aadhaarNo
   // directly — it shows aadhaarLast4 (masked) and only decrypts for the edit
   // form. aadhaarDocUrl is a storage path to the scan, not the number.
-  aadhaarNo            String?
-  aadhaarLast4         String? // last 4 digits, for masked display without decrypting
-  aadhaarDocUrl        String? // Aadhaar front side scan
-  aadhaarBackDocUrl    String? // Aadhaar back side scan
+  aadhaarNo              String?
+  aadhaarLast4           String? // last 4 digits, for masked display without decrypting
+  aadhaarDocUrl          String? // Aadhaar front side scan
+  aadhaarBackDocUrl      String? // Aadhaar back side scan
   // Contact
-  mobile               String
-  email                String?
+  mobile                 String
+  email                  String?
   // Preferred language for parent communications (SMS / WhatsApp / email).
   // Two-letter ISO 639-1 code; lib/sms.ts looks up the matching template
   // body in lib/i18n-sms.ts. Defaults to "en" when null.
-  preferredLanguage    String? // en | hi | ta | te | bn | mr | gu | kn | ml | pa
-  school               String? // PRD §4 Module 1 — name of the rider's school
-  education            String?
-  occupation           String?
+  preferredLanguage      String? // en | hi | ta | te | bn | mr | gu | kn | ml | pa
+  school                 String? // PRD §4 Module 1 — name of the rider's school
+  education              String?
+  occupation             String?
   // Address
-  addressPresent       String?
-  addressPermanent     String?
-  pincode              String?
+  addressPresent         String?
+  addressPermanent       String?
+  pincode                String?
   // Parents
-  fatherName           String?
-  fatherPhone          String?
-  motherName           String?
-  motherPhone          String?
+  fatherName             String?
+  fatherPhone            String?
+  motherName             String?
+  motherPhone            String?
   // Emergency
-  emergencyName        String?
-  emergencyPhone       String?
+  emergencyName          String?
+  emergencyPhone         String?
   // Anthropometrics — latest measurement only. Historical entries live in
   // BmiMeasurement so a rider's growth trend is preserved.
-  heightCm             Float?
-  weightKg             Float?
-  bmi                  Float?
-  bmiMeasuredAt        DateTime?
+  heightCm               Float?
+  weightKg               Float?
+  bmi                    Float?
+  bmiMeasuredAt          DateTime?
   // Medical
-  medicalNotes         String?
-  allergies            String?
+  medicalNotes           String?
+  allergies              String?
   // Riding profile
-  currentLevel         String? // links logically to ProgressLevel.name
-  joiningDate          DateTime  @default(now())
-  batchId              String?
-  coachId              String?
+  currentLevel           String? // links logically to ProgressLevel.name
+  joiningDate            DateTime  @default(now())
+  batchId                String?
+  coachId                String?
   // State / national rider IDs. Optional — only riders competing at state
   // or above need one. Tracked at the rider level (one per rider) rather
   // than via Accreditation (which is per-card / per-membership).
-  stateRiderId         String?
-  efiRiderId           String?
+  stateRiderId           String?
+  efiRiderId             String?
   // Indemnity (audit trail)
-  indemnitySignedAt    DateTime?
-  indemnitySignerIp    String?
-  indemnitySignerUa    String?
-  indemnityDocUrl      String?
-  indemnityVersion     String?
+  indemnitySignedAt      DateTime?
+  indemnitySignerIp      String?
+  indemnitySignerUa      String?
+  indemnityDocUrl        String?
+  indemnityVersion       String?
   // Content-of-consent for the indemnity step — what was typed + which
   // versioned texts were shown at sign time. Pairs with the columns above
   // (which capture WHEN/FROM-WHERE the signature happened). Schema:
   //   { signature, indemnityVersion, nocVersion, nocAgreed, agreedAt }
   // Null for pre-2026 records that pre-date the column.
-  indemnityConsentJson Json?
+  indemnityConsentJson   Json?
   // Click-to-accept tracking for T&C + Rules. Version is the LegalText
   // row's `version` that was live when the rider accepted; lets HQ swap
   // the published text later without re-prompting old riders.
-  tcsAcceptedAt        DateTime?
-  tcsVersion           String?
-  rulesAcceptedAt      DateTime?
-  rulesVersion         String?
+  tcsAcceptedAt          DateTime?
+  tcsVersion             String?
+  rulesAcceptedAt        DateTime?
+  rulesVersion           String?
   // DPDPA Section 9 — verifiable parental consent for minors. Captured at
   // registration when dob makes the rider < 18. Stored together as one
   // JSON blob so the audit trail keeps the exact wording the parent
@@ -897,32 +897,37 @@ model Rider {
   //   { signedAt, parentName, parentRelation, parentPhone, ip, ua,
   //     consentText: "...", consentVersion: "v1" }
   // Null for adult riders or pre-DPDPA records.
-  parentalConsentJson  Json?
+  parentalConsentJson    Json?
   // Status
-  status               String    @default("pending_payment") // pending_approval | pending_payment | active | suspended | withdrawn | cancelled | rejected
+  status                 String    @default("pending_payment") // pending_approval | pending_payment | active | suspended | withdrawn | cancelled | rejected
   // Off-boarding. A family that leaves has to be able to LEAVE: until this
   // existed a departed rider stayed "active" forever — still on the coach's
   // roster, still counted in headcount, still chased for fees. Withdrawal is
   // recorded, not deleted, because attendance, certificates and invoices all
   // hang off the rider and the club may need them years later. Reversible:
   // a family that comes back is re-activated, and withdrawnAt is cleared.
-  withdrawnAt          DateTime?
-  withdrawnByUserId    String?
-  withdrawalReason     String?
+  withdrawnAt            DateTime?
+  withdrawnByUserId      String?
+  withdrawalReason       String?
+  // Where to put them back on re-activation. Deriving the restored status from
+  // registrationPaid silently APPROVED an applicant who had been withdrawn
+  // while pending_approval, and demoted a paid-up rider at a club that
+  // collects fees offline (registrationPaid stays false there).
+  statusBeforeWithdrawal String?
   // The rider's last day at the club — often in the past (told us in April,
   // recorded in May) or the future (notice given). Distinct from withdrawnAt,
   // which is when the office recorded it.
-  lastDayAt            DateTime?
-  registrationPaid     Boolean   @default(false)
+  lastDayAt              DateTime?
+  registrationPaid       Boolean   @default(false)
   // True when the rider came in via the public self-enrol link (vs. created
   // by staff). Self-enrolled riders land in status="pending_approval" and a
   // School Admin / Centre Manager must approve before they progress to
   // pending_payment. See app/api/onboarding + app/(admin)/enrolments.
-  selfEnrolled         Boolean   @default(false)
-  approvedByUserId     String?
-  approvedAt           DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  selfEnrolled           Boolean   @default(false)
+  approvedByUserId       String?
+  approvedAt             DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 
   centre             Centre              @relation(fields: [centreId], references: [id])
   user               User?               @relation(fields: [userId], references: [id])

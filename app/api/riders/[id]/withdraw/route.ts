@@ -141,42 +141,70 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   let outstandingBefore = 0;
-  const cancelled: { invoiceId: string; amount: number }[] = [];
+  const cancelled: { invoiceId: string; amount: number; creditNoteId: string }[] = [];
   // The ALREADY_WITHDRAWN guard is the idempotency defence for exactly the case
   // that breaks it — an operator resubmitting a slow request. Re-check it and
   // credit each invoice under that invoice's row lock, or two overlapping calls
   // each issue a full set of credit notes and the family's ledger goes
   // permanently negative.
-  const raced = await prisma.$transaction(async (tx) => {
-    // findUnique takes no lock, so both racers would read "active" and both
-    // proceed. Lock the rider row first, THEN read the status under it.
-    await tx.$queryRaw`SELECT id FROM "Rider" WHERE id = ${rider.id} FOR UPDATE`;
-    const fresh = await tx.rider.findUnique({ where: { id: rider.id }, select: { status: true } });
-    if (!fresh || fresh.status === "withdrawn") return true;
+  // Display/audit figure, computed from the pre-read. The authoritative
+  // per-invoice number is recomputed under each invoice's lock below.
+  outstandingBefore = rider.invoices.reduce((t, inv) => t + creditPosition(inv).outstanding, 0);
 
-    await tx.rider.update({
-      where: { id: rider.id },
-      data: {
-        status: "withdrawn",
-        withdrawnAt: new Date(),
-        withdrawnByUserId: session.userId,
-        withdrawalReason: d.reason,
-        lastDayAt,
-        ...(d.clearBatch ? { batchId: null } : {}),
-      },
-    });
+  const raced = await prisma.$transaction(
+    async (tx) => {
+      // Claim the rider with a CONDITIONAL update instead of a read + a lock.
+      // It is atomic, it tells us who won (count === 0 means someone else
+      // withdrew this rider first), and it avoids holding a separate explicit
+      // row lock — a plain `SELECT ... FOR UPDATE` on Rider followed by locks
+      // on their Invoices takes Rider→Invoice, while the Razorpay webhook
+      // takes Invoice→Rider, which is a textbook ABBA deadlock under load.
+      const claimed = await tx.rider.updateMany({
+        where: { id: rider.id, status: { not: "withdrawn" } },
+        data: {
+          status: "withdrawn",
+          withdrawnAt: new Date(),
+          withdrawnByUserId: session.userId,
+          withdrawalReason: d.reason,
+          lastDayAt,
+          // Remember where to put them back. Deriving the restored status from
+          // registrationPaid silently APPROVED an applicant who was withdrawn
+          // while pending_approval, and demoted a paid-up rider whose club
+          // collects fees offline.
+          statusBeforeWithdrawal: rider.status,
+          ...(d.clearBatch ? { batchId: null } : {}),
+        },
+      });
+      if (claimed.count === 0) return true;
 
-    for (const stale of rider.invoices) {
-      const inv = await lockAndLoadInvoice(tx, stale.id);
-      if (!inv || inv.voidedAt || inv.creditNoteForId) continue;
-      const position = creditPosition(inv);
-      outstandingBefore += position.outstanding;
-      if (!d.cancelOutstanding || position.outstanding <= 0.001) continue;
-      await writeCreditNote(tx, inv, position, position.outstanding);
-      cancelled.push({ invoiceId: inv.id, amount: position.outstanding });
-    }
-    return false;
-  });
+      // A departed child must not stay booked on a horse. Their allocations on
+      // sessions that have not happened yet are released, so the horse is free
+      // and the yard sheet stops listing a rider who has left. Past
+      // allocations are history and stay exactly as they are.
+      await tx.horseAllocation.deleteMany({
+        where: { riderId: rider.id, startAt: { gte: new Date() } },
+      });
+
+      // Only touch invoices when there is actually money to cancel — a plain
+      // roster removal shouldn't lock every invoice a family has ever had.
+      if (d.cancelOutstanding) {
+        // Deterministic order, so two concurrent writers can't take the same
+        // two invoice locks in opposite orders.
+        const ordered = [...rider.invoices].sort((a, b) => (a.id < b.id ? -1 : 1));
+        for (const stale of ordered) {
+          const inv = await lockAndLoadInvoice(tx, stale.id);
+          if (!inv || inv.voidedAt || inv.creditNoteForId) continue;
+          const position = creditPosition(inv);
+          if (position.outstanding <= 0.001) continue;
+          const note = await writeCreditNote(tx, inv, position, position.outstanding);
+          cancelled.push({ invoiceId: inv.id, amount: position.outstanding, creditNoteId: note.id });
+        }
+      }
+      return false;
+    },
+    // Crediting a long-standing family's whole history can exceed the 5s default.
+    { timeout: 20_000 },
+  );
 
   if (raced) {
     return NextResponse.json(
@@ -203,6 +231,24 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       creditNotesIssued: cancelled.length,
     },
   });
+
+  // One audit row per credit note, in the same shape the manual credit-note
+  // route writes. Without these, money cancelled through off-boarding was
+  // invisible to anyone auditing an individual invoice.
+  for (const c of cancelled) {
+    await audit({
+      userId: session.userId,
+      action: "invoice.credit_note",
+      tableName: "invoice",
+      rowId: c.creditNoteId,
+      after: {
+        creditNoteFor: c.invoiceId,
+        amount: -c.amount,
+        reason: `Rider off-boarded: ${d.reason}`,
+        riderId: rider.id,
+      },
+    });
+  }
 
   // Tell the family it's done, and what happened to the money. Silence here is
   // how disputes start ("nobody told us we still owed ₹6,000").
@@ -256,14 +302,25 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     );
   }
 
-  // Reinstate to the state they'd have been in: paid-up riders return as
-  // active, anyone else back to awaiting their registration fee. The batch is
-  // NOT restored — their seat may have been given away, so it's re-assigned
-  // deliberately rather than by surprise.
-  const restored = rider.registrationPaid ? "active" : "pending_payment";
+  // Put them back exactly where they were. The first version derived this from
+  // registrationPaid, which was wrong twice over: an applicant withdrawn while
+  // pending_approval came back "pending_payment" — silently approved, and out
+  // of the approval queue for ever — and a paid-up rider at a club that
+  // collects fees offline (registrationPaid = false) was demoted out of the
+  // active roster. statusBeforeWithdrawal records the truth at withdrawal time;
+  // older rows written before that column existed fall back to the old rule.
+  const restored =
+    rider.statusBeforeWithdrawal ?? (rider.registrationPaid ? "active" : "pending_payment");
   await prisma.rider.update({
     where: { id: rider.id },
-    data: { status: restored, withdrawnAt: null, withdrawnByUserId: null, withdrawalReason: null, lastDayAt: null },
+    data: {
+      status: restored,
+      withdrawnAt: null,
+      withdrawnByUserId: null,
+      withdrawalReason: null,
+      lastDayAt: null,
+      statusBeforeWithdrawal: null,
+    },
   });
 
   await audit({
@@ -278,6 +335,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   return NextResponse.json({
     ok: true,
     status: restored,
-    message: "Rider re-activated. Assign them to a batch to put them back on a roster.",
+    message:
+      restored === "pending_approval"
+        ? "Back in the enrolment approval queue, where they were before."
+        : "Rider re-activated. Assign them to a batch to put them back on a roster.",
   });
 }

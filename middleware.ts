@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify, SignJWT } from "jose";
-import { canReachPath } from "@/components/shell/sidebar-nav";
+import { canReachPath, landingPathFor } from "@/components/shell/sidebar-nav";
 import type { Role } from "@/lib/roles";
 
 // Idle session window. The token lives this long; we re-issue it on activity
@@ -156,12 +156,19 @@ export async function middleware(req: NextRequest) {
     // this a signed-in staff member could reach a page outside their role by
     // typing the URL (audit finding — VET/ACCOUNTANT reading rider PII, etc.).
     // HQ roles bypass (canReachPath), unknown routes fail open, and API routes
-    // keep their own per-handler guards. Denied → /dashboard (ALL_STAFF, safe).
+    // keep their own per-handler guards. Denied → the role's own landing page.
     if (!isApi) {
       const role = (payload as { role?: string }).role as Role | undefined;
       if (role && !canReachPath(role, logical)) {
+        // Send them to a page they can actually open. Redirecting everyone to
+        // /dashboard looped for the four roles that can't reach /dashboard.
+        const landing = landingPathFor(role);
+        if (landing === logical) {
+          // Belt and braces: never redirect a path to itself.
+          return new NextResponse("Forbidden", { status: 403 });
+        }
         const url = req.nextUrl.clone();
-        url.pathname = "/dashboard";
+        url.pathname = landing;
         url.search = "";
         return NextResponse.redirect(url);
       }

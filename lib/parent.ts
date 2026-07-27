@@ -71,7 +71,9 @@ export async function getParentChildren(parentUserId: string): Promise<ChildSumm
     }),
     prisma.invoice.groupBy({
       by: ["riderId"],
-      where: { riderId: { in: riderIds }, status: "due" },
+      // A cancelled charge is not an unpaid one, and a credit note is money
+      // owed the other way — neither belongs in the family's "you owe" count.
+      where: { riderId: { in: riderIds }, status: "due", voidedAt: null, creditNoteForId: null },
       _count: { riderId: true },
     }),
   ]);
@@ -166,7 +168,17 @@ export async function getChildDetail(parentUserId: string, riderId: string) {
     prisma.invoice.findMany({
       where: { riderId },
       orderBy: { createdAt: "desc" },
-      select: { id: true, amount: true, kind: true, status: true, dueDate: true, createdAt: true },
+      select: {
+        id: true,
+        amount: true,
+        gstAmount: true,
+        kind: true,
+        status: true,
+        dueDate: true,
+        createdAt: true,
+        voidedAt: true,
+        creditNoteForId: true,
+      },
       take: 12,
     }),
     prisma.horseAllocation.findMany({

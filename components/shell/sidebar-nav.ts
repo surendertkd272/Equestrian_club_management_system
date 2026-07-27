@@ -207,6 +207,34 @@ export function canReachPath(role: Role, pathname: string): boolean {
   return perm ? perm.includes(role) : true;
 }
 
+/**
+ * Where to send a role when it is denied a page.
+ *
+ * The middleware used to redirect every denial to /dashboard. /dashboard's own
+ * nav permission is ALL_STAFF, and ALL_STAFF deliberately excludes RIDER,
+ * PARENT, SCHOOL_ADMINISTRATOR and INSPECTION_OFFICER — so for exactly those
+ * four roles the redirect target was itself denied, and the browser bounced
+ * /dashboard → /dashboard until it gave up with ERR_TOO_MANY_REDIRECTS. A
+ * parent following a stale link, or a student mistyping a URL, ended up with a
+ * dead tab and no way back to their own portal.
+ *
+ * Every path returned here must satisfy canReachPath(role, path).
+ */
+export function landingPathFor(role: Role): string {
+  if (role === "RIDER") return "/student";
+  if (role === "PARENT") return "/parent";
+  if (canReachPath(role, "/dashboard")) return "/dashboard";
+  // Otherwise the first nav entry this role can actually open.
+  for (const group of NAV) {
+    for (const it of group.items) {
+      if (it.perm ? it.perm.includes(role) : true) return it.href;
+    }
+  }
+  // /account is outside NAV, so canReachPath fails open on it — every signed-in
+  // user can reach it. Last resort rather than a loop.
+  return "/account";
+}
+
 // Role-specific "Pinned" shortcuts that appear above all other nav groups.
 // Each entry lists hrefs (in display order) that map to existing NavItems
 // in NAV; the filterSidebarNav() function looks the items up and assembles

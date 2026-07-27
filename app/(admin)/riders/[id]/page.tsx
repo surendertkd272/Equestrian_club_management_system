@@ -21,6 +21,8 @@ import { ExamHistoryList } from "@/components/exams/exam-history-list";
 import { formatEnum } from "@/lib/labels";
 import { WithdrawPanel, WithdrawnRiderBanner } from "./withdraw-panel";
 import { creditPosition } from "@/lib/credit-note";
+import { InvoiceReversalActions, ReversePaymentButton } from "@/components/finance/reversal-actions";
+import { RecordPaymentButton } from "@/components/finance/record-payment-button";
 export const dynamic = "force-dynamic";
 
 function AttendanceSummary({ attendances }: { attendances: { status: string }[] }) {
@@ -49,7 +51,10 @@ export default async function RiderProfile({ params }: { params: { id: string } 
       invoices: {
         orderBy: { createdAt: "desc" },
         include: {
-          payments: { select: { amount: true } },
+          payments: {
+            select: { id: true, amount: true, method: true, paidAt: true, txnRef: true, reason: true, reversalOfId: true },
+            orderBy: { paidAt: "desc" },
+          },
           creditNotes: { select: { amount: true, gstAmount: true } },
         },
       },
@@ -416,28 +421,68 @@ export default async function RiderProfile({ params }: { params: { id: string } 
               <tr>
                 <th className="pb-2">Kind</th>
                 <th className="pb-2">Amount</th>
+                <th className="pb-2">Outstanding</th>
                 <th className="pb-2">Due</th>
                 <th className="pb-2">Status</th>
+                <th className="pb-2"></th>
               </tr>
             </thead>
             <tbody>
-              {rider.invoices.map((inv) => (
-                <tr key={inv.id} className="border-t">
-                  <td className="py-2">{formatEnum(inv.kind)}</td>
-                  <td className="py-2">₹{inv.amount.toLocaleString("en-IN")}</td>
-                  <td className="py-2">{formatDate(inv.dueDate)}</td>
-                  <td className="py-2">
-                    <Badge
-                      variant={inv.status === "paid" ? "success" : inv.status === "due" ? "warning" : "destructive"}
-                    >
-                      {formatEnum(inv.status)}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
+              {rider.invoices.map((inv) => {
+                const pos = creditPosition(inv);
+                const isCredit = !!inv.creditNoteForId;
+                const received = inv.payments.reduce((t, p) => t + p.amount, 0);
+                return (
+                  <tr key={inv.id} className={`border-t ${inv.voidedAt ? "opacity-60" : ""}`}>
+                    <td className="py-2">
+                      {isCredit ? "Credit note" : formatEnum(inv.kind)}
+                      {inv.voidedAt && (
+                        <span className="ml-2 text-[11px] uppercase tracking-wide text-rose-600">void</span>
+                      )}
+                    </td>
+                    <td className="py-2">₹{inv.amount.toLocaleString("en-IN")}</td>
+                    <td className="py-2 font-mono text-xs">
+                      {inv.voidedAt || isCredit ? "—" : `₹${Math.round(pos.outstanding).toLocaleString("en-IN")}`}
+                    </td>
+                    <td className="py-2">{formatDate(inv.dueDate)}</td>
+                    <td className="py-2">
+                      <Badge
+                        variant={inv.status === "paid" ? "success" : inv.status === "due" ? "warning" : "destructive"}
+                      >
+                        {formatEnum(inv.status)}
+                      </Badge>
+                    </td>
+                    <td className="py-2">
+                      {can(session.role, "finance.write") && (
+                        <div className="flex flex-wrap items-center justify-end gap-1">
+                          {!inv.voidedAt && !isCredit && pos.outstanding > 0.001 && (
+                            <RecordPaymentButton invoiceId={inv.id} outstanding={pos.outstanding} />
+                          )}
+                          <InvoiceReversalActions
+                            invoiceId={inv.id}
+                            outstanding={pos.outstanding}
+                            received={received}
+                            voided={!!inv.voidedAt}
+                            isCreditNote={isCredit}
+                          />
+                          <a
+                            href={`/finance/invoice/${inv.id}/print`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded border px-2 py-1 text-[11px] hover:bg-muted"
+                            title="Printable invoice"
+                          >
+                            Print
+                          </a>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
               {rider.invoices.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="py-6 text-center text-muted-foreground">
+                  <td colSpan={6} className="py-6 text-center text-muted-foreground">
                     No invoices.
                   </td>
                 </tr>
@@ -446,6 +491,55 @@ export default async function RiderProfile({ params }: { params: { id: string } 
           </table></div>
         </CardContent>
       </Card>
+
+      {(() => {
+        // Receipts, with the way to undo one. This lives here because /finance
+        // redirects to the dashboard — the rider profile is the only page an
+        // operator can actually navigate to that knows about this family's money.
+        const receipts = rider.invoices.flatMap((inv) =>
+          inv.payments.map((p) => ({ ...p, invoiceKind: inv.kind })),
+        );
+        const reversed = new Set(receipts.map((p) => p.reversalOfId).filter((v): v is string => !!v));
+        if (receipts.length === 0) return null;
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Payments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-1 text-sm">
+                {receipts
+                  .sort((a, b) => b.paidAt.getTime() - a.paidAt.getTime())
+                  .map((p) => (
+                    <li key={p.id} className="flex items-center justify-between gap-3 border-b py-1 last:border-0">
+                      <span>
+                        {formatDate(p.paidAt)} · {formatEnum(p.method)}
+                        {p.txnRef && (
+                          <span className="ml-2 font-mono text-xs text-muted-foreground">{p.txnRef}</span>
+                        )}
+                        {p.amount < 0 && (
+                          <span className="ml-2 text-[11px] uppercase tracking-wide text-rose-600">
+                            reversal{p.reason ? ` · ${p.reason}` : ""}
+                          </span>
+                        )}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <span className="font-mono">₹{Math.round(p.amount).toLocaleString("en-IN")}</span>
+                        {can(session.role, "finance.write") && (
+                          <ReversePaymentButton
+                            paymentId={p.id}
+                            amount={p.amount}
+                            alreadyReversed={reversed.has(p.id)}
+                          />
+                        )}
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       <AccreditationsPanel
         riderId={rider.id}

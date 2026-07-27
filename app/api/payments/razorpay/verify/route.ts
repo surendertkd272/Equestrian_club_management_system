@@ -87,7 +87,15 @@ export async function POST(req: NextRequest) {
   // so a prior partial/cash payment isn't double-counted and the parent isn't
   // over-charged. (The order route now charges outstanding, so `remaining`
   // equals the captured amount in the normal flow.)
-  const target = invoice.amount + invoice.gstAmount;
+  // Net of credit notes, matching what the order route charged. Face value
+  // here would mark an invoice "due" that is actually settled, or bank more
+  // than the club is owed.
+  const creditAgg = await prisma.invoice.aggregate({
+    where: { creditNoteForId: invoice.id },
+    _sum: { amount: true, gstAmount: true },
+  });
+  const target =
+    invoice.amount + invoice.gstAmount + (creditAgg._sum.amount ?? 0) + (creditAgg._sum.gstAmount ?? 0);
   const priorPaid = (await prisma.payment.aggregate({ where: { invoiceId: invoice.id }, _sum: { amount: true } }))._sum.amount ?? 0;
   const remaining = Math.max(0, target - priorPaid);
   const fullyPaid = priorPaid + remaining >= target - 0.001;
@@ -103,8 +111,14 @@ export async function POST(req: NextRequest) {
           clearedAt: new Date(),
         },
       }),
-      prisma.invoice.update({ where: { id: invoice.id }, data: { status: fullyPaid ? "paid" : "due" } }),
-      ...(fullyPaid && invoice.kind === "registration"
+      // If the invoice was voided AFTER the gateway order was created, the money
+      // is still real — the family has been debited. Record it so it can be
+      // refunded through the reversal path, but do NOT resurrect the cancelled
+      // charge by flipping its status back.
+      ...(invoice.voidedAt
+        ? []
+        : [prisma.invoice.update({ where: { id: invoice.id }, data: { status: fullyPaid ? "paid" : "due" } })]),
+      ...(fullyPaid && !invoice.voidedAt && invoice.kind === "registration"
         ? [
             // Record the payment, but never resurrect a rider the club has
             // off-boarded: a departed family settling an old registration

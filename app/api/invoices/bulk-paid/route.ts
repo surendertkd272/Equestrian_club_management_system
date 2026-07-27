@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { creditPosition } from "@/lib/credit-note";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { bulkMarkPaidSchema } from "@/lib/schemas/payment";
@@ -32,7 +33,10 @@ export async function POST(req: NextRequest) {
 
   const invoices = await prisma.invoice.findMany({
     where: { id: { in: parsed.data.invoiceIds } },
-    include: { payments: { select: { amount: true } } },
+    include: {
+      payments: { select: { amount: true } },
+      creditNotes: { select: { amount: true, gstAmount: true } },
+    },
   });
 
   let marked = 0;
@@ -58,9 +62,9 @@ export async function POST(req: NextRequest) {
       skipped.push({ invoiceId: inv.id, reason: "refunded" });
       continue;
     }
-    const target = inv.amount + inv.gstAmount;
-    const already = inv.payments.reduce((s, p) => s + p.amount, 0);
-    const remaining = Math.max(0, target - already);
+    // Net of credit notes. Face value would collect money the club has already
+    // cancelled — the same hole that was closed on the manual payment path.
+    const remaining = creditPosition(inv).outstanding;
     if (remaining < 0.01) {
       skipped.push({ invoiceId: inv.id, reason: "nothing outstanding" });
       continue;

@@ -49,12 +49,27 @@ export async function GET(req: NextRequest) {
       // Voided invoices never happened as far as the books are concerned —
       // exporting one posts fee income and Output GST for a charge the club
       // withdrew, which is a statutory filing error, not a cosmetic one.
-      where: { ...where, voidedAt: null, createdAt: { gte: from, lte: to } },
+      //
+      // A credit note whose ORIGINAL was later voided goes with it. Otherwise
+      // the batch carries a Credit Note voucher reversing a Sales voucher that
+      // is no longer in the export, so the books show a credit against nothing.
+      where: {
+        ...where,
+        voidedAt: null,
+        createdAt: { gte: from, lte: to },
+        OR: [{ creditNoteForId: null }, { creditNoteFor: { voidedAt: null } }],
+      },
       include: { rider: { select: { firstName: true, lastName: true } }, creditNoteFor: { select: { kind: true } } },
       orderBy: { createdAt: "asc" },
       take: 5000,
     }),
     prisma.payment.findMany({
+      // Same rule for receipts: nothing belonging to a voided invoice.
+      // Void is only permitted once payments net to zero, so a voided invoice's
+      // receipt and its reversal always leave together — the books never lose
+      // one half of a pair. (An invoice voided AFTER an earlier export is the
+      // exception; the reversal is reported in the response so the operator
+      // can post it by hand.)
       where: { paidAt: { gte: from, lte: to }, invoice: { ...where, voidedAt: null } },
       include: { invoice: { include: { rider: { select: { firstName: true, lastName: true } } } } },
       orderBy: { paidAt: "asc" },

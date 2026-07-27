@@ -223,3 +223,108 @@ export async function DELETE(req: NextRequest) {
   });
   return NextResponse.json({ ok: true });
 }
+
+// PATCH /api/users/[id]/separation — close a notice the employee never answered.
+//
+// The whole flow assumed the departing person logs in and submits their side
+// at /account/separation, which flips User.status. That is a fair assumption
+// for a planned resignation and a poor one for the case this feature was built
+// for: the groom who walks out on a Sunday and never comes back. Their notice
+// sat "pending" for ever, so their login kept working, their Staff record kept
+// reading Active, and payroll kept treating them as employed.
+//
+// Once the effective date has passed, the employer can close it unilaterally —
+// exactly what happens on paper when a notice period expires.
+const finaliseSchema = z.object({
+  noticeId: z.string().min(1),
+  action: z.literal("finalise"),
+  note: z.string().max(500).optional(),
+});
+
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  if (!isHQ && session.role !== "CENTRE_MANAGER") {
+    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  }
+  const readOnlyBlock = await blockIfReadOnly(session);
+  if (readOnlyBlock) return readOnlyBlock;
+
+  const body = await req.json().catch(() => null);
+  const parsed = finaliseSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
+  }
+
+  const notice = await prisma.separationNotice.findUnique({ where: { id: parsed.data.noticeId } });
+  if (!notice || notice.userId !== params.id) {
+    return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  }
+  if (!(await callerSharesOrgWithUser(session, notice.userId))) {
+    return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+  }
+  if (notice.status !== "pending") {
+    return NextResponse.json({ error: "ALREADY_RESOLVED", status: notice.status }, { status: 409 });
+  }
+  // Same reach as issuing: own centre, staff tier, never themselves.
+  const target = await prisma.user.findUnique({
+    where: { id: notice.userId },
+    select: { id: true, name: true, role: true, centreId: true, status: true },
+  });
+  if (!target) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  if (!isHQ) {
+    if (!session.centreId || target.centreId !== session.centreId) {
+      return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+    }
+    if (target.id === session.userId) {
+      return NextResponse.json({ error: "CANNOT_SEPARATE_SELF" }, { status: 409 });
+    }
+    if (target.role === "CENTRE_MANAGER" || target.role === "ADMIN" || target.role === "SUPER_ADMIN") {
+      return NextResponse.json({ error: "FORBIDDEN_TARGET_TIER" }, { status: 403 });
+    }
+  }
+  // Not before the date the notice itself gave them.
+  if (notice.effectiveAt && notice.effectiveAt > new Date()) {
+    return NextResponse.json(
+      {
+        error: "NOT_YET_EFFECTIVE",
+        effectiveAt: notice.effectiveAt,
+        message: `This notice takes effect on ${notice.effectiveAt.toISOString().slice(0, 10)}. You can withdraw it before then, but not close it.`,
+      },
+      { status: 409 },
+    );
+  }
+
+  const newStatus = notice.kind === "termination" ? "terminated" : "resigned";
+  await prisma.$transaction([
+    prisma.separationNotice.update({
+      where: { id: notice.id },
+      data: {
+        status: "closed_unanswered",
+        respondedAt: new Date(),
+        responseText: parsed.data.note
+          ? `Closed by ${session.name} without a response from the employee. ${parsed.data.note}`
+          : `Closed by ${session.name} — the notice period expired without a response.`,
+      },
+    }),
+    prisma.user.update({
+      where: { id: target.id },
+      // tokenVersion invalidates every live session, so a departed employee
+      // stops being able to use the app the moment this lands.
+      data: { status: newStatus, tokenVersion: { increment: 1 } },
+    }),
+    prisma.staff.updateMany({ where: { userId: target.id }, data: { status: newStatus } }),
+  ]);
+
+  await audit({
+    userId: session.userId,
+    action: `separation.${notice.kind}.closed_unanswered`,
+    tableName: "separationNotice",
+    rowId: notice.id,
+    before: { userStatus: target.status, noticeStatus: "pending" },
+    after: { userStatus: newStatus, closedBy: session.userId, note: parsed.data.note ?? null },
+  });
+
+  return NextResponse.json({ ok: true, newStatus, name: target.name });
+}

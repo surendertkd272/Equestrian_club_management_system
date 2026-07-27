@@ -72,21 +72,32 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   };
   const fail = (status: number, body: Record<string, unknown>): Fail => ({ ok: false, status, body });
 
-  const outcome: Fail | Done = await prisma.$transaction(async (tx) => {
-    const inv = await lockAndLoadInvoice(tx, params.id);
-    if (!inv) return fail(404, { error: "NOT_FOUND" });
-    // HQ roles have centreId = null; bind them to their own org rather than
-    // exempting them from the fence entirely.
+  // Resolve the org fence BEFORE the transaction. getOrgIdForSession and
+  // getOrgIdForCentre run against the GLOBAL prisma client; calling them from
+  // inside $transaction takes a second pool connection while holding the first,
+  // which deadlocks the pool once a few requests overlap.
+  const head = await prisma.invoice.findUnique({
+    where: { id: params.id },
+    select: { centreId: true },
+  });
+  let fenceError: string | null = null;
+  if (head) {
     const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
     if (isHQ) {
       const [callerOrg, rowOrg] = await Promise.all([
         getOrgIdForSession(session),
-        getOrgIdForCentre(inv.centreId),
+        getOrgIdForCentre(head.centreId),
       ]);
-      if (!callerOrg || callerOrg !== rowOrg) return fail(403, { error: "FORBIDDEN_CROSS_ORG" });
-    } else if (inv.centreId !== session.centreId) {
-      return fail(403, { error: "FORBIDDEN_CROSS_CENTRE" });
+      if (!callerOrg || callerOrg !== rowOrg) fenceError = "FORBIDDEN_CROSS_ORG";
+    } else if (head.centreId !== session.centreId) {
+      fenceError = "FORBIDDEN_CROSS_CENTRE";
     }
+  }
+
+  const outcome: Fail | Done = await prisma.$transaction(async (tx) => {
+    const inv = await lockAndLoadInvoice(tx, params.id);
+    if (!inv) return fail(404, { error: "NOT_FOUND" });
+    if (fenceError) return fail(403, { error: fenceError });
     if (inv.creditNoteForId) {
       return fail(409, { error: "IS_CREDIT_NOTE", message: "You can't credit a credit note." });
     }

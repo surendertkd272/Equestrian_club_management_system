@@ -219,20 +219,30 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
                   {invoices.map((i) => (
                     <tr key={i.id} className="border-t">
                       <td className="py-2">{formatDate(i.createdAt)}</td>
-                      <td className="py-2">{formatEnum(i.kind)}</td>
-                      <td className="py-2 font-semibold">₹{i.amount.toLocaleString("en-IN")}</td>
+                      <td className="py-2">
+                        {i.creditNoteForId ? "Credit note" : formatEnum(i.kind)}
+                      </td>
+                      <td className="py-2 font-semibold">
+                        ₹{Math.round(Math.abs(i.amount + i.gstAmount)).toLocaleString("en-IN")}
+                        {i.creditNoteForId && <span className="ml-1 text-xs font-normal">credited</span>}
+                      </td>
                       <td className="py-2">{formatDate(i.dueDate)}</td>
                       <td className="py-2">
+                        {/* A cancelled charge showed the same amber "Due" pill as
+                            a live one, so a family kept chasing a bill the club
+                            had already withdrawn. */}
                         <Badge
                           variant={
-                            i.status === "paid"
-                              ? "success"
-                              : i.status === "overdue"
-                                ? "destructive"
-                                : "warning"
+                            i.voidedAt || i.creditNoteForId
+                              ? "outline"
+                              : i.status === "paid"
+                                ? "success"
+                                : i.status === "overdue"
+                                  ? "destructive"
+                                  : "warning"
                           }
                         >
-                          {formatEnum(i.status)}
+                          {i.voidedAt ? "Cancelled" : i.creditNoteForId ? "Credit" : formatEnum(i.status)}
                         </Badge>
                       </td>
                     </tr>

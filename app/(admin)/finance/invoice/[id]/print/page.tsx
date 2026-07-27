@@ -16,6 +16,7 @@ export default async function TenantInvoicePrintPage({ params }: { params: { id:
       centre: { select: { name: true, gstNo: true, address: true, org: { select: { name: true } } } },
       rider: { select: { firstName: true, lastName: true, email: true, mobile: true } },
       payments: { orderBy: { paidAt: "asc" } },
+      creditNotes: { select: { amount: true, gstAmount: true, createdAt: true } },
     },
   });
   if (!invoice) notFound();
@@ -27,10 +28,14 @@ export default async function TenantInvoicePrintPage({ params }: { params: { id:
   // gst > 0), so Subtotal and Total disagreed by the hidden tax.
   const isCreditNote = !!invoice.creditNoteForId;
   const voided = !!invoice.voidedAt;
+  // Credits already issued against this invoice reduce what is owed. Without
+  // this the document handed to a family bills them for a charge the club has
+  // partly cancelled.
+  const credited = invoice.creditNotes.reduce((t, c) => t + Math.abs(c.amount + c.gstAmount), 0);
   const subtotal = Math.abs(invoice.amount);
   const gst = Math.abs(invoice.gstAmount);
   const total = subtotal + gst;
-  const balance = isCreditNote ? 0 : total - paidTotal;
+  const balance = isCreditNote || voided ? 0 : Math.max(0, total - credited - paidTotal);
 
   return (
     <main className="mx-auto max-w-3xl bg-white p-12 text-sm text-slate-900 print:p-8">
@@ -102,6 +107,12 @@ export default async function TenantInvoicePrintPage({ params }: { params: { id:
               <tr>
                 <td className="py-1 pr-8 text-right text-slate-600">GST</td>
                 <td className="py-1 text-right">₹{gst.toLocaleString("en-IN")}</td>
+              </tr>
+            )}
+            {credited > 0.001 && (
+              <tr>
+                <td className="py-1 pr-8 text-right text-slate-600">Less credited</td>
+                <td className="py-1 text-right">−₹{Math.round(credited).toLocaleString("en-IN")}</td>
               </tr>
             )}
             <tr className="border-t">

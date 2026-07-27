@@ -46,6 +46,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
   }
 
+  // A voided run is not payable. The list already hides the button, but the
+  // API had no guard, so a stale tab or a direct call could mark a cancelled
+  // payroll entry as paid and put the cost back on the books.
+  if (row.voidedAt) {
+    return NextResponse.json(
+      { error: "VOIDED", voidedAt: row.voidedAt, message: "This payroll run was voided. Record a fresh one." },
+      { status: 409 },
+    );
+  }
+
   if (row.paidAt) {
     // Idempotent — return 200 with alreadyPaid:true rather than 409 so the
     // UI can no-op gracefully if the user double-clicks.

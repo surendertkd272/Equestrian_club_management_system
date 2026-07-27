@@ -69,7 +69,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   let released = 0;
+  let raced = false;
   await prisma.$transaction(async (tx) => {
+    // Re-check under the row lock. Reading `row.voidedAt` before the
+    // transaction let two concurrent voids both pass and both release the same
+    // advance, so an employee's balance was credited twice.
+    await tx.$queryRaw`SELECT id FROM "SalaryPayment" WHERE id = ${row.id} FOR UPDATE`;
+    const fresh = await tx.salaryPayment.findUnique({
+      where: { id: row.id },
+      select: { voidedAt: true },
+    });
+    if (!fresh || fresh.voidedAt) {
+      raced = true;
+      return;
+    }
     // Step the voided row out of the (userId, periodMonth, voidSeq) unique so
     // the corrected run can be recorded against the same month.
     const prior = await tx.salaryPayment.aggregate({
@@ -107,6 +120,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
   });
 
+  if (raced) {
+    return NextResponse.json({ error: "ALREADY_VOID" }, { status: 409 });
+  }
+
   await audit({
     userId: session.userId,
     action: "salary.void",
@@ -134,5 +151,21 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     });
   }
 
-  return NextResponse.json({ ok: true, voided: true, advanceReleased: released });
+  return NextResponse.json({
+    ok: true,
+    voided: true,
+    advanceReleased: released,
+    // AdvanceRepayment.salaryPaymentId only exists on runs recorded after the
+    // reversibility migration. Voiding an older run cannot know which advance
+    // it recovered, so say so rather than silently leaving the employee's
+    // balance overstated.
+    ...(row.advanceDeducted > 0.01 && released < row.advanceDeducted - 0.01
+      ? {
+          advanceNotReleased: row.advanceDeducted - released,
+          warning:
+            `This run recovered ₹${Math.round(row.advanceDeducted - released).toLocaleString("en-IN")} of advance that isn't linked to it ` +
+            `(it predates advance linking). Release it manually on the employee's advance record.`,
+        }
+      : {}),
+  });
 }

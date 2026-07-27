@@ -57,6 +57,28 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   type Done = { ok: true; reversalId: string; status: string; totalPaid: number; target: number; original: { id: string; amount: number; method: string; txnRef: string | null; invoiceStatusWas: string } };
   const fail = (status: number, body: Record<string, unknown>): Fail => ({ ok: false, status, body });
 
+  // Resolve the org fence BEFORE opening the transaction. getOrgIdForSession /
+  // getOrgIdForCentre run against the GLOBAL prisma client; calling them inside
+  // a $transaction borrows a second connection while holding the first, which
+  // deadlocks the pool under load.
+  const head0 = await prisma.payment.findUnique({
+    where: { id: params.id },
+    select: { invoice: { select: { centreId: true } } },
+  });
+  let fenceError: string | null = null;
+  if (head0) {
+    const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+    if (isHQ) {
+      const [callerOrg, rowOrg] = await Promise.all([
+        getOrgIdForSession(session),
+        getOrgIdForCentre(head0.invoice.centreId),
+      ]);
+      if (!callerOrg || callerOrg !== rowOrg) fenceError = "FORBIDDEN_CROSS_ORG";
+    } else if (head0.invoice.centreId !== session.centreId) {
+      fenceError = "FORBIDDEN_CROSS_CENTRE";
+    }
+  }
+
   const outcome: Fail | Done = await prisma.$transaction(async (tx) => {
     const head = await tx.payment.findUnique({
       where: { id: params.id },
@@ -75,19 +97,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       },
     });
     if (!original) return fail(404, { error: "NOT_FOUND" });
-    // HQ roles have centreId = null, so a bare centre comparison never fires
-    // for them; bind them to their own org instead (same shape as the withdraw
-    // route's assertReachable).
-    const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-    if (isHQ) {
-      const [callerOrg, rowOrg] = await Promise.all([
-        getOrgIdForSession(session),
-        getOrgIdForCentre(original.invoice.centreId),
-      ]);
-      if (!callerOrg || callerOrg !== rowOrg) return fail(403, { error: "FORBIDDEN_CROSS_ORG" });
-    } else if (original.invoice.centreId !== session.centreId) {
-      return fail(403, { error: "FORBIDDEN_CROSS_CENTRE" });
-    }
+    if (fenceError) return fail(403, { error: fenceError });
     if (original.amount < 0) {
       return fail(409, { error: "IS_REVERSAL", message: "That row is itself a reversal. Record a fresh payment instead." });
     }
@@ -95,7 +105,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return fail(409, { error: "ALREADY_REVERSED", reversedBy: original.reversals[0].id });
     }
 
-    const target = original.invoice.amount + original.invoice.gstAmount;
+    // Net of credit notes — the same figure the payment path collects against.
+    // Face value here would put a fully-credited invoice back to "due".
+    const credits = await tx.invoice.aggregate({
+      where: { creditNoteForId: original.invoiceId },
+      _sum: { amount: true, gstAmount: true },
+    });
+    const target =
+      original.invoice.amount +
+      original.invoice.gstAmount +
+      (credits._sum.amount ?? 0) +
+      (credits._sum.gstAmount ?? 0);
     const r = await tx.payment.create({
       data: {
         invoiceId: original.invoiceId,

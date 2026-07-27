@@ -53,6 +53,19 @@ export default async function StaffProfilePage({ params }: { params: { id: strin
     ? await prisma.user.findUnique({ where: { id: pending.issuedByUserId }, select: { name: true } })
     : null;
 
+  // The API refuses a manager acting on a peer manager or on HQ, so don't
+  // offer the buttons either.
+  const canActOnNotice =
+    !!pending &&
+    !isReadOnly(session.role) &&
+    (session.role === "SUPER_ADMIN" ||
+      session.role === "ADMIN" ||
+      (session.role === "CENTRE_MANAGER" &&
+        pending.userId !== session.userId &&
+        staff.role !== "CENTRE_MANAGER" &&
+        staff.role !== "ADMIN" &&
+        staff.role !== "SUPER_ADMIN"));
+
   const canOffBoard =
     !pending &&
     staff.userStatus === "active" &&
@@ -107,11 +120,9 @@ export default async function StaffProfilePage({ params }: { params: { id: strin
           issuedAt={pending.issuedAt.toISOString()}
           effectiveAt={pending.effectiveAt?.toISOString() ?? null}
           noticeText={pending.noticeText}
-          canWithdraw={
-            !isReadOnly(session.role) &&
-            (session.role === "SUPER_ADMIN" ||
-              session.role === "ADMIN" ||
-              (session.role === "CENTRE_MANAGER" && pending.userId !== session.userId))
+          canWithdraw={canActOnNotice}
+          canFinalise={
+            canActOnNotice && (!pending.effectiveAt || pending.effectiveAt <= new Date())
           }
         />
       )}

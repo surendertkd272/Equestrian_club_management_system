@@ -70,8 +70,16 @@ export async function POST(req: NextRequest) {
   // payments (e.g. cash recorded manually) while still "due"; minting a
   // full-amount order would over-charge the parent at the gateway AND
   // over-count income once recorded.
-  const target = invoice.amount + invoice.gstAmount;
-  const priorPaid = (await prisma.payment.aggregate({ where: { invoiceId: invoice.id }, _sum: { amount: true } }))._sum.amount ?? 0;
+  // Also net of credit notes. Charging the face value takes real money from a
+  // family for a charge the club has already cancelled — the worst version of
+  // this bug, because it happens at the gateway before anyone reviews it.
+  const [paidAgg, creditAgg] = await Promise.all([
+    prisma.payment.aggregate({ where: { invoiceId: invoice.id }, _sum: { amount: true } }),
+    prisma.invoice.aggregate({ where: { creditNoteForId: invoice.id }, _sum: { amount: true, gstAmount: true } }),
+  ]);
+  const target =
+    invoice.amount + invoice.gstAmount + (creditAgg._sum.amount ?? 0) + (creditAgg._sum.gstAmount ?? 0);
+  const priorPaid = paidAgg._sum.amount ?? 0;
   const outstanding = target - priorPaid;
   if (outstanding <= 0) {
     return NextResponse.json({ error: "ALREADY_PAID" }, { status: 409 });

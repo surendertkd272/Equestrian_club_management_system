@@ -41,7 +41,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const inv = await prisma.invoice.findUnique({
     where: { id: params.id },
-    include: { payments: { select: { amount: true } } },
+    include: {
+      payments: { select: { amount: true } },
+      creditNotes: { select: { id: true, amount: true, gstAmount: true } },
+    },
   });
   if (!inv) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   // HQ roles (SUPER_ADMIN, ADMIN) have centreId = null, so a bare
@@ -62,6 +65,23 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
   if (inv.voidedAt) {
     return NextResponse.json({ error: "ALREADY_VOID", voidedAt: inv.voidedAt }, { status: 409 });
+  }
+  // Crediting and then voiding reverses the same charge twice: the credit note
+  // already took the money off, and voiding takes the whole invoice off again.
+  // The pair nets to a negative, and a credit note can be neither voided nor
+  // credited, so there is no way back.
+  if (inv.creditNotes.length > 0) {
+    const credited = inv.creditNotes.reduce((t, c) => t + Math.abs(c.amount + c.gstAmount), 0);
+    return NextResponse.json(
+      {
+        error: "HAS_CREDIT_NOTES",
+        credited,
+        message:
+          `₹${Math.round(credited).toLocaleString("en-IN")} has already been credited against this invoice. ` +
+          `Credit the remaining balance instead of voiding it — voiding now would cancel the same charge twice.`,
+      },
+      { status: 409 },
+    );
   }
   if (inv.creditNoteForId) {
     return NextResponse.json(
