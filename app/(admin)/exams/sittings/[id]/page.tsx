@@ -1,6 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { requireSession } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,7 +30,9 @@ export default async function SittingDetail({ params }: { params: { id: string }
     },
   });
   if (!sitting) notFound();
-  if (session.role !== "SUPER_ADMIN" && sitting.centreId !== session.centreId) notFound();
+  // HQ roles carry centreId = null, so this comparison 404'd ADMIN on every
+  // one of these screens while org-fencing nobody. Same helper the API uses.
+  if (await centreFence(session, sitting.centreId)) notFound();
 
   const isManager = ["SUPER_ADMIN", "CENTRE_MANAGER"].includes(session.role);
   const inPool = sitting.examiners.some((e) => e.examinerId === session.userId);

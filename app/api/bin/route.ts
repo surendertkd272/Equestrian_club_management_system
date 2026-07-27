@@ -6,6 +6,7 @@
 // Permission: SUPER_ADMIN / ADMIN / CENTRE_MANAGER (catalog managers).
 
 import { NextRequest, NextResponse } from "next/server";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
@@ -32,8 +33,10 @@ export async function POST(req: NextRequest) {
   if (!row) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
 
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && row.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // isHQ alone let any organisation's HQ through; centreFence adds the org rule.
+  const fence = await centreFence(session, row.centreId);
+  if (fence) {
+    return NextResponse.json({ error: fence }, { status: 403 });
   }
 
   if (action === "restore") {

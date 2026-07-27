@@ -145,12 +145,12 @@ export async function POST(req: NextRequest) {
     action: "razorpay.payment_verified",
     tableName: "invoice",
     rowId: invoice.id,
-    after: { orderId: d.razorpay_order_id, paymentId: d.razorpay_payment_id, amount: invoice.amount },
+    after: { orderId: d.razorpay_order_id, paymentId: d.razorpay_payment_id, amount: remaining },
   });
 
   await notifyCentreManager(invoice.centre.id, {
     type: "payment.received",
-    title: `Payment received · ₹${invoice.amount.toLocaleString("en-IN")}`,
+    title: `Payment received · ₹${Math.round(remaining).toLocaleString("en-IN")}`,
     body: `Invoice ${invoice.id.slice(-6)} (${invoice.kind.replace("_", " ")}) marked paid via Razorpay.`,
     link: `/riders/${invoice.riderId}`,
     payload: { invoiceId: invoice.id, paymentId: d.razorpay_payment_id },
@@ -161,7 +161,7 @@ export async function POST(req: NextRequest) {
   if (parentPhone) {
     await sendSms({
       to: parentPhone,
-      body: `${invoice.centre.name}: Thank you. ₹${invoice.amount.toLocaleString("en-IN")} ${invoice.kind.replace("_", " ")} fee for ${invoice.rider.firstName} received. Ref: ${d.razorpay_payment_id.slice(-8)}.`,
+      body: `${invoice.centre.name}: Thank you. ₹${Math.round(remaining).toLocaleString("en-IN")} ${invoice.kind.replace("_", " ")} fee for ${invoice.rider.firstName} received. Ref: ${d.razorpay_payment_id.slice(-8)}.`,
       ref: { type: "payment.received", rowId: invoice.id, payload: { paymentId: d.razorpay_payment_id } },
     });
     // Parent WhatsApp — pre-approved template `ew_payment_received`.
@@ -172,25 +172,25 @@ export async function POST(req: NextRequest) {
         name: "ew_payment_received",
         bodyParams: [
           `${invoice.rider.firstName} ${invoice.rider.lastName}`,
-          `₹${invoice.amount.toLocaleString("en-IN")}`,
+          `₹${Math.round(remaining).toLocaleString("en-IN")}`,
           d.razorpay_payment_id.slice(-8),
         ],
       },
-      previewBody: `Payment received · ₹${invoice.amount.toLocaleString("en-IN")} for ${invoice.rider.firstName}`,
+      previewBody: `Payment received · ₹${Math.round(remaining).toLocaleString("en-IN")} for ${invoice.rider.firstName}`,
       ref: { type: "payment.received", rowId: invoice.id, payload: { paymentId: d.razorpay_payment_id } },
     });
   }
   if (invoice.rider.email) {
     await sendEmail({
       to: invoice.rider.email,
-      subject: `Payment receipt · ₹${invoice.amount.toLocaleString("en-IN")} · ${invoice.rider.firstName} ${invoice.rider.lastName}`,
+      subject: `Payment receipt · ₹${Math.round(remaining).toLocaleString("en-IN")} · ${invoice.rider.firstName} ${invoice.rider.lastName}`,
       html: renderEmail({
         centreName: invoice.centre.name,
         heading: `Payment received — thank you`,
         body: `<p>Dear Parent / Guardian,</p>
-<p>We've received your payment of <b>₹${invoice.amount.toLocaleString("en-IN")}</b> towards the <b>${invoice.kind.replace("_", " ")}</b> fee for <b>${invoice.rider.firstName} ${invoice.rider.lastName}</b>. This serves as your receipt.</p>
+<p>We've received your payment of <b>₹${Math.round(remaining).toLocaleString("en-IN")}</b> towards the <b>${invoice.kind.replace("_", " ")}</b> fee for <b>${invoice.rider.firstName} ${invoice.rider.lastName}</b>. This serves as your receipt.</p>
 <table style="margin:16px 0;border-collapse:collapse;">
-  <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Amount</td><td style="padding:4px 0;font-weight:600;">₹${invoice.amount.toLocaleString("en-IN")}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Amount</td><td style="padding:4px 0;font-weight:600;">₹${Math.round(remaining).toLocaleString("en-IN")}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Method</td><td style="padding:4px 0;">Razorpay</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Payment ID</td><td style="padding:4px 0;font-family:monospace;font-size:12px;">${d.razorpay_payment_id}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Invoice</td><td style="padding:4px 0;font-family:monospace;font-size:12px;">${invoice.id}</td></tr>

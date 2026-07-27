@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { blockIfFeatureOff, getOrgIdForSession } from "@/lib/features-gate";
 import { audit } from "@/lib/audit";
@@ -63,9 +64,10 @@ export async function POST(req: NextRequest) {
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
 
-  if (!session.centreId && session.role !== "SUPER_ADMIN") {
-    return NextResponse.json({ error: "NO_CENTRE" }, { status: 400 });
-  }
+  // No centre gate here. The row's centre is taken from the rider or horse the
+  // injury is about (below), so an HQ user — who has no centre of their own —
+  // has everything needed; this check only ever refused them. The centreFence
+  // below still binds them to their own organisation.
 
   const body = await req.json().catch(() => null);
   const parsed = createInjurySchema.safeParse(body);
@@ -104,8 +106,11 @@ export async function POST(req: NextRequest) {
     centreId = r.centreId;
     subjectName = `${r.firstName} ${r.lastName}`;
   }
-  if (session.role !== "SUPER_ADMIN" && centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // Locks ADMIN out (centreId = null) and org-fences nobody. Same helper as
+  // everywhere else; the centre here comes from the subject, not the session.
+  const fence = await centreFence(session, centreId);
+  if (fence) {
+    return NextResponse.json({ error: fence }, { status: 403 });
   }
 
   const row = await prisma.injuryLog.create({

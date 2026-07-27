@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 
@@ -32,8 +33,23 @@ export async function GET(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (!can(session.role, "finance.read")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
-  if (!session.centreId && session.role !== "SUPER_ADMIN") {
+  // ADMIN is an HQ role with no centre of its own, so the old
+  // `!centreId && role !== SUPER_ADMIN` gate refused the org's finance lead
+  // outright. HQ is allowed; it is scoped to their organisation below.
+  const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  if (!session.centreId && !isHQ) {
     return NextResponse.json({ error: "NO_CENTRE" }, { status: 400 });
+  }
+  // ...and an HQ caller must be bound to their OWN organisation. The scope was
+  // `session.centreId ? { centreId } : {}` — an EMPTY filter for a centre-less
+  // caller, so the export swept every centre in every tenant on the platform
+  // into one club's books.
+  const callerOrg = isHQ ? await getOrgIdForSession(session) : null;
+  if (isHQ && !callerOrg) {
+    return NextResponse.json(
+      { error: "NO_ORG", message: "Your account isn't bound to an organisation, so there is nothing to export." },
+      { status: 400 },
+    );
   }
 
   const url = new URL(req.url);
@@ -42,7 +58,7 @@ export async function GET(req: NextRequest) {
   const from = fromStr ? new Date(`${fromStr}T00:00:00Z`) : new Date(Date.now() - 30 * 86400000);
   const to = toStr ? new Date(`${toStr}T23:59:59Z`) : new Date();
 
-  const where = session.centreId ? { centreId: session.centreId } : {};
+  const where = session.centreId ? { centreId: session.centreId } : { centre: { orgId: callerOrg! } };
 
   const [invoices, payments, expenses, centre, salaries] = await Promise.all([
     prisma.invoice.findMany({

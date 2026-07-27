@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { updateUserSchema } from "@/lib/schemas/user-admin";
 import { audit } from "@/lib/audit";
@@ -66,10 +67,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (dupe) return NextResponse.json({ error: "EMAIL_TAKEN" }, { status: 409 });
   }
 
-  // Validate centreId points at an existing centre (or null for HQ).
+  // Validate centreId points at an existing centre (or null for HQ) — and at
+  // one the caller may actually reach. Checking only that the centre EXISTS let
+  // one tenant's admin move an account into ANOTHER tenant's centre, planting a
+  // user inside an organisation they have no rights over.
   if (d.centreId !== undefined && d.centreId !== null) {
     const c = await prisma.centre.findUnique({ where: { id: d.centreId }, select: { id: true } });
     if (!c) return NextResponse.json({ error: "CENTRE_NOT_FOUND" }, { status: 404 });
+    const destFence = await centreFence(session, d.centreId);
+    if (destFence) return NextResponse.json({ error: destFence }, { status: 403 });
   }
 
   // A role change or a suspension must take effect on the user's NEXT request,

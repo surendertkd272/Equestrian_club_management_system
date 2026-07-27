@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfFeatureOff } from "@/lib/features-gate";
@@ -64,8 +65,11 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   // Cross-centre block. HQ (SUPER_ADMIN / ADMIN) bypass; everyone else
   // stays in their centre.
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && cert.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // isHQ alone let an HQ caller of ANY organisation through. centreFence
+  // keeps the centre rule and adds the org rule HQ never had.
+  const fence = await centreFence(session, cert.centreId);
+  if (fence) {
+    return NextResponse.json({ error: fence }, { status: 403 });
   }
 
   if (!cert.exam) {

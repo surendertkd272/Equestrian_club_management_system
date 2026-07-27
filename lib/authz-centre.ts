@@ -27,15 +27,31 @@ async function orgOfCentre(centreId: string): Promise<string | null> {
 }
 
 /**
- * Organisation an HQ caller belongs to. Mirrors resolveOrgIdForSession's HQ
- * branch in lib/features-gate.ts: prefer the explicit User.orgId, and fall back
- * to the first centre's org for rows that predate that column.
+ * Organisation an HQ caller belongs to.
+ *
+ * HQ users (SUPER_ADMIN, ADMIN) carry no centreId, so their org comes from
+ * User.orgId — a column added later, leaving legacy rows null. The original
+ * fallback for those rows was `SELECT "orgId" FROM "Centre" LIMIT 1`: an
+ * ARBITRARY row, with no ORDER BY. On a single-tenant install that is always
+ * the right answer. On a multi-tenant one it is a coin toss, and it lands
+ * exactly backwards — a legacy admin gets some OTHER organisation's id, is then
+ * refused their own org's rows, and is GRANTED the stranger's. Reproduced: such
+ * an admin renamed a batch belonging to a different club.
+ *
+ * The same fallback lives in resolveOrgIdForSession (lib/features-gate.ts),
+ * which is what stamps app.org_id for the row-level-security policies — so the
+ * database backstop inherited the wrong guess and bound the foreign org too.
+ * Both now call this.
+ *
+ * Guessing is never safe when there is more than one organisation to guess
+ * between, so the fallback only applies when the install has exactly one.
+ * Otherwise this returns null and every caller fails closed.
  */
-async function orgOfHqUser(userId: string): Promise<string | null> {
+export async function orgOfHqUser(userId: string): Promise<string | null> {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { orgId: true } });
   if (user?.orgId) return user.orgId;
-  const first = await prisma.centre.findFirst({ select: { orgId: true } });
-  return first?.orgId ?? null;
+  const orgs = await prisma.organisation.findMany({ select: { id: true }, take: 2 });
+  return orgs.length === 1 ? orgs[0].id : null;
 }
 
 /**

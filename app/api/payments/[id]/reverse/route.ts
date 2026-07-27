@@ -130,8 +130,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     });
     const agg = await tx.payment.aggregate({ where: { invoiceId: original.invoiceId }, _sum: { amount: true } });
     const paid = agg._sum.amount ?? 0;
-    const next = paid >= target - 0.001 ? "paid" : "due";
-    await tx.invoice.update({ where: { id: original.invoiceId }, data: { status: next } });
+    // A voided invoice keeps its status. The gateway paths deliberately record a
+    // payment against an invoice voided after the order was minted without
+    // resurrecting it; reversing that payment must not resurrect it either.
+    const voided = !!(await tx.invoice.findUnique({
+      where: { id: original.invoiceId },
+      select: { voidedAt: true },
+    }))?.voidedAt;
+    const next = voided ? "void" : paid >= target - 0.001 ? "paid" : "due";
+    if (!voided) {
+      await tx.invoice.update({ where: { id: original.invoiceId }, data: { status: next } });
+    }
     return {
       ok: true,
       reversalId: r.id,

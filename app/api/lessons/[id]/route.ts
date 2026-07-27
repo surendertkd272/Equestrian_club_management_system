@@ -31,9 +31,9 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   if (!lesson) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   // HQ roles carry centreId = null, so this locked ADMIN out of every centre
   // while org-fencing nobody.
-  const fence = await centreFence(session, lesson.centreId);
-  if (fence) {
-    return NextResponse.json({ error: fence }, { status: 403 });
+  const fence1 = await centreFence(session, lesson.centreId);
+  if (fence1) {
+    return NextResponse.json({ error: fence1 }, { status: 403 });
   }
   return NextResponse.json({ lesson });
 }
@@ -53,8 +53,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   });
   if (!lesson) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && lesson.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // isHQ alone let an HQ caller of ANY organisation through. centreFence
+  // keeps the centre rule and adds the org rule HQ never had.
+  const fence2 = await centreFence(session, lesson.centreId);
+  if (fence2) {
+    return NextResponse.json({ error: fence2 }, { status: 403 });
   }
   const tz = lesson.centre.timezone;
 
@@ -212,8 +215,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   // isHQ matches the canonical pattern used elsewhere — ADMIN deserves the
   // same cross-centre bypass that SUPER_ADMIN has.
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && lesson.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // isHQ alone let an HQ caller of ANY organisation through. centreFence
+  // keeps the centre rule and adds the org rule HQ never had.
+  const fence3 = await centreFence(session, lesson.centreId);
+  if (fence3) {
+    return NextResponse.json({ error: fence3 }, { status: 403 });
   }
   // Delete the lesson's HorseAllocation rows too. The FK is onDelete: SetNull,
   // so without this the rows would survive with lessonId=null and keep blocking

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { requireSession } from "@/lib/auth";
 import { PrintButton } from "./print-button";
 import { formatEnum } from "@/lib/labels";
@@ -20,22 +21,28 @@ export default async function TenantInvoicePrintPage({ params }: { params: { id:
     },
   });
   if (!invoice) notFound();
-  if (session.role !== "SUPER_ADMIN" && invoice.centreId !== session.centreId) notFound();
+  // HQ roles carry centreId = null, so this comparison 404'd ADMIN on every
+  // one of these screens while org-fencing nobody. Same helper the API uses.
+  if (await centreFence(session, invoice.centreId)) notFound();
 
   const paidTotal = invoice.payments.reduce((sum, p) => sum + p.amount, 0);
   // A credit note is a negative Invoice row. Printed as-is it came out as a tax
   // invoice with a negative total, and the GST line vanished (it was gated on
   // gst > 0), so Subtotal and Total disagreed by the hidden tax.
+  // Credits already issued against this invoice reduce what is owed.
+  const credited = invoice.creditNotes.reduce((t, c) => t + Math.abs(c.amount + c.gstAmount), 0);
   const isCreditNote = !!invoice.creditNoteForId;
   const voided = !!invoice.voidedAt;
   // Credits already issued against this invoice reduce what is owed. Without
   // this the document handed to a family bills them for a charge the club has
   // partly cancelled.
-  const credited = invoice.creditNotes.reduce((t, c) => t + Math.abs(c.amount + c.gstAmount), 0);
   const subtotal = Math.abs(invoice.amount);
   const gst = Math.abs(invoice.gstAmount);
-  const total = subtotal + gst;
-  const balance = isCreditNote || voided ? 0 : Math.max(0, total - credited - paidTotal);
+  // Net of credits. Printing "Less credited −₹5,000" and then a Total that
+  // ignores it is worse than not showing the credit at all — the family reads
+  // the big number.
+  const total = Math.max(0, subtotal + gst - credited);
+  const balance = isCreditNote || voided ? 0 : Math.max(0, total - paidTotal);
 
   return (
     <main className="mx-auto max-w-3xl bg-white p-12 text-sm text-slate-900 print:p-8">

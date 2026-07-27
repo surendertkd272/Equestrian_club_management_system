@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { requireSession } from "@/lib/auth";
 import { PrintButton } from "./print-button";
 import { qrSvg, verifyUrl } from "@/lib/cert";
@@ -23,7 +24,9 @@ export default async function CertificatePrintPage({ params }: { params: { id: s
     },
   });
   if (!cert) notFound();
-  if (session.role !== "SUPER_ADMIN" && cert.centreId !== session.centreId) notFound();
+  // HQ roles carry centreId = null, so this comparison 404'd ADMIN on every
+  // one of these screens while org-fencing nobody. Same helper the API uses.
+  if (await centreFence(session, cert.centreId)) notFound();
 
   // signedBy stores a User.id as a plain string (no FK relation) — fetch separately.
   const signer = cert.signedBy

@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { blockIfFeatureOff } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
@@ -24,8 +25,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const row = await prisma.monthlySkillCatalog.findUnique({ where: { id: params.id } });
   if (!row) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && session.centreId !== row.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // isHQ alone let an HQ caller of ANY organisation through. centreFence
+  // keeps the centre rule and adds the org rule HQ never had.
+  const fence1 = await centreFence(session, row.centreId);
+  if (fence1) {
+    return NextResponse.json({ error: fence1 }, { status: 403 });
   }
 
   const body = await req.json().catch(() => null);
@@ -65,8 +69,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const row = await prisma.monthlySkillCatalog.findUnique({ where: { id: params.id } });
   if (!row) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && session.centreId !== row.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // isHQ alone let an HQ caller of ANY organisation through. centreFence
+  // keeps the centre rule and adds the org rule HQ never had.
+  const fence2 = await centreFence(session, row.centreId);
+  if (fence2) {
+    return NextResponse.json({ error: fence2 }, { status: 403 });
   }
 
   await prisma.monthlySkillCatalog.update({

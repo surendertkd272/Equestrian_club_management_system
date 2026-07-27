@@ -157,7 +157,7 @@ export async function POST(req: NextRequest) {
 
   await notifyCentreManager(invoice.centre.id, {
     type: "payment.received",
-    title: `Payment received (webhook) · ₹${invoice.amount.toLocaleString("en-IN")}`,
+    title: `Payment received (webhook) · ₹${Math.round(captured).toLocaleString("en-IN")}`,
     body: `Invoice ${invoice.id.slice(-6)} (${invoice.kind.replace("_", " ")}) marked paid via Razorpay webhook.`,
     link: `/riders/${invoice.riderId}`,
     payload: { invoiceId: invoice.id, paymentId },
@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
   if (parentPhone) {
     await sendSms({
       to: parentPhone,
-      body: `${invoice.centre.name}: Thank you. ₹${invoice.amount.toLocaleString("en-IN")} ${invoice.kind.replace("_", " ")} fee for ${invoice.rider.firstName} received. Ref: ${paymentId.slice(-8)}.`,
+      body: `${invoice.centre.name}: Thank you. ₹${Math.round(captured).toLocaleString("en-IN")} ${invoice.kind.replace("_", " ")} fee for ${invoice.rider.firstName} received. Ref: ${paymentId.slice(-8)}.`,
       ref: { type: "payment.received", rowId: invoice.id, payload: { paymentId } },
     });
     await sendWhatsApp({
@@ -179,25 +179,25 @@ export async function POST(req: NextRequest) {
         name: "ew_payment_received",
         bodyParams: [
           `${invoice.rider.firstName} ${invoice.rider.lastName}`,
-          `₹${invoice.amount.toLocaleString("en-IN")}`,
+          `₹${Math.round(captured).toLocaleString("en-IN")}`,
           paymentId.slice(-8),
         ],
       },
-      previewBody: `Payment received (webhook) · ₹${invoice.amount.toLocaleString("en-IN")}`,
+      previewBody: `Payment received (webhook) · ₹${Math.round(captured).toLocaleString("en-IN")}`,
       ref: { type: "payment.received", rowId: invoice.id, payload: { paymentId } },
     });
   }
   if (invoice.rider.email) {
     await sendEmail({
       to: invoice.rider.email,
-      subject: `Payment receipt · ₹${invoice.amount.toLocaleString("en-IN")} · ${invoice.rider.firstName} ${invoice.rider.lastName}`,
+      subject: `Payment receipt · ₹${Math.round(captured).toLocaleString("en-IN")} · ${invoice.rider.firstName} ${invoice.rider.lastName}`,
       html: renderEmail({
         centreName: invoice.centre.name,
         heading: `Payment received — thank you`,
         body: `<p>Dear Parent / Guardian,</p>
-<p>We've received your payment of <b>₹${invoice.amount.toLocaleString("en-IN")}</b> towards the <b>${invoice.kind.replace("_", " ")}</b> fee for <b>${invoice.rider.firstName} ${invoice.rider.lastName}</b>. This serves as your receipt.</p>
+<p>We've received your payment of <b>₹${Math.round(captured).toLocaleString("en-IN")}</b> towards the <b>${invoice.kind.replace("_", " ")}</b> fee for <b>${invoice.rider.firstName} ${invoice.rider.lastName}</b>. This serves as your receipt.</p>
 <table style="margin:16px 0;border-collapse:collapse;">
-  <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Amount</td><td style="padding:4px 0;font-weight:600;">₹${invoice.amount.toLocaleString("en-IN")}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Amount</td><td style="padding:4px 0;font-weight:600;">₹${Math.round(captured).toLocaleString("en-IN")}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Method</td><td style="padding:4px 0;">Razorpay</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Payment ID</td><td style="padding:4px 0;font-family:monospace;font-size:12px;">${paymentId}</td></tr>
 </table>`,

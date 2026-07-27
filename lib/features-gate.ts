@@ -13,6 +13,7 @@ import { getSession } from "./auth";
 import { bindTenantOrg, runWithRlsBypass } from "./tenant-context";
 import type { FeatureKey } from "./features";
 import type { SessionPayload } from "./auth";
+import { orgOfHqUser } from "./authz-centre";
 
 // Per-request, per-orgId memoised feature lookup. React.cache() deduplicates
 // concurrent + sequential calls within a single server request — so a page
@@ -72,13 +73,11 @@ const resolveOrgIdForSession = cache(async (session: SessionPayload | null): Pro
   // date the User.orgId column. Without ADMIN here, every feature-gated
   // module (medicines, horses, exams, …) silently 404s for Admin.
   if (session.role === "SUPER_ADMIN" || session.role === "ADMIN") {
-    const user = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { orgId: true },
-    });
-    if (user?.orgId) return user.orgId;
-    const first = await prisma.centre.findFirst({ select: { orgId: true } });
-    return first?.orgId ?? null;
+    // Shared with the centre fence — see orgOfHqUser in lib/authz-centre.ts for
+    // why the old "first centre's org" fallback was unsafe. This is the value
+    // that gets stamped into app.org_id for RLS, so guessing it wrong doesn't
+    // just mis-authorise at the app layer, it mis-binds the database backstop.
+    return orgOfHqUser(session.userId);
   }
   // PARENT has no centreId but is linked to riders via ParentLink → centre → org.
   // Resolution reads RLS-guarded tables BEFORE any org is bound, so it runs

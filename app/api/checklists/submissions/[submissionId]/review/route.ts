@@ -3,6 +3,7 @@
 // reviewedByUserId + reviewedAt. Idempotent (re-signing just refreshes it).
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
@@ -24,8 +25,11 @@ export async function POST(req: NextRequest, { params }: { params: { submissionI
   if (!sub) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
 
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && session.centreId !== sub.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // isHQ alone let an HQ caller of ANY organisation through. centreFence
+  // keeps the centre rule and adds the org rule HQ never had.
+  const fence = await centreFence(session, sub.centreId);
+  if (fence) {
+    return NextResponse.json({ error: fence }, { status: 403 });
   }
 
   const updated = await prisma.checklistSubmission.update({
