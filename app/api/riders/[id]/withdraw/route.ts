@@ -141,6 +141,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   let outstandingBefore = 0;
+  let releasedAllocations: { id: string; horseId: string; startAt: string; purpose: string }[] = [];
   const cancelled: { invoiceId: string; amount: number; creditNoteId: string }[] = [];
   // The ALREADY_WITHDRAWN guard is the idempotency defence for exactly the case
   // that breaks it — an operator resubmitting a slow request. Re-check it and
@@ -181,6 +182,18 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       // sessions that have not happened yet are released, so the horse is free
       // and the yard sheet stops listing a rider who has left. Past
       // allocations are history and stay exactly as they are.
+      // Record what was released before releasing it — otherwise a horse simply
+      // becomes free and nothing says why, or which sessions were affected.
+      const freed = await tx.horseAllocation.findMany({
+        where: { riderId: rider.id, startAt: { gte: new Date() } },
+        select: { id: true, horseId: true, startAt: true, purpose: true },
+      });
+      releasedAllocations = freed.map((a) => ({
+        id: a.id,
+        horseId: a.horseId,
+        startAt: a.startAt.toISOString(),
+        purpose: a.purpose,
+      }));
       await tx.horseAllocation.deleteMany({
         where: { riderId: rider.id, startAt: { gte: new Date() } },
       });
@@ -227,6 +240,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       lastDayAt,
       batchCleared: d.clearBatch,
       outstandingAtWithdrawal: outstandingBefore,
+      horseAllocationsReleased: releasedAllocations,
       duesCancelled: cancelledTotal,
       creditNotesIssued: cancelled.length,
     },

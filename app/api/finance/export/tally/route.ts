@@ -359,12 +359,30 @@ ${deductions.map(([name, amt]) => `  <ALLLEDGERENTRIES.LIST>
   </BODY>
 </ENVELOPE>`;
 
-  const filename = `tally-${(centre?.name ?? "export").replace(/\W+/g, "-").toLowerCase()}-${fromStr ?? "30d"}-to-${toStr ?? "now"}.xml`;
-  return new NextResponse(xml, {
-    headers: {
-      "Content-Type": "application/xml; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${filename}"`,
-      "Cache-Control": "no-store",
+  // Rows this window deliberately leaves out. Voiding is only permitted while
+  // payments net to zero, so a receipt and its reversal normally leave together
+  // — but if the invoice was voided AFTER an earlier month was already filed,
+  // the receipt is in Tally and its reversal silently is not. Say so in a
+  // header rather than letting the books quietly drift.
+  const droppedReversals = await prisma.payment.count({
+    where: {
+      paidAt: { gte: from, lte: to },
+      amount: { lt: 0 },
+      invoice: { ...where, voidedAt: { not: null } },
     },
   });
+
+  const filename = `tally-${(centre?.name ?? "export").replace(/\W+/g, "-").toLowerCase()}-${fromStr ?? "30d"}-to-${toStr ?? "now"}.xml`;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/xml; charset=utf-8",
+    "Content-Disposition": `attachment; filename="${filename}"`,
+    "Cache-Control": "no-store",
+    "X-Equiwings-Vouchers": String(vouchers.length),
+  };
+  if (droppedReversals > 0) {
+    headers["X-Equiwings-Excluded-Reversals"] = String(droppedReversals);
+    headers["X-Equiwings-Warning"] =
+      `${droppedReversals} payment reversal(s) belong to invoices voided after an earlier export and are not included; post them by hand if that period was already filed.`;
+  }
+  return new NextResponse(xml, { headers });
 }
