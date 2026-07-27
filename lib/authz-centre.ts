@@ -55,3 +55,29 @@ export async function centreFence(
   }
   return rowCentreId !== session.centreId ? "FORBIDDEN_CROSS_CENTRE" : null;
 }
+
+/**
+ * A fence for checking MANY rows in one request.
+ *
+ * centreFence() resolves the caller's organisation on every call, so using it
+ * inside a loop turns a bulk action over 200 invoices into 400 queries. This
+ * resolves the caller's org once and memoises centre → org, so a bulk route
+ * costs one query per DISTINCT centre instead of two per row. Centre-scoped
+ * callers cost nothing either way — their check is a string comparison.
+ */
+export function makeCentreFence(session: FenceSession) {
+  const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  let callerOrg: Promise<string | null> | null = null;
+  const centreOrgs = new Map<string, Promise<string | null>>();
+
+  return async function fence(
+    rowCentreId: string | null,
+  ): Promise<"FORBIDDEN_CROSS_ORG" | "FORBIDDEN_CROSS_CENTRE" | null> {
+    if (!isHQ) return rowCentreId !== session.centreId ? "FORBIDDEN_CROSS_CENTRE" : null;
+    if (!rowCentreId) return null;
+    callerOrg ??= orgOfHqUser(session.userId);
+    if (!centreOrgs.has(rowCentreId)) centreOrgs.set(rowCentreId, orgOfCentre(rowCentreId));
+    const [mine, theirs] = await Promise.all([callerOrg, centreOrgs.get(rowCentreId)!]);
+    return !mine || mine !== theirs ? "FORBIDDEN_CROSS_ORG" : null;
+  };
+}
