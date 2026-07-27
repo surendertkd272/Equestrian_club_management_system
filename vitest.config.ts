@@ -20,6 +20,15 @@ export default defineConfig({
     // when files shared state.
     pool: "forks",
     fileParallelism: false,
+    // Vitest's 5s default is too tight for this suite: several tests hash
+    // passwords with bcrypt at cost 10 — twice, once in the fixture and once in
+    // the route under test — and bcrypt is deliberately slow. On a loaded
+    // machine that alone can pass 5s, so owner-onboarding and the sweep tests
+    // failed intermittently with "Test timed out" while passing in ~2s when run
+    // alone. A generous ceiling costs nothing when tests are fast; it only
+    // stops a slow machine reporting a red suite that isn't broken.
+    testTimeout: 30_000,
+    hookTimeout: 30_000,
     env: {
       // Tests use whichever DATABASE_URL the runner provides:
       //   • CI: a Postgres service container (see .github/workflows/ci.yml).

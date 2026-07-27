@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { audit } from "@/lib/audit";
@@ -18,8 +19,11 @@ export async function DELETE(
   if (!row || row.examId !== params.id) {
     return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   }
-  if (session.role !== "SUPER_ADMIN" && row.exam.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence42 = await centreFence(session, row.exam.centreId);
+  if (fence42) {
+    return NextResponse.json({ error: fence42 }, { status: 403 });
   }
   // Uploader or a manager can remove. Other examiners can't tamper.
   const canRemove =

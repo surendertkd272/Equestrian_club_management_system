@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { updateRegistrationSchema } from "@/lib/schemas/event";
@@ -32,8 +33,11 @@ export async function PATCH(
   if (!reg || reg.eventId !== params.id) {
     return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   }
-  if (session.role !== "SUPER_ADMIN" && reg.event.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence83 = await centreFence(session, reg.event.centreId);
+  if (fence83) {
+    return NextResponse.json({ error: fence83 }, { status: 403 });
   }
 
   const updated = await prisma.eventRegistration.update({
@@ -76,8 +80,11 @@ export async function DELETE(
   if (!reg || reg.eventId !== params.id) {
     return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   }
-  if (session.role !== "SUPER_ADMIN" && reg.event.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence83 = await centreFence(session, reg.event.centreId);
+  if (fence83) {
+    return NextResponse.json({ error: fence83 }, { status: 403 });
   }
 
   await prisma.eventRegistration.delete({ where: { id: reg.id } });

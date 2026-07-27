@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { creditPosition } from "@/lib/credit-note";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -42,7 +43,9 @@ export async function POST(req: NextRequest) {
   let marked = 0;
   const skipped: { invoiceId: string; reason: string }[] = [];
   for (const inv of invoices) {
-    if (session.role !== "SUPER_ADMIN" && inv.centreId !== session.centreId) {
+    // HQ roles have centreId = null, so this comparison used to skip EVERY
+    // row for an ADMIN — the bulk action silently did nothing for them.
+    if (await centreFence(session, inv.centreId)) {
       skipped.push({ invoiceId: inv.id, reason: "cross-centre" });
       continue;
     }

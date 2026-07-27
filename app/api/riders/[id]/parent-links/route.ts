@@ -5,6 +5,7 @@ import { can } from "@/lib/permissions";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { createParentLinkSchema } from "@/lib/schemas/parent-link";
 import { userIsInForeignOrg } from "@/lib/authz-org";
+import { centreFence } from "@/lib/authz-centre";
 import { audit } from "@/lib/audit";
 import { hashPassword } from "@/lib/auth";
 import crypto from "node:crypto";
@@ -23,8 +24,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const rider = await prisma.rider.findUnique({ where: { id: params.id }, select: { id: true, centreId: true } });
   if (!rider) return NextResponse.json({ error: "RIDER_NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && rider.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence44 = await centreFence(session, rider.centreId);
+  if (fence44) {
+    return NextResponse.json({ error: fence44 }, { status: 403 });
   }
 
   const body = await req.json().catch(() => null);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { blockIfFeatureOff } from "@/lib/features-gate";
@@ -60,8 +61,11 @@ export async function POST(req: NextRequest) {
   if (source === "event") {
     const ev = await prisma.event.findUnique({ where: { id: sourceId }, include: { registrations: true } });
     if (!ev) return NextResponse.json({ error: "EVENT_NOT_FOUND" }, { status: 404 });
-    if (session.role !== "SUPER_ADMIN" && ev.centreId !== session.centreId) {
-      return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+    // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+    // every centre while org-fencing nobody. centreFence does both.
+    const fence94 = await centreFence(session, ev.centreId);
+    if (fence94) {
+      return NextResponse.json({ error: fence94 }, { status: 403 });
     }
     centreId = ev.centreId;
 
@@ -104,8 +108,11 @@ export async function POST(req: NextRequest) {
       include: { exams: true },
     });
     if (!sitting) return NextResponse.json({ error: "SITTING_NOT_FOUND" }, { status: 404 });
-    if (session.role !== "SUPER_ADMIN" && sitting.centreId !== session.centreId) {
-      return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+    // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+    // every centre while org-fencing nobody. centreFence does both.
+    const fence7 = await centreFence(session, sitting.centreId);
+    if (fence7) {
+      return NextResponse.json({ error: fence7 }, { status: 403 });
     }
     centreId = sitting.centreId;
 

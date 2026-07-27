@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
@@ -19,8 +20,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     select: { centreId: true },
   });
   if (!horse) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && horse.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence88 = await centreFence(session, horse.centreId);
+  if (fence88) {
+    return NextResponse.json({ error: fence88 }, { status: 403 });
   }
 
   const tests = await prisma.horseTest.findMany({
@@ -45,8 +49,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     select: { id: true, centreId: true, name: true },
   });
   if (!horse) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && horse.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence88 = await centreFence(session, horse.centreId);
+  if (fence88) {
+    return NextResponse.json({ error: fence88 }, { status: 403 });
   }
 
   const body = await req.json().catch(() => null);

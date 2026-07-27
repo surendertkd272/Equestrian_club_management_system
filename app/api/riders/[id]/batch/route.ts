@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
@@ -22,8 +23,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const rider = await prisma.rider.findUnique({ where: { id: params.id } });
   if (!rider) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && rider.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence44 = await centreFence(session, rider.centreId);
+  if (fence44) {
+    return NextResponse.json({ error: fence44 }, { status: 403 });
   }
 
   if (parsed.data.batchId) {

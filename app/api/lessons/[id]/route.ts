@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { updateLessonSchema } from "@/lib/schemas/lesson";
@@ -28,8 +29,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     },
   });
   if (!lesson) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && lesson.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  // HQ roles carry centreId = null, so this locked ADMIN out of every centre
+  // while org-fencing nobody.
+  const fence = await centreFence(session, lesson.centreId);
+  if (fence) {
+    return NextResponse.json({ error: fence }, { status: 403 });
   }
   return NextResponse.json({ lesson });
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { upsertFeedPlanSchema } from "@/lib/schemas/feed-plan";
@@ -15,8 +16,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     select: { id: true, centreId: true, feedPlan: true },
   });
   if (!horse) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && horse.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  // HQ roles carry centreId = null, so this locked ADMIN out of every centre
+  // while org-fencing nobody.
+  const fence = await centreFence(session, horse.centreId);
+  if (fence) {
+    return NextResponse.json({ error: fence }, { status: 403 });
   }
   if (!horse.feedPlan) return NextResponse.json({ plan: null });
   return NextResponse.json({
@@ -45,8 +49,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     select: { id: true, centreId: true, feedPlan: true },
   });
   if (!horse) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && horse.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  // HQ roles carry centreId = null, so this locked ADMIN out of every centre
+  // while org-fencing nobody.
+  const fence = await centreFence(session, horse.centreId);
+  if (fence) {
+    return NextResponse.json({ error: fence }, { status: 403 });
   }
 
   const body = await req.json().catch(() => null);
