@@ -43,7 +43,7 @@ export default async function ChecklistsPage() {
   }
 
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const [templates, horses, recent] = await Promise.all([
     prisma.checklistTemplate.findMany({

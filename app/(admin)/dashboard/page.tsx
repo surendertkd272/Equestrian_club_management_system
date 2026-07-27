@@ -38,7 +38,7 @@ export default async function DashboardPage() {
   // "all centres" (centreId=null) the old centreWhere produced an EMPTY
   // filter and leaked every org's rows; tenantWhere keeps it org-bounded.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard"); // fail closed if the org can't be resolved
+  if (!orgId) redirect("/no-organisation"); // fail closed if the org can't be resolved
   const where = tenantWhere(centreId, orgId);
   // Load the org's enabled features so feature-gated surfaces below (the
   // exams timeline, role-specific dashboards) only render what's turned on.

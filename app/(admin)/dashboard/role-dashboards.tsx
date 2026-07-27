@@ -49,11 +49,11 @@ export async function FarrierDashboard({ centreId, features }: { centreId: strin
   // (centreId=null) can't fall through to an empty filter that leaks every
   // org's visits. Fail closed if the org can't be resolved.
   const orgId = await getOrgIdForSession(await getSession());
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const orgCentreIds = (
     await prisma.centre.findMany({ where: { orgId }, select: { id: true } })
   ).map((c) => c.id);
-  const where = { centreId: centreId ?? { in: orgCentreIds } };
+  const where = { centreId: centreId && orgCentreIds.includes(centreId) ? centreId : { in: orgCentreIds } };
   const fFarriery = features.has("farriery");
   const now = new Date();
   const sevenDays = new Date(now.getTime() + 7 * 86400000);
@@ -156,12 +156,12 @@ export async function VetDashboard({ centreId, features }: { centreId: string | 
   // by the org's centre ids instead. Either way an HQ user's "all centres"
   // (centreId=null) is org-bounded, never an empty (leaking) filter.
   const orgId = await getOrgIdForSession(await getSession());
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const orgCentreIds = (
     await prisma.centre.findMany({ where: { orgId }, select: { id: true } })
   ).map((c) => c.id);
   const where = tenantWhere(centreId, orgId);
-  const scalarWhere = { centreId: centreId ?? { in: orgCentreIds } };
+  const scalarWhere = { centreId: centreId && orgCentreIds.includes(centreId) ? centreId : { in: orgCentreIds } };
   const fVet = features.has("vet-records");
   const fInjuries = features.has("injuries");
   const now = new Date();
@@ -286,12 +286,12 @@ export async function StableManagerDashboard({ centreId, features }: { centreId:
   // scalar `centreId`, so they're bound by the org's centre ids. Every shape
   // is org-bounded so an HQ user's "all centres" can't leak other orgs.
   const orgId = await getOrgIdForSession(await getSession());
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const orgCentreIds = (
     await prisma.centre.findMany({ where: { orgId }, select: { id: true } })
   ).map((c) => c.id);
   const where = tenantWhere(centreId, orgId);
-  const scalarWhere = { centreId: centreId ?? { in: orgCentreIds } };
+  const scalarWhere = { centreId: centreId && orgCentreIds.includes(centreId) ? centreId : { in: orgCentreIds } };
   const fHorses = features.has("horse-management");
   const fTasks = features.has("tasks");
   const fConsumables = features.has("consumables");
@@ -355,7 +355,7 @@ export async function GroomDashboard({ centreId, userId, features }: { centreId:
   // through it. (myTasks is already scoped to assigneeId=userId, so it can't
   // leak.) Org-bounded so an HQ user's "all centres" never empties the filter.
   const orgId = await getOrgIdForSession(await getSession());
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const where = tenantWhere(centreId, orgId);
   const fTasks = features.has("tasks");
   const fHorses = features.has("horse-management");
@@ -475,7 +475,7 @@ export async function ExaminerDashboard({ centreId, userId, features }: { centre
   // already scoped to this examiner (examinerId/signedBy=userId), but we keep
   // the tenant bound so an HQ examiner's "all centres" stays org-bounded.
   const orgId = await getOrgIdForSession(await getSession());
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const where = tenantWhere(centreId, orgId);
   const fExams = features.has("external-exams");
   const fCerts = features.has("certificates");
@@ -556,7 +556,7 @@ export async function AccountantDashboard({ centreId }: { centreId: string | nul
   // its `invoice` relation. Previously `invoice: undefined` for an HQ user's
   // "all centres" left payments globally unfiltered — now org-bounded.
   const orgId = await getOrgIdForSession(await getSession());
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const where = tenantWhere(centreId, orgId);
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
@@ -613,7 +613,7 @@ export async function HeadCoachDashboard({ centreId, features }: { centreId: str
   // tenantWhere(); Attendance is bound through its `batch` relation. Each is
   // org-bounded so an HQ head coach's "all centres" never empties the filter.
   const orgId = await getOrgIdForSession(await getSession());
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const where = tenantWhere(centreId, orgId);
   const fAttendance = features.has("attendance");
   const fExams = features.has("external-exams");
@@ -723,7 +723,7 @@ export async function CoachDashboard({ centreId, userId, features }: { centreId:
   // so the org bound closes it; the rest stay scoped to this coach's userId.
   // (markedToday is filtered by batch.coachId=userId, so it can't leak.)
   const orgId = await getOrgIdForSession(await getSession());
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const where = tenantWhere(centreId, orgId);
   const fAttendance = features.has("attendance");
   const fTasks = features.has("tasks");

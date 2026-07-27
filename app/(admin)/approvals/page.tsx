@@ -25,7 +25,7 @@ export default async function ApprovalsPage() {
   // centres" (centreId=null) can't fall through to an empty filter that leaks
   // every org's approvals. Fail closed if the org can't be resolved.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const orgCentres = await prisma.centre.findMany({
     where: { orgId },
     select: { id: true },

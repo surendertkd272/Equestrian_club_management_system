@@ -15,7 +15,7 @@ export default async function SettingsPage() {
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/dashboard");
 
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const org = await prisma.organisation.findUnique({
     where: { id: orgId },

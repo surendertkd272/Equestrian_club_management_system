@@ -17,7 +17,7 @@ export default async function FarrieryPage() {
   const session = await requireSession();
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   // FarrierVisit has a centreId column but no `centre` relation, so the org
   // bound is enforced through its `horse` relation (Horse has `centre`).

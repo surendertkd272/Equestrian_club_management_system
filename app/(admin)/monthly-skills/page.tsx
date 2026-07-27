@@ -48,7 +48,7 @@ export default async function MonthlySkillsPage({
   // Org-bound the centre so an HQ user can't open another org's centre via
   // ?centre= / the ew_hq_centre cookie — a foreign centreId then matches 0 rows.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const yearMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(searchParams.month ?? "")
     ? searchParams.month!

@@ -31,7 +31,7 @@ export default async function ExpensesPage({
   }
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const where: any = { ...tenantWhere(centreId, orgId) };
   if (searchParams.paid === "paid") where.paid = true;
   if (searchParams.paid === "due") where.paid = false;

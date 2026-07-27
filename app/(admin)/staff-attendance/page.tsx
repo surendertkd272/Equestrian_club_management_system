@@ -17,7 +17,7 @@ export default async function StaffAttendancePage() {
   if (!can(session.role, "staff.attendance")) redirect("/dashboard");
 
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
   const where = tenantWhere(centreId, orgId);
 

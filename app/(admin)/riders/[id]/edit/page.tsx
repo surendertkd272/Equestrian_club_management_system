@@ -25,7 +25,7 @@ export default async function EditRiderPage({ params }: { params: { id: string }
   // HQ tier has centreId=null, so the check above is skipped — bind them to
   // their own org so an Admin can't open another organisation's rider by id.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   if ((await getOrgIdForCentre(rider.centreId)) !== orgId) notFound();
 
   // Serialise dates to YYYY-MM-DD for the date inputs.

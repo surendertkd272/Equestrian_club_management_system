@@ -27,7 +27,7 @@ export default async function TeamDailyUpdatesPage({
   if (!CAN_VIEW.includes(session.role)) redirect("/daily-update");
 
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   // HQ (SUPER_ADMIN/ADMIN) with no club picked → show the WHOLE org's updates
   // (each labelled with its club) instead of dead-ending on "pick a club".
   // Centre-scoped roles resolve to their own club.

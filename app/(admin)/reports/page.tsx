@@ -28,7 +28,7 @@ export default async function ReportsPage() {
   const session = await assertRoute("/reports");
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   // Notification has a nullable centreId and no `centre` relation, so the
   // dispatch-history query below binds by the org's centre-id set.
   const orgCentreIds = (await prisma.centre.findMany({ where: { orgId }, select: { id: true } })).map((c) => c.id);
@@ -45,7 +45,7 @@ export default async function ReportsPage() {
     prisma.notification.findMany({
       where: {
         type: "report.monthly_email",
-        centreId: centreId ?? { in: orgCentreIds },
+        centreId: centreId && orgCentreIds.includes(centreId) ? centreId : { in: orgCentreIds },
       },
       orderBy: { createdAt: "desc" },
       take: 30,

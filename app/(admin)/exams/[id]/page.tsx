@@ -50,7 +50,7 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
   // is skipped — bound them to their own org so they can't open another org's
   // exam by id.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   if ((await getOrgIdForCentre(exam.centreId)) !== orgId) notFound();
   // EXAMINER can see the exam if they're the lead OR a registered co-judge.
   const isLeadOrJudge =

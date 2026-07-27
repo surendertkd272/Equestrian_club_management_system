@@ -34,7 +34,7 @@ export default async function RidersPage({
   // nav perm server-side (redirects disallowed roles to /dashboard).
   const session = await assertRoute("/riders");
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
   const where: any = { ...tenantWhere(centreId, orgId) };
   // "All statuses" means all CURRENT riders — someone who left the club two

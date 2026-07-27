@@ -17,7 +17,7 @@ export default async function RidersImportPage() {
     redirect("/riders");
   }
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
 
   // Examiners are surfaced as a dropdown so the import can optionally

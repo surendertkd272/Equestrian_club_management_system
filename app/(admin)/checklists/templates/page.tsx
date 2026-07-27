@@ -32,7 +32,7 @@ export default async function ChecklistTemplatesPage() {
   }
 
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const [centre, templates] = await Promise.all([
     // Bound the centre lookup to the caller's org so an HQ user can't read a

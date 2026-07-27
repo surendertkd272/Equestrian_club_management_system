@@ -126,6 +126,11 @@ export async function GET(req: NextRequest) {
         OR: [
           { paid: true, paidAt: { gte: from, lte: to } },
           { paid: false, spentAt: { gte: from, lte: to } },
+          // A row marked paid with no paidAt satisfies neither branch above, so
+          // it fell out of EVERY window — real cash left the club and appeared
+          // in no export at any date range. Fall back to the date it was
+          // incurred, which is the only date such a row has.
+          { paid: true, paidAt: null, spentAt: { gte: from, lte: to } },
         ],
       },
       include: { vendor: { select: { name: true } }, category: { select: { name: true } } },
@@ -364,13 +369,22 @@ ${deductions.map(([name, amt]) => `  <ALLLEDGERENTRIES.LIST>
   // — but if the invoice was voided AFTER an earlier month was already filed,
   // the receipt is in Tally and its reversal silently is not. Say so in a
   // header rather than letting the books quietly drift.
-  const droppedReversals = await prisma.payment.count({
+  // Only reversals whose ORIGINAL receipt fell outside this window are actually
+  // orphaned — those are the ones already sitting in Tally from an earlier
+  // filing with nothing to cancel them. A pair where both halves are inside
+  // this window simply left together and needs no warning; counting those made
+  // the number alarming and wrong.
+  const candidateReversals = await prisma.payment.findMany({
     where: {
       paidAt: { gte: from, lte: to },
       amount: { lt: 0 },
       invoice: { ...where, voidedAt: { not: null } },
     },
+    select: { reversalOf: { select: { paidAt: true } } },
   });
+  const droppedReversals = candidateReversals.filter(
+    (r) => r.reversalOf && (r.reversalOf.paidAt < from || r.reversalOf.paidAt > to),
+  ).length;
 
   const filename = `tally-${(centre?.name ?? "export").replace(/\W+/g, "-").toLowerCase()}-${fromStr ?? "30d"}-to-${toStr ?? "now"}.xml`;
   const headers: Record<string, string> = {

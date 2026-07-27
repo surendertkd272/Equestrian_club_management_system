@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getOrgIdForSession } from "@/lib/features-gate";
 import { requireSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +24,16 @@ export default async function AuditPage({
   // covers requisition.create, requisition.approve, etc). `table` is exact.
   // `q` does a substring search over the JSON `before`/`after` payloads —
   // useful for finding "all events touching horse Bijli".
-  const where: any = {};
+  // Every other admin screen is org-bound; this one had no clause at all, so a
+  // tenant admin paged through every other tenant's audit log — who did what,
+  // to which row, with before/after values. The CSV export beside it already
+  // scoped correctly, which is how the gap survived: the screen and its export
+  // disagreed.
+  const auditOrgId = await getOrgIdForSession(session);
+  if (!auditOrgId) redirect("/no-organisation");
+  const where: any = {
+    user: { OR: [{ orgId: auditOrgId }, { centre: { orgId: auditOrgId } }] },
+  };
   if (searchParams.action) where.action = { startsWith: searchParams.action };
   if (searchParams.table) where.tableName = searchParams.table;
   // Filter to one person's actions — e.g. "show me everything this coach did".
@@ -47,8 +57,8 @@ export default async function AuditPage({
       take,
       include: { user: { select: { name: true, email: true } } },
     }),
-    prisma.auditLog.groupBy({ by: ["action"], _count: true, orderBy: { action: "asc" } }),
-    prisma.auditLog.groupBy({ by: ["tableName"], _count: true, orderBy: { tableName: "asc" } }),
+    prisma.auditLog.groupBy({ by: ["action"], where, _count: true, orderBy: { action: "asc" } }),
+    prisma.auditLog.groupBy({ by: ["tableName"], where, _count: true, orderBy: { tableName: "asc" } }),
   ]);
 
   // Collapse action variants (requisition.create, requisition.approve) into

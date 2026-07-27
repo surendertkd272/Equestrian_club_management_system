@@ -20,7 +20,7 @@ export default async function HqExpensesPage() {
     select: { orgId: true, centre: { select: { orgId: true } } },
   });
   const orgId = user?.orgId ?? user?.centre?.orgId ?? null;
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const [categories, centres, expenses] = await Promise.all([
     prisma.expenseCategory.findMany({

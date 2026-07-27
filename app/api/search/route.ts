@@ -94,8 +94,16 @@ export async function GET(req: NextRequest) {
         })
       : prisma.user.findMany({
           where: {
-            centreId: session.centreId ?? undefined,
-            OR: [{ name: { contains: q } }, { email: { contains: q } }],
+            // `centreId: session.centreId ?? undefined` looks like a filter and
+            // is not one: ADMIN is an HQ role carrying centreId = null, so the
+            // expression is undefined and Prisma DROPS the key — one tenant's
+            // admin searched every organisation's staff directory. Bind the org
+            // always, and the centre too when the caller has one.
+            AND: [
+              { OR: [{ orgId }, { centre: { orgId } }] },
+              { OR: [{ name: { contains: q } }, { email: { contains: q } }] },
+              ...(session.centreId ? [{ centreId: session.centreId }] : []),
+            ],
           },
           select: { id: true, name: true, email: true, role: true, centre: { select: { name: true } } },
           take: 5,

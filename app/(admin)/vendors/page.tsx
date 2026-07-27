@@ -26,7 +26,7 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/dashboard");
 
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
   // Own-centre vendors + national (all-India) vendors in the same org
   // (vendorScopeWhere is org-bounded for HQ).

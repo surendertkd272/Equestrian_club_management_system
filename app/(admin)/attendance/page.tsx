@@ -22,7 +22,7 @@ export default async function AttendancePage({
   const session = await requireSession();
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const where = tenantWhere(centreId, orgId);
 
   // The centre's calendar date, not the server's. toDateOnly(new Date()) is

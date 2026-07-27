@@ -22,7 +22,7 @@ export default async function LinksPage() {
   if (!canManage) redirect("/dashboard");
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   // Horses + recent riders feed the param picker (e.g. "report injury for X").
   const [links, horses] = await Promise.all([

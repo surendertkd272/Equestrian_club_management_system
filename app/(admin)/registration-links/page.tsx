@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 export default async function RegistrationLinksPage() {
   const session = await assertRoute("/registration-links");
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   // Build the ABSOLUTE base URL server-side from the request host, so the link
   // we show (and copy/share) is always a full, tappable https://… URL — never a

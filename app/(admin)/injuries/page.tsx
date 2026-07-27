@@ -20,7 +20,7 @@ export default async function InjuriesPage() {
   // Bind to the caller's org so an HQ user's "all centres" (centreId=null)
   // can't return every org's rows. Fail closed if the org can't be resolved.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const [rows, totalInjuries, horses, riders, centre] = await Promise.all([
     prisma.injuryLog.findMany({

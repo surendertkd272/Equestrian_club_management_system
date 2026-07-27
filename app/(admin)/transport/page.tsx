@@ -42,7 +42,7 @@ export default async function TransportPage() {
   }
 
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const trips = await prisma.venueTrip.findMany({
     where: tenantWhere(centreId, orgId),
     orderBy: [{ status: "asc" }, { departureAt: "desc" }],

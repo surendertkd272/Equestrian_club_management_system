@@ -25,7 +25,7 @@ export default async function VetFollowupsPage() {
     redirect("/dashboard");
   }
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
 
   // Partition by the centre's local day, not the server's UTC instant — a

@@ -36,7 +36,7 @@ export default async function EquipmentPage({
   // ?centreId= and read its centre/stock. tenantWhere() turns a foreign
   // centreId into a 0-row match; the centre lookup is org-bounded too.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const [centre, catalog, stocks] = await Promise.all([
     prisma.centre.findFirst({ where: { id: centreId, orgId }, select: { id: true, name: true, slug: true } }),

@@ -35,7 +35,7 @@ export default async function SalaryPage() {
   const canManagePayroll = canView(session.role) && !isReadOnly(session.role);
 
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
 
   const [staff, structures, recent] = await Promise.all([

@@ -17,7 +17,7 @@ export default async function ProgressPage({
   const session = await requireSession();
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const riderWhere: any = { ...tenantWhere(centreId, orgId), status: "active" };
   if (searchParams.batch) riderWhere.batchId = searchParams.batch;

@@ -23,7 +23,7 @@ export default async function RequisitionPOPage({ params }: { params: { id: stri
   const session = await requireSession();
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const req = await prisma.requisition.findUnique({
     where: { id: params.id },

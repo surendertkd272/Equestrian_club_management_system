@@ -34,7 +34,7 @@ export default async function CertificatesPage({
   const session = await assertRoute("/certificates");
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const canBulk = can(session.role, "certificate.bulk");
 
   const where: any = { ...tenantWhere(centreId, orgId) };

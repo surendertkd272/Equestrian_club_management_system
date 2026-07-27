@@ -20,7 +20,7 @@ export default async function InspectionDetailPage({ params }: { params: { id: s
   if (!CAN_INSPECT.includes(session.role)) redirect("/dashboard");
 
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const centreId = scopeCentre(session);
   const run = await prisma.auditRun.findUnique({

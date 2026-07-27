@@ -22,7 +22,7 @@ export default async function TasksPage({
 }) {
   const session = await requireSession();
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
   const canAssign = can(session.role, "task.assign");
 

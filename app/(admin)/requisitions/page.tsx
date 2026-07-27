@@ -27,7 +27,7 @@ export default async function RequisitionsPage() {
 
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const where = tenantWhere(centreId, orgId);
 
   const canApproveManager = can(session.role, "requisition.approve_manager");

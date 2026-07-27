@@ -18,7 +18,7 @@ export default async function BinPage() {
 
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard"); // fail closed — never run an unbounded query
+  if (!orgId) redirect("/no-organisation"); // fail closed — never run an unbounded query
   const sel = { id: true, name: true, deletedAt: true } as const;
 
   // Vendor + Medicine carry a `centre` relation, so org scope binds through it.
@@ -31,7 +31,7 @@ export default async function BinPage() {
     await prisma.centre.findMany({ where: { orgId }, select: { id: true } })
   ).map((c) => c.id);
   const scalarWhere = {
-    centreId: centreId ?? { in: orgCentreIds },
+    centreId: centreId && orgCentreIds.includes(centreId) ? centreId : { in: orgCentreIds },
     active: false,
   } as any;
 

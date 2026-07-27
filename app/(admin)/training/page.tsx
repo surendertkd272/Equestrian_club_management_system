@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function TrainingPage() {
   const session = await assertRoute("/training");
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
   const canManage = can(session.role, "staff.manage");
 
@@ -26,7 +26,7 @@ export default async function TrainingPage() {
   // so tenantWhere ({centre:{orgId}}) doesn't apply — bind by the caller's
   // org's centre-id set instead (a specific in-org centre when one is picked).
   const orgCentreIds = (await prisma.centre.findMany({ where: { orgId }, select: { id: true } })).map((c) => c.id);
-  const where: any = { centreId: centreId ?? { in: orgCentreIds } };
+  const where: any = { centreId: centreId && orgCentreIds.includes(centreId) ? centreId : { in: orgCentreIds } };
 
   const [courses, certs, staff] = await Promise.all([
     prisma.course.findMany({

@@ -26,7 +26,7 @@ export default async function BatchesPage() {
   // Org-bound the scope: an HQ user's "all centres" (centreId=null) must still
   // be fenced to their own Organisation, not leak every org's batches.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const where = tenantWhere(centreId, orgId);
 
   const batches = await prisma.batch.findMany({

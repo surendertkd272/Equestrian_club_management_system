@@ -40,7 +40,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // The HQ centre-picker list must be bounded to the signed-in admin's own
   // organisation — otherwise an HQ admin of one org sees every org's centres.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   // Pull centre + emergency contacts in one query. SUPER_ADMIN with no
   // centreId doesn't get a contacts strip (no single centre context).

@@ -24,7 +24,7 @@ export default async function AdvancesPage() {
 
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const [advances, eligibleUsers] = await Promise.all([
     prisma.employeeAdvance.findMany({
       where: tenantWhere(centreId, orgId),

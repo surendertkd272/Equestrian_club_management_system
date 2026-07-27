@@ -18,7 +18,7 @@ export default async function LeaveRequestsPage() {
   const canRequest = can(session.role, "leave.request");
 
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const centreId = scopeCentre(session);
   const baseWhere = tenantWhere(centreId, orgId);

@@ -91,7 +91,7 @@ export default async function GatePage({
   // org's roster/events. tenantWhere() pairs the centreId with the caller's org,
   // so a foreign centreId matches 0 rows. Fail closed if the org can't resolve.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   // Today's roster — anyone with role !== {SUPER_ADMIN, RIDER, PARENT}
   // attached to this centre, plus their recent gate events.

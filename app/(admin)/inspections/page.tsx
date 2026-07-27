@@ -24,7 +24,7 @@ export default async function InspectionsPage() {
   // without an RSC render. HQ with no centre picked → org-wide; centre-scoped
   // roles stay pinned to their own centre. See lib/inspections.ts.
   const { orgId, centreId, runs } = await loadInspectionRuns(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   return (
     <div className="space-y-6">

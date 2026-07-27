@@ -14,7 +14,7 @@ export default async function NewSittingPage() {
   if (!can(session.role, "exam.schedule")) redirect("/exams");
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const [riders, examiners, templates] = await Promise.all([
     prisma.rider.findMany({

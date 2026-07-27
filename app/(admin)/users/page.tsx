@@ -62,7 +62,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
   // carry orgId; centre staff resolve via centre.orgId. AND-combine so it
   // composes with the q-OR above.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const orgClause = { OR: [{ orgId }, { centre: { orgId } }] };
   where.AND = [orgClause];
 

@@ -29,7 +29,7 @@ export default async function AnalyticsPage() {
   const session = await assertRoute("/analytics");
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const where = tenantWhere(centreId, orgId);
 
   const months = lastNMonths(6);

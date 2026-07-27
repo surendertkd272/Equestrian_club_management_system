@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { createLessonSchema } from "@/lib/schemas/lesson";
@@ -20,6 +21,11 @@ export async function GET(req: NextRequest) {
     ? url.searchParams.get("centreId") ?? session.centreId
     : session.centreId;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE" }, { status: 400 });
+  // An HQ caller supplies that centre id in the query string. Without a fence
+  // it is simply believed, so one tenant's admin could read another tenant's
+  // timetable by pasting a centre id.
+  const getFence = await centreFence(session, centreId);
+  if (getFence) return NextResponse.json({ error: getFence }, { status: 403 });
 
   // Bucket by the CENTRE's local day, not the server's (UTC) — otherwise a
   // lesson late in the local evening lands on the wrong day near midnight IST.
@@ -66,6 +72,9 @@ export async function POST(req: NextRequest) {
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
   const centreId = isHQ ? (d.centreId ?? session.centreId) : session.centreId;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE" }, { status: 400 });
+  // Same for the write: the body's centreId is client-supplied.
+  const postFence = await centreFence(session, centreId);
+  if (postFence) return NextResponse.json({ error: postFence }, { status: 403 });
 
   // Batch (if any) must belong to this centre — defends against
   // SUPER_ADMINs grabbing a centreId that doesn't match their batch.

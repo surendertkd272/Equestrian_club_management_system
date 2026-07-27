@@ -19,7 +19,7 @@ export default async function EditHorsePage({ params }: { params: { id: string }
 
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   // Org-bound the lookup so an HQ user (centreId=null) can't open another
   // org's horse by id; a foreign centre/org simply matches 0 rows → notFound.
   const horse = await prisma.horse.findFirst({

@@ -24,7 +24,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
   }
 
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const centre = await prisma.centre.findUnique({ where: { id: centreId }, select: { timezone: true } });
   const tz = centre?.timezone ?? "Asia/Kolkata";

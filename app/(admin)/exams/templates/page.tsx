@@ -17,7 +17,7 @@ export default async function TemplatesPage() {
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/exams");
 
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
   const where = tenantWhere(centreId, orgId);
   // Pull the canonical catalog AND any centre-specific rubric overrides.

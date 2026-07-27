@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function TeamsPage() {
   const session = await requireSession();
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
   const canManage = can(session.role, "team.manage");
 

@@ -23,7 +23,7 @@ export default async function EnrolmentsPage() {
 
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const where = tenantWhere(centreId, orgId);
 
   const [pending, recent] = await Promise.all([

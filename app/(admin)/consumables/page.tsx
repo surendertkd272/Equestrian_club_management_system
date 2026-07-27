@@ -22,14 +22,14 @@ export default async function ConsumablesPage() {
   // (centreId=null) can't fall through to an empty filter that leaks every
   // org's consumables. Fail closed if the org can't be resolved.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const orgCentreIds = (
     await prisma.centre.findMany({ where: { orgId }, select: { id: true } })
   ).map((c) => c.id);
 
   const where: any = {
     active: true,
-    centreId: centreId ?? { in: orgCentreIds },
+    centreId: centreId && orgCentreIds.includes(centreId) ? centreId : { in: orgCentreIds },
   };
 
   const rows = await prisma.consumable.findMany({

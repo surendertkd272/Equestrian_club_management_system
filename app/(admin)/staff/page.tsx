@@ -33,7 +33,7 @@ export default async function StaffPage({
   // roles (e.g. ACCOUNTANT) could read the directory by URL.
   const session = await assertRoute("/staff");
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
   const where: any = { ...tenantWhere(centreId, orgId) };
   if (searchParams.q) {
