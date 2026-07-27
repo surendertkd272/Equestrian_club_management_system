@@ -15,6 +15,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { notify } from "@/lib/notify";
 
 // Same set that may record a salary (app/api/salary/route.ts).
@@ -47,7 +48,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     include: { repayments: { include: { advance: { include: { repayments: true } } } }, user: { select: { name: true } } },
   });
   if (!row) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN" && row.centreId !== session.centreId) {
+  // HQ roles (SUPER_ADMIN, ADMIN) have centreId = null, so a bare
+  // `row.centreId !== session.centreId` both LOCKS OUT the admin (every
+  // comparison is true) and, where it exempts them, fences nothing at all.
+  // Bind them to their own organisation instead.
+  const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  if (isHQ) {
+    const [callerOrg, rowOrg] = await Promise.all([
+      getOrgIdForSession(session),
+      getOrgIdForCentre(row.centreId),
+    ]);
+    if (!callerOrg || callerOrg !== rowOrg) {
+      return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+    }
+  } else if (row.centreId !== session.centreId) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
   }
   if (row.voidedAt) {
@@ -56,9 +70,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   let released = 0;
   await prisma.$transaction(async (tx) => {
+    // Step the voided row out of the (userId, periodMonth, voidSeq) unique so
+    // the corrected run can be recorded against the same month.
+    const prior = await tx.salaryPayment.aggregate({
+      where: { userId: row.userId, periodMonth: row.periodMonth },
+      _max: { voidSeq: true },
+    });
     await tx.salaryPayment.update({
       where: { id: row.id },
-      data: { voidedAt: new Date(), voidedByUserId: session.userId, voidReason: parsed.data.reason },
+      data: {
+        voidedAt: new Date(),
+        voidedByUserId: session.userId,
+        voidReason: parsed.data.reason,
+        voidSeq: (prior._max.voidSeq ?? 0) + 1,
+      },
     });
 
     // Release each advance this run recovered, with a compensating negative

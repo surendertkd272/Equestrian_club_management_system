@@ -16,7 +16,9 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { SalaryStructureTable } from "./structure-table";
 import { SalaryPanel } from "./panel";
+import { isReadOnly } from "@/lib/roles";
 import { MarkPaidButton } from "./mark-paid-button";
+import { VoidSalaryButton } from "@/components/finance/reversal-actions";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { roleLabel } from "@/lib/labels";
 export const dynamic = "force-dynamic";
@@ -28,6 +30,9 @@ function canView(role: string): boolean {
 export default async function SalaryPage() {
   const session = await requireSession();
   if (!canView(session.role)) redirect("/dashboard");
+
+  // Same set that may record a run may void one (app/api/salary/[id]/void).
+  const canManagePayroll = canView(session.role) && !isReadOnly(session.role);
 
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/dashboard");
@@ -164,11 +169,23 @@ export default async function SalaryPage() {
                 key: "status",
                 header: "Status",
                 cell: (p) => (
-                  <div className="flex items-center gap-2">
-                    <Badge variant={p.paidAt ? "success" : "outline"}>
-                      {p.paidAt ? `paid ${formatDate(p.paidAt)}` : "recorded"}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={p.voidedAt ? "destructive" : p.paidAt ? "success" : "outline"}>
+                      {p.voidedAt ? "void" : p.paidAt ? `paid ${formatDate(p.paidAt)}` : "recorded"}
                     </Badge>
-                    {!p.paidAt && <MarkPaidButton id={p.id} />}
+                    {p.voidedAt && p.voidReason && (
+                      <span className="text-[11px] text-muted-foreground">{p.voidReason}</span>
+                    )}
+                    {!p.voidedAt && !p.paidAt && <MarkPaidButton id={p.id} />}
+                    {canManagePayroll && (
+                      <VoidSalaryButton
+                        salaryId={p.id}
+                        employeeName={p.user.name}
+                        periodMonth={p.periodMonth}
+                        net={p.netAmount}
+                        voided={!!p.voidedAt}
+                      />
+                    )}
                   </div>
                 ),
               },

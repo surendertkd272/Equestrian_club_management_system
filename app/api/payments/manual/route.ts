@@ -45,7 +45,22 @@ export async function POST(req: NextRequest) {
   if (inv.status === "refunded") {
     return NextResponse.json({ error: "INVOICE_REFUNDED" }, { status: 409 });
   }
-
+  // A voided invoice is cancelled — taking money against it would silently
+  // resurrect it (the status flip below would move it off "void") and leave a
+  // receipt for a charge the club withdrew.
+  if (inv.voidedAt) {
+    return NextResponse.json(
+      { error: "INVOICE_VOID", message: "This invoice was voided. Raise a new one to collect." },
+      { status: 409 },
+    );
+  }
+  // You cannot pay a credit note; it is money owed the other way.
+  if (inv.creditNoteForId) {
+    return NextResponse.json(
+      { error: "IS_CREDIT_NOTE", message: "That's a credit note, not a bill." },
+      { status: 409 },
+    );
+  }
   const target = inv.amount + inv.gstAmount;
   const paidAt = parsed.data.paidAt ? new Date(parsed.data.paidAt) : new Date();
 
@@ -58,13 +73,23 @@ export async function POST(req: NextRequest) {
   let payment: Awaited<ReturnType<typeof prisma.payment.create>>;
   let newStatus: string;
   let newTotalPaid: number;
+  let collectableTotal: number;
   try {
     const r = await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM "Invoice" WHERE id = ${inv.id} FOR UPDATE`;
       const agg = await tx.payment.aggregate({ where: { invoiceId: inv.id }, _sum: { amount: true } });
       const alreadyPaid = agg._sum.amount ?? 0;
-      if (parsed.data.amount > target - alreadyPaid + 0.001) {
-        throw new Overpay(target - alreadyPaid);
+      // Credit notes reduce what is collectable. Without this the club can
+      // still take the full face value on an invoice it has already partly
+      // cancelled — the credited amount gets collected twice over.
+      const credits = await tx.invoice.aggregate({
+        where: { creditNoteForId: inv.id },
+        _sum: { amount: true, gstAmount: true },
+      });
+      const collectable =
+        target + (credits._sum.amount ?? 0) + (credits._sum.gstAmount ?? 0);
+      if (parsed.data.amount > collectable - alreadyPaid + 0.001) {
+        throw new Overpay(Math.max(0, collectable - alreadyPaid));
       }
       const p = await tx.payment.create({
         data: {
@@ -77,14 +102,15 @@ export async function POST(req: NextRequest) {
         },
       });
       const totalPaid = alreadyPaid + parsed.data.amount;
-      const status = totalPaid >= target - 0.001 ? "paid" : "due";
+      const status = totalPaid >= collectable - 0.001 ? "paid" : "due";
       // Unconditional update under the lock — idempotent if status is unchanged.
       await tx.invoice.update({ where: { id: inv.id }, data: { status } });
-      return { payment: p, newStatus: status, newTotalPaid: totalPaid };
+      return { payment: p, newStatus: status, newTotalPaid: totalPaid, collectable };
     });
     payment = r.payment;
     newStatus = r.newStatus;
     newTotalPaid = r.newTotalPaid;
+    collectableTotal = r.collectable;
   } catch (e) {
     if (e instanceof Overpay) {
       return NextResponse.json(
@@ -111,6 +137,6 @@ export async function POST(req: NextRequest) {
     paymentId: payment.id,
     invoiceStatus: newStatus,
     totalPaid: newTotalPaid,
-    outstanding: Math.max(0, target - newTotalPaid),
+    outstanding: Math.max(0, collectableTotal - newTotalPaid),
   });
 }

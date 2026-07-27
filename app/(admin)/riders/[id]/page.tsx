@@ -154,6 +154,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
               status={rider.status}
               outstanding={outstanding}
               batchName={rider.batch?.name ?? null}
+              canCancelDues={can(session.role, "finance.write")}
             />
           )}
           <Badge variant={rider.status === "active" ? "success" : rider.status === "withdrawn" ? "outline" : "warning"}>

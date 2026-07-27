@@ -26,6 +26,7 @@ export function WithdrawPanel({
   status,
   outstanding,
   batchName,
+  canCancelDues,
 }: {
   riderId: string;
   riderName: string;
@@ -33,6 +34,12 @@ export function WithdrawPanel({
   /** What the family still owes across all live invoices, in INR. */
   outstanding: number;
   batchName: string | null;
+  /**
+   * Whether the viewer holds finance.write. A HEAD_COACH can take a child off
+   * the roster but must not write off what the family owes — the API refuses
+   * it, and offering the tick anyway just produces a confusing 403.
+   */
+  canCancelDues: boolean;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -42,6 +49,16 @@ export function WithdrawPanel({
   const [cancelOutstanding, setCancelOutstanding] = useState(false);
   const dialogRef = useRef<HTMLFormElement>(null);
   useFocusTrap(dialogRef, open);
+
+  // Dismissing the dialog has to clear it. "Cancel the dues" is a decision
+  // about someone's money — leaving it ticked from a previous rider means the
+  // next off-boarding silently writes off a balance nobody chose to write off.
+  function close_() {
+    setReason("");
+    setLastDay("");
+    setCancelOutstanding(false);
+    setOpen(false);
+  }
 
   // The withdrawn state renders as a full-width banner (WithdrawnRiderBanner),
   // not from here — this component is only the action.
@@ -73,8 +90,7 @@ export function WithdrawPanel({
           ? `${riderName} off-boarded · ₹${Math.round(d.outstandingAfter).toLocaleString("en-IN")} still to collect`
           : `${riderName} off-boarded`,
     );
-    setOpen(false);
-    setReason("");
+    close_();
     router.refresh();
   }
 
@@ -90,12 +106,12 @@ export function WithdrawPanel({
       </Button>
       {open && (
         <div className="fixed inset-0 z-40">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} aria-hidden />
+          <div className="absolute inset-0 bg-black/40" onClick={close_} aria-hidden />
           <form
             ref={dialogRef}
             onSubmit={withdraw}
             onKeyDown={(e) => {
-              if (e.key === "Escape") setOpen(false);
+              if (e.key === "Escape") close_();
             }}
             role="dialog"
             aria-modal="true"
@@ -135,7 +151,14 @@ export function WithdrawPanel({
               </p>
             </div>
 
-            {outstanding > 0.5 ? (
+            {outstanding > 0.5 && !canCancelDues ? (
+              <div className="rounded border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                <span className="font-medium">
+                  ₹{Math.round(outstanding).toLocaleString("en-IN")} still outstanding.
+                </span>{" "}
+                It stays on the books — ask finance if it should be written off.
+              </div>
+            ) : outstanding > 0.5 ? (
               <div className="space-y-2 rounded border border-amber-300 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950">
                 <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
                   ₹{Math.round(outstanding).toLocaleString("en-IN")} still outstanding
@@ -158,7 +181,7 @@ export function WithdrawPanel({
             )}
 
             <div className="flex justify-end gap-2 pt-1">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={busy}>
+              <Button type="button" variant="outline" onClick={close_} disabled={busy}>
                 Cancel
               </Button>
               <Button type="submit" disabled={busy || reason.trim().length < 3}>

@@ -26,8 +26,8 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
-import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
-import { creditPosition, writeCreditNote } from "@/lib/credit-note";
+import { blockIfFeatureOff, getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
+import { creditPosition, writeCreditNote, lockAndLoadInvoice } from "@/lib/credit-note";
 import { notifyRiderAndParents } from "@/lib/notify";
 
 const schema = z.object({
@@ -80,6 +80,24 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
   const d = parsed.data;
 
+  // Taking a child off the roster is a rider.write action; writing off what
+  // their family owes is not. Without this a HEAD_COACH — who holds rider.write
+  // but not finance.write, and is refused outright by the manual credit-note
+  // route — could cancel a family's whole balance from the off-board dialog.
+  if (d.cancelOutstanding) {
+    if (!can(session.role, "finance.write")) {
+      return NextResponse.json(
+        {
+          error: "CANNOT_CANCEL_DUES",
+          message: "You can off-board this rider, but only finance staff can cancel what the family owes.",
+        },
+        { status: 403 },
+      );
+    }
+    const featureBlock = await blockIfFeatureOff(session, "fee-collection");
+    if (featureBlock) return featureBlock;
+  }
+
   const rider = await prisma.rider.findUnique({
     where: { id: params.id },
     include: {
@@ -122,10 +140,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     lastDayAt = parsedDate;
   }
 
-  const outstandingBefore = rider.invoices.reduce((t, inv) => t + creditPosition(inv).outstanding, 0);
-
+  let outstandingBefore = 0;
   const cancelled: { invoiceId: string; amount: number }[] = [];
-  await prisma.$transaction(async (tx) => {
+  // The ALREADY_WITHDRAWN guard is the idempotency defence for exactly the case
+  // that breaks it — an operator resubmitting a slow request. Re-check it and
+  // credit each invoice under that invoice's row lock, or two overlapping calls
+  // each issue a full set of credit notes and the family's ledger goes
+  // permanently negative.
+  const raced = await prisma.$transaction(async (tx) => {
+    // findUnique takes no lock, so both racers would read "active" and both
+    // proceed. Lock the rider row first, THEN read the status under it.
+    await tx.$queryRaw`SELECT id FROM "Rider" WHERE id = ${rider.id} FOR UPDATE`;
+    const fresh = await tx.rider.findUnique({ where: { id: rider.id }, select: { status: true } });
+    if (!fresh || fresh.status === "withdrawn") return true;
+
     await tx.rider.update({
       where: { id: rider.id },
       data: {
@@ -138,15 +166,24 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       },
     });
 
-    if (d.cancelOutstanding) {
-      for (const inv of rider.invoices) {
-        const position = creditPosition(inv);
-        if (position.outstanding <= 0.001) continue;
-        await writeCreditNote(tx, inv, position, position.outstanding);
-        cancelled.push({ invoiceId: inv.id, amount: position.outstanding });
-      }
+    for (const stale of rider.invoices) {
+      const inv = await lockAndLoadInvoice(tx, stale.id);
+      if (!inv || inv.voidedAt || inv.creditNoteForId) continue;
+      const position = creditPosition(inv);
+      outstandingBefore += position.outstanding;
+      if (!d.cancelOutstanding || position.outstanding <= 0.001) continue;
+      await writeCreditNote(tx, inv, position, position.outstanding);
+      cancelled.push({ invoiceId: inv.id, amount: position.outstanding });
     }
+    return false;
   });
+
+  if (raced) {
+    return NextResponse.json(
+      { error: "ALREADY_WITHDRAWN", message: "This rider was already off-boarded." },
+      { status: 409 },
+    );
+  }
 
   const cancelledTotal = cancelled.reduce((t, c) => t + c.amount, 0);
 

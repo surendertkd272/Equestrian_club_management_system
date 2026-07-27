@@ -96,9 +96,11 @@ export default async function ReportCard({
   const aTotal = attendances.length;
   const attendancePct = aTotal > 0 ? Math.round(((aPresent + aLate) / aTotal) * 100) : null;
 
-  const invoicedTotal = invoices.reduce((s, inv) => s + inv.amount, 0);
+  // A cancelled charge must not appear on a document the family is handed.
+  const liveInvoices = invoices.filter((inv) => !inv.voidedAt);
+  const invoicedTotal = liveInvoices.reduce((s, inv) => s + inv.amount, 0);
   const paidInPeriod = payments._sum.amount ?? 0;
-  const dueInvoices = invoices.filter((inv) => inv.status === "due");
+  const dueInvoices = liveInvoices.filter((inv) => inv.status === "due");
 
   return (
     <div className="space-y-4">
@@ -248,7 +250,7 @@ export default async function ReportCard({
 
         {/* Fees detail */}
         <Section title="4 · Fees">
-          {invoices.length === 0 ? (
+          {liveInvoices.length === 0 ? (
             <p className="text-xs text-muted-foreground">No invoices raised in this period.</p>
           ) : (
             <table className="w-full text-xs">
@@ -261,7 +263,7 @@ export default async function ReportCard({
                 </tr>
               </thead>
               <tbody>
-                {invoices.map((inv) => (
+                {liveInvoices.map((inv) => (
                   <tr key={inv.id} className="border-t border-dashed">
                     <td className="py-1">{formatDate(inv.createdAt)}</td>
                     <td className="py-1 capitalize">{formatEnum(inv.kind)}</td>

@@ -2845,7 +2845,14 @@ model SalaryPayment {
   user       User               @relation("SalaryPaymentUser", fields: [userId], references: [id])
   repayments AdvanceRepayment[]
 
-  @@unique([userId, periodMonth])
+  // Voiding a run has to leave the month free to re-record — the void route
+  // exists precisely for "wrong month, wrong person, wrong amount, run twice",
+  // and a plain (userId, periodMonth) unique made the correction impossible.
+  // Live runs carry voidSeq = 0, so there is still at most ONE per person per
+  // month; each void takes the next sequence number and steps out of the way.
+  voidSeq Int @default(0)
+
+  @@unique([userId, periodMonth, voidSeq])
   @@index([centreId, periodMonth])
 }
 

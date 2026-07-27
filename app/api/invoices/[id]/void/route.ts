@@ -15,7 +15,7 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
-import { blockIfFeatureOff } from "@/lib/features-gate";
+import { blockIfFeatureOff, getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 
 const schema = z.object({ reason: z.string().min(3).max(300) });
 
@@ -44,7 +44,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     include: { payments: { select: { amount: true } } },
   });
   if (!inv) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && inv.centreId !== session.centreId) {
+  // HQ roles (SUPER_ADMIN, ADMIN) have centreId = null, so a bare
+  // `row.centreId !== session.centreId` both LOCKS OUT the admin (every
+  // comparison is true) and, where it exempts them, fences nothing at all.
+  // Bind them to their own organisation instead.
+  const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  if (isHQ) {
+    const [callerOrg, rowOrg] = await Promise.all([
+      getOrgIdForSession(session),
+      getOrgIdForCentre(inv.centreId),
+    ]);
+    if (!callerOrg || callerOrg !== rowOrg) {
+      return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+    }
+  } else if (inv.centreId !== session.centreId) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
   }
   if (inv.voidedAt) {

@@ -16,6 +16,7 @@ import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { updateBatchSchema } from "@/lib/schemas/batch";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -112,7 +113,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const batch = await prisma.batch.findUnique({ where: { id: params.id } });
   if (!batch) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && batch.centreId !== session.centreId) {
+  // HQ roles (SUPER_ADMIN, ADMIN) have centreId = null, so a bare
+  // `row.centreId !== session.centreId` both LOCKS OUT the admin (every
+  // comparison is true) and, where it exempts them, fences nothing at all.
+  // Bind them to their own organisation instead.
+  const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  if (isHQ) {
+    const [callerOrg, rowOrg] = await Promise.all([
+      getOrgIdForSession(session),
+      getOrgIdForCentre(batch.centreId),
+    ]);
+    if (!callerOrg || callerOrg !== rowOrg) {
+      return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
+    }
+  } else if (batch.centreId !== session.centreId) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
   }
 
@@ -133,8 +147,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       where: { id: d.coachId },
       select: { centreId: true, status: true, role: true, name: true },
     });
-    if (!coach || coach.status !== "active" || coach.centreId !== batch.centreId) {
-      return NextResponse.json({ error: "INVALID_COACH" }, { status: 400 });
+    // Same test POST /api/batches applies. Without the role check any active
+    // account at the centre — a groom, the accountant, an inspection officer —
+    // could be recorded as the batch's coach and would then be shown to
+    // parents as the person teaching their child.
+    if (
+      !coach ||
+      coach.status !== "active" ||
+      coach.centreId !== batch.centreId ||
+      (coach.role !== "COACH" && coach.role !== "HEAD_COACH")
+    ) {
+      return NextResponse.json(
+        { error: "INVALID_COACH", message: "Pick an active coach at this centre." },
+        { status: 400 },
+      );
     }
   }
 

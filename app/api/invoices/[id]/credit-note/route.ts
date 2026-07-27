@@ -15,9 +15,9 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
-import { blockIfFeatureOff } from "@/lib/features-gate";
+import { blockIfFeatureOff, getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { notifyRiderAndParents } from "@/lib/notify";
-import { creditPosition, writeCreditNote } from "@/lib/credit-note";
+import { creditPosition, writeCreditNote, lockAndLoadInvoice } from "@/lib/credit-note";
 
 const schema = z.object({
   // Omit to cancel what is still OWED — the common case, a family withdrawing
@@ -49,65 +49,87 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     );
   }
 
-  const inv = await prisma.invoice.findUnique({
-    where: { id: params.id },
-    include: {
-      payments: { select: { amount: true } },
-      creditNotes: { select: { amount: true, gstAmount: true } },
-      rider: { select: { id: true, firstName: true, lastName: true } },
-      centre: { select: { name: true } },
-    },
-  });
-  if (!inv) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && inv.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
-  }
-  if (inv.creditNoteForId) {
-    return NextResponse.json({ error: "IS_CREDIT_NOTE", message: "You can't credit a credit note." }, { status: 409 });
-  }
-  if (inv.voidedAt) {
-    return NextResponse.json(
-      { error: "INVOICE_VOID", message: "This invoice was voided, so there is nothing to credit." },
-      { status: 409 },
-    );
-  }
+  // Everything from here — the re-read, every guard, and the write — happens
+  // under a row lock on the invoice. Checking "how much is left to credit"
+  // against a snapshot taken before the transaction let concurrent callers all
+  // pass the same guard and all write; four parallel requests credited an
+  // ₹11,800 invoice ₹47,200, and a credit note can be neither voided nor
+  // credited, so nothing in the product could undo it.
+  // Everything from here — the re-read, every guard, and the write — happens
+  // under a row lock on the invoice. Checking "how much is left to credit"
+  // against a snapshot taken before the transaction let concurrent callers all
+  // pass the same guard and all write: four parallel requests credited an
+  // ₹11,800 invoice ₹47,200. A credit note can be neither voided nor credited,
+  // so nothing in the product could undo it.
+  type Fail = { ok: false; status: number; body: Record<string, unknown> };
+  type Done = {
+    ok: true;
+    note: { id: string; net: number; gst: number };
+    amount: number;
+    riderId: string;
+    centreId: string;
+    remaining: number;
+  };
+  const fail = (status: number, body: Record<string, unknown>): Fail => ({ ok: false, status, body });
 
-  // How much of this invoice is still chargeable, what has been paid, and what
-  // is genuinely outstanding. Shared with rider withdrawal (lib/credit-note.ts)
-  // so the two paths can't disagree about the maths.
-  const position = creditPosition(inv);
-  const { face, creditable } = position;
-  if (creditable <= 0.001) {
-    return NextResponse.json(
-      { error: "FULLY_CREDITED", message: "This invoice has already been credited in full." },
-      { status: 409 },
-    );
-  }
-  // Default = the unpaid balance; explicit = anything up to the full invoice.
-  const amount = parsed.data.amount ?? position.outstanding;
-  if (amount <= 0.001) {
-    return NextResponse.json(
-      {
+  const outcome: Fail | Done = await prisma.$transaction(async (tx) => {
+    const inv = await lockAndLoadInvoice(tx, params.id);
+    if (!inv) return fail(404, { error: "NOT_FOUND" });
+    // HQ roles have centreId = null; bind them to their own org rather than
+    // exempting them from the fence entirely.
+    const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+    if (isHQ) {
+      const [callerOrg, rowOrg] = await Promise.all([
+        getOrgIdForSession(session),
+        getOrgIdForCentre(inv.centreId),
+      ]);
+      if (!callerOrg || callerOrg !== rowOrg) return fail(403, { error: "FORBIDDEN_CROSS_ORG" });
+    } else if (inv.centreId !== session.centreId) {
+      return fail(403, { error: "FORBIDDEN_CROSS_CENTRE" });
+    }
+    if (inv.creditNoteForId) {
+      return fail(409, { error: "IS_CREDIT_NOTE", message: "You can't credit a credit note." });
+    }
+    if (inv.voidedAt) {
+      return fail(409, { error: "INVOICE_VOID", message: "This invoice was voided, so there is nothing to credit." });
+    }
+
+    const position = creditPosition(inv);
+    if (position.creditable <= 0.001) {
+      return fail(409, { error: "FULLY_CREDITED", message: "This invoice has already been credited in full." });
+    }
+    // Default = the unpaid balance; explicit = anything up to the full invoice.
+    const amount = parsed.data.amount ?? position.outstanding;
+    if (amount <= 0.001) {
+      return fail(409, {
         error: "NOTHING_OUTSTANDING",
         message:
           "This invoice is fully paid, so there is nothing left to cancel. " +
           "To refund money already received, pass the amount explicitly.",
-      },
-      { status: 409 },
-    );
-  }
-  if (amount > creditable + 0.001) {
-    return NextResponse.json(
-      {
+      });
+    }
+    if (amount > position.creditable + 0.001) {
+      return fail(409, {
         error: "EXCEEDS_INVOICE",
-        creditable,
-        message: `You can credit at most ₹${creditable.toLocaleString("en-IN")} against this invoice.`,
-      },
-      { status: 409 },
-    );
-  }
+        creditable: position.creditable,
+        message: `You can credit at most ₹${position.creditable.toLocaleString("en-IN")} against this invoice.`,
+      });
+    }
 
-  const note = await prisma.$transaction((tx) => writeCreditNote(tx, inv, position, amount));
+    const note = await writeCreditNote(tx, inv, position, amount);
+    return {
+      ok: true,
+      note,
+      amount,
+      riderId: inv.riderId,
+      centreId: inv.centreId,
+      remaining: position.creditable - amount,
+    };
+  });
+
+  if (!outcome.ok) return NextResponse.json(outcome.body, { status: outcome.status });
+  const { note, amount, riderId, centreId, remaining } = outcome;
+  const centre = await prisma.centre.findUnique({ where: { id: centreId }, select: { name: true } });
 
   await audit({
     userId: session.userId,
@@ -115,20 +137,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     tableName: "invoice",
     rowId: note.id,
     after: {
-      creditNoteFor: inv.id,
+      creditNoteFor: params.id,
       amount: -amount,
       net: -note.net,
       gst: -note.gst,
       reason: parsed.data.reason,
-      riderId: inv.riderId,
+      riderId,
     },
   });
 
   // The family should hear that a charge was cancelled without having to ask.
-  await notifyRiderAndParents(inv.riderId, {
+  await notifyRiderAndParents(riderId, {
     type: "invoice.credit_note",
     title: `₹${Math.round(amount).toLocaleString("en-IN")} credited to your account`,
-    body: `${inv.centre.name} has credited ₹${Math.round(amount).toLocaleString("en-IN")} against an earlier invoice. Reason: ${parsed.data.reason}`,
+    body: `${centre?.name ?? "The centre"} has credited ₹${Math.round(amount).toLocaleString("en-IN")} against an earlier invoice. Reason: ${parsed.data.reason}`,
     link: `/parent`,
   });
 
@@ -138,6 +160,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     amount,
     net: note.net,
     gst: note.gst,
-    remainingCreditable: creditable - amount,
+    remainingCreditable: remaining,
   });
 }

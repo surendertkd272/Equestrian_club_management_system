@@ -19,6 +19,8 @@ import {
 import { PrintControl } from "./print-control";
 import { formatEnum, roleLabel } from "@/lib/labels";
 import { SeparationTrigger } from "../../users/separation-trigger";
+import { PendingSeparationNotice } from "./pending-separation";
+import { prisma } from "@/lib/prisma";
 import { isReadOnly } from "@/lib/roles";
 export const dynamic = "force-dynamic";
 
@@ -40,7 +42,19 @@ export default async function StaffProfilePage({ params }: { params: { id: strin
   // manager who knew the groom had left couldn't record it. It's here now,
   // fenced to staff below the manager's own tier (enforced server-side in
   // app/api/users/[id]/separation).
+  // An outstanding notice has to be visible, or the page invites a second one.
+  const pending = await prisma.separationNotice.findFirst({
+    where: { userId: staff.userId, status: "pending" },
+    orderBy: { issuedAt: "desc" },
+  });
+  // SeparationNotice.issuedByUserId has no relation on the model, so resolve
+  // the issuer's name separately.
+  const pendingIssuer = pending
+    ? await prisma.user.findUnique({ where: { id: pending.issuedByUserId }, select: { name: true } })
+    : null;
+
   const canOffBoard =
+    !pending &&
     staff.userStatus === "active" &&
     staff.userId !== session.userId &&
     !isReadOnly(session.role) &&
@@ -82,6 +96,25 @@ export default async function StaffProfilePage({ params }: { params: { id: strin
           {canOffBoard && <SeparationTrigger userId={staff.userId} userName={staff.name} />}
         </div>
       </div>
+
+      {pending && (
+        <PendingSeparationNotice
+          userId={staff.userId}
+          userName={staff.name}
+          noticeId={pending.id}
+          kind={pending.kind}
+          issuedBy={pendingIssuer?.name ?? "head office"}
+          issuedAt={pending.issuedAt.toISOString()}
+          effectiveAt={pending.effectiveAt?.toISOString() ?? null}
+          noticeText={pending.noticeText}
+          canWithdraw={
+            !isReadOnly(session.role) &&
+            (session.role === "SUPER_ADMIN" ||
+              session.role === "ADMIN" ||
+              (session.role === "CENTRE_MANAGER" && pending.userId !== session.userId))
+          }
+        />
+      )}
 
       <Card>
         <CardHeader>

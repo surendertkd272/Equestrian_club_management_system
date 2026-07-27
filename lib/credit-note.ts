@@ -8,6 +8,42 @@
 
 import type { Prisma } from "@prisma/client";
 
+/** Money is stored as a float; keep every derived figure at paise precision. */
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+/**
+ * Take the row lock for an invoice and re-read everything creditPosition needs,
+ * INSIDE the transaction. Reading the invoice before opening the transaction
+ * and then only wrapping the write is not enough: under READ COMMITTED every
+ * concurrent caller sees the same pre-credit snapshot, so they all pass the
+ * "you can credit at most X" guard and all write. Two operators, two tabs, or
+ * one impatient retry then credit the invoice twice — and a credit note can be
+ * neither voided nor credited, so the wrong number is permanent.
+ *
+ * Same lock the payment and reversal paths take, so credits and payments on one
+ * invoice serialise against each other too.
+ */
+export async function lockAndLoadInvoice(tx: Prisma.TransactionClient, invoiceId: string) {
+  await tx.$queryRaw`SELECT id FROM "Invoice" WHERE id = ${invoiceId} FOR UPDATE`;
+  return tx.invoice.findUnique({
+    where: { id: invoiceId },
+    select: {
+      id: true,
+      centreId: true,
+      riderId: true,
+      amount: true,
+      gstAmount: true,
+      status: true,
+      voidedAt: true,
+      creditNoteForId: true,
+      payments: { select: { amount: true } },
+      creditNotes: { select: { amount: true, gstAmount: true } },
+    },
+  });
+}
+
 export type CreditPositionInput = {
   amount: number;
   gstAmount: number;
@@ -51,8 +87,10 @@ export async function writeCreditNote(
 ): Promise<{ id: string; net: number; gst: number }> {
   // Split across net and GST in the original's proportion, so the tax position
   // reverses correctly rather than the whole credit landing on net.
-  const gstShare = position.face > 0 ? (inv.gstAmount / position.face) * amount : 0;
-  const netShare = amount - gstShare;
+  // Round the split, or 6800 x 1800/11800 stores 1037.2881355932204 and the
+  // family's statement shows sub-paise figures the notification never promised.
+  const gstShare = round2(position.face > 0 ? (inv.gstAmount / position.face) * amount : 0);
+  const netShare = round2(amount - gstShare);
 
   const cn = await tx.invoice.create({
     data: {

@@ -22,14 +22,35 @@ export default async function TenantInvoicePrintPage({ params }: { params: { id:
   if (session.role !== "SUPER_ADMIN" && invoice.centreId !== session.centreId) notFound();
 
   const paidTotal = invoice.payments.reduce((sum, p) => sum + p.amount, 0);
-  const subtotal = invoice.amount;
-  const gst = invoice.gstAmount;
+  // A credit note is a negative Invoice row. Printed as-is it came out as a tax
+  // invoice with a negative total, and the GST line vanished (it was gated on
+  // gst > 0), so Subtotal and Total disagreed by the hidden tax.
+  const isCreditNote = !!invoice.creditNoteForId;
+  const voided = !!invoice.voidedAt;
+  const subtotal = Math.abs(invoice.amount);
+  const gst = Math.abs(invoice.gstAmount);
   const total = subtotal + gst;
-  const balance = total - paidTotal;
+  const balance = isCreditNote ? 0 : total - paidTotal;
 
   return (
     <main className="mx-auto max-w-3xl bg-white p-12 text-sm text-slate-900 print:p-8">
       <style>{`@media print { body { background:#fff } header,nav,footer,.no-print { display:none !important } }`}</style>
+
+      {voided && (
+        <div className="mb-6 rounded border-4 border-rose-600 p-4 text-center">
+          <div className="text-2xl font-black uppercase tracking-widest text-rose-700">Void — not payable</div>
+          {invoice.voidReason && <div className="mt-1 text-xs text-rose-700">{invoice.voidReason}</div>}
+        </div>
+      )}
+      {isCreditNote && (
+        <div className="mb-6 rounded border-2 border-slate-800 p-3 text-center">
+          <div className="text-lg font-bold uppercase tracking-wide">Credit Note</div>
+          <div className="text-xs text-slate-600">
+            Against invoice #{invoice.creditNoteForId?.slice(-8).toUpperCase()} — this cancels a charge; nothing is
+            payable on this document.
+          </div>
+        </div>
+      )}
 
       <div className="flex items-start justify-between border-b pb-6">
         <div>
@@ -77,7 +98,7 @@ export default async function TenantInvoicePrintPage({ params }: { params: { id:
               <td className="py-1 pr-8 text-right text-slate-600">Subtotal</td>
               <td className="py-1 text-right">₹{subtotal.toLocaleString("en-IN")}</td>
             </tr>
-            {gst > 0 && (
+            {gst !== 0 && (
               <tr>
                 <td className="py-1 pr-8 text-right text-slate-600">GST</td>
                 <td className="py-1 text-right">₹{gst.toLocaleString("en-IN")}</td>

@@ -52,7 +52,19 @@ export async function POST(req: NextRequest) {
   }
   if (invoice.status === "paid") {
     return NextResponse.json({ error: "ALREADY_PAID" }, { status: 409 });
+  }  // A voided invoice is cancelled; a credit note is money owed the other way.
+  // Minting a gateway order for either takes real money from a family for a
+  // charge that no longer exists.
+  if (invoice.voidedAt) {
+    return NextResponse.json(
+      { error: "INVOICE_VOID", message: "This invoice was cancelled by the centre. Nothing is payable." },
+      { status: 409 },
+    );
   }
+  if (invoice.creditNoteForId) {
+    return NextResponse.json({ error: "IS_CREDIT_NOTE" }, { status: 409 });
+  }
+
 
   // Charge only the OUTSTANDING balance. An invoice can carry prior partial
   // payments (e.g. cash recorded manually) while still "due"; minting a

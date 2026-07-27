@@ -15,7 +15,7 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
-import { blockIfFeatureOff } from "@/lib/features-gate";
+import { blockIfFeatureOff, getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 
 const REASONS = ["bounced", "entered_in_error", "refunded", "other"] as const;
 
@@ -48,33 +48,54 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     );
   }
 
-  const original = await prisma.payment.findUnique({
-    where: { id: params.id },
-    include: { invoice: { select: { id: true, centreId: true, amount: true, gstAmount: true, status: true } }, reversals: true },
-  });
-  if (!original) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && original.invoice.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
-  }
-  if (original.amount < 0) {
-    return NextResponse.json(
-      { error: "IS_REVERSAL", message: "That row is itself a reversal. Record a fresh payment instead." },
-      { status: 409 },
-    );
-  }
-  if (original.reversals.length > 0) {
-    return NextResponse.json(
-      { error: "ALREADY_REVERSED", reversedBy: original.reversals[0].id },
-      { status: 409 },
-    );
-  }
+  // The guards below run INSIDE the invoice lock. Reading the payment and its
+  // reversals first and only locking for the write let concurrent callers all
+  // pass ALREADY_REVERSED on the same stale read and all write a compensating
+  // row — one ₹11,800 receipt reversed three times leaves the invoice at
+  // −₹23,600 collected. Everything now re-reads under the lock.
+  type Fail = { ok: false; status: number; body: Record<string, unknown> };
+  type Done = { ok: true; reversalId: string; status: string; totalPaid: number; target: number; original: { id: string; amount: number; method: string; txnRef: string | null; invoiceStatusWas: string } };
+  const fail = (status: number, body: Record<string, unknown>): Fail => ({ ok: false, status, body });
 
-  const target = original.invoice.amount + original.invoice.gstAmount;
+  const outcome: Fail | Done = await prisma.$transaction(async (tx) => {
+    const head = await tx.payment.findUnique({
+      where: { id: params.id },
+      select: { invoiceId: true },
+    });
+    if (!head) return fail(404, { error: "NOT_FOUND" });
+    // Lock the invoice first, then re-read the payment under it — the same
+    // lock app/api/payments/manual and the credit-note route take, so payments,
+    // credits and reversals on one invoice all serialise against each other.
+    await tx.$queryRaw`SELECT id FROM "Invoice" WHERE id = ${head.invoiceId} FOR UPDATE`;
+    const original = await tx.payment.findUnique({
+      where: { id: params.id },
+      include: {
+        invoice: { select: { id: true, centreId: true, amount: true, gstAmount: true, status: true } },
+        reversals: { select: { id: true } },
+      },
+    });
+    if (!original) return fail(404, { error: "NOT_FOUND" });
+    // HQ roles have centreId = null, so a bare centre comparison never fires
+    // for them; bind them to their own org instead (same shape as the withdraw
+    // route's assertReachable).
+    const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+    if (isHQ) {
+      const [callerOrg, rowOrg] = await Promise.all([
+        getOrgIdForSession(session),
+        getOrgIdForCentre(original.invoice.centreId),
+      ]);
+      if (!callerOrg || callerOrg !== rowOrg) return fail(403, { error: "FORBIDDEN_CROSS_ORG" });
+    } else if (original.invoice.centreId !== session.centreId) {
+      return fail(403, { error: "FORBIDDEN_CROSS_CENTRE" });
+    }
+    if (original.amount < 0) {
+      return fail(409, { error: "IS_REVERSAL", message: "That row is itself a reversal. Record a fresh payment instead." });
+    }
+    if (original.reversals.length > 0) {
+      return fail(409, { error: "ALREADY_REVERSED", reversedBy: original.reversals[0].id });
+    }
 
-  const { reversal, status, totalPaid } = await prisma.$transaction(async (tx) => {
-    // Same lock the payment path takes, so a concurrent payment and reversal
-    // can't both read a stale balance and leave the status wrong.
-    await tx.$queryRaw`SELECT id FROM "Invoice" WHERE id = ${original.invoice.id} FOR UPDATE`;
+    const target = original.invoice.amount + original.invoice.gstAmount;
     const r = await tx.payment.create({
       data: {
         invoiceId: original.invoiceId,
@@ -91,27 +112,43 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const paid = agg._sum.amount ?? 0;
     const next = paid >= target - 0.001 ? "paid" : "due";
     await tx.invoice.update({ where: { id: original.invoiceId }, data: { status: next } });
-    return { reversal: r, status: next, totalPaid: paid };
+    return {
+      ok: true,
+      reversalId: r.id,
+      status: next,
+      totalPaid: paid,
+      target,
+      original: {
+        id: original.id,
+        amount: original.amount,
+        method: original.method,
+        txnRef: original.txnRef,
+        invoiceStatusWas: original.invoice.status,
+      },
+    };
   });
+
+  if (!outcome.ok) return NextResponse.json(outcome.body, { status: outcome.status });
+  const { reversalId, status, totalPaid, target, original } = outcome;
 
   await audit({
     userId: session.userId,
     action: "payment.reverse",
     tableName: "payment",
-    rowId: reversal.id,
+    rowId: reversalId,
     before: {
       originalPaymentId: original.id,
       amount: original.amount,
       method: original.method,
       txnRef: original.txnRef,
-      invoiceStatusWas: original.invoice.status,
+      invoiceStatusWas: original.invoiceStatusWas,
     },
     after: { amount: -original.amount, reason: parsed.data.reason, note: parsed.data.note ?? null, invoiceStatusNow: status },
   });
 
   return NextResponse.json({
     ok: true,
-    reversalId: reversal.id,
+    reversalId,
     invoiceStatus: status,
     totalPaid,
     outstanding: Math.max(0, target - totalPaid),

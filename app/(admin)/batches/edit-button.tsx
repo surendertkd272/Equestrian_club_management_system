@@ -48,7 +48,7 @@ export function BatchEditButton({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({
+  const blank = () => ({
     name: batch.name,
     dayOfWeek: batch.dayOfWeek,
     startTime: batch.startTime,
@@ -56,11 +56,25 @@ export function BatchEditButton({
     level: batch.level ?? "",
     coachId: batch.coachId ?? "",
   });
+  const [form, setForm] = useState(blank);
   const dialogRef = useRef<HTMLFormElement>(null);
   useFocusTrap(dialogRef, open);
 
   function set<K extends keyof typeof form>(k: K, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  // Re-seed from props every time the dialog opens. The state initialiser runs
+  // once, so without this an abandoned edit — or a change someone else made
+  // that arrived via router.refresh() — stayed in the form and, because submit
+  // sends only the fields that differ from the CURRENT props, got written on
+  // the next save as a field the operator never touched.
+  function open_() {
+    setForm(blank());
+    setOpen(true);
+  }
+  function close_() {
+    setOpen(false);
   }
 
   async function submit(e: React.FormEvent) {
@@ -103,7 +117,7 @@ export function BatchEditButton({
       <Button
         size="sm"
         variant="outline"
-        onClick={() => setOpen(true)}
+        onClick={open_}
         aria-label="Edit batch"
         title="Edit batch"
       >
@@ -111,12 +125,12 @@ export function BatchEditButton({
       </Button>
       {open && (
         <div className="fixed inset-0 z-40">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} aria-hidden />
+          <div className="absolute inset-0 bg-black/40" onClick={close_} aria-hidden />
           <form
             ref={dialogRef}
             onSubmit={submit}
             onKeyDown={(e) => {
-              if (e.key === "Escape") setOpen(false);
+              if (e.key === "Escape") close_();
             }}
             role="dialog"
             aria-modal="true"
@@ -233,7 +247,7 @@ export function BatchEditButton({
             )}
 
             <div className="flex justify-end gap-2 pt-1">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={busy}>
+              <Button type="button" variant="outline" onClick={close_} disabled={busy}>
                 Cancel
               </Button>
               <Button type="submit" disabled={busy || form.dayOfWeek === "" || form.name.trim().length < 2}>

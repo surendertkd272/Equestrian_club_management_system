@@ -56,6 +56,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (target.role === "SUPER_ADMIN" || target.role === "ADMIN") {
     return NextResponse.json({ error: "CANNOT_SEPARATE_HQ_USER" }, { status: 400 });
   }
+  // "Staff tier only" was a claim in a comment, not a check. RIDER and PARENT
+  // logins carry a centreId, so they passed the manager's centre fence — a
+  // student could be sent a criticality:"critical" termination notice and an
+  // /account/separation form, and answering it would suspend their portal.
+  if (target.role === "RIDER" || target.role === "PARENT") {
+    return NextResponse.json(
+      { error: "NOT_A_STAFF_ACCOUNT", message: "That's a family login, not an employee." },
+      { status: 400 },
+    );
+  }
   // A centre manager's reach: their own centre, staff below their own tier,
   // and never themselves. Without the peer rule two managers at one centre
   // could off-board each other; without the self rule one could walk out of
@@ -173,12 +183,24 @@ export async function DELETE(req: NextRequest) {
     where: { id: parsed.data.noticeId },
   });
   if (!notice) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  // A manager may only withdraw notices at their own centre.
-  if (
-    session.role === "CENTRE_MANAGER" &&
-    (!session.centreId || notice.centreId !== session.centreId)
-  ) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // A manager may only withdraw notices at their own centre — and only ones
+  // they could have issued in the first place. Without the target guards that
+  // POST applies, a manager could simply cancel the termination notice HQ had
+  // just issued against them.
+  if (session.role === "CENTRE_MANAGER") {
+    if (!session.centreId || notice.centreId !== session.centreId) {
+      return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+    }
+    if (notice.userId === session.userId) {
+      return NextResponse.json(
+        { error: "CANNOT_WITHDRAW_OWN", message: "You can't cancel a notice issued against you." },
+        { status: 403 },
+      );
+    }
+    const subject = await prisma.user.findUnique({ where: { id: notice.userId }, select: { role: true } });
+    if (!subject || subject.role === "CENTRE_MANAGER" || subject.role === "ADMIN" || subject.role === "SUPER_ADMIN") {
+      return NextResponse.json({ error: "FORBIDDEN_TARGET_TIER" }, { status: 403 });
+    }
   }
   if (!(await callerSharesOrgWithUser(session, notice.userId))) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });

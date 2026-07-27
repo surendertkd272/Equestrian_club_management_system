@@ -67,6 +67,24 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
     }),
   ]);
 
+  // A lesson's coach may have left, changed role or moved centre — Lesson.coachId
+  // is a bare column with no FK, so they simply vanish from the list above.
+  // Resolve their names separately so the picker names them instead of
+  // claiming the session was unassigned.
+  const formerIds = [
+    ...new Set(
+      lessons
+        .map((l) => l.coachId)
+        .filter((id): id is string => !!id && !coaches.some((c) => c.id === id)),
+    ),
+  ];
+  const formerNames = new Map(
+    (formerIds.length
+      ? await prisma.user.findMany({ where: { id: { in: formerIds } }, select: { id: true, name: true } })
+      : []
+    ).map((u) => [u.id, u.name] as const),
+  );
+
   // Compute prev/next day links so coaches can scrub through the week.
   const d = new Date(`${date}T12:00:00`);
   const prev = new Date(d); prev.setDate(d.getDate() - 1);
@@ -145,6 +163,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
                         lessonId={l.id}
                         coachId={l.coachId}
                         coaches={coaches}
+                        formerCoachName={l.coachId ? formerNames.get(l.coachId) ?? null : null}
                         canEdit={can(session.role, "lesson.write")}
                       />
                     </div>

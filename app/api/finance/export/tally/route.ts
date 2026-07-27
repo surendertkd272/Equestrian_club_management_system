@@ -46,13 +46,16 @@ export async function GET(req: NextRequest) {
 
   const [invoices, payments, expenses, centre, salaries] = await Promise.all([
     prisma.invoice.findMany({
-      where: { ...where, createdAt: { gte: from, lte: to } },
-      include: { rider: { select: { firstName: true, lastName: true } } },
+      // Voided invoices never happened as far as the books are concerned —
+      // exporting one posts fee income and Output GST for a charge the club
+      // withdrew, which is a statutory filing error, not a cosmetic one.
+      where: { ...where, voidedAt: null, createdAt: { gte: from, lte: to } },
+      include: { rider: { select: { firstName: true, lastName: true } }, creditNoteFor: { select: { kind: true } } },
       orderBy: { createdAt: "asc" },
       take: 5000,
     }),
     prisma.payment.findMany({
-      where: { paidAt: { gte: from, lte: to }, invoice: where },
+      where: { paidAt: { gte: from, lte: to }, invoice: { ...where, voidedAt: null } },
       include: { invoice: { include: { rider: { select: { firstName: true, lastName: true } } } } },
       orderBy: { paidAt: "asc" },
       take: 5000,
@@ -107,29 +110,42 @@ export async function GET(req: NextRequest) {
   // generic ledger names that accountants typically pre-create in Tally;
   // if your books use different names, search-replace post-export.
   for (const inv of invoices) {
-    const total = inv.amount + inv.gstAmount;
+    const party = `${inv.rider.firstName} ${inv.rider.lastName}`;
+    // A credit note is a NEGATIVE Invoice row. Emitting it as a Sales voucher
+    // produced `<AMOUNT>--6800.00</AMOUNT>` (a double minus Tally rejects) and
+    // dropped the GST leg entirely, because that leg was gated on
+    // `gstAmount > 0`. Post it as a proper Credit Note voucher with positive
+    // magnitudes and the debit/credit sides swapped, under the ORIGINAL
+    // invoice's income ledger so the reversal lands where the charge did.
+    const isCredit = inv.creditNoteForId != null;
+    const net = Math.abs(inv.amount);
+    const gst = Math.abs(inv.gstAmount);
+    const total = net + gst;
+    const kind = isCredit ? inv.creditNoteFor?.kind ?? inv.kind : inv.kind;
+    const vchType = isCredit ? "Credit Note" : "Sales";
+    const label = isCredit ? "Credit note" : "Invoice";
     vouchers.push(
-      `<VOUCHER VCHTYPE="Sales" ACTION="Create">
+      `<VOUCHER VCHTYPE="${vchType}" ACTION="Create">
   <DATE>${ddmmyyyy(inv.createdAt)}</DATE>
-  <NARRATION>${escapeXml(`Invoice #${inv.id.slice(-8)} · ${inv.kind} fee · ${inv.rider.firstName} ${inv.rider.lastName}`)}</NARRATION>
-  <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+  <NARRATION>${escapeXml(`${label} #${inv.id.slice(-8)} · ${kind} fee · ${party}`)}</NARRATION>
+  <VOUCHERTYPENAME>${vchType}</VOUCHERTYPENAME>
   <VOUCHERNUMBER>${escapeXml(inv.id.slice(-12).toUpperCase())}</VOUCHERNUMBER>
-  <PARTYLEDGERNAME>${escapeXml(`${inv.rider.firstName} ${inv.rider.lastName}`)}</PARTYLEDGERNAME>
-  <BASICBASEPARTYNAME>${escapeXml(`${inv.rider.firstName} ${inv.rider.lastName}`)}</BASICBASEPARTYNAME>
+  <PARTYLEDGERNAME>${escapeXml(party)}</PARTYLEDGERNAME>
+  <BASICBASEPARTYNAME>${escapeXml(party)}</BASICBASEPARTYNAME>
   <ALLLEDGERENTRIES.LIST>
-    <LEDGERNAME>${escapeXml(`${inv.rider.firstName} ${inv.rider.lastName}`)}</LEDGERNAME>
-    <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-    <AMOUNT>-${total.toFixed(2)}</AMOUNT>
+    <LEDGERNAME>${escapeXml(party)}</LEDGERNAME>
+    <ISDEEMEDPOSITIVE>${isCredit ? "No" : "Yes"}</ISDEEMEDPOSITIVE>
+    <AMOUNT>${isCredit ? "" : "-"}${total.toFixed(2)}</AMOUNT>
   </ALLLEDGERENTRIES.LIST>
   <ALLLEDGERENTRIES.LIST>
-    <LEDGERNAME>${escapeXml(`Fee Income - ${inv.kind}`)}</LEDGERNAME>
-    <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-    <AMOUNT>${inv.amount.toFixed(2)}</AMOUNT>
+    <LEDGERNAME>${escapeXml(`Fee Income - ${kind}`)}</LEDGERNAME>
+    <ISDEEMEDPOSITIVE>${isCredit ? "Yes" : "No"}</ISDEEMEDPOSITIVE>
+    <AMOUNT>${isCredit ? "-" : ""}${net.toFixed(2)}</AMOUNT>
   </ALLLEDGERENTRIES.LIST>
-  ${inv.gstAmount > 0 ? `<ALLLEDGERENTRIES.LIST>
+  ${gst > 0 ? `<ALLLEDGERENTRIES.LIST>
     <LEDGERNAME>Output GST</LEDGERNAME>
-    <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-    <AMOUNT>${inv.gstAmount.toFixed(2)}</AMOUNT>
+    <ISDEEMEDPOSITIVE>${isCredit ? "Yes" : "No"}</ISDEEMEDPOSITIVE>
+    <AMOUNT>${isCredit ? "-" : ""}${gst.toFixed(2)}</AMOUNT>
   </ALLLEDGERENTRIES.LIST>` : ""}
 </VOUCHER>`,
     );
@@ -140,21 +156,32 @@ export async function GET(req: NextRequest) {
   for (const p of payments) {
     const partyLedger = `${p.invoice.rider.firstName} ${p.invoice.rider.lastName}`;
     const bankLedger = ledgerForMethod(p.method);
+    // A reversal is a negative Payment row (bounced cheque, refund, receipt
+    // entered against the wrong rider). Emitted as a Receipt it produced
+    // `--11800.00`; it belongs in the books as a Payment voucher with the
+    // bank and party sides swapped.
+    const isReversal = p.amount < 0;
+    const magnitude = Math.abs(p.amount);
+    const vchType = isReversal ? "Payment" : "Receipt";
     vouchers.push(
-      `<VOUCHER VCHTYPE="Receipt" ACTION="Create">
+      `<VOUCHER VCHTYPE="${vchType}" ACTION="Create">
   <DATE>${ddmmyyyy(p.paidAt)}</DATE>
-  <NARRATION>${escapeXml(`Payment for invoice #${p.invoiceId.slice(-8)} · ref ${p.txnRef ?? "—"}`)}</NARRATION>
-  <VOUCHERTYPENAME>Receipt</VOUCHERTYPENAME>
+  <NARRATION>${escapeXml(
+    isReversal
+      ? `Reversal of payment on invoice #${p.invoiceId.slice(-8)} · ${p.reason ?? "reversed"}`
+      : `Payment for invoice #${p.invoiceId.slice(-8)} · ref ${p.txnRef ?? "—"}`,
+  )}</NARRATION>
+  <VOUCHERTYPENAME>${vchType}</VOUCHERTYPENAME>
   <VOUCHERNUMBER>${escapeXml(p.id.slice(-12).toUpperCase())}</VOUCHERNUMBER>
   <ALLLEDGERENTRIES.LIST>
     <LEDGERNAME>${escapeXml(bankLedger)}</LEDGERNAME>
-    <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
-    <AMOUNT>-${p.amount.toFixed(2)}</AMOUNT>
+    <ISDEEMEDPOSITIVE>${isReversal ? "No" : "Yes"}</ISDEEMEDPOSITIVE>
+    <AMOUNT>${isReversal ? "" : "-"}${magnitude.toFixed(2)}</AMOUNT>
   </ALLLEDGERENTRIES.LIST>
   <ALLLEDGERENTRIES.LIST>
     <LEDGERNAME>${escapeXml(partyLedger)}</LEDGERNAME>
-    <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
-    <AMOUNT>${p.amount.toFixed(2)}</AMOUNT>
+    <ISDEEMEDPOSITIVE>${isReversal ? "Yes" : "No"}</ISDEEMEDPOSITIVE>
+    <AMOUNT>${isReversal ? "-" : ""}${magnitude.toFixed(2)}</AMOUNT>
   </ALLLEDGERENTRIES.LIST>
 </VOUCHER>`,
     );

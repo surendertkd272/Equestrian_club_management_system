@@ -78,8 +78,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const dup = await prisma.salaryPayment.findUnique({
-    where: { userId_periodMonth: { userId: d.userId, periodMonth: d.periodMonth } },
+  // Only a LIVE run blocks the month; a voided one was a correction.
+  const dup = await prisma.salaryPayment.findFirst({
+    where: { userId: d.userId, periodMonth: d.periodMonth, voidedAt: null },
   });
   if (dup) return NextResponse.json({ error: "ALREADY_RECORDED", month: d.periodMonth }, { status: 409 });
 

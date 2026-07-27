@@ -21,17 +21,25 @@ export function LessonCoachPicker({
   coachId,
   coaches,
   canEdit,
+  formerCoachName,
 }: {
   lessonId: string;
   coachId: string | null;
   coaches: Coach[];
   canEdit: boolean;
+  /**
+   * Name of the assigned coach when they are no longer in the active list —
+   * they left, changed role, or moved centre. Lesson.coachId has no FK, so
+   * without this the control showed "Unassigned" for a lesson that WAS
+   * covered, and saving anything else silently erased who actually taught it.
+   */
+  formerCoachName?: string | null;
 }) {
   const router = useRouter();
   const [value, setValue] = useState(coachId ?? "");
   const [busy, setBusy] = useState(false);
 
-  const currentName = coaches.find((c) => c.id === value)?.name;
+  const currentName = coaches.find((c) => c.id === value)?.name ?? (value ? formerCoachName ?? undefined : undefined);
 
   if (!canEdit) {
     return (
@@ -70,6 +78,9 @@ export function LessonCoachPicker({
           {c.name}
         </option>
       ))}
+      {value && !coaches.some((c) => c.id === value) && (
+        <option value={value}>{formerCoachName ?? "Former coach"} (no longer active)</option>
+      )}
     </select>
   );
 }

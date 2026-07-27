@@ -41,7 +41,10 @@ export function NewLessonForm({
       setStart(b.startTime);
       setEnd(b.endTime);
       // Default to the batch's usual coach; still overridable for a cover.
-      if (b.coachId) setCoachId(b.coachId);
+      // Unconditional: picking a batch that has no coach must CLEAR the one
+    // carried over from the last batch, or the lesson is created against
+    // someone who doesn't run that class.
+    setCoachId(b.coachId ?? "");
     }
   }
 

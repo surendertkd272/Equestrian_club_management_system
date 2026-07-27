@@ -46,6 +46,14 @@ export async function POST(req: NextRequest) {
       skipped.push({ invoiceId: inv.id, reason: "already paid" });
       continue;
     }
+    if (inv.voidedAt) {
+      skipped.push({ invoiceId: inv.id, reason: "void" });
+      continue;
+    }
+    if (inv.creditNoteForId) {
+      skipped.push({ invoiceId: inv.id, reason: "credit_note" });
+      continue;
+    }
     if (inv.status === "refunded") {
       skipped.push({ invoiceId: inv.id, reason: "refunded" });
       continue;
