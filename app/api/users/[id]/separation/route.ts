@@ -16,7 +16,17 @@ import { getOrgIdForSession } from "@/lib/features-gate";
 const issueSchema = z.object({
   kind: z.enum(["termination", "resignation_request"]),
   noticeText: z.string().min(10).max(2000),
-  effectiveAt: z.string().datetime().nullable().optional(),
+  // A notice period cannot start in the past. Without a lower bound a manager
+  // could issue with effectiveAt = yesterday and immediately close it, so the
+  // employee never had a window to respond at all.
+  effectiveAt: z
+    .string()
+    .datetime()
+    .nullable()
+    .optional()
+    .refine((v) => !v || new Date(v).getTime() > Date.now() - 60_000, {
+      message: "The effective date can't be in the past.",
+    }),
 });
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -297,17 +307,26 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const newStatus = notice.kind === "termination" ? "terminated" : "resigned";
+  // Claim the notice with a CONDITIONAL update before doing anything else. The
+  // status was read above, outside the transaction, so two finalise calls — or
+  // a finalise racing a withdraw — both passed the `status !== "pending"` check
+  // and both wrote, bumping tokenVersion twice and firing two audit rows for
+  // one separation.
+  const claimed = await prisma.separationNotice.updateMany({
+    where: { id: notice.id, status: "pending" },
+    data: {
+      status: "closed_unanswered",
+      respondedAt: new Date(),
+      responseText: parsed.data.note
+        ? `Closed by ${session.name} without a response from the employee. ${parsed.data.note}`
+        : `Closed by ${session.name} — the notice period expired without a response.`,
+    },
+  });
+  if (claimed.count === 0) {
+    return NextResponse.json({ error: "ALREADY_RESOLVED" }, { status: 409 });
+  }
+
   await prisma.$transaction([
-    prisma.separationNotice.update({
-      where: { id: notice.id },
-      data: {
-        status: "closed_unanswered",
-        respondedAt: new Date(),
-        responseText: parsed.data.note
-          ? `Closed by ${session.name} without a response from the employee. ${parsed.data.note}`
-          : `Closed by ${session.name} — the notice period expired without a response.`,
-      },
-    }),
     prisma.user.update({
       where: { id: target.id },
       // tokenVersion invalidates every live session, so a departed employee

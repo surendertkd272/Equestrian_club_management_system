@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { wallPartsInTz, startOfDayInTz, endOfDayInTz, parseWallTimeInTz } from "@/lib/tz";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -24,9 +25,23 @@ function escapeXml(s: string): string {
     .replace(/'/g, "&apos;");
 }
 
-function ddmmyyyy(d: Date): string {
-  // Tally wants YYYYMMDD.
-  return d.toISOString().slice(0, 10).replace(/-/g, "");
+// Tally wants YYYYMMDD — in the CLUB's calendar, not the server's. Vercel runs
+// UTC and the clubs run Asia/Kolkata (+5:30), so anything a club did after
+// 18:30 local was stamped with the previous day: a payment taken on the 1st
+// filed into the previous month's books, and the month's takings never
+// reconciled at either boundary.
+function ddmmyyyy(d: Date, timeZone: string): string {
+  return wallPartsInTz(d, timeZone).date.replace(/-/g, "");
+}
+
+/** The club calendar this export is expressed in. */
+async function exportTimeZone(centreId: string | null, orgId: string | null): Promise<string> {
+  const c = centreId
+    ? await prisma.centre.findUnique({ where: { id: centreId }, select: { timezone: true } })
+    : orgId
+      ? await prisma.centre.findFirst({ where: { orgId }, select: { timezone: true }, orderBy: { id: "asc" } })
+      : null;
+  return c?.timezone ?? "Asia/Kolkata";
 }
 
 export async function GET(req: NextRequest) {
@@ -55,8 +70,15 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const fromStr = url.searchParams.get("from");
   const toStr = url.searchParams.get("to");
-  const from = fromStr ? new Date(`${fromStr}T00:00:00Z`) : new Date(Date.now() - 30 * 86400000);
-  const to = toStr ? new Date(`${toStr}T23:59:59Z`) : new Date();
+  // The requested window is a range of CLUB days. Parsed as UTC it started and
+  // ended 5.5 hours early, so each end of the range caught the wrong evening.
+  const scopeTz = await exportTimeZone(session.centreId, callerOrg);
+  const from = fromStr
+    ? startOfDayInTz(parseWallTimeInTz(`${fromStr}T00:00`, scopeTz), scopeTz)
+    : new Date(Date.now() - 30 * 86400000);
+  const to = toStr
+    ? endOfDayInTz(parseWallTimeInTz(`${toStr}T00:00`, scopeTz), scopeTz)
+    : new Date();
 
   const where = session.centreId ? { centreId: session.centreId } : { centre: { orgId: callerOrg! } };
 
@@ -110,7 +132,9 @@ export async function GET(req: NextRequest) {
       orderBy: { spentAt: "asc" },
       take: 5000,
     }),
-    session.centreId ? prisma.centre.findUnique({ where: { id: session.centreId }, select: { name: true } }) : Promise.resolve(null),
+    session.centreId
+      ? prisma.centre.findUnique({ where: { id: session.centreId }, select: { name: true } })
+      : Promise.resolve(null),
     // Salaries. Payroll was absent from this export entirely, so the single
     // largest cash outflow a club has — ₹76,500 in one month of the sandbox —
     // simply did not exist in the books the accountant hands to Tally. Only
@@ -133,6 +157,15 @@ export async function GET(req: NextRequest) {
     m === "razorpay" ? "Bank - Razorpay" :
     m === "card" ? "Bank - Card" :
     "Bank";
+
+  // Every row is dated in ITS OWN centre's timezone — an org can span zones.
+  const tzRows = await prisma.centre.findMany({
+    where: session.centreId ? { id: session.centreId } : { orgId: callerOrg! },
+    select: { id: true, timezone: true },
+  });
+  const tzByCentre = new Map(tzRows.map((c) => [c.id, c.timezone]));
+  const tzFor = (centreId: string | null | undefined) =>
+    (centreId && tzByCentre.get(centreId)) || scopeTz;
 
   const vouchers: string[] = [];
 
@@ -157,7 +190,7 @@ export async function GET(req: NextRequest) {
     const label = isCredit ? "Credit note" : "Invoice";
     vouchers.push(
       `<VOUCHER VCHTYPE="${vchType}" ACTION="Create">
-  <DATE>${ddmmyyyy(inv.createdAt)}</DATE>
+  <DATE>${ddmmyyyy(inv.createdAt, tzFor(inv.centreId))}</DATE>
   <NARRATION>${escapeXml(`${label} #${inv.id.slice(-8)} · ${kind} fee · ${party}`)}</NARRATION>
   <VOUCHERTYPENAME>${vchType}</VOUCHERTYPENAME>
   <VOUCHERNUMBER>${escapeXml(inv.id.slice(-12).toUpperCase())}</VOUCHERNUMBER>
@@ -196,7 +229,7 @@ export async function GET(req: NextRequest) {
     const vchType = isReversal ? "Payment" : "Receipt";
     vouchers.push(
       `<VOUCHER VCHTYPE="${vchType}" ACTION="Create">
-  <DATE>${ddmmyyyy(p.paidAt)}</DATE>
+  <DATE>${ddmmyyyy(p.paidAt, tzFor(p.invoice.centreId))}</DATE>
   <NARRATION>${escapeXml(
     isReversal
       ? `Reversal of payment on invoice #${p.invoiceId.slice(-8)} · ${p.reason ?? "reversed"}`
@@ -236,7 +269,7 @@ export async function GET(req: NextRequest) {
     const creditLedger = e.paid ? ledgerForMethod(e.method) : "Sundry Creditors";
     vouchers.push(
       `<VOUCHER VCHTYPE="${e.paid ? "Payment" : "Journal"}" ACTION="Create">
-  <DATE>${ddmmyyyy(e.paid && e.paidAt ? e.paidAt : e.spentAt)}</DATE>
+  <DATE>${ddmmyyyy(e.paid && e.paidAt ? e.paidAt : e.spentAt, tzFor(e.centreId))}</DATE>
   <NARRATION>${escapeXml(`${e.category?.name ?? "Expense"} · ${e.vendor?.name ?? "—"} · ${e.description ?? ""}${e.paid ? "" : " [UNPAID — accrual]"}`)}</NARRATION>
   <VOUCHERTYPENAME>${e.paid ? "Payment" : "Journal"}</VOUCHERTYPENAME>
   <VOUCHERNUMBER>${escapeXml(e.id.slice(-12).toUpperCase())}</VOUCHERNUMBER>
@@ -283,7 +316,7 @@ export async function GET(req: NextRequest) {
       .filter(([, v]) => v > 0.005);
     vouchers.push(
       `<VOUCHER VCHTYPE="Payment" ACTION="Create">
-  <DATE>${ddmmyyyy(s.paidAt!)}</DATE>
+  <DATE>${ddmmyyyy(s.paidAt!, tzFor(s.centreId))}</DATE>
   <NARRATION>${escapeXml(`Salary ${s.periodMonth} · ${s.user.name}${s.advanceDeducted > 0 ? ` · advance recovered ₹${s.advanceDeducted}` : ""}`)}</NARRATION>
   <VOUCHERTYPENAME>Payment</VOUCHERTYPENAME>
   <VOUCHERNUMBER>${escapeXml(s.id.slice(-12).toUpperCase())}</VOUCHERNUMBER>

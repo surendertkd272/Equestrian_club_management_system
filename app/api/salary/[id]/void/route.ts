@@ -113,9 +113,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         },
       });
       released += rep.amount;
-      const netRepaid = rep.advance.repayments.reduce((t, r) => t + r.amount, 0) - rep.amount;
+      // Recompute the advance's status by SUMMING the ledger inside the
+      // transaction, not from the repayments array loaded before it opened.
+      // That snapshot predates the release just written, and predates anything
+      // a concurrent void or a manual repayment did — so two voids touching the
+      // same advance each derived the status from the same stale figure and the
+      // last writer won with a number that was never true.
+      const [agg, adv] = await Promise.all([
+        tx.advanceRepayment.aggregate({ where: { advanceId: rep.advanceId }, _sum: { amount: true } }),
+        tx.employeeAdvance.findUnique({ where: { id: rep.advanceId }, select: { amount: true } }),
+      ]);
+      const netRepaid = agg._sum.amount ?? 0;
+      const principal = adv?.amount ?? rep.advance.amount;
       const status =
-        netRepaid >= rep.advance.amount - 0.01 ? "repaid" : netRepaid > 0.01 ? "partially_repaid" : "outstanding";
+        netRepaid >= principal - 0.01 ? "repaid" : netRepaid > 0.01 ? "partially_repaid" : "outstanding";
       await tx.employeeAdvance.update({ where: { id: rep.advanceId }, data: { status } });
     }
   });
@@ -146,8 +157,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       centreId: row.centreId,
       type: "salary.voided",
       title: `${row.periodMonth} payroll entry was corrected`,
-      body: `₹${Math.round(released).toLocaleString("en-IN")} of advance recovery has been released back to your balance. Reason: ${parsed.data.reason}`,
-      link: `/my-documents`,
+      body:
+        `₹${Math.round(released).toLocaleString("en-IN")} of advance recovery has been released back to your balance. ` +
+        `Reason: ${parsed.data.reason}. Your centre's office can confirm the updated balance.`,
+      // Deliberately no link. This pointed at /my-documents, which renders only
+      // onboarding paperwork — nothing about salary or advances — and /salary is
+      // HQ/accountant-only, so an employee has no screen showing their advance
+      // balance at all. Sending them to a page that cannot answer the question
+      // is worse than stating the figure here and naming who can.
     });
   }
 
