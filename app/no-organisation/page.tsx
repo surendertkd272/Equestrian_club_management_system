@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireSession } from "@/lib/auth";
+import { SignOutButton } from "./sign-out";
 
 export const dynamic = "force-dynamic";
 
@@ -35,12 +36,13 @@ export default async function NoOrganisationPage() {
       </p>
 
       <div className="rounded-lg border bg-card p-4 text-sm">
-        <p className="font-medium">What to ask for</p>
+        <p className="font-medium">What to send support</p>
         <p className="mt-1 text-muted-foreground">
-          &ldquo;Please set my organisation on my staff account.&rdquo; Whoever manages your
-          Equiwings account can do it in a few seconds; you&apos;ll be able to sign straight back in
-          afterwards.
+          Ask them to set the organisation on this account. There is no screen for it today, so it
+          needs someone with database access — quote the account id below and they can fix it in a
+          moment. You&apos;ll be able to sign straight back in afterwards.
         </p>
+        <p className="mt-2 font-mono text-xs text-muted-foreground">account id: {session.userId}</p>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -50,12 +52,7 @@ export default async function NoOrganisationPage() {
         >
           Your account
         </Link>
-        <Link
-          href="/api/auth/logout"
-          className="rounded-md border bg-card px-4 py-2 text-sm font-medium hover:bg-muted"
-        >
-          Sign out
-        </Link>
+        <SignOutButton />
       </div>
     </main>
   );

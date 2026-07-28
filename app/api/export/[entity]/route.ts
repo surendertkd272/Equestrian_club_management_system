@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auditScopeFor } from "@/lib/audit-scope";
 import { getSession } from "@/lib/auth";
 import { can, type Permission } from "@/lib/permissions";
 import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
@@ -357,10 +358,10 @@ export async function GET(req: Request, { params }: { params: { entity: string }
     if (session.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
     }
-    // AuditLog has no org column — scope by the actor's org (HQ users carry
-    // orgId; centre staff resolve via centre.orgId). System rows (userId null)
-    // are platform-level and excluded from a per-org export.
-    const auditWhere = { user: { OR: [{ orgId }, { centre: { orgId } }] } };
+    // Shared with the /audit screen — see lib/audit-scope.ts. These two had
+    // drifted apart twice: the export excluded system rows the screen showed,
+    // and before that the screen was unscoped while the export was not.
+    const auditWhere = auditScopeFor(session.role, orgId);
     const [total, rows] = await Promise.all([
       prisma.auditLog.count({ where: auditWhere }),
       prisma.auditLog.findMany({

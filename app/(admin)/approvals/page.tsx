@@ -33,7 +33,9 @@ export default async function ApprovalsPage() {
   const orgCentreIds = orgCentres.map((c) => c.id);
 
   const where: any = {
-    centreId: centreId ? centreId : { in: orgCentreIds },
+    // scopeCentre() reads the client-controlled ew_hq_centre cookie, so the
+    // picked centre must be INTERSECTED with the org's own, never replace it.
+    centreId: centreId && orgCentreIds.includes(centreId) ? centreId : { in: orgCentreIds },
   };
 
   const rows = await prisma.approvalRequest.findMany({

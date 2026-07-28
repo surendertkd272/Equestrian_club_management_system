@@ -32,11 +32,17 @@ export default async function ProcurementReportPage() {
   // Scope: centre-bound users see their own club; HQ admins see every club
   // in their org.
   const ownCentre = scopeCentre(session);
-  const orgId = ownCentre ? null : await getOrgIdForSession(session);
+  // Resolve the org ALWAYS. It used to be resolved only when no centre was
+  // picked, and the picked value — which for HQ comes straight from the
+  // ew_hq_centre cookie — was then looked up by id alone. An HQ user could put
+  // another tenant's centre id in that cookie and drive this entire report off
+  // it. Binding orgId on both branches makes a foreign id simply match nothing.
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/no-organisation");
   const centres = ownCentre
-    ? await prisma.centre.findMany({ where: { id: ownCentre }, select: { id: true, name: true } })
+    ? await prisma.centre.findMany({ where: { id: ownCentre, orgId }, select: { id: true, name: true } })
     : await prisma.centre.findMany({
-        where: orgId ? { orgId } : {},
+        where: { orgId },
         select: { id: true, name: true },
         orderBy: { name: "asc" },
       });

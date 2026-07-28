@@ -41,7 +41,11 @@ export default async function TasksPage({
       take: 200,
     }),
     prisma.user.findMany({
-      where: { centreId: centreId ?? undefined, status: "active" },
+      // `centreId: centreId ?? undefined` is not a filter — Prisma drops an
+      // undefined key, so for a centre-less HQ caller this listed every
+      // organisation's staff in the assignee dropdown. Third instance of this
+      // exact expression; the other two were /api/users/lookup and /api/search.
+      where: { ...tenantWhere(centreId, orgId), status: "active" },
       select: { id: true, name: true, role: true },
       orderBy: { name: "asc" },
     }),
