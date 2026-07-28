@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
@@ -15,7 +15,7 @@ export default async function GatePage({
 }: {
   searchParams: { centre?: string };
 }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!can(session.role, "staff.attendance")) redirect("/dashboard");
 
   // Centre context resolution. Centre-scoped users have session.centreId
@@ -91,7 +91,7 @@ export default async function GatePage({
   // org's roster/events. tenantWhere() pairs the centreId with the caller's org,
   // so a foreign centreId matches 0 rows. Fail closed if the org can't resolve.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   // Today's roster — anyone with role !== {SUPER_ADMIN, RIDER, PARENT}
   // attached to this centre, plus their recent gate events.

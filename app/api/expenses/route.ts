@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 import { createExpenseSchema } from "@/lib/schemas/finance";
 import { audit } from "@/lib/audit";
 import { blockIfFeatureOff, getOrgIdForSession } from "@/lib/features-gate";
@@ -19,7 +19,9 @@ export async function GET(req: NextRequest) {
   }
   const orgId = await getOrgIdForSession(session);
   if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
-  const centreId = scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = scoped.centreId;
   const url = new URL(req.url);
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
@@ -58,7 +60,9 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
-  const centreId = scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = scoped.centreId;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
 
   // Verify the category + vendor belong to scope-appropriate places.

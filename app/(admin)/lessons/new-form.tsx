@@ -8,15 +8,18 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { postJson } from "@/lib/client/post-json";
 
-type Batch = { id: string; name: string; startTime: string; endTime: string };
+type Batch = { id: string; name: string; startTime: string; endTime: string; coachId: string | null };
+type Coach = { id: string; name: string; role: string };
 
 export function NewLessonForm({
   centreId,
   batches,
+  coaches,
   defaultDate,
 }: {
   centreId: string;
   batches: Batch[];
+  coaches: Coach[];
   defaultDate: string;
 }) {
   const router = useRouter();
@@ -24,6 +27,10 @@ export function NewLessonForm({
   const [date, setDate] = useState(defaultDate);
   const [start, setStart] = useState("06:00");
   const [end, setEnd] = useState("07:00");
+  // Who is actually taking the session. Lesson.coachId has existed in the
+  // schema and the API all along, but no screen ever set or showed it — so
+  // when a coach called in sick there was no way to hand the lesson over.
+  const [coachId, setCoachId] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -33,6 +40,11 @@ export function NewLessonForm({
     if (b) {
       setStart(b.startTime);
       setEnd(b.endTime);
+      // Default to the batch's usual coach; still overridable for a cover.
+      // Unconditional: picking a batch that has no coach must CLEAR the one
+    // carried over from the last batch, or the lesson is created against
+    // someone who doesn't run that class.
+    setCoachId(b.coachId ?? "");
     }
   }
 
@@ -47,6 +59,7 @@ export function NewLessonForm({
       // would bake in the admin's browser zone.
       date: `${date}T${start}`,
       endAt: `${date}T${end}`,
+      coachId: coachId || null,
       notes: notes.trim() || null,
     });
     setBusy(false);
@@ -88,7 +101,23 @@ export function NewLessonForm({
         <Label className="text-xs">End</Label>
         <Input aria-label="End" type="time" value={end} onChange={(e) => setEnd(e.target.value)} required />
       </div>
-      <div className="md:col-span-4">
+      <div className="md:col-span-2">
+        <Label className="text-xs">Coach</Label>
+        <select
+          aria-label="Coach"
+          value={coachId}
+          onChange={(e) => setCoachId(e.target.value)}
+          className="h-9 w-full rounded border bg-card px-2 text-sm"
+        >
+          <option value="">— Unassigned —</option>
+          {coaches.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="md:col-span-2">
         <Label className="text-xs">Notes (optional)</Label>
         <Input aria-label="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Make-up class · special focus on dressage transitions" />
       </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { updateExpenseSchema } from "@/lib/schemas/finance";
@@ -23,8 +24,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const before = await prisma.expense.findUnique({ where: { id: params.id } });
   if (!before) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && before.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence76 = await centreFence(session, before.centreId);
+  if (fence76) {
+    return NextResponse.json({ error: fence76 }, { status: 403 });
   }
 
   const updated = await prisma.expense.update({
@@ -83,11 +87,34 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
   const row = await prisma.expense.findUnique({ where: { id: params.id } });
   if (!row) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && row.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence84 = await centreFence(session, row.centreId);
+  if (fence84) {
+    return NextResponse.json({ error: fence84 }, { status: 403 });
   }
 
   await prisma.expense.delete({ where: { id: row.id } });
-  await audit({ userId: session.userId, action: "expense.delete", tableName: "expense", rowId: row.id });
+  // Record WHAT was destroyed. This wrote only the row id, so a booked — and
+  // possibly already-paid — expense could be hard-deleted and the audit trail
+  // could not tell you the amount, the vendor, the category or whether cash had
+  // moved. An auditor cannot reconstruct the books from "something was deleted".
+  await audit({
+    userId: session.userId,
+    action: "expense.delete",
+    tableName: "expense",
+    rowId: row.id,
+    before: {
+      amount: row.amount,
+      gstAmount: row.gstAmount,
+      paid: row.paid,
+      paidAt: row.paidAt,
+      method: row.method,
+      spentAt: row.spentAt,
+      vendorId: row.vendorId,
+      categoryId: row.categoryId,
+      description: row.description,
+    },
+  });
   return NextResponse.json({ ok: true });
 }

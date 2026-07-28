@@ -22,7 +22,7 @@ export default async function EditStaffPage({ params }: { params: { id: string }
   // bounded to their own org. Fail closed if the org can't be resolved.
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const staff = await prisma.staff.findFirst({
     where: { id: params.id, ...tenantWhere(centreId, orgId) },

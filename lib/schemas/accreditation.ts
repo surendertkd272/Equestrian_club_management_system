@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { storedUrl } from "@/lib/schemas/url";
 
 const dateLike = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -12,7 +13,7 @@ export const createAccreditationSchema = z
     serialNo: z.string().max(60).optional(),
     issuedAt: dateLike,
     expiresAt: dateLike.optional(),
-    fileUrl: z.string().url().optional(),
+    fileUrl: storedUrl.optional(),
     notes: z.string().max(500).optional(),
   })
   // YYYY-MM-DD strings compare chronologically as strings.
@@ -29,7 +30,7 @@ export const updateAccreditationSchema = z.object({
   serialNo: z.string().max(60).nullable().optional(),
   issuedAt: dateLike.optional(),
   expiresAt: dateLike.nullable().optional(),
-  fileUrl: z.string().url().nullable().optional(),
+  fileUrl: storedUrl.nullable().optional(),
   status: z.enum(["active", "expired", "revoked"]).optional(),
   notes: z.string().max(500).nullable().optional(),
 });

@@ -4,7 +4,7 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,12 +19,12 @@ function canView(role: string): boolean {
 }
 
 export default async function AdvancesPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!canView(session.role)) redirect("/dashboard");
 
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const [advances, eligibleUsers] = await Promise.all([
     prisma.employeeAdvance.findMany({
       where: tenantWhere(centreId, orgId),

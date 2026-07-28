@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,12 +12,12 @@ import { ImportForm } from "./import-form";
 export const dynamic = "force-dynamic";
 
 export default async function RidersImportPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!["SUPER_ADMIN", "CENTRE_MANAGER"].includes(session.role)) {
     redirect("/riders");
   }
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
 
   // Examiners are surfaced as a dropdown so the import can optionally

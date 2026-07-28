@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { expiryStatus, daysUntil } from "@/lib/schemas/medicine";
@@ -28,10 +28,10 @@ export default async function MedicinesPage({
 }: {
   searchParams: { q?: string; category?: string; status?: string };
 }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const where: any = { ...tenantWhere(centreId, orgId), active: true };
   if (searchParams.q) {

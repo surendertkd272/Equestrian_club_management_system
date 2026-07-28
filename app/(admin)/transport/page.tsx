@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +24,7 @@ const STATUS_VARIANT: Record<string, "success" | "warning" | "outline" | "destru
 // Transport of horses + equipment to event venues, with an inventory check
 // out (loading) and in (return). Lists trips; each opens to its manifest.
 export default async function TransportPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!CAN_MANAGE.includes(session.role)) redirect("/dashboard");
 
   const centreId = scopeCentre(session);
@@ -42,7 +42,7 @@ export default async function TransportPage() {
   }
 
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const trips = await prisma.venueTrip.findMany({
     where: tenantWhere(centreId, orgId),
     orderBy: [{ status: "asc" }, { departureAt: "desc" }],

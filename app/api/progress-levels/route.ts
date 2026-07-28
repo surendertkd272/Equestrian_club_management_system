@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { blockIfFeatureOff } from "@/lib/features-gate";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentreForRoute } from "@/lib/tenancy";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { createProgressLevelSchema, canManageCatalog } from "@/lib/schemas/catalog";
@@ -16,7 +16,9 @@ export async function POST(req: NextRequest) {
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
 
-  const centreId = scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = scoped.centreId;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
 
   const body = await req.json().catch(() => null);

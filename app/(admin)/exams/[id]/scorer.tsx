@@ -78,16 +78,34 @@ export function ExamScorer({
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [isDirty, isCompleted]);
 
-  async function save(final: boolean) {
+  async function save(final: boolean, allowIncomplete = false) {
     setBusy(final ? "submit" : "draft");
     const res = await patchJson<{ passed?: boolean }>(`/api/exams/${examId}/score`, {
       scores,
       final,
+      ...(allowIncomplete ? { allowIncomplete: true } : {}),
       ...(judgeId ? { judgeId } : {}),
       ...(canEditAdjustments ? { deductions, timeFaults } : {}),
     });
     setBusy(null);
     if (!res.ok) {
+      // Submitting a partially-filled card is irreversible and scores the
+      // blanks as zero, so make the examiner say so out loud rather than
+      // discovering it after the parents have been notified.
+      if (res.code === "INCOMPLETE_CARD") {
+        const d = res.data as { unscored?: number; itemCount?: number };
+        const ok = await openConfirm({
+          title: `Submit with ${d.unscored} item${d.unscored === 1 ? "" : "s"} unscored?`,
+          body:
+            `${d.unscored} of ${d.itemCount} rubric items have no score, and unscored items count as zero — ` +
+            `so the rider will be recorded lower than they earned. This cannot be undone once submitted, ` +
+            `and the result is sent to the rider and their parents.`,
+          destructive: true,
+          confirmLabel: "Submit anyway",
+        });
+        if (ok) await save(final, true);
+        return;
+      }
       toast.error(res.message);
       return;
     }
@@ -228,7 +246,15 @@ export function ExamScorer({
         )}
         {isCompleted && (
           <div className="rounded-md border bg-muted p-3 text-center text-sm">
-            Already submitted. Contact a Super Admin to unlock.
+            {/* This used to read "Contact a Super Admin to unlock" — there is no
+                unlock. A completed exam is refused for every role including
+                SUPER_ADMIN, so the old copy sent examiners chasing a remedy
+                that does not exist. Say what can actually be done instead. */}
+            <div className="font-medium">Submitted and locked</div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              Scores can&rsquo;t be changed after submission. If this result is wrong, the centre
+              can revoke any certificate it issued and schedule a re-sit.
+            </div>
           </div>
         )}
       </div>

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { startOfDayInTz } from "@/lib/tz";
@@ -14,10 +14,10 @@ import { FarrierClient } from "./farrier-client";
 export const dynamic = "force-dynamic";
 
 export default async function FarrieryPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   // FarrierVisit has a centreId column but no `centre` relation, so the org
   // bound is enforced through its `horse` relation (Horse has `centre`).

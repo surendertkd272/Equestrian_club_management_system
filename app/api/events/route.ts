@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { tenantWhere, scopeCentre } from "@/lib/tenancy";
+import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 import { createEventSchema } from "@/lib/schemas/event";
 import { audit } from "@/lib/audit";
 import { blockIfFeatureOff, getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
@@ -32,7 +32,9 @@ export async function POST(req: NextRequest) {
   const orgId = await getOrgIdForSession(session);
   if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
 
-  const centreId = scopeCentre(session) ?? (body?.centreId as string | undefined);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = scoped.centreId ?? (body?.centreId as string | undefined);
   if (!centreId) {
     return NextResponse.json(
       {
@@ -94,7 +96,9 @@ export async function GET(req: NextRequest) {
   const orgId = await getOrgIdForSession(session);
   if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
   const url = new URL(req.url);
-  const centreId = scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = scoped.centreId;
   const where: Prisma.EventWhereInput = { ...tenantWhere(centreId, orgId) };
   const status = url.searchParams.get("status");
   const type = url.searchParams.get("type");

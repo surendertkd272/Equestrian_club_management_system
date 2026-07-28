@@ -49,7 +49,10 @@ export async function notify(input: NotifyInput & { criticality?: NotifCriticali
 }
 
 // Multi-recipient. Each row independent so a partial failure still delivers to others.
-export async function notifyMany(userIds: string[], rest: Omit<NotifyInput, "userId">) {
+export async function notifyMany(
+  userIds: string[],
+  rest: Omit<NotifyInput, "userId"> & { criticality?: NotifCriticality },
+) {
   const unique = Array.from(new Set(userIds.filter(Boolean)));
   await Promise.all(unique.map((userId) => notify({ ...rest, userId })));
 }
@@ -96,7 +99,9 @@ export async function notifyParentsOfRider(
 // certificate issuance, level promotion.
 export async function notifyRiderAndParents(
   riderId: string,
-  rest: Omit<NotifyInput, "userId">,
+  // criticality is passed through so a genuinely urgent event (a child injured
+  // at the centre) reaches the family even if they have muted this category.
+  rest: Omit<NotifyInput, "userId"> & { criticality?: NotifCriticality },
 ) {
   const rider = await prisma.rider.findUnique({
     where: { id: riderId },

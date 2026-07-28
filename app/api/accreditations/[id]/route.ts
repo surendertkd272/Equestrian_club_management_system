@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { updateAccreditationSchema } from "@/lib/schemas/accreditation";
@@ -25,8 +26,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     include: { rider: { select: { centreId: true } } },
   });
   if (!before) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && before.rider.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence38 = await centreFence(session, before.rider.centreId);
+  if (fence38) {
+    return NextResponse.json({ error: fence38 }, { status: 403 });
   }
 
   // Cross-field date sanity (mirrors events #133): the create schema refines
@@ -81,8 +85,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     include: { rider: { select: { centreId: true } } },
   });
   if (!row) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && row.rider.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence59 = await centreFence(session, row.rider.centreId);
+  if (fence59) {
+    return NextResponse.json({ error: fence59 }, { status: 403 });
   }
   await prisma.accreditation.delete({ where: { id: row.id } });
   await audit({

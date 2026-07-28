@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { isRole } from "@/lib/roles";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
@@ -27,7 +27,7 @@ type SearchParams = {
 const PAGE_SIZE = 100;
 
 export default async function UsersPage({ searchParams }: { searchParams: SearchParams }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/dashboard");
 
   const where: Record<string, unknown> = {};
@@ -62,7 +62,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
   // carry orgId; centre staff resolve via centre.orgId. AND-combine so it
   // composes with the q-OR above.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const orgClause = { OR: [{ orgId }, { centre: { orgId } }] };
   where.AND = [orgClause];
 

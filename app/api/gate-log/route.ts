@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
@@ -29,7 +29,9 @@ export async function GET(req: NextRequest) {
   }
   const orgId = await getOrgIdForSession(session);
   if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
-  const centreId = scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = scoped.centreId;
   const url = new URL(req.url);
   const staffUserId = url.searchParams.get("staffUserId");
   const fromMs = Number(url.searchParams.get("fromMs") ?? Date.now() - 86400000);
@@ -63,10 +65,12 @@ export async function POST(req: NextRequest) {
   }
 
   // Centre resolution: session centre for centre-scoped users; body for SUPER_ADMIN.
+  const scopedGate = scopeCentreForRoute(session);
+  if (scopedGate.error) return scopedGate.error;
   const centreId =
     session.role === "SUPER_ADMIN"
       ? parsed.data.centreId ?? null
-      : scopeCentre(session);
+      : scopedGate.centreId;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
 
   // Cross-org guard (C1): an HQ user supplying centreId in the body must not

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { startOfTodayForCentre } from "@/lib/centre-tz";
@@ -24,11 +24,11 @@ export default async function GivenTasksPage({
 }: {
   searchParams: { scope?: string };
 }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!can(session.role, "task.assign")) redirect("/tasks");
 
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
   // HQ users can flip to "all delegated at this centre"; everyone else only

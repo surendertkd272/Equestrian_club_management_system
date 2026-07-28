@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
@@ -20,8 +21,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   });
   if (!horse) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && session.centreId !== horse.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // isHQ alone let an HQ caller of ANY organisation through. centreFence
+  // keeps the centre rule and adds the org rule HQ never had.
+  const fence1 = await centreFence(session, horse.centreId);
+  if (fence1) {
+    return NextResponse.json({ error: fence1 }, { status: 403 });
   }
 
   const rows = await prisma.dewormingSchedule.findMany({
@@ -46,8 +50,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   });
   if (!horse) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && session.centreId !== horse.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // isHQ alone let an HQ caller of ANY organisation through. centreFence
+  // keeps the centre rule and adds the org rule HQ never had.
+  const fence2 = await centreFence(session, horse.centreId);
+  if (fence2) {
+    return NextResponse.json({ error: fence2 }, { status: 403 });
   }
 
   const body = await req.json().catch(() => null);

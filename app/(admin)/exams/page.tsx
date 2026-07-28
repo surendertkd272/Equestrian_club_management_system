@@ -28,12 +28,23 @@ export default async function ExamsPage({
   const session = await assertRoute("/exams");
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const where: any = { ...tenantWhere(centreId, orgId) };
   if (searchParams.status) where.status = searchParams.status;
   if (searchParams.level) where.level = Number(searchParams.level);
-  if (session.role === "EXAMINER") where.examinerId = session.userId;
+  if (session.role === "EXAMINER") {
+    // Show exams already claimed by this examiner AND the unclaimed ones from
+    // sittings she is staffed on. Filtering on examinerId alone deadlocked the
+    // whole exam day: /api/exam-sittings deliberately creates every exam with
+    // examinerId = null ("unassigned until claimed"), so an examiner's list was
+    // empty until she claimed a rider — which she could not do, because she
+    // could not see one. Her only way in was a URL someone sent her.
+    where.OR = [
+      { examinerId: session.userId },
+      { examinerId: null, sitting: { examiners: { some: { examinerId: session.userId } } } },
+    ];
+  }
 
   const [exams, templates, catalog] = await Promise.all([
     prisma.exam.findMany({
@@ -44,26 +55,38 @@ export default async function ExamsPage({
     }),
     prisma.scoringTemplate.findMany({
       where: tenantWhere(centreId, orgId),
-      select: { levelKey: true },
+      select: { levelKey: true, levelName: true },
       distinct: ["levelKey"],
       orderBy: { levelKey: "asc" },
     }),
+    // Only the general ladder. Exam.level is a bare Int with no discipline, so
+    // pulling every discipline's catalog and keying the label map on
+    // orderIndex made the disciplines collide — five rows share orderIndex 1,
+    // and whichever the DB returned last won. Every general "Level 1" exam was
+    // therefore labelled "gymkhana · G1 — Lead-line games" on this screen while
+    // the marking sheet correctly said "Level 1".
     prisma.examLevel.findMany({
-      where: { active: true },
+      where: { active: true, discipline: "general" },
       select: { orderIndex: true, code: true, name: true, discipline: true },
     }),
   ]);
 
   const canSchedule = ["SUPER_ADMIN", "CENTRE_MANAGER"].includes(session.role);
   const canManageTemplates = session.role === "SUPER_ADMIN";
-  // Lookup table: Exam.level (Int) → "discipline · code — name". Falls
-  // back to "L<n>" when the catalog has no matching row.
+  // Lookup table: Exam.level (Int) → label. The centre's own ScoringTemplate
+  // wins, because that is the rubric the exam is actually marked against and
+  // the name the marking sheet shows; the general catalog is the fallback for
+  // a level with no template yet, and "L<n>" the last resort.
   const levelLabel = new Map<number, string>();
   for (const c of catalog) {
     levelLabel.set(
       c.orderIndex,
       `${c.discipline === "general" ? "" : c.discipline + " · "}${c.code} — ${c.name}`,
     );
+  }
+  for (const t of templates) {
+    const n = Number(t.levelKey);
+    if (Number.isFinite(n) && t.levelName) levelLabel.set(n, t.levelName);
   }
   const levels = Array.from(new Set(templates.map((t) => t.levelKey))).sort();
 

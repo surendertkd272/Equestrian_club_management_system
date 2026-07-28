@@ -16,13 +16,21 @@ import { patchJson } from "@/lib/client/post-json";
 type Horse = { id: string; name: string; stableNo: string | null };
 type Rider = { id: string; firstName: string; lastName: string };
 
-export function InjuriesClient({ horses, riders }: { horses: Horse[]; riders: Rider[] }) {
+// Today in the CENTRE's zone, not the browser's and not UTC. The form seeded
+// itself with `new Date().toISOString().slice(0,10)` — the UTC date — so for
+// the whole 00:00–05:30 IST window it pre-filled YESTERDAY, which is precisely
+// when a horse is found down and someone logs it in a hurry.
+function todayInTz(timeZone: string): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone });
+}
+
+export function InjuriesClient({ horses, riders, timezone }: { horses: Horse[]; riders: Rider[]; timezone: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
     subjectType: "horse" as "horse" | "rider",
     subjectId: horses[0]?.id ?? "",
-    occurredAt: new Date().toISOString().slice(0, 10),
+    occurredAt: todayInTz(timezone),
     location: "",
     severity: "minor" as "minor" | "moderate" | "severe",
     cause: "",
@@ -61,7 +69,7 @@ export function InjuriesClient({ horses, riders }: { horses: Horse[]; riders: Ri
       setForm({
         subjectType: form.subjectType,
         subjectId: form.subjectId,
-        occurredAt: new Date().toISOString().slice(0, 10),
+        occurredAt: todayInTz(timezone),
         location: "",
         severity: "minor",
         cause: "",

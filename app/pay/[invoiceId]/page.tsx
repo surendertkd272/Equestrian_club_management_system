@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { PayButton } from "./pay-button";
 import { bindRlsBypass } from "@/lib/tenant-context";
 import { formatEnum } from "@/lib/labels";
+import { creditPosition } from "@/lib/credit-note";
 export const dynamic = "force-dynamic";
 
 export default async function PayPage({ params }: { params: { invoiceId: string } }) {
@@ -28,6 +29,8 @@ export default async function PayPage({ params }: { params: { invoiceId: string 
     include: {
       centre: { select: { name: true, org: { select: { supportEmail: true } } } },
       rider: { select: { firstName: true, lastName: true } },
+      payments: { select: { amount: true } },
+      creditNotes: { select: { amount: true, gstAmount: true } },
     },
   });
   if (!invoice) notFound();
@@ -38,8 +41,17 @@ export default async function PayPage({ params }: { params: { invoiceId: string 
     notFound();
   }
 
-  const total = invoice.amount + invoice.gstAmount;
-  const paid = invoice.status === "paid";
+  // What the family actually owes: face value, less anything credited back,
+  // less what they have already paid. Quoting the face value asked a family to
+  // pay a charge the club had partly cancelled — and the Pay button honoured it.
+  const position = creditPosition(invoice);
+  const total = position.outstanding;
+  const paid = position.outstanding <= 0.001;
+  // A charge the centre cancelled must not keep presenting a Pay button to the
+  // family. The API refuses the payment now, but a live "Pay ₹23,600" screen on
+  // a cancelled invoice is its own harm — parents chase it, and the club has to
+  // explain. Credit notes are never payable either.
+  const cancelled = !!invoice.voidedAt || !!invoice.creditNoteForId;
 
   return (
     <div className="min-h-screen bg-muted/40">
@@ -65,22 +77,40 @@ export default async function PayPage({ params }: { params: { invoiceId: string 
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between rounded-md border bg-card p-4">
               <div>
-                <div className="text-xs uppercase tracking-wide text-muted-foreground">Amount due</div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                  {cancelled ? "Cancelled" : "Amount due"}
+                </div>
                 <div className="text-3xl font-bold">₹{total.toLocaleString("en-IN")}</div>
-                {invoice.gstAmount > 0 && (
+                {position.creditable < position.face - 0.001 && (
                   <div className="mt-1 text-xs text-muted-foreground">
-                    ₹{invoice.amount.toLocaleString("en-IN")} + ₹{invoice.gstAmount.toLocaleString("en-IN")} GST
+                    ₹{Math.round(position.face).toLocaleString("en-IN")} billed, less ₹
+                    {Math.round(position.face - position.creditable).toLocaleString("en-IN")} credited
+                  </div>
+                )}
+                {position.received > 0.001 && (
+                  <div className="text-xs text-muted-foreground">
+                    ₹{Math.round(position.received).toLocaleString("en-IN")} already received
                   </div>
                 )}
               </div>
-              {paid ? (
+              {cancelled ? (
+                <Badge variant="outline">Cancelled</Badge>
+              ) : paid ? (
                 <Badge variant="success">Paid</Badge>
               ) : (
                 <Badge variant="warning">Pending</Badge>
               )}
             </div>
 
-            {paid ? (
+            {cancelled ? (
+              <div className="rounded-md border-2 border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+                <div className="font-semibold">This invoice has been cancelled.</div>
+                <p className="mt-1">
+                  {invoice.centre.name} withdrew this charge, so there is nothing to pay. If you were
+                  expecting a bill, please contact the centre.
+                </p>
+              </div>
+            ) : paid ? (
               <div className="rounded-md border-2 border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900">
                 <div className="font-semibold">✓ This invoice has been paid.</div>
                 <p className="mt-1">

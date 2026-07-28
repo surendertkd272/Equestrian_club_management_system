@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
@@ -12,7 +12,7 @@ import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function FacilityBookingsPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
   const canBook = can(session.role, "staff.manage");
 
@@ -20,7 +20,7 @@ export default async function FacilityBookingsPage() {
   // to an empty filter that leaks every org's bookings. Fail closed if the org
   // can't be resolved.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   // FacilityBooking has a scalar centreId but NO `centre` relation, so the
   // tenantWhere() relation-filter can't bind it — constrain to the org's own
@@ -31,7 +31,7 @@ export default async function FacilityBookingsPage() {
 
   const where: any = {
     endAt: { gte: new Date(Date.now() - 7 * 86400000) },
-    centreId: centreId ?? { in: orgCentreIds },
+    centreId: centreId && orgCentreIds.includes(centreId) ? centreId : { in: orgCentreIds },
   };
 
   const [rows, facilities] = await Promise.all([

@@ -6,13 +6,21 @@ import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { parseCsv } from "@/lib/csv-parse";
 import { isRealYMD } from "@/lib/utils";
+import { indianMobile } from "@/lib/schemas/phone";
 
 // Schema for a single row in the import payload. Accepts a generous set
 // of column aliases so CSV authors don't have to use exact field names.
 const rowSchema = z.object({
   first_name: z.string().min(1).max(80),
   last_name: z.string().min(1).max(80),
-  mobile: z.string().min(7).max(20),
+  // Same rule as the public signup form. This was a length-only check, so a
+  // spreadsheet cell reading "nine-eight-one" imported as a contact number and
+  // every SMS / WhatsApp to that family then failed silently at dispatch —
+  // bulk import being the one path where nobody eyeballs each value. Also
+  // normalises "+91 98123 45671" and "098123…" to bare digits, which makes the
+  // duplicate check below compare like with like instead of treating the same
+  // number in two formats as two people.
+  mobile: indianMobile("Not a valid Indian mobile number"),
   email: z.string().email().optional().or(z.literal("")).transform((v) => v || undefined),
   dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "DOB must be YYYY-MM-DD").refine(isRealYMD, "DOB isn't a real calendar date"),
   gender: z
@@ -135,10 +143,24 @@ export async function POST(req: NextRequest) {
   // single round-trip instead of one query per row.
   const existing = await prisma.rider.findMany({
     where: { centreId: targetCentreId },
-    select: { mobile: true, email: true },
+    select: { mobile: true, email: true, firstName: true, lastName: true, dob: true },
   });
-  const existingMobile = new Set(existing.map((e) => e.mobile));
-  const existingEmail = new Set(existing.filter((e) => e.email).map((e) => e.email!));
+  // Normalise BOTH sides of every comparison. The row's mobile goes through
+  // indianMobile() (separators stripped, +91/0 dropped) while this set was
+  // built from the raw column, so a stored "98123 45671" never matched an
+  // incoming "9812345671" and real duplicates walked straight through.
+  const normMobile = (m: string) => m.replace(/[\s()\-.]/g, "").replace(/^(?:\+?91|0)/, "");
+  const existingMobile = new Set(existing.map((e) => normMobile(e.mobile)));
+  const existingEmail = new Set(existing.filter((e) => e.email).map((e) => e.email!.toLowerCase()));
+  // Identity of a PERSON, not of a phone. One household shares one number, so
+  // claiming the bare mobile rejected the second sibling in the same sheet —
+  // exactly the family a club is most likely to be importing. Matches the
+  // public onboarding guard, which keys on centre + name + dob + mobile.
+  const identity = (m: string, first: string, last: string, dob: string) =>
+    `${normMobile(m)}|${first.trim().toLowerCase()}|${last.trim().toLowerCase()}|${dob}`;
+  const existingIdentity = new Set(
+    existing.map((e) => identity(e.mobile, e.firstName, e.lastName, e.dob.toISOString().slice(0, 10))),
+  );
 
   const valid: { row: z.infer<typeof rowSchema>; line: number }[] = [];
   const rowErrors: { line: number; reason: string }[] = [];
@@ -151,14 +173,27 @@ export async function POST(req: NextRequest) {
       rowErrors.push({ line, reason: r.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ") });
       return;
     }
-    if (existingMobile.has(r.data.mobile)) {
-      rowErrors.push({ line, reason: `Mobile already used: ${r.data.mobile}` });
+    const key = identity(r.data.mobile, r.data.first_name, r.data.last_name, r.data.dob);
+    if (existingIdentity.has(key)) {
+      rowErrors.push({
+        line,
+        reason: `Duplicate of an existing rider: ${r.data.first_name} ${r.data.last_name} (${r.data.mobile})`,
+      });
       return;
     }
-    if (r.data.email && existingEmail.has(r.data.email)) {
+    const email = r.data.email?.toLowerCase();
+    if (email && existingEmail.has(email)) {
       rowErrors.push({ line, reason: `Email already used: ${r.data.email}` });
       return;
     }
+    // Claim the identity HERE, not just when the row is written. These sets
+    // were only added to inside the create transaction, which runs after this
+    // whole loop — so two identical lines in one spreadsheet both passed and
+    // imported as two riders while the dry run reported "duplicates: 0".
+    // Repeated rows are ordinary in a club's Excel sheet, which is exactly
+    // what this endpoint exists to ingest.
+    existingIdentity.add(key);
+    if (email) existingEmail.add(email);
     valid.push({ row: r.data, line });
   });
 
@@ -166,7 +201,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       dryRun: true,
       wouldCreate: valid.length,
-      duplicates: rowErrors.filter((e) => e.reason.startsWith("Mobile") || e.reason.startsWith("Email")).length,
+      duplicates: rowErrors.filter((e) => e.reason.startsWith("Duplicate") || e.reason.startsWith("Email")).length,
       errors: [...parseErrors, ...rowErrors],
       preview: valid.slice(0, 10).map(({ row, line }) => ({ line, ...row })),
     });

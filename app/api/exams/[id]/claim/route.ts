@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { audit } from "@/lib/audit";
@@ -26,8 +27,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     include: { sitting: { include: { examiners: true } } },
   });
   if (!exam) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && exam.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence36 = await centreFence(session, exam.centreId);
+  if (fence36) {
+    return NextResponse.json({ error: fence36 }, { status: 403 });
   }
 
   const readOnlyBlock = await blockIfReadOnly(session);

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +25,7 @@ const CAN_SUBMIT = new Set([
 ]);
 
 export default async function ChecklistsPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!CAN_SUBMIT.has(session.role)) redirect("/dashboard");
 
   const centreId = scopeCentre(session);
@@ -43,7 +43,7 @@ export default async function ChecklistsPage() {
   }
 
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const [templates, horses, recent] = await Promise.all([
     prisma.checklistTemplate.findMany({

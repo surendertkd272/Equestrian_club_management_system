@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NewHorseForm } from "./form";
 
 export default async function NewHorsePage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!can(session.role, "horse.manage")) redirect("/horses");
   return (
     <div className="mx-auto max-w-xl">

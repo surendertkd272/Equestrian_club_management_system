@@ -6,7 +6,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { centreFence } from "@/lib/authz-centre";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,15 +24,19 @@ export default async function GateSummaryPage({
 }: {
   searchParams: { centre?: string; date?: string };
 }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!can(session.role, "staff.attendance")) redirect("/dashboard");
 
   // Resolve centre context (same picker dance as the kiosk).
   let centreId = session.centreId;
-  if (!centreId && session.role === "SUPER_ADMIN") {
+  if (!centreId && (session.role === "SUPER_ADMIN" || session.role === "ADMIN")) {
     centreId = searchParams.centre ?? null;
   }
   if (!centreId) redirect("/gate"); // The kiosk page renders the picker.
+  // ?centre= is a bare id off the query string. Unfenced, an HQ user could read
+  // another tenant's staff in/out log — who was on site, and when — just by
+  // pasting a centre id into the URL.
+  if (await centreFence(session, centreId)) redirect("/gate");
 
   // Day window. Default today; ?date=YYYY-MM-DD jumps to a specific day.
   const day = searchParams.date ? new Date(searchParams.date) : new Date();

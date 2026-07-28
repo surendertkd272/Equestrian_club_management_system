@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { loadInspectionRuns } from "@/lib/inspections";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ const CAN_INSPECT = ["INSPECTION_OFFICER", "SUPER_ADMIN", "ADMIN", "CENTRE_MANAG
 // walks the SOP sheet, marking each line pass/fail with remarks. Admins +
 // centre manager can also run one.
 export default async function InspectionsPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!CAN_INSPECT.includes(session.role)) redirect("/dashboard");
 
   // Data-fetching (org resolution + centre scope + the org-wide-when-no-centre
@@ -24,7 +24,7 @@ export default async function InspectionsPage() {
   // without an RSC render. HQ with no centre picked → org-wide; centre-scoped
   // roles stay pinned to their own centre. See lib/inspections.ts.
   const { orgId, centreId, runs } = await loadInspectionRuns(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   return (
     <div className="space-y-6">

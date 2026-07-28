@@ -135,9 +135,14 @@ describe("GET /api/users", () => {
 
 describe("PATCH /api/users/[id]", () => {
   it("HQ can update name, phone, role, centreId, status in one call", async () => {
-    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null });
-    const c1 = await mkCentre({ slug: "c1" });
-    const c2 = await mkCentre({ slug: "c2" });
+    // Both centres in ONE organisation, and the admin bound to it. Previously
+    // this built an HQ user with no org and two centres in two different orgs —
+    // the ambiguous case the centre fence now refuses, because there is no way
+    // to tell which organisation such an admin belongs to.
+    const org = await mkOrg();
+    const su = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id });
+    const c1 = await mkCentre({ slug: "c1", orgId: org.id });
+    const c2 = await mkCentre({ slug: "c2", orgId: org.id });
     const u = await mkUser({ role: "GROOM", centreId: c1.id, name: "Old Name" });
     await loginAs({ userId: su.id, role: "SUPER_ADMIN", centreId: null, name: su.name });
 

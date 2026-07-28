@@ -2,6 +2,7 @@
 // DELETE is soft (active=false) so membership history is preserved.
 
 import { NextRequest, NextResponse } from "next/server";
+import { centreFence } from "@/lib/authz-centre";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { blockIfFeatureOff } from "@/lib/features-gate";
@@ -10,12 +11,14 @@ import { updateTeamSchema } from "@/lib/schemas/teams";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 
-async function loadOwned(id: string, session: { role: string; centreId: string | null }) {
+async function loadOwned(id: string, session: { role: string; centreId: string | null; userId: string }) {
   const team = await prisma.team.findUnique({ where: { id } });
   if (!team) return { error: NextResponse.json({ error: "NOT_FOUND" }, { status: 404 }) };
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && team.centreId !== session.centreId) {
-    return { error: NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 }) };
+  // isHQ alone let any organisation's HQ through; centreFence adds the org rule.
+  const fence = await centreFence(session, team.centreId);
+  if (fence) {
+    return { error: NextResponse.json({ error: fence }, { status: 403 }) };
   }
   return { team };
 }

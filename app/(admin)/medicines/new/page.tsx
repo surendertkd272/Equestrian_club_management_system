@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NewMedicineForm } from "./form";
 
 export default async function NewMedicinePage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!can(session.role, "medicine.manage")) redirect("/medicines");
 
   // SUPER_ADMIN can add medicines to any centre; everyone else's session is

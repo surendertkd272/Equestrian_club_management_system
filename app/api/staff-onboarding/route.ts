@@ -6,7 +6,7 @@ import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentreForRoute } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { audit } from "@/lib/audit";
 import { generateOnboardingLinkSchema } from "@/lib/schemas/onboarding-staff";
@@ -25,7 +25,9 @@ export async function POST(req: NextRequest) {
   const d = parsed.data;
 
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  let centreId = scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  let centreId = scoped.centreId;
   if (!centreId && isHQ && d.centreId) centreId = d.centreId;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
   const centre = await prisma.centre.findUnique({ where: { id: centreId }, select: { id: true, orgId: true } });

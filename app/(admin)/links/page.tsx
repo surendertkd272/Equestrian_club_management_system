@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
@@ -11,7 +11,7 @@ import { LinkList } from "./link-list";
 export const dynamic = "force-dynamic";
 
 export default async function LinksPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   // Mirror the API gate in app/api/short-links/route.ts — admins + senior
   // centre staff (Head Coach, Stable Manager) can self-serve generate links.
   const canManage =
@@ -22,7 +22,7 @@ export default async function LinksPage() {
   if (!canManage) redirect("/dashboard");
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   // Horses + recent riders feed the param picker (e.g. "report injury for X").
   const [links, horses] = await Promise.all([

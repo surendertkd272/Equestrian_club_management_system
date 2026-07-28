@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { Card, CardContent } from "@/components/ui/card";
 import { canManageCatalog } from "@/lib/schemas/catalog";
@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 // wants to customise catalog. Centre-bootstrap seeds sensible defaults
 // for every new club without this UI being exposed.
 export default async function CatalogPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!canManageCatalog(session.role)) redirect("/dashboard");
   await assertSessionFeature("club-catalog");
 

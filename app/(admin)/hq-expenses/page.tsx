@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
@@ -10,7 +10,7 @@ import { formatDate } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 export default async function HqExpensesPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   // HQ-tier — ADMIN handles cross-club invoices alongside SUPER_ADMIN.
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/dashboard");
 
@@ -20,7 +20,7 @@ export default async function HqExpensesPage() {
     select: { orgId: true, centre: { select: { orgId: true } } },
   });
   const orgId = user?.orgId ?? user?.centre?.orgId ?? null;
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const [categories, centres, expenses] = await Promise.all([
     prisma.expenseCategory.findMany({

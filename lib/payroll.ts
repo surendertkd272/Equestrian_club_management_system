@@ -59,12 +59,15 @@ export async function outstandingAdvance(userId: string): Promise<number> {
 // Full computed picture for one staff member + month, before the admin
 // chooses other-deductions / advance recovery.
 export async function salaryPreview(userId: string, centreId: string | null, periodMonth: string) {
-  const [gross, counts, advanceOutstanding] = await Promise.all([
+  const [gross, counts, advanceOutstanding, rules] = await Promise.all([
     effectiveSalary(userId, periodMonth),
     attendanceCounts(userId, periodMonth),
     outstandingAdvance(userId),
+    // The preview must apply the same policy the actual run will, or the
+    // accountant is shown one figure and the employee is paid another.
+    deductionRulesForCentre(centreId),
   ]);
-  const { total: attendanceDeducted, breakdown } = computeAbsenceDeduction(gross, counts);
+  const { total: attendanceDeducted, breakdown } = computeAbsenceDeduction(gross, counts, rules);
   return {
     gross,
     attendanceDeducted,

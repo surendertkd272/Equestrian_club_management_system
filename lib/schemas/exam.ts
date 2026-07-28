@@ -73,6 +73,10 @@ export const updateExamScoreSchema = z.object({
   judgeId: z.string().min(1).optional(),
   deductions: z.coerce.number().min(0).max(1000).optional(),
   timeFaults: z.coerce.number().min(0).max(1000).optional(),
+  // Set by the UI only after the examiner confirms an explicitly partial card.
+  // A final submission is otherwise refused when rubric items are unscored —
+  // see countUnscored below.
+  allowIncomplete: z.boolean().optional(),
 });
 
 export const updateScoringTemplateSchema = z.object({
@@ -143,4 +147,39 @@ export function findScoreViolations(
     }
   }
   return out;
+}
+
+// How many scorable rubric items have no number against them, and how many
+// there are in total.
+//
+// An unscored item counts as zero in computeTotal, so a card the examiner only
+// half-filled submits as a legitimate-looking low score. Observed: a card with
+// 1 of 37 items filled locked in at 2/91 as a permanent FAIL, and the parents
+// were notified of the result. Nothing in the flow asked "are you sure?".
+export function countUnscored(
+  categories: RubricCategory[],
+  scores: Record<string, number | string>,
+): { unscored: number; total: number } {
+  let unscored = 0;
+  let total = 0;
+  const seen = (key: string) => {
+    total += 1;
+    if (typeof scores[key] !== "number") unscored += 1;
+  };
+  for (const cat of categories) {
+    if (cat.type && cat.type !== "numeric") continue;
+    if (cat.name === "Miscellaneous Questions") continue;
+    for (const item of cat.items) {
+      if (item.type && item.type !== "numeric") continue;
+      if (Array.isArray(item.subitems) && item.subitems.length > 0) {
+        for (const sub of item.subitems) {
+          if (sub.type && sub.type !== "numeric") continue;
+          seen(`${cat.name}_${item.name}_${sub.name}`);
+        }
+      } else {
+        seen(`${cat.name}_${item.name}`);
+      }
+    }
+  }
+  return { unscored, total };
 }

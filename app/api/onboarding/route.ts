@@ -21,25 +21,36 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   bindRlsBypass(); // public-by-unguessable-id flow (no session to bind an org from)
-  // Public self-enrolment endpoint — no auth gate. Rate-limit per IP to
-  // keep an attacker (or a buggy script) from filling the approval queue
-  // with junk riders. 10 successful onboarding posts per hour per IP is
-  // generous for a normal household sharing one connection and tight
-  // enough to make a spam run uneconomic.
-  const rl = checkRate(`onboarding:${clientFingerprint(req)}`, 10, 60 * 60_000);
-  if (!rl.ok) {
-    return NextResponse.json(
-      { error: "RATE_LIMITED", retryAfterSec: rl.retryAfterSec },
-      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
-    );
-  }
-
   const json = await req.json().catch(() => null);
   const parsed = onboardingSchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
   const d = parsed.data;
+
+  // Public self-enrolment endpoint — no auth gate. Rate-limit per IP to
+  // keep an attacker (or a buggy script) from filling the approval queue
+  // with junk riders. 10 successful onboarding posts per hour per IP is
+  // generous for a normal household sharing one connection and tight
+  // enough to make a spam run uneconomic.
+  //
+  // Counted AFTER validation on purpose: when it ran first, a parent
+  // correcting a mistyped phone number three times burned three of her ten
+  // slots on submissions that never created anything, and the bare
+  // "RATE_LIMITED" string was rendered to her with no explanation.
+  const rl = checkRate(`onboarding:${clientFingerprint(req)}`, 10, 60 * 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      {
+        error: "RATE_LIMITED",
+        retryAfterSec: rl.retryAfterSec,
+        message:
+          "Too many registrations have been submitted from this connection in the last hour. " +
+          "Please wait a little while and try again, or call the centre to register by phone.",
+      },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
+  }
 
   const centre = await prisma.centre.findUnique({ where: { slug: d.centreSlug } });
   if (!centre) return NextResponse.json({ error: "CENTRE_NOT_FOUND" }, { status: 404 });
@@ -83,6 +94,38 @@ export async function POST(req: NextRequest) {
       consentText: PARENTAL_CONSENT_TEXT,
       consentVersion: PARENTAL_CONSENT_VERSION,
     };
+  }
+
+  // Double-submit guard. Parents fill this on a phone on patchy mobile data;
+  // when the response is slow they press Submit again. Without this the club
+  // got two identical children in the approval queue with no duplicate flag,
+  // approved both, and billed the family twice — and there is no way to void
+  // an invoice once raised, so the second ₹3,000 had to be argued away by hand.
+  //
+  // Match on the natural key a resubmission shares (same centre, same child,
+  // same phone) and only inside a short window, so a genuine sibling or a
+  // re-registration months later is unaffected. Returns the ORIGINAL rider id
+  // with a 200 so the wizard's success screen behaves identically.
+  const DUPLICATE_WINDOW_MS = 6 * 60 * 60 * 1000;
+  const existing = await prisma.rider.findFirst({
+    where: {
+      centreId: centre.id,
+      mobile: d.mobile,
+      dob: new Date(d.dob),
+      firstName: { equals: d.firstName, mode: "insensitive" },
+      lastName: { equals: d.lastName, mode: "insensitive" },
+      createdAt: { gte: new Date(Date.now() - DUPLICATE_WINDOW_MS) },
+    },
+    select: { id: true, status: true },
+    orderBy: { createdAt: "desc" },
+  });
+  if (existing) {
+    return NextResponse.json({
+      riderId: existing.id,
+      status: existing.status,
+      feesOn: await isFeatureEnabledForCentre(centre.id, "fee-collection"),
+      duplicate: true,
+    });
   }
 
   const rider = await prisma.rider.create({

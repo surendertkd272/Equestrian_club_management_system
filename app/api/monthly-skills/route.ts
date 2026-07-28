@@ -8,7 +8,7 @@ import { getSession } from "@/lib/auth";
 import { blockIfFeatureOff } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentreForRoute } from "@/lib/tenancy";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { createSkillSchema } from "@/lib/schemas/monthly-skill";
 
@@ -23,7 +23,9 @@ export async function POST(req: NextRequest) {
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
 
-  const centreId = scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = scoped.centreId;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
 
   const body = await req.json().catch(() => null);

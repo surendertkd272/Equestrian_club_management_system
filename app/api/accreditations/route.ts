@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 import { createAccreditationSchema } from "@/lib/schemas/accreditation";
 import { audit } from "@/lib/audit";
 import { blockIfFeatureOff, getOrgIdForSession } from "@/lib/features-gate";
@@ -25,7 +26,9 @@ export async function GET(req: NextRequest) {
   if (riderId) where.riderId = riderId;
   // Tenant scoping via the rider relation: a specific centre for centre-scoped
   // roles, org-bounded for HQ ("all centres"). A foreign centreId yields 0 rows.
-  where.rider = tenantWhere(scopeCentre(session), orgId);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  where.rider = tenantWhere(scoped.centreId, orgId);
 
   const rows = await prisma.accreditation.findMany({
     where,
@@ -55,8 +58,11 @@ export async function POST(req: NextRequest) {
   // Scope check — only allow against riders the caller can see.
   const rider = await prisma.rider.findUnique({ where: { id: parsed.data.riderId } });
   if (!rider) return NextResponse.json({ error: "RIDER_NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && rider.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence44 = await centreFence(session, rider.centreId);
+  if (fence44) {
+    return NextResponse.json({ error: fence44 }, { status: 403 });
   }
 
   const row = await prisma.accreditation.create({

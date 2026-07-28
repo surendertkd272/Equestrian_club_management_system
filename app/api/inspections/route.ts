@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
-import { scopeCentre } from "@/lib/tenancy";
+import { scopeCentreForRoute } from "@/lib/tenancy";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { startAuditSchema, AUDIT_TEMPLATES, CAN_INSPECT } from "@/lib/schemas/audit-run";
@@ -22,7 +22,9 @@ export async function POST(req: NextRequest) {
 
   // INSPECTION_OFFICER + centre roles are pinned to their own centre; HQ can
   // pick via the centre filter.
-  const centreId = scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = scoped.centreId;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
 
   // HQ picks the centre via the ew_hq_centre cookie (read inside scopeCentre).

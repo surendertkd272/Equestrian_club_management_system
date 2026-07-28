@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +20,7 @@ export default async function EquipmentPage({
 }: {
   searchParams: { centreId?: string; q?: string };
 }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   // HQ-tier admins (SUPER_ADMIN + ADMIN) without a centre context (via
   // ?centreId or topbar HQ filter) land on the HQ matrix instead.
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
@@ -36,7 +36,7 @@ export default async function EquipmentPage({
   // ?centreId= and read its centre/stock. tenantWhere() turns a foreign
   // centreId into a 0-row match; the centre lookup is org-bounded too.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const [centre, catalog, stocks] = await Promise.all([
     prisma.centre.findFirst({ where: { id: centreId, orgId }, select: { id: true, name: true, slug: true } }),

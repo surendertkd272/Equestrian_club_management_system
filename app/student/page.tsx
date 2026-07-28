@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { getStudentSummary, getStudentDetail } from "@/lib/student";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HeroCard } from "@/components/dashboard/visuals";
@@ -27,7 +27,7 @@ const RATING: Record<number, { label: string; variant: "success" | "warning" | "
 };
 
 export default async function StudentHome() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const summary = await getStudentSummary(session.userId);
 
   if (!summary) {

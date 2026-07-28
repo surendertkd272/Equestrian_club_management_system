@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { markAttendanceSchema, parseDateOnly } from "@/lib/schemas/attendance";
@@ -21,14 +22,23 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const parsed = markAttendanceSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
+    // Surface the first field message. humanizeError() prefers an explicit
+  // `message` over the generic code, so without this a coach who typed the
+  // wrong year saw only "Some fields need fixing" with nothing highlighted.
+  return NextResponse.json(
+      { error: "VALIDATION", message: parsed.error.issues[0]?.message, details: parsed.error.flatten() },
+      { status: 400 },
+    );
   }
   const { batchId, date, entries } = parsed.data;
 
   const batch = await prisma.batch.findUnique({ where: { id: batchId } });
   if (!batch) return NextResponse.json({ error: "BATCH_NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && batch.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles have centreId = null: this comparison locked ADMIN out of every
+  // centre while fencing no organisation at all. centreFence does both.
+  const fence = await centreFence(session, batch.centreId);
+  if (fence) {
+    return NextResponse.json({ error: fence }, { status: 403 });
   }
 
   // Verify every rider belongs to this batch (or at least this centre).

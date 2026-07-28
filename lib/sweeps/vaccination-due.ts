@@ -46,7 +46,14 @@ export async function sweepVaccinationDue(): Promise<SweepResult> {
       title: `${list.length} vaccination${list.length === 1 ? "" : "s"} due within 30 days`,
       body: `${preview}${more}.`,
       link: "/vaccinations",
-      payload: { count: list.length, ids: list.map((r) => r.id).slice(0, 20) },
+      // centreId MUST be in the payload: recentlyNotified() above de-duplicates
+      // by searching the payload for the row key, so omitting it made the guard
+      // above always miss. This digest therefore re-fired on every nightly
+      // sweep — the same "N vaccinations due within 30 days" notice landing on
+      // the manager every night for up to 30 nights per horse, which is exactly
+      // how people learn to ignore the notification feed. Every other digest
+      // sweep already includes its key here.
+      payload: { centreId, count: list.length, ids: list.map((r) => r.id).slice(0, 20) },
     });
     notified += 1;
   }

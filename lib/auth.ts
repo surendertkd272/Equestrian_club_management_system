@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import type { Role } from "./roles";
 import { bindTenantOrg } from "./tenant-context";
+import { redirect } from "next/navigation";
 
 const COOKIE_NAME = "ew_session";
 
@@ -117,6 +118,7 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
         tokenVersion: true,
         status: true,
         deletionRequestedAt: true,
+        centreId: true,
         orgId: true,
         centre: { select: { orgId: true, org: { select: { status: true } } } },
         org: { select: { status: true } },
@@ -137,6 +139,14 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
     // under RLS_ENFORCE=1. No-op when the flag is off. Parent/Rider portals
     // (whose org comes from links, not User.orgId) re-bind in their resolvers.
     bindTenantOrg(u.orgId ?? u.centre?.orgId ?? null);
+    // The JWT's centreId is a SNAPSHOT from mint time, and moving a user to
+    // another centre does not bump tokenVersion — so a transferred employee
+    // kept acting on their old centre for the rest of the token's life, and
+    // every centre check in the product (centreFence included) believed them.
+    // The row is already loaded; take the centre from it.
+    if (u.centreId !== payload.centreId) {
+      payload.centreId = u.centreId;
+    }
   }
   // Honour explicit impersonation expiry too — separate from JWT exp so we
   // can cap impersonated sessions to 30 min regardless of the JWT TTL.
@@ -146,9 +156,26 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
   return payload;
 });
 
+// Page guard: return the session, or bounce to /login. Use this in every
+// server COMPONENT instead of `(await getSession())!`.
+//
+// The middleware only verifies the JWT signature and expiry. getSession() then
+// applies six further checks the cookie cannot know about, any of which turns a
+// structurally valid cookie into a null session mid-flight:
+//   • the user was deleted, or deactivated
+//   • tokenVersion moved on — "sign out everywhere", or a password reset
+//   • the user requested account deletion (DPDPA grace window)
+//   • the ORG was suspended — i.e. the club stopped paying
+//   • an impersonation window expired
+// With the old non-null assertion, every one of those rendered a TypeError on
+// the server and dumped the user on a blank bounce with no explanation. That is
+// not a rare edge: a club suspended for non-payment hits it on every request,
+// and it floods error reporting at exactly the moment someone is looking.
+//
+// Deliberately NOT for API routes — they must answer 401 JSON, not redirect.
 export async function requireSession(): Promise<SessionPayload> {
   const s = await getSession();
-  if (!s) throw new Error("UNAUTHENTICATED");
+  if (!s) redirect("/login?ended=1");
   return s;
 }
 

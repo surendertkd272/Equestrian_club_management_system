@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { startOfDayInTz } from "@/lib/tz";
@@ -14,15 +14,15 @@ import { VaccinationsClient } from "./vaccinations-client";
 export const dynamic = "force-dynamic";
 
 export default async function VaccinationsPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
 
   // VaccinationSchedule has centreId but no `centre` relation → bind by the
   // caller's org's centre-id set (or the picked in-org centre).
   const orgCentreIds = (await prisma.centre.findMany({ where: { orgId }, select: { id: true } })).map((c) => c.id);
-  const where: any = { centreId: centreId ?? { in: orgCentreIds } };
+  const where: any = { centreId: centreId && orgCentreIds.includes(centreId) ? centreId : { in: orgCentreIds } };
 
   const [rows, horses, totalSchedules] = await Promise.all([
     prisma.vaccinationSchedule.findMany({

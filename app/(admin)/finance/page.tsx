@@ -54,7 +54,7 @@ export default async function FinancePage() {
   // their org so the "all" filter stays org-scoped instead of leaking every
   // org's invoices/expenses. Fail closed if the org can't be resolved.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const where = tenantWhere(centreId, orgId);
 
   const now = new Date();

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
@@ -23,8 +24,11 @@ export async function DELETE(
     include: { rider: { select: { centreId: true } } },
   });
   if (!link || link.riderId !== params.id) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && link.rider.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence85 = await centreFence(session, link.rider.centreId);
+  if (fence85) {
+    return NextResponse.json({ error: fence85 }, { status: 403 });
   }
 
   await prisma.parentLink.delete({ where: { id: link.id } });

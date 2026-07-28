@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { blockIfFeatureOff } from "@/lib/features-gate";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
@@ -18,10 +20,26 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
 
+  // Who may amend a medical record. The handler previously checked only that a
+  // session existed and shared the centre — no role check on either branch — so
+  // a farrier, a groom, an inventory manager and even a RIDER's own child login
+  // could mark another child's injury "recovered" and write clinical notes onto
+  // it. Reproduced on a severe rider injury: FARRIER, INVENTORY_MANAGER and
+  // RIDER all returned 200 and the writes landed.
+  //
+  // Logging an injury stays open to everyone (a groom is often first to see it,
+  // and POST is deliberately permissive). Closing or annotating one does not.
+  if (!can(session.role, "injury.manage")) {
+    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  }
+
   const row = await prisma.injuryLog.findUnique({ where: { id: params.id } });
   if (!row) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && row.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence84 = await centreFence(session, row.centreId);
+  if (fence84) {
+    return NextResponse.json({ error: fence84 }, { status: 403 });
   }
 
   const body = await req.json().catch(() => null);

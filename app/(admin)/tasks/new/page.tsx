@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
@@ -14,7 +14,7 @@ import { NewTaskForm } from "./form";
 export const dynamic = "force-dynamic";
 
 export default async function NewTaskPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!can(session.role, "task.assign")) redirect("/tasks");
 
   // For HQ admins (SUPER_ADMIN / ADMIN with no session.centreId), the
@@ -22,7 +22,7 @@ export default async function NewTaskPage() {
   // picker filters the roster client-side. For centre-scoped users we
   // narrow to their pinned centre.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const resolvedCentreId = scopeCentre(session);
   const isHQ = (session.role === "SUPER_ADMIN" || session.role === "ADMIN") && !session.centreId;
 

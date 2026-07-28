@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
@@ -25,13 +25,13 @@ export default async function ExpensesPage({
 }: {
   searchParams: { group?: string; paid?: string };
 }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!can(session.role, "finance.read")) {
     return <div className="p-4 text-sm text-muted-foreground">No access.</div>;
   }
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const where: any = { ...tenantWhere(centreId, orgId) };
   if (searchParams.paid === "paid") where.paid = true;
   if (searchParams.paid === "due") where.paid = false;

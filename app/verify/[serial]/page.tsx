@@ -12,8 +12,13 @@ export const revalidate = 300;
 
 export default async function VerifyPage({ params }: { params: { serial: string } }) {
   bindRlsBypass(); // public-by-unguessable-id flow (no session to bind an org from)
-  const cert = await prisma.certificate.findUnique({
-    where: { serialNo: params.serial },
+  // Serials are minted uppercase, but people reach this page by typing what
+  // they read off a printed certificate — and a lowercase transcription used
+  // to come back "No certificate matches this serial", which reads to a parent
+  // or an employer as "this certificate is fake". Match case-insensitively;
+  // the serial is still 8 unambiguous base32 chars of entropy.
+  const cert = await prisma.certificate.findFirst({
+    where: { serialNo: { equals: decodeURIComponent(params.serial).trim(), mode: "insensitive" } },
     include: {
       rider: { select: { firstName: true, lastName: true } },
       centre: { select: { name: true, address: true } },

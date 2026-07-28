@@ -7,7 +7,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import {
   createShortLinkSchema,
@@ -36,7 +36,9 @@ export async function GET() {
   }
   const orgId = await getOrgIdForSession(session);
   if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
-  const centreId = scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = scoped.centreId;
   const rows = await prisma.shortLink.findMany({
     where: tenantWhere(centreId, orgId),
     orderBy: { createdAt: "desc" },
@@ -54,7 +56,9 @@ export async function POST(req: NextRequest) {
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
 
-  const centreId = scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = scoped.centreId;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
 
   const body = await req.json().catch(() => null);

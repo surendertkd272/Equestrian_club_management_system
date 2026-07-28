@@ -6,7 +6,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
@@ -18,14 +18,14 @@ import { formatDate } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 export default async function VetFollowupsPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   // VET can see all their centre's follow-ups; managers + horse.manage roles
   // can too (so a head coach can spot a horse that's been off-roster too long).
   if (!can(session.role, "medicine.prescribe") && !can(session.role, "horse.manage")) {
     redirect("/dashboard");
   }
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
 
   // Partition by the centre's local day, not the server's UTC instant — a

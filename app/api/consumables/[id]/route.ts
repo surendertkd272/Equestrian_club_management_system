@@ -2,6 +2,7 @@
 // DELETE is soft (active=false) so movement history keeps its FK.
 
 import { NextRequest, NextResponse } from "next/server";
+import { centreFence } from "@/lib/authz-centre";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { blockIfFeatureOff } from "@/lib/features-gate";
@@ -10,12 +11,14 @@ import { updateConsumableSchema } from "@/lib/schemas/consumable";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 
-async function loadOwned(id: string, session: { role: string; centreId: string | null }) {
+async function loadOwned(id: string, session: { role: string; centreId: string | null; userId: string }) {
   const row = await prisma.consumable.findUnique({ where: { id } });
   if (!row) return { error: NextResponse.json({ error: "NOT_FOUND" }, { status: 404 }) };
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && row.centreId !== session.centreId) {
-    return { error: NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 }) };
+  // isHQ alone let any organisation's HQ through; centreFence adds the org rule.
+  const fence = await centreFence(session, row.centreId);
+  if (fence) {
+    return { error: NextResponse.json({ error: fence }, { status: 403 }) };
   }
   return { row };
 }

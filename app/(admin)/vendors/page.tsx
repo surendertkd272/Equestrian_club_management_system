@@ -6,7 +6,7 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { vendorScopeWhere } from "@/lib/vendor-scope";
@@ -22,11 +22,11 @@ import { DeactivateButton } from "@/components/ui/deactivate-button";
 export const dynamic = "force-dynamic";
 
 export default async function VendorsPage({ searchParams }: { searchParams: { category?: string } }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/dashboard");
 
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
   // Own-centre vendors + national (all-India) vendors in the same org
   // (vendorScopeWhere is org-bounded for HQ).

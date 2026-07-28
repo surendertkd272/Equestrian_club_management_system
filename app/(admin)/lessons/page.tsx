@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { startOfDayInTz, endOfDayInTz, wallPartsInTz } from "@/lib/tz";
@@ -10,20 +10,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { NewLessonForm } from "./new-form";
 import { LessonDeleteButton } from "./delete-button";
+import { LessonCoachPicker } from "./coach-picker";
 import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 type SP = { date?: string };
 
 export default async function LessonsPage({ searchParams }: { searchParams: SP }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
   if (!centreId) {
     return <div className="p-6 text-sm text-muted-foreground">Pick a centre to see lessons.</div>;
   }
 
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const centre = await prisma.centre.findUnique({ where: { id: centreId }, select: { timezone: true } });
   const tz = centre?.timezone ?? "Asia/Kolkata";
@@ -42,7 +43,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
   const dayStart = startOfDayInTz(ref, tz);
   const dayEnd = endOfDayInTz(ref, tz);
 
-  const [lessons, batches] = await Promise.all([
+  const [lessons, batches, coaches] = await Promise.all([
     prisma.lesson.findMany({
       where: { ...tenantWhere(centreId, orgId), date: { gte: dayStart, lte: dayEnd } },
       orderBy: { date: "asc" },
@@ -56,8 +57,33 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
         },
       },
     }),
-    prisma.batch.findMany({ where: tenantWhere(centreId, orgId), orderBy: { name: "asc" }, select: { id: true, name: true, startTime: true, endTime: true } }),
+    prisma.batch.findMany({ where: tenantWhere(centreId, orgId), orderBy: { name: "asc" }, select: { id: true, name: true, startTime: true, endTime: true, coachId: true } }),
+    // Who can take a session. Coaching staff at this centre, so a manager can
+    // hand a lesson over when someone calls in sick.
+    prisma.user.findMany({
+      where: { ...(centreId ? { centreId } : {}), status: "active", role: { in: ["COACH", "HEAD_COACH", "CENTRE_MANAGER"] } },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, role: true },
+    }),
   ]);
+
+  // A lesson's coach may have left, changed role or moved centre — Lesson.coachId
+  // is a bare column with no FK, so they simply vanish from the list above.
+  // Resolve their names separately so the picker names them instead of
+  // claiming the session was unassigned.
+  const formerIds = [
+    ...new Set(
+      lessons
+        .map((l) => l.coachId)
+        .filter((id): id is string => !!id && !coaches.some((c) => c.id === id)),
+    ),
+  ];
+  const formerNames = new Map(
+    (formerIds.length
+      ? await prisma.user.findMany({ where: { id: { in: formerIds } }, select: { id: true, name: true } })
+      : []
+    ).map((u) => [u.id, u.name] as const),
+  );
 
   // Compute prev/next day links so coaches can scrub through the week.
   const d = new Date(`${date}T12:00:00`);
@@ -86,7 +112,7 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
           <CardTitle className="text-base">Schedule an Ad-Hoc Lesson</CardTitle>
         </CardHeader>
         <CardContent>
-          <NewLessonForm centreId={centreId} batches={batches} defaultDate={date} />
+          <NewLessonForm centreId={centreId} batches={batches} coaches={coaches} defaultDate={date} />
         </CardContent>
       </Card>
 
@@ -131,6 +157,16 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
                     {l.notes ? <div className="mt-1 text-xs italic text-muted-foreground">{l.notes}</div> : null}
                   </div>
                   <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Coach</span>
+                      <LessonCoachPicker
+                        lessonId={l.id}
+                        coachId={l.coachId}
+                        coaches={coaches}
+                        formerCoachName={l.coachId ? formerNames.get(l.coachId) ?? null : null}
+                        canEdit={can(session.role, "lesson.write")}
+                      />
+                    </div>
                     <Link href={`/lessons/${l.id}`} className="rounded border px-3 py-1 text-xs hover:bg-accent">
                       Allocate / edit
                     </Link>

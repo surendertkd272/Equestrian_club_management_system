@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { blockIfFeatureOff, getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
-import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 import { createLeaveRequestSchema, LEAVE_STATUSES } from "@/lib/schemas/leave-request";
 import { audit } from "@/lib/audit";
 import { notifyRole } from "@/lib/notify";
@@ -79,7 +79,9 @@ export async function GET(req: NextRequest) {
   const requestedCentre = url.searchParams.get("centre");
   const orgId = await getOrgIdForSession(session);
   if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
-  const scopedCentre = scopeCentre(session, requestedCentre);
+  const s2 = scopeCentreForRoute(session, requestedCentre);
+  if (s2.error) return s2.error;
+  const scopedCentre = s2.centreId;
 
   const where: Record<string, unknown> = { ...tenantWhere(scopedCentre, orgId) };
   if (status && (LEAVE_STATUSES as readonly string[]).includes(status)) {

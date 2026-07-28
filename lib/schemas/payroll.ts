@@ -86,24 +86,43 @@ export function dailyRate(gross: number): number {
 export function computeAbsenceDeduction(
   gross: number,
   counts: Record<string, number>,
+  // Per-status daily rates from the org's PayrollConfig, in rupees. When a
+  // status has a configured rate it wins; anything unconfigured falls back to
+  // the derived rate below, so an org that never set a policy sees exactly the
+  // previous behaviour.
+  //
+  // This parameter is why the config existed. The policy screen saved rules and
+  // echoed them back, deductionRulesForCentre() read them correctly — and
+  // nothing ever called it, so payroll silently used the derived rate no matter
+  // what the org had configured. An admin could set ₹800/day for absence and
+  // watch payroll deduct something else entirely.
+  rules: Record<string, number> = {},
 ): { total: number; breakdown: { status: string; days: number; rate: number; amount: number }[] } {
-  const rate = dailyRate(gross);
+  const derived = dailyRate(gross);
   const breakdown: { status: string; days: number; rate: number; amount: number }[] = [];
   let total = 0;
-  if (rate > 0) {
-    const absent = counts["absent"] ?? 0;
-    if (absent > 0) {
-      const amount = absent * rate;
-      breakdown.push({ status: "absent", days: absent, rate, amount });
-      total += amount;
-    }
-    const half = counts["half_day"] ?? 0;
-    if (half > 0) {
-      const r = rate / 2;
-      const amount = half * r;
-      breakdown.push({ status: "half_day", days: half, rate: r, amount });
-      total += amount;
-    }
+
+  // Every status the org has priced, plus the two the derived formula has
+  // always handled — so a configured "leave_unpaid" rate is honoured too.
+  const statuses = new Set([...Object.keys(rules), "absent", "half_day"]);
+  for (const status of statuses) {
+    const days = counts[status] ?? 0;
+    if (days <= 0) continue;
+    const configured = rules[status];
+    const rate =
+      typeof configured === "number" && Number.isFinite(configured)
+        ? configured
+        : status === "absent"
+          ? derived
+          : status === "half_day"
+            ? derived / 2
+            : 0;
+    if (rate <= 0) continue;
+    const amount = days * rate;
+    breakdown.push({ status, days, rate, amount });
+    total += amount;
   }
+  // Stable order so a payslip doesn't reshuffle between renders.
+  breakdown.sort((a, b) => a.status.localeCompare(b.status));
   return { total, breakdown };
 }

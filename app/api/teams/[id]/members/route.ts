@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { blockIfFeatureOff } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
@@ -25,8 +26,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
   const team = await prisma.team.findUnique({ where: { id: params.id } });
   if (!team) return NextResponse.json({ error: "TEAM_NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && team.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence61 = await centreFence(session, team.centreId);
+  if (fence61) {
+    return NextResponse.json({ error: fence61 }, { status: 403 });
   }
   const rider = await prisma.rider.findUnique({
     where: { id: parsed.data.riderId },
@@ -72,8 +76,11 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
   const team = await prisma.team.findUnique({ where: { id: params.id } });
   if (!team) return NextResponse.json({ error: "TEAM_NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && team.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence61 = await centreFence(session, team.centreId);
+  if (fence61) {
+    return NextResponse.json({ error: fence61 }, { status: 403 });
   }
   await prisma.teamMember.deleteMany({ where: { teamId: team.id, riderId } });
   return NextResponse.json({ ok: true });

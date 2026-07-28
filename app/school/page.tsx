@@ -11,7 +11,7 @@
 // set on their User row at create-time.
 
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +21,7 @@ import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function SchoolDashboardPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   // Layout already verifies the role; centre scope comes from session.
   const centreId = session.centreId;
 

@@ -93,7 +93,15 @@ export async function POST(req: NextRequest) {
   // paid when cumulative payments cover amount + GST — a partial/short capture
   // must NOT flip an invoice to fully paid.
   const captured = (payment.amount as number) / 100;
-  const target = invoice.amount + invoice.gstAmount;
+  // Net of credit notes, matching what the order route charged. Face value
+  // here would mark an invoice "due" that is actually settled, or bank more
+  // than the club is owed.
+  const creditAgg = await prisma.invoice.aggregate({
+    where: { creditNoteForId: invoice.id },
+    _sum: { amount: true, gstAmount: true },
+  });
+  const target =
+    invoice.amount + invoice.gstAmount + (creditAgg._sum.amount ?? 0) + (creditAgg._sum.gstAmount ?? 0);
   const priorPaid = (await prisma.payment.aggregate({ where: { invoiceId: invoice.id }, _sum: { amount: true } }))._sum.amount ?? 0;
   const fullyPaid = priorPaid + captured >= target - 0.001;
 
@@ -108,10 +116,29 @@ export async function POST(req: NextRequest) {
           clearedAt: new Date(),
         },
       }),
-      prisma.invoice.update({ where: { id: invoice.id }, data: { status: fullyPaid ? "paid" : "due" } }),
+      // If the invoice was voided AFTER the gateway order was created, the money
+      // is still real — the family has been debited. Record it so it can be
+      // refunded through the reversal path, but do NOT resurrect the cancelled
+      // charge by flipping its status back.
+      ...(invoice.voidedAt
+        ? []
+        : [prisma.invoice.update({ where: { id: invoice.id }, data: { status: fullyPaid ? "paid" : "due" } })]),
       // Activate the rider only once registration is FULLY paid.
-      ...(fullyPaid && invoice.kind === "registration"
-        ? [prisma.rider.update({ where: { id: invoice.riderId }, data: { registrationPaid: true, status: "active" } })]
+      ...(fullyPaid && !invoice.voidedAt && invoice.kind === "registration"
+        ? [
+            // Record the payment, but never resurrect a rider the club has
+            // off-boarded: a departed family settling an old registration
+            // invoice must not silently reappear on the roster. Withdrawal is
+            // undone deliberately, on /riders.
+            prisma.rider.updateMany({
+              where: { id: invoice.riderId, status: { not: "withdrawn" } },
+              data: { registrationPaid: true, status: "active" },
+            }),
+            prisma.rider.updateMany({
+              where: { id: invoice.riderId, status: "withdrawn" },
+              data: { registrationPaid: true },
+            }),
+          ]
         : []),
     ]);
   } catch (e: any) {
@@ -130,7 +157,7 @@ export async function POST(req: NextRequest) {
 
   await notifyCentreManager(invoice.centre.id, {
     type: "payment.received",
-    title: `Payment received (webhook) · ₹${invoice.amount.toLocaleString("en-IN")}`,
+    title: `Payment received (webhook) · ₹${Math.round(captured).toLocaleString("en-IN")}`,
     body: `Invoice ${invoice.id.slice(-6)} (${invoice.kind.replace("_", " ")}) marked paid via Razorpay webhook.`,
     link: `/riders/${invoice.riderId}`,
     payload: { invoiceId: invoice.id, paymentId },
@@ -142,7 +169,7 @@ export async function POST(req: NextRequest) {
   if (parentPhone) {
     await sendSms({
       to: parentPhone,
-      body: `${invoice.centre.name}: Thank you. ₹${invoice.amount.toLocaleString("en-IN")} ${invoice.kind.replace("_", " ")} fee for ${invoice.rider.firstName} received. Ref: ${paymentId.slice(-8)}.`,
+      body: `${invoice.centre.name}: Thank you. ₹${Math.round(captured).toLocaleString("en-IN")} ${invoice.kind.replace("_", " ")} fee for ${invoice.rider.firstName} received. Ref: ${paymentId.slice(-8)}.`,
       ref: { type: "payment.received", rowId: invoice.id, payload: { paymentId } },
     });
     await sendWhatsApp({
@@ -152,25 +179,25 @@ export async function POST(req: NextRequest) {
         name: "ew_payment_received",
         bodyParams: [
           `${invoice.rider.firstName} ${invoice.rider.lastName}`,
-          `₹${invoice.amount.toLocaleString("en-IN")}`,
+          `₹${Math.round(captured).toLocaleString("en-IN")}`,
           paymentId.slice(-8),
         ],
       },
-      previewBody: `Payment received (webhook) · ₹${invoice.amount.toLocaleString("en-IN")}`,
+      previewBody: `Payment received (webhook) · ₹${Math.round(captured).toLocaleString("en-IN")}`,
       ref: { type: "payment.received", rowId: invoice.id, payload: { paymentId } },
     });
   }
   if (invoice.rider.email) {
     await sendEmail({
       to: invoice.rider.email,
-      subject: `Payment receipt · ₹${invoice.amount.toLocaleString("en-IN")} · ${invoice.rider.firstName} ${invoice.rider.lastName}`,
+      subject: `Payment receipt · ₹${Math.round(captured).toLocaleString("en-IN")} · ${invoice.rider.firstName} ${invoice.rider.lastName}`,
       html: renderEmail({
         centreName: invoice.centre.name,
         heading: `Payment received — thank you`,
         body: `<p>Dear Parent / Guardian,</p>
-<p>We've received your payment of <b>₹${invoice.amount.toLocaleString("en-IN")}</b> towards the <b>${invoice.kind.replace("_", " ")}</b> fee for <b>${invoice.rider.firstName} ${invoice.rider.lastName}</b>. This serves as your receipt.</p>
+<p>We've received your payment of <b>₹${Math.round(captured).toLocaleString("en-IN")}</b> towards the <b>${invoice.kind.replace("_", " ")}</b> fee for <b>${invoice.rider.firstName} ${invoice.rider.lastName}</b>. This serves as your receipt.</p>
 <table style="margin:16px 0;border-collapse:collapse;">
-  <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Amount</td><td style="padding:4px 0;font-weight:600;">₹${invoice.amount.toLocaleString("en-IN")}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Amount</td><td style="padding:4px 0;font-weight:600;">₹${Math.round(captured).toLocaleString("en-IN")}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Method</td><td style="padding:4px 0;">Razorpay</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Payment ID</td><td style="padding:4px 0;font-family:monospace;font-size:12px;">${paymentId}</td></tr>
 </table>`,

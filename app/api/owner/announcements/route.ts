@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getOwnerSession } from "@/lib/owner-auth";
 import { auditOwner } from "@/lib/owner-audit";
+import { storedUrl } from "@/lib/schemas/url";
 
 // Owner-side CRUD for platform-wide announcements. Tenants consume via
 // /api/announcements (a separate, session-authed endpoint).
@@ -12,7 +13,7 @@ const createSchema = z.object({
   title: z.string().min(1).max(160),
   body: z.string().min(1).max(2000),
   ctaLabel: z.string().max(40).optional().nullable(),
-  ctaHref: z.string().url().optional().nullable(),
+  ctaHref: storedUrl.optional().nullable(),
   severity: z.enum(SEVERITIES).default("info"),
   planFilter: z.string().max(80).optional().nullable(),
   roleFilter: z.string().max(120).optional().nullable(),

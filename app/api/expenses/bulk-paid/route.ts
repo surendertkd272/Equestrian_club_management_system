@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { makeCentreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
@@ -42,8 +43,12 @@ export async function POST(req: NextRequest) {
   });
   const validIds: string[] = [];
   const skipped: string[] = [];
+  // One fence for the whole batch — see makeCentreFence.
+  const fence = makeCentreFence(session);
   for (const r of rows) {
-    if (session.role !== "SUPER_ADMIN" && r.centreId !== session.centreId) {
+    // HQ roles have centreId = null, so this comparison used to skip EVERY
+    // row for an ADMIN — the bulk action silently did nothing for them.
+    if (await fence(r.centreId)) {
       skipped.push(r.id);
       continue;
     }

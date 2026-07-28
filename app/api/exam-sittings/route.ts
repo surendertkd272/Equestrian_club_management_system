@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { parseDateOnly } from "@/lib/schemas/attendance";
@@ -55,8 +56,11 @@ export async function POST(req: NextRequest) {
   // Sitting centre = the session's centre, or (for HQ) the pool's shared centre.
   const centreId = session.centreId ?? examinerUsers[0]?.centreId ?? null;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
-  if (session.role !== "SUPER_ADMIN" && centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // Locks ADMIN out (centreId = null) and org-fences nobody. Same helper as
+  // everywhere else; the centre here comes from the subject, not the session.
+  const fence = await centreFence(session, centreId);
+  if (fence) {
+    return NextResponse.json({ error: fence }, { status: 403 });
   }
   // Every pool examiner must share the centre unless a SUPER_ADMIN is staffing
   // across centres.

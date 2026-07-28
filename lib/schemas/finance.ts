@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { storedUrl } from "@/lib/schemas/url";
 
 export const EXPENSE_GROUPS = [
   "operating",
@@ -74,7 +75,7 @@ export const createExpenseSchema = z.object({
   paid: z.boolean().default(false),
   paidAt: dateLike.optional(),
   method: z.enum(["cash", "bank", "cheque", "upi", "card"]).optional(),
-  attachmentUrl: z.string().url().optional(),
+  attachmentUrl: storedUrl.optional(),
 });
 
 export const updateExpenseSchema = createExpenseSchema.partial();

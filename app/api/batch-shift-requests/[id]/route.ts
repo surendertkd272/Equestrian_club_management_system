@@ -14,6 +14,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
@@ -55,6 +56,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!isHQ && !isCentreSenior && !isTargetCoach) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
+  // isHQ short-circuits the two centre-aware conditions above, so without this
+  // any tenant's HQ could approve any club's shift request by id — moving a
+  // child between batches at a club they have nothing to do with.
+  const fence = await centreFence(session, row.toBatch.centreId);
+  if (fence) return NextResponse.json({ error: fence }, { status: 403 });
 
   if (parsed.data.decision === "reject") {
     await prisma.batchShiftRequest.update({

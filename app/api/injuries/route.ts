@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
-import { blockIfFeatureOff } from "@/lib/features-gate";
+import { blockIfFeatureOff, getOrgIdForSession } from "@/lib/features-gate";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
-import { notifyCentreManager } from "@/lib/notify";
+import { notifyCentreManager, notifyRiderAndParents } from "@/lib/notify";
 import { createInjurySchema } from "@/lib/schemas/injury";
+import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 
 // GET — list injuries scoped to the caller's centre. Optional ?subjectType,
 // ?subjectId for filtering to one rider/horse's history.
@@ -20,8 +22,26 @@ export async function GET(req: NextRequest) {
   const subjectType = url.searchParams.get("subjectType");
   const subjectId = url.searchParams.get("subjectId");
 
-  const where: Prisma.InjuryLogWhereInput = {};
-  if (session.role !== "SUPER_ADMIN" && session.centreId) where.centreId = session.centreId;
+  // Injury rows carry children's medical detail (allergies, epilepsy, diabetes,
+  // "sent to hospital"). Scope has to fail CLOSED.
+  //
+  // The previous guard was `if (role !== "SUPER_ADMIN" && session.centreId)`,
+  // which silently did nothing for any role whose centreId is null. A PARENT
+  // legitimately has centreId = null, so the filter never applied and the query
+  // returned the most recent 100 injury rows for EVERY rider in EVERY club —
+  // reproduced with a parent cookie returning another club's child's record.
+  //
+  // Portal roles have no business on this endpoint at all; everyone else is
+  // pinned to their own centre and org.
+  if (session.role === "PARENT" || session.role === "RIDER") {
+    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  }
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+
+  const where: Prisma.InjuryLogWhereInput = { ...tenantWhere(scoped.centreId, orgId) };
   if (subjectType) where.subjectType = subjectType;
   if (subjectId) where.subjectId = subjectId;
 
@@ -44,9 +64,10 @@ export async function POST(req: NextRequest) {
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
 
-  if (!session.centreId && session.role !== "SUPER_ADMIN") {
-    return NextResponse.json({ error: "NO_CENTRE" }, { status: 400 });
-  }
+  // No centre gate here. The row's centre is taken from the rider or horse the
+  // injury is about (below), so an HQ user — who has no centre of their own —
+  // has everything needed; this check only ever refused them. The centreFence
+  // below still binds them to their own organisation.
 
   const body = await req.json().catch(() => null);
   const parsed = createInjurySchema.safeParse(body);
@@ -85,8 +106,11 @@ export async function POST(req: NextRequest) {
     centreId = r.centreId;
     subjectName = `${r.firstName} ${r.lastName}`;
   }
-  if (session.role !== "SUPER_ADMIN" && centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // Locks ADMIN out (centreId = null) and org-fences nobody. Same helper as
+  // everywhere else; the centre here comes from the subject, not the session.
+  const fence = await centreFence(session, centreId);
+  if (fence) {
+    return NextResponse.json({ error: fence }, { status: 403 });
   }
 
   const row = await prisma.injuryLog.create({
@@ -121,6 +145,22 @@ export async function POST(req: NextRequest) {
       link: `/injuries`,
       payload: { injuryId: row.id, subjectType: d.subjectType, subjectId: d.subjectId },
     });
+
+    // ...and the family. This header comment has claimed since day one that
+    // "the audit log + parent notification keeps everyone in the loop", but no
+    // parent notification existed: a child could be sent to hospital and the
+    // only person told was the centre manager. Verified by logging a severe
+    // rider injury and watching the parent's and rider's unread counts stay
+    // exactly where they were.
+    if (d.subjectType === "rider") {
+      await notifyRiderAndParents(d.subjectId, {
+        type: "injury.reported",
+        title: `${subjectName} was injured at the centre`,
+        body: `${d.severity} injury${d.location ? ` — ${d.location}` : ""}. ${d.initialNotes.slice(0, 200)} The centre has been notified; please contact them for details.`,
+        link: `/parent`,
+        criticality: "critical",
+      });
+    }
   }
 
   return NextResponse.json({ ok: true, id: row.id });

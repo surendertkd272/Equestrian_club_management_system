@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { storedUrl } from "@/lib/schemas/url";
 
+// The attachment URL renders straight into an <a href> on the exam page.
+// `z.string().url()` was wrong in both directions here: it accepted
+// `javascript:alert(...)` (any scheme parses as a URL) and rejected the
+// relative "/uploads/<file>" path /api/upload actually returns, so attaching a
+// scanned judge card failed every time. See lib/schemas/url.ts.
 const schema = z.object({
-  url: z.string().url(),
+  url: storedUrl,
   kind: z.enum(["video", "photo", "sheet", "other"]),
   caption: z.string().max(200).optional(),
 });
@@ -28,8 +35,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     include: { judges: { select: { judgeId: true } } },
   });
   if (!exam) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && exam.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence36 = await centreFence(session, exam.centreId);
+  if (fence36) {
+    return NextResponse.json({ error: fence36 }, { status: 403 });
   }
   const isExaminer = exam.examinerId === session.userId || exam.judges.some((j) => j.judgeId === session.userId);
   if (!["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH"].includes(session.role) && !isExaminer) {

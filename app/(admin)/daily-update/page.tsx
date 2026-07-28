@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { DailyUpdateForm } from "./form";
+import { todayYmdForCentre } from "@/lib/centre-tz";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ const CAN_LOG = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"
 // Coach's daily 5-minute update — the quick end-of-day narrative the client
 // asked for ("Daily 5 minute Task Update from Coach"). One per coach per day.
 export default async function DailyUpdatePage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!CAN_LOG.includes(session.role)) redirect("/dashboard");
   if (!session.centreId) {
     return (
@@ -29,10 +30,9 @@ export default async function DailyUpdatePage() {
     );
   }
 
-  const todayStr = (() => {
-    const ist = new Date(Date.now() + 330 * 60_000);
-    return ist.toISOString().slice(0, 10);
-  })();
+  // The centre's calendar date. This hardcoded a +330-minute IST offset, which
+  // is right for India and wrong for any centre that isn't — and silently so.
+  const todayStr = await todayYmdForCentre(session.centreId);
   const todayKey = new Date(`${todayStr}T12:00:00.000Z`);
 
   const [todays, recent] = await Promise.all([

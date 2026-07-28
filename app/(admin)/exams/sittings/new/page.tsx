@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
@@ -10,11 +10,11 @@ import { NewSittingForm } from "./form";
 export const dynamic = "force-dynamic";
 
 export default async function NewSittingPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!can(session.role, "exam.schedule")) redirect("/exams");
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const [riders, examiners, templates] = await Promise.all([
     prisma.rider.findMany({

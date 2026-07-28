@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NewRequisitionForm } from "./form";
@@ -8,7 +8,7 @@ import { NewRequisitionForm } from "./form";
 export const dynamic = "force-dynamic";
 
 export default async function NewRequisitionPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!can(session.role, "requisition.submit")) redirect("/dashboard");
 
   // SUPER_ADMIN needs a centre picker — their session has no centreId pin,

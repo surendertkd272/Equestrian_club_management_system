@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { createAdvanceSchema } from "@/lib/schemas/advance";
 import { audit } from "@/lib/audit";
@@ -24,13 +24,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
   const orgId = await getOrgIdForSession(session);
+  const scopedAdv = scopeCentreForRoute(session);
+  if (scopedAdv.error) return scopedAdv.error;
+  const scopedCentreId = scopedAdv.centreId;
   if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
   const url = new URL(req.url);
   const statusFilter = url.searchParams.get("status");
 
   const advances = await prisma.employeeAdvance.findMany({
     where: {
-      ...tenantWhere(scopeCentre(session), orgId),
+      ...tenantWhere(scopedCentreId, orgId),
       ...(statusFilter ? { status: statusFilter } : {}),
     },
     include: {

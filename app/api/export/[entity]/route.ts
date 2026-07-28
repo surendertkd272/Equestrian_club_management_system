@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auditScopeFor } from "@/lib/audit-scope";
 import { getSession } from "@/lib/auth";
-import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { can, type Permission } from "@/lib/permissions";
+import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { toCsv, csvResponse } from "@/lib/csv";
+import { resolveCentreTz } from "@/lib/centre-tz";
+import { endOfDayInTz } from "@/lib/tz";
 
 // Single dispatcher for CSV exports — saves on boilerplate (auth + scoping +
 // content-type plumbing) so adding a new export is just a clause in the
@@ -17,21 +21,73 @@ const ALLOWED = new Set([
   "horses",
   "attendance",
   "invoices",
+  // Money out and money in. Invoices were the ONLY financial entity a club
+  // could get out of the product, so an accountant reconciling a month had no
+  // way to export what was actually collected, what was spent, or what was
+  // paid to staff — the numbers existed only on screen.
+  "payments",
+  "expenses",
+  "salary",
+  "advances",
   "audit",
 ]);
 
 const ROW_CAP = 5000;
+
+// What each export requires. The route previously checked only that a session
+// existed, so ANY signed-in user — a coach, an examiner, a 15-year-old on the
+// student portal — could download the full rider list with phone numbers and
+// email addresses, the invoice ledger, and (once the financial exports were
+// added) the entire staff payroll with every colleague's gross and net pay.
+// Only `audit` was gated.
+//
+// Mapped to the permission that already governs the same data elsewhere, so a
+// role that can read something on screen can still export it and nobody gains
+// or loses anything they legitimately had: coaches keep the attendance export
+// their own page offers, finance stays with finance.
+const EXPORT_PERMISSION: Record<string, Permission> = {
+  riders: "rider.read",
+  attendance: "rider.read",
+  horses: "horse.manage",
+  invoices: "finance.read",
+  payments: "finance.read",
+  expenses: "finance.read",
+  salary: "finance.read",
+  advances: "finance.read",
+  // audit keeps its own stricter SUPER_ADMIN-only check further down.
+};
+
+// A per-row read permission is NOT a licence to dump the whole table.
+// rider.read is held by RIDER and PARENT so the portals can show a child their
+// own record — mapping the roster export to it therefore handed a 15-year-old
+// the full rider list with every family's phone number and email, and the
+// complete attendance register. INSPECTION_OFFICER is an external auditor
+// scoped to inventory checks and has no business bulk-exporting children's
+// contact details either. These roles have their own scoped endpoints
+// (/api/parent/children, /api/student/me) and never need a bulk export.
+const NO_BULK_EXPORT: readonly string[] = ["RIDER", "PARENT", "INSPECTION_OFFICER"];
 
 export async function GET(req: Request, { params }: { params: { entity: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (!ALLOWED.has(params.entity)) return NextResponse.json({ error: "UNKNOWN_ENTITY" }, { status: 404 });
 
+  if (NO_BULK_EXPORT.includes(session.role)) {
+    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  }
+
+  const needed = EXPORT_PERMISSION[params.entity];
+  if (needed && !can(session.role, needed)) {
+    return NextResponse.json({ error: "FORBIDDEN", needed }, { status: 403 });
+  }
+
   // Org-scope everything: an HQ user's "all centres" must mean "all centres in
   // MY org", never every tenant's data. Fail closed if the org can't resolve.
   const orgId = await getOrgIdForSession(session);
   if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
-  const centreId = scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = scoped.centreId;
   const where = tenantWhere(centreId, orgId);
   const ts = new Date().toISOString().slice(0, 10);
 
@@ -94,7 +150,13 @@ export async function GET(req: Request, { params }: { params: { entity: string }
     const from = url.searchParams.get("from");
     const to = url.searchParams.get("to");
     const fromDate = from ? new Date(from) : new Date(Date.now() - 30 * 86400000);
-    const toDate = to ? new Date(to) : new Date();
+    // Upper bound must be the END of the club's day, not "now". Attendance rows
+    // are stored at UTC noon (parseDateOnly), so an unbounded export taken
+    // before 12:00 UTC — i.e. before 17:30 IST, which is most of a working day
+    // — silently excluded today's entire register with no warning. Marking a
+    // 6 AM batch and exporting it at 9 AM produced a file without it.
+    const tz = await resolveCentreTz(centreId);
+    const toDate = to ? endOfDayInTz(new Date(to), tz) : endOfDayInTz(new Date(), tz);
     const attWhere = {
       date: { gte: fromDate, lte: toDate },
       // Org-bind via the batch's centre; narrow to one centre when scoped.
@@ -159,14 +221,147 @@ export async function GET(req: Request, { params }: { params: { entity: string }
     return csvResponse(`invoices-${ts}.csv`, csv, { total, returned: rows.length, truncated: total > rows.length });
   }
 
+  if (params.entity === "payments") {
+    const invWhere = { invoice: where };
+    const [total, rows] = await Promise.all([
+      prisma.payment.count({ where: invWhere }),
+      prisma.payment.findMany({
+        where: invWhere,
+        include: {
+          invoice: {
+            include: { rider: { select: { firstName: true, lastName: true } }, centre: { select: { name: true } } },
+          },
+        },
+        orderBy: { paidAt: "desc" },
+        take: ROW_CAP,
+      }),
+    ]);
+    const csv = toCsv(
+      ["Receipt", "Invoice", "Rider", "Amount", "Method", "Reference", "Paid on", "Cleared on", "Centre"],
+      rows.map((p) => [
+        p.id.slice(0, 8),
+        p.invoiceId.slice(0, 8),
+        `${p.invoice.rider?.firstName ?? ""} ${p.invoice.rider?.lastName ?? ""}`.trim(),
+        p.amount,
+        p.method,
+        p.txnRef ?? "",
+        p.paidAt.toISOString().slice(0, 10),
+        p.clearedAt ? p.clearedAt.toISOString().slice(0, 10) : "",
+        p.invoice.centre?.name ?? "",
+      ]),
+    );
+    return csvResponse(`payments-${ts}.csv`, csv, { total, returned: rows.length, truncated: total > rows.length });
+  }
+
+  if (params.entity === "expenses") {
+    const [total, rows] = await Promise.all([
+      prisma.expense.count({ where }),
+      prisma.expense.findMany({
+        where,
+        include: {
+          vendor: { select: { name: true } },
+          category: { select: { name: true } },
+          centre: { select: { name: true } },
+        },
+        orderBy: { spentAt: "desc" },
+        take: ROW_CAP,
+      }),
+    ]);
+    const csv = toCsv(
+      ["Ref", "Spent on", "Category", "Vendor", "Amount", "GST", "Total", "Paid", "Paid on", "Method", "Description", "Centre"],
+      rows.map((e) => [
+        e.id.slice(0, 8),
+        e.spentAt.toISOString().slice(0, 10),
+        e.category?.name ?? "",
+        e.vendor?.name ?? "",
+        e.amount,
+        e.gstAmount,
+        e.amount + e.gstAmount,
+        e.paid ? "yes" : "no",
+        e.paidAt ? e.paidAt.toISOString().slice(0, 10) : "",
+        e.method ?? "",
+        e.description ?? "",
+        e.centre?.name ?? "",
+      ]),
+    );
+    return csvResponse(`expenses-${ts}.csv`, csv, { total, returned: rows.length, truncated: total > rows.length });
+  }
+
+  if (params.entity === "salary") {
+    const [total, rows] = await Promise.all([
+      // Voided runs are excluded — they are corrections, not spend.
+      prisma.salaryPayment.count({ where: { ...where, voidedAt: null } }),
+      prisma.salaryPayment.findMany({
+        where: { ...where, voidedAt: null },
+        include: { user: { select: { name: true, role: true } }, centre: { select: { name: true } } },
+        orderBy: [{ periodMonth: "desc" }, { createdAt: "desc" }],
+        take: ROW_CAP,
+      }),
+    ]);
+    const csv = toCsv(
+      ["Ref", "Month", "Staff", "Role", "Gross", "Advance recovered", "Attendance deduction", "Other deductions", "Net", "Method", "Paid on", "Centre"],
+      rows.map((sp) => [
+        sp.id.slice(0, 8),
+        sp.periodMonth,
+        sp.user?.name ?? "",
+        sp.user?.role ?? "",
+        sp.grossAmount,
+        sp.advanceDeducted,
+        sp.attendanceDeducted,
+        sp.otherDeductions,
+        sp.netAmount,
+        sp.method ?? "",
+        sp.paidAt ? sp.paidAt.toISOString().slice(0, 10) : "",
+        sp.centre?.name ?? "",
+      ]),
+    );
+    return csvResponse(`salary-${ts}.csv`, csv, { total, returned: rows.length, truncated: total > rows.length });
+  }
+
+  if (params.entity === "advances") {
+    const [total, rows] = await Promise.all([
+      prisma.employeeAdvance.count({ where }),
+      prisma.employeeAdvance.findMany({
+        where,
+        include: {
+          user: { select: { name: true, role: true } },
+          centre: { select: { name: true } },
+          // Outstanding is derived, not stored — sum what has been repaid.
+          repayments: { select: { amount: true } },
+        },
+        orderBy: { givenAt: "desc" },
+        take: ROW_CAP,
+      }),
+    ]);
+    const csv = toCsv(
+      ["Ref", "Staff", "Role", "Reason", "Amount", "Repaid", "Outstanding", "Status", "Issued", "Centre"],
+      rows.map((a) => {
+        const repaid = a.repayments.reduce((t, r) => t + r.amount, 0);
+        return [
+          a.id.slice(0, 8),
+          a.user?.name ?? "",
+          a.user?.role ?? "",
+          a.reason,
+          a.amount,
+          repaid,
+          Math.max(0, a.amount - repaid),
+          a.status,
+          a.givenAt.toISOString().slice(0, 10),
+          a.centre?.name ?? "",
+        ];
+      }),
+    );
+    return csvResponse(`advances-${ts}.csv`, csv, { total, returned: rows.length, truncated: total > rows.length });
+  }
+
   if (params.entity === "audit") {
     if (session.role !== "SUPER_ADMIN") {
       return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
     }
-    // AuditLog has no org column — scope by the actor's org (HQ users carry
-    // orgId; centre staff resolve via centre.orgId). System rows (userId null)
-    // are platform-level and excluded from a per-org export.
-    const auditWhere = { user: { OR: [{ orgId }, { centre: { orgId } }] } };
+    // Shared with the /audit screen — see lib/audit-scope.ts. These two had
+    // drifted apart twice: the export excluded system rows the screen showed,
+    // and before that the screen was unscoped while the export was not.
+    const auditWhere = auditScopeFor(session.role, orgId);
     const [total, rows] = await Promise.all([
       prisma.auditLog.count({ where: auditWhere }),
       prisma.auditLog.findMany({

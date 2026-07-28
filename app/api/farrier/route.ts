@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { centreScopeWhere } from "@/lib/authz-centre";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
@@ -20,7 +22,12 @@ export async function GET(req: NextRequest) {
   const status = url.searchParams.get("status");
 
   const where: Prisma.FarrierVisitWhereInput = {};
-  if (session.role !== "SUPER_ADMIN" && session.centreId) where.centreId = session.centreId;
+  // Centre-less roles fall straight through a `role !== "SUPER_ADMIN" &&
+  // session.centreId` conjunct with NO filter applied, so this list spanned
+  // every organisation on the platform. Same scope the pages use.
+  const scope = await centreScopeWhere(session);
+  if (!scope) return NextResponse.json({ error: "FORBIDDEN_NO_SCOPE" }, { status: 403 });
+  Object.assign(where, scope);
   if (horseId) where.horseId = horseId;
   if (status) where.status = status;
 
@@ -38,7 +45,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  if (!can(session.role, "horse.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  if (!can(session.role, "farriery.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   const featureBlock = await blockIfFeatureOff(session, "farriery");
   if (featureBlock) return featureBlock;
   const readOnlyBlock = await blockIfReadOnly(session);
@@ -56,8 +63,11 @@ export async function POST(req: NextRequest) {
     select: { id: true, centreId: true, name: true },
   });
   if (!horse) return NextResponse.json({ error: "HORSE_NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && horse.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence88 = await centreFence(session, horse.centreId);
+  if (fence88) {
+    return NextResponse.json({ error: fence88 }, { status: 403 });
   }
 
   const visit = await prisma.farrierVisit.create({

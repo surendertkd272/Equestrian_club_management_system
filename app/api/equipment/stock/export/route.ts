@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { EQUIPMENT_CATEGORY_ORDER } from "@/lib/schemas/equipment";
 
@@ -28,7 +28,9 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const requested = url.searchParams.get("centreId");
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  const centreId = requested && isHQ ? requested : scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = requested && isHQ ? requested : scoped.centreId;
   if (!centreId) return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
 
   // Fail closed: every export targets a concrete centre, so the caller's org

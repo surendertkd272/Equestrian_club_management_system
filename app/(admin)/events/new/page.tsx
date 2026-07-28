@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NewEventForm } from "./form";
@@ -7,7 +7,7 @@ import { NewEventForm } from "./form";
 export const dynamic = "force-dynamic";
 
 export default async function NewEventPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!can(session.role, "event.manage")) redirect("/events");
 
   return (

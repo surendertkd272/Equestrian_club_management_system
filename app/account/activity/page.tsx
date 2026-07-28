@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SignOutEverywhereButton } from "./sign-out-everywhere-button";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 // they (or someone using their account) logged in and gives them a one-
 // click "kick every session" button backed by User.tokenVersion.
 export default async function ActivityPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
 
   const events = await prisma.auditLog.findMany({
     where: {

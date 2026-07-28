@@ -87,7 +87,15 @@ export async function POST(req: NextRequest) {
   // so a prior partial/cash payment isn't double-counted and the parent isn't
   // over-charged. (The order route now charges outstanding, so `remaining`
   // equals the captured amount in the normal flow.)
-  const target = invoice.amount + invoice.gstAmount;
+  // Net of credit notes, matching what the order route charged. Face value
+  // here would mark an invoice "due" that is actually settled, or bank more
+  // than the club is owed.
+  const creditAgg = await prisma.invoice.aggregate({
+    where: { creditNoteForId: invoice.id },
+    _sum: { amount: true, gstAmount: true },
+  });
+  const target =
+    invoice.amount + invoice.gstAmount + (creditAgg._sum.amount ?? 0) + (creditAgg._sum.gstAmount ?? 0);
   const priorPaid = (await prisma.payment.aggregate({ where: { invoiceId: invoice.id }, _sum: { amount: true } }))._sum.amount ?? 0;
   const remaining = Math.max(0, target - priorPaid);
   const fullyPaid = priorPaid + remaining >= target - 0.001;
@@ -103,9 +111,28 @@ export async function POST(req: NextRequest) {
           clearedAt: new Date(),
         },
       }),
-      prisma.invoice.update({ where: { id: invoice.id }, data: { status: fullyPaid ? "paid" : "due" } }),
-      ...(fullyPaid && invoice.kind === "registration"
-        ? [prisma.rider.update({ where: { id: invoice.riderId }, data: { registrationPaid: true, status: "active" } })]
+      // If the invoice was voided AFTER the gateway order was created, the money
+      // is still real — the family has been debited. Record it so it can be
+      // refunded through the reversal path, but do NOT resurrect the cancelled
+      // charge by flipping its status back.
+      ...(invoice.voidedAt
+        ? []
+        : [prisma.invoice.update({ where: { id: invoice.id }, data: { status: fullyPaid ? "paid" : "due" } })]),
+      ...(fullyPaid && !invoice.voidedAt && invoice.kind === "registration"
+        ? [
+            // Record the payment, but never resurrect a rider the club has
+            // off-boarded: a departed family settling an old registration
+            // invoice must not silently reappear on the roster. Withdrawal is
+            // undone deliberately, on /riders.
+            prisma.rider.updateMany({
+              where: { id: invoice.riderId, status: { not: "withdrawn" } },
+              data: { registrationPaid: true, status: "active" },
+            }),
+            prisma.rider.updateMany({
+              where: { id: invoice.riderId, status: "withdrawn" },
+              data: { registrationPaid: true },
+            }),
+          ]
         : []),
     ]);
   } catch (e: any) {
@@ -118,12 +145,12 @@ export async function POST(req: NextRequest) {
     action: "razorpay.payment_verified",
     tableName: "invoice",
     rowId: invoice.id,
-    after: { orderId: d.razorpay_order_id, paymentId: d.razorpay_payment_id, amount: invoice.amount },
+    after: { orderId: d.razorpay_order_id, paymentId: d.razorpay_payment_id, amount: remaining },
   });
 
   await notifyCentreManager(invoice.centre.id, {
     type: "payment.received",
-    title: `Payment received · ₹${invoice.amount.toLocaleString("en-IN")}`,
+    title: `Payment received · ₹${Math.round(remaining).toLocaleString("en-IN")}`,
     body: `Invoice ${invoice.id.slice(-6)} (${invoice.kind.replace("_", " ")}) marked paid via Razorpay.`,
     link: `/riders/${invoice.riderId}`,
     payload: { invoiceId: invoice.id, paymentId: d.razorpay_payment_id },
@@ -134,7 +161,7 @@ export async function POST(req: NextRequest) {
   if (parentPhone) {
     await sendSms({
       to: parentPhone,
-      body: `${invoice.centre.name}: Thank you. ₹${invoice.amount.toLocaleString("en-IN")} ${invoice.kind.replace("_", " ")} fee for ${invoice.rider.firstName} received. Ref: ${d.razorpay_payment_id.slice(-8)}.`,
+      body: `${invoice.centre.name}: Thank you. ₹${Math.round(remaining).toLocaleString("en-IN")} ${invoice.kind.replace("_", " ")} fee for ${invoice.rider.firstName} received. Ref: ${d.razorpay_payment_id.slice(-8)}.`,
       ref: { type: "payment.received", rowId: invoice.id, payload: { paymentId: d.razorpay_payment_id } },
     });
     // Parent WhatsApp — pre-approved template `ew_payment_received`.
@@ -145,25 +172,25 @@ export async function POST(req: NextRequest) {
         name: "ew_payment_received",
         bodyParams: [
           `${invoice.rider.firstName} ${invoice.rider.lastName}`,
-          `₹${invoice.amount.toLocaleString("en-IN")}`,
+          `₹${Math.round(remaining).toLocaleString("en-IN")}`,
           d.razorpay_payment_id.slice(-8),
         ],
       },
-      previewBody: `Payment received · ₹${invoice.amount.toLocaleString("en-IN")} for ${invoice.rider.firstName}`,
+      previewBody: `Payment received · ₹${Math.round(remaining).toLocaleString("en-IN")} for ${invoice.rider.firstName}`,
       ref: { type: "payment.received", rowId: invoice.id, payload: { paymentId: d.razorpay_payment_id } },
     });
   }
   if (invoice.rider.email) {
     await sendEmail({
       to: invoice.rider.email,
-      subject: `Payment receipt · ₹${invoice.amount.toLocaleString("en-IN")} · ${invoice.rider.firstName} ${invoice.rider.lastName}`,
+      subject: `Payment receipt · ₹${Math.round(remaining).toLocaleString("en-IN")} · ${invoice.rider.firstName} ${invoice.rider.lastName}`,
       html: renderEmail({
         centreName: invoice.centre.name,
         heading: `Payment received — thank you`,
         body: `<p>Dear Parent / Guardian,</p>
-<p>We've received your payment of <b>₹${invoice.amount.toLocaleString("en-IN")}</b> towards the <b>${invoice.kind.replace("_", " ")}</b> fee for <b>${invoice.rider.firstName} ${invoice.rider.lastName}</b>. This serves as your receipt.</p>
+<p>We've received your payment of <b>₹${Math.round(remaining).toLocaleString("en-IN")}</b> towards the <b>${invoice.kind.replace("_", " ")}</b> fee for <b>${invoice.rider.firstName} ${invoice.rider.lastName}</b>. This serves as your receipt.</p>
 <table style="margin:16px 0;border-collapse:collapse;">
-  <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Amount</td><td style="padding:4px 0;font-weight:600;">₹${invoice.amount.toLocaleString("en-IN")}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Amount</td><td style="padding:4px 0;font-weight:600;">₹${Math.round(remaining).toLocaleString("en-IN")}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Method</td><td style="padding:4px 0;">Razorpay</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Payment ID</td><td style="padding:4px 0;font-family:monospace;font-size:12px;">${d.razorpay_payment_id}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Invoice</td><td style="padding:4px 0;font-family:monospace;font-size:12px;">${invoice.id}</td></tr>

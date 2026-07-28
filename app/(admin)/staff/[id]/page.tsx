@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, FileText, Pencil } from "lucide-react";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,10 @@ import {
 } from "@/lib/schemas/onboarding-staff";
 import { PrintControl } from "./print-control";
 import { formatEnum, roleLabel } from "@/lib/labels";
+import { SeparationTrigger } from "../../users/separation-trigger";
+import { PendingSeparationNotice } from "./pending-separation";
+import { prisma } from "@/lib/prisma";
+import { isReadOnly } from "@/lib/roles";
 export const dynamic = "force-dynamic";
 
 // Profile + consent record: SUPER_ADMIN + ADMIN + CENTRE_MANAGER (a manager can
@@ -26,13 +30,50 @@ export const dynamic = "force-dynamic";
 const CAN_VIEW = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"];
 
 export default async function StaffProfilePage({ params }: { params: { id: string } }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (!CAN_VIEW.includes(session.role)) redirect("/staff");
 
   const profile = await loadEmployeeProfile(params.id, scopeCentre(session), await getOrgIdForSession(session));
   if (!profile) notFound();
 
   const { staff, docs, declarationName, hasOnboarding } = profile;
+
+  // Off-boarding used to live only on /users, which is HQ-only — so the
+  // manager who knew the groom had left couldn't record it. It's here now,
+  // fenced to staff below the manager's own tier (enforced server-side in
+  // app/api/users/[id]/separation).
+  // An outstanding notice has to be visible, or the page invites a second one.
+  const pending = await prisma.separationNotice.findFirst({
+    where: { userId: staff.userId, status: "pending" },
+    orderBy: { issuedAt: "desc" },
+  });
+  // SeparationNotice.issuedByUserId has no relation on the model, so resolve
+  // the issuer's name separately.
+  const pendingIssuer = pending
+    ? await prisma.user.findUnique({ where: { id: pending.issuedByUserId }, select: { name: true } })
+    : null;
+
+  // The API refuses a manager acting on a peer manager or on HQ, so don't
+  // offer the buttons either.
+  const canActOnNotice =
+    !!pending &&
+    !isReadOnly(session.role) &&
+    (session.role === "SUPER_ADMIN" ||
+      session.role === "ADMIN" ||
+      (session.role === "CENTRE_MANAGER" &&
+        pending.userId !== session.userId &&
+        staff.role !== "CENTRE_MANAGER" &&
+        staff.role !== "ADMIN" &&
+        staff.role !== "SUPER_ADMIN"));
+
+  const canOffBoard =
+    !pending &&
+    staff.userStatus === "active" &&
+    staff.userId !== session.userId &&
+    !isReadOnly(session.role) &&
+    staff.role !== "SUPER_ADMIN" &&
+    staff.role !== "ADMIN" &&
+    (session.role === "SUPER_ADMIN" || session.role === "ADMIN" || staff.role !== "CENTRE_MANAGER");
   const rows = employeeFormRows(profile.record);
 
   // Consent record — what the employee accepted, for showing back to them later.
@@ -65,8 +106,26 @@ export default async function StaffProfilePage({ params }: { params: { id: strin
             <Pencil className="h-4 w-4" /> Edit
           </Link>
           <PrintControl staffId={staff.id} docs={docs.map((d) => ({ key: d.key, label: d.label }))} />
+          {canOffBoard && <SeparationTrigger userId={staff.userId} userName={staff.name} />}
         </div>
       </div>
+
+      {pending && (
+        <PendingSeparationNotice
+          userId={staff.userId}
+          userName={staff.name}
+          noticeId={pending.id}
+          kind={pending.kind}
+          issuedBy={pendingIssuer?.name ?? "head office"}
+          issuedAt={pending.issuedAt.toISOString()}
+          effectiveAt={pending.effectiveAt?.toISOString() ?? null}
+          noticeText={pending.noticeText}
+          canWithdraw={canActOnNotice}
+          canFinalise={
+            canActOnNotice && (!pending.effectiveAt || pending.effectiveAt <= new Date())
+          }
+        />
+      )}
 
       <Card>
         <CardHeader>

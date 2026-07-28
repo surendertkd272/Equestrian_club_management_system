@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { getFeaturesForSession, getOrgIdForSession } from "@/lib/features-gate";
 import { istTodayStr, coachUpdateDateKey, DAILY_UPDATE_ROLES } from "@/lib/coach-update";
@@ -27,17 +27,18 @@ import {
   HeadCoachDashboard,
   CoachDashboard,
 } from "./role-dashboards";
+import { startOfTodayForCentre, endOfTodayForCentre } from "@/lib/centre-tz";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
   // Bind every centre-scoped query to the caller's org. For an HQ user on
   // "all centres" (centreId=null) the old centreWhere produced an EMPTY
   // filter and leaked every org's rows; tenantWhere keeps it org-bounded.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard"); // fail closed if the org can't be resolved
+  if (!orgId) redirect("/no-organisation"); // fail closed if the org can't be resolved
   const where = tenantWhere(centreId, orgId);
   // Load the org's enabled features so feature-gated surfaces below (the
   // exams timeline, role-specific dashboards) only render what's turned on.
@@ -61,9 +62,12 @@ export default async function DashboardPage() {
   // External auditor — their only job is the inspection sheet; send them there.
   if (session.role === "INSPECTION_OFFICER") redirect("/inspections");
 
-  const todayStart = new Date();
-  todayStart.setUTCHours(0, 0, 0, 0);
-  const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+  // "Today" means the centre's day, not the server's. setUTCHours(0,0,0,0) made
+  // every today-tile report a UTC midnight-to-midnight window — the wrong 24
+  // hours for an Indian club by five and a half of them, so before 05:30 IST
+  // the dashboard showed yesterday's numbers.
+  const todayStart = await startOfTodayForCentre(centreId);
+  const todayEnd = await endOfTodayForCentre(centreId);
 
   // New-feature widget queries — kept side-by-side with the existing tiles
   // so the dashboard renders in one trip. Each is centre-scoped via `where`.
@@ -97,7 +101,10 @@ export default async function DashboardPage() {
     coachUpdatesToday,
   ] = await Promise.all([
       prisma.rider.count({ where: { ...where, status: "active" } }),
-      prisma.rider.count({ where: { ...where, status: "pending_payment" } }),
+      // "pending_payment" became unreachable when enrolment approval started
+      // writing "active" directly, so this tile read 0 while 22 sign-ups were
+      // genuinely waiting for the manager.
+      prisma.rider.count({ where: { ...where, status: "pending_approval" } }),
       prisma.batch.count({ where }),
       prisma.invoice.count({ where: { ...where, status: "due" } }),
       prisma.payment.aggregate({
@@ -118,7 +125,10 @@ export default async function DashboardPage() {
         },
         _sum: { amount: true },
       }),
-      prisma.horse.count({ where }),
+      // "on Roster" must mean on the roster. This counted every Horse row,
+      // including retired and sold animals, so the number crept up forever and
+      // never matched what the stable actually has.
+      prisma.horse.count({ where: { ...where, status: { not: "retired" } } }),
       prisma.medicine.count({ where: { ...where, qty: { lte: 5 } } }),
       prisma.medicine.count({
         where: { ...where, expDate: { lte: new Date(Date.now() + 30 * 86400000) } },
@@ -255,7 +265,7 @@ export default async function DashboardPage() {
   }));
 
   const tiles = [
-    { label: "Pending Sign-Ups", value: pendingRiders, hint: "awaiting payment", icon: <UserPlus className="h-5 w-5" /> },
+    { label: "Pending Sign-Ups", value: pendingRiders, hint: "awaiting your approval", icon: <UserPlus className="h-5 w-5" /> },
     { label: "Batches", value: batches, hint: "scheduled", icon: <CalendarClock className="h-5 w-5" /> },
     { label: "Open Invoices", value: openInvoices, hint: "status = due", icon: <Receipt className="h-5 w-5" /> },
     { label: "Horses on Roster", value: horses, icon: <PawPrint className="h-5 w-5" /> },

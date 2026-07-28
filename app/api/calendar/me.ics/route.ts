@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { buildIcs } from "@/lib/ics";
+import { parseWallTimeInTz, wallPartsInTz } from "@/lib/tz";
 
 // GET /api/calendar/me.ics — current user's lesson + exam calendar.
 //
@@ -101,14 +102,18 @@ export async function GET(_req: NextRequest) {
       ],
       date: { gte: horizonStart, lte: horizonEnd },
     },
-    select: { id: true, level: true, date: true, time: true, status: true, examinerName: true },
+    select: { id: true, level: true, date: true, time: true, status: true, examinerName: true, centre: { select: { timezone: true } } },
     orderBy: { date: "asc" },
     take: 200,
   });
   for (const e of exams) {
-    const [hh, mm] = (e.time ?? "09:00").split(":").map(Number);
-    const startAt = new Date(e.date);
-    startAt.setUTCHours(hh ?? 9, mm ?? 0, 0, 0);
+    // Exam.time is a WALL-CLOCK "HH:MM" in the centre's own zone. setUTCHours()
+    // stamped it as if it were UTC, so a 09:00 exam at an Indian club published
+    // as 09:00Z — 14:30 IST — and every parent who subscribed to the feed had
+    // every exam sitting 5½ hours late in their calendar.
+    const tz = e.centre?.timezone ?? "Asia/Kolkata";
+    const day = wallPartsInTz(e.date, tz).date;
+    const startAt = parseWallTimeInTz(`${day}T${e.time ?? "09:00"}`, tz);
     const endAt = new Date(startAt.getTime() + 60 * 60_000);
     events.push({
       uid: `exam-${e.id}@equiwings`,

@@ -23,7 +23,7 @@ export default async function AccreditationsListPage({
   const session = await assertRoute("/accreditations");
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const where: any = {};
   where.rider = tenantWhere(centreId, orgId);

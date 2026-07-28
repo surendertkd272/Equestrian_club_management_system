@@ -3,6 +3,7 @@
 // so historic expenses keep their vendor link.
 
 import { NextRequest, NextResponse } from "next/server";
+import { centreFence } from "@/lib/authz-centre";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
@@ -11,12 +12,14 @@ import { updateVendorSchema } from "@/lib/schemas/finance";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 
-async function loadOwned(id: string, session: { role: string; centreId: string | null }) {
+async function loadOwned(id: string, session: { role: string; centreId: string | null; userId: string }) {
   const vendor = await prisma.vendor.findUnique({ where: { id } });
   if (!vendor) return { error: NextResponse.json({ error: "NOT_FOUND" }, { status: 404 }) };
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && vendor.centreId !== session.centreId) {
-    return { error: NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 }) };
+  // isHQ alone let any organisation's HQ through; centreFence adds the org rule.
+  const fence = await centreFence(session, vendor.centreId);
+  if (fence) {
+    return { error: NextResponse.json({ error: fence }, { status: 403 }) };
   }
   return { vendor };
 }

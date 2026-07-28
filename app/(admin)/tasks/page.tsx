@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
@@ -20,9 +20,9 @@ export default async function TasksPage({
 }: {
   searchParams: { mine?: string; assignee?: string };
 }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
   const canAssign = can(session.role, "task.assign");
 
@@ -41,7 +41,11 @@ export default async function TasksPage({
       take: 200,
     }),
     prisma.user.findMany({
-      where: { centreId: centreId ?? undefined, status: "active" },
+      // `centreId: centreId ?? undefined` is not a filter — Prisma drops an
+      // undefined key, so for a centre-less HQ caller this listed every
+      // organisation's staff in the assignee dropdown. Third instance of this
+      // exact expression; the other two were /api/users/lookup and /api/search.
+      where: { ...tenantWhere(centreId, orgId), status: "active" },
       select: { id: true, name: true, role: true },
       orderBy: { name: "asc" },
     }),

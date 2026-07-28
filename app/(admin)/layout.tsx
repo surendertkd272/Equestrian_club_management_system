@@ -23,7 +23,10 @@ import { OnboardingChecklist } from "@/components/onboarding/checklist-card";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
-  if (!session) redirect("/login");
+  // ?ended=1 so the login page can explain itself. Layouts and pages render
+  // in parallel, so whichever redirect resolves first sets the Location —
+  // keep this in step with requireSession() and assertRoute().
+  if (!session) redirect("/login?ended=1");
   // Force-rotate temp passwords before *anything* loads.
   if (await shouldForceRotate(session.userId)) redirect("/account/rotate");
   // Parents and riders don't belong in the admin shell — each has their own portal.
@@ -37,7 +40,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // The HQ centre-picker list must be bounded to the signed-in admin's own
   // organisation — otherwise an HQ admin of one org sees every org's centres.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   // Pull centre + emergency contacts in one query. SUPER_ADMIN with no
   // centreId doesn't get a contacts strip (no single centre context).

@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { blockIfFeatureOff } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { updateTaskSchema } from "@/lib/schemas/task";
 import { audit } from "@/lib/audit";
+import { notify } from "@/lib/notify";
+import { formatDate } from "@/lib/utils";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -24,8 +27,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const task = await prisma.task.findUnique({ where: { id: params.id } });
   if (!task) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && task.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence26 = await centreFence(session, task.centreId);
+  if (fence26) {
+    return NextResponse.json({ error: fence26 }, { status: 403 });
   }
 
   // Field edits (title/description/dueAt/reassign) require task.assign.
@@ -90,6 +96,33 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     after: updated,
   });
 
+  // Hand-over notifications. Creating a task notifies the assignee, but
+  // REASSIGNING one notified nobody: the new owner never learned they had it,
+  // and the previous owner kept a "New task" notification for work that was no
+  // longer theirs. Both sides need to know a task changed hands.
+  if (d.assigneeId !== undefined && d.assigneeId !== task.assigneeId) {
+    if (d.assigneeId) {
+      await notify({
+        userId: d.assigneeId,
+        centreId: task.centreId,
+        type: "task.assigned",
+        title: `Task reassigned to you: ${updated.title}`,
+        body: updated.dueAt ? `Due ${formatDate(updated.dueAt)}.` : "No due date set.",
+        link: `/tasks`,
+      });
+    }
+    if (task.assigneeId) {
+      await notify({
+        userId: task.assigneeId,
+        centreId: task.centreId,
+        type: "task.reassigned_away",
+        title: `No longer yours: ${updated.title}`,
+        body: `${session.name} moved this task to someone else.`,
+        link: `/tasks`,
+      });
+    }
+  }
+
   return NextResponse.json({ ok: true, status: updated.status });
 }
 
@@ -102,8 +135,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
   const task = await prisma.task.findUnique({ where: { id: params.id } });
   if (!task) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && task.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence26 = await centreFence(session, task.centreId);
+  if (fence26) {
+    return NextResponse.json({ error: fence26 }, { status: 403 });
   }
 
   await prisma.task.delete({ where: { id: task.id } });

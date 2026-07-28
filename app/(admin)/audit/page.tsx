@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { auditScopeFor } from "@/lib/audit-scope";
+import { getOrgIdForSession } from "@/lib/features-gate";
+import { requireSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
@@ -14,7 +16,7 @@ export default async function AuditPage({
 }: {
   searchParams: { page?: string; pageSize?: string; action?: string; table?: string; user?: string; q?: string };
 }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (session.role !== "SUPER_ADMIN") redirect("/dashboard");
 
   const { page, pageSize, skip, take } = parsePaging(searchParams, { pageSize: 50 });
@@ -23,18 +25,49 @@ export default async function AuditPage({
   // covers requisition.create, requisition.approve, etc). `table` is exact.
   // `q` does a substring search over the JSON `before`/`after` payloads —
   // useful for finding "all events touching horse Bijli".
-  const where: any = {};
-  if (searchParams.action) where.action = { startsWith: searchParams.action };
-  if (searchParams.table) where.tableName = searchParams.table;
+  // Every other admin screen is org-bound; this one had no clause at all, so a
+  // tenant admin paged through every other tenant's audit log — who did what,
+  // to which row, with before/after values. The CSV export beside it already
+  // scoped correctly, which is how the gap survived: the screen and its export
+  // disagreed.
+  const auditOrgId = await getOrgIdForSession(session);
+  if (!auditOrgId) redirect("/no-organisation");
+  // System-generated entries — cron sweeps, SMS/WhatsApp dispatch — carry no
+  // userId, and AuditLog has no tenant column of its own, so they cannot be
+  // attributed to an organisation at all. Requiring a related user hid them
+  // completely, which removes the single place you would look to answer "did
+  // last night's sweep run?". They are shown to HQ, who operate the platform,
+  // and withheld from centre staff — strictly tighter than before this screen
+  // was scoped at all, when everyone saw every tenant's rows.
+  const auditIsHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
+  // The tenant scope lives in its own AND slot, NEVER in `where.OR`.
+  //
+  // It used to sit at `where.OR`, which the free-text search below overwrites
+  // with a plain assignment — so typing anything into the search box deleted
+  // the tenant bound and handed back every organisation's audit rows, payloads
+  // included. That is the exact leak the previous commit had just closed,
+  // reintroduced by its own follow-up. AuditLog's RLS policy is USING (true),
+  // so this clause is the only isolation there is.
+  //
+  // PARENT and RIDER accounts carry neither orgId nor centreId — their org is
+  // reached through the rider they are linked to — so those paths are spelled
+  // out too, or a family's actions would be invisible to their own club.
+  const auditScope = auditScopeFor(session.role, auditOrgId);
+  const filters: any[] = [auditScope];
+  if (searchParams.action) filters.push({ action: { startsWith: searchParams.action } });
+  if (searchParams.table) filters.push({ tableName: searchParams.table });
   // Filter to one person's actions — e.g. "show me everything this coach did".
-  if (searchParams.user) where.userId = searchParams.user;
+  if (searchParams.user) filters.push({ userId: searchParams.user });
   if (searchParams.q) {
-    where.OR = [
-      { before: { contains: searchParams.q } },
-      { after: { contains: searchParams.q } },
-      { rowId: { contains: searchParams.q } },
-    ];
+    filters.push({
+      OR: [
+        { before: { contains: searchParams.q } },
+        { after: { contains: searchParams.q } },
+        { rowId: { contains: searchParams.q } },
+      ],
+    });
   }
+  const where: any = { AND: filters };
 
   // Build dropdown options from the live data so filters always reflect what's
   // actually in the log. Cheap on a few-thousand-row audit; revisit if it grows.
@@ -47,8 +80,8 @@ export default async function AuditPage({
       take,
       include: { user: { select: { name: true, email: true } } },
     }),
-    prisma.auditLog.groupBy({ by: ["action"], _count: true, orderBy: { action: "asc" } }),
-    prisma.auditLog.groupBy({ by: ["tableName"], _count: true, orderBy: { tableName: "asc" } }),
+    prisma.auditLog.groupBy({ by: ["action"], where, _count: true, orderBy: { action: "asc" } }),
+    prisma.auditLog.groupBy({ by: ["tableName"], where, _count: true, orderBy: { tableName: "asc" } }),
   ]);
 
   // Collapse action variants (requisition.create, requisition.approve) into
@@ -59,10 +92,25 @@ export default async function AuditPage({
 
   // People who appear in the log → the "filter by user" dropdown, so an admin
   // can isolate one coach's activity.
-  const userGroups = await prisma.auditLog.groupBy({ by: ["userId"], _count: true });
+  // Scoped like the rows themselves. Unscoped, this listed every user who has
+  // ever appeared in the platform-wide log — so an admin who correctly could
+  // not READ another org's entries was still handed that org's staff names and
+  // roles in a dropdown.
+  const userGroups = await prisma.auditLog.groupBy({ by: ["userId"], where: auditScope, _count: true });
   const userIds = userGroups.map((g) => g.userId).filter((id): id is string => !!id);
   const users = userIds.length
-    ? await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true, role: true } })
+    ? await prisma.user.findMany({
+        where: {
+          id: { in: userIds },
+          OR: [
+            { orgId: auditOrgId },
+            { centre: { orgId: auditOrgId } },
+            { parentLinks: { some: { rider: { centre: { orgId: auditOrgId } } } } },
+            { rider: { centre: { orgId: auditOrgId } } },
+          ],
+        },
+        select: { id: true, name: true, role: true },
+      })
     : [];
   users.sort((a, b) => a.name.localeCompare(b.name));
 

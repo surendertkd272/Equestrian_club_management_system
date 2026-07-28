@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
@@ -15,7 +15,7 @@ import { formatEnum, roleLabel } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function ApprovalsPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
   const canReview = can(session.role, "leave.approve");
 
@@ -25,7 +25,7 @@ export default async function ApprovalsPage() {
   // centres" (centreId=null) can't fall through to an empty filter that leaks
   // every org's approvals. Fail closed if the org can't be resolved.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const orgCentres = await prisma.centre.findMany({
     where: { orgId },
     select: { id: true },
@@ -33,7 +33,9 @@ export default async function ApprovalsPage() {
   const orgCentreIds = orgCentres.map((c) => c.id);
 
   const where: any = {
-    centreId: centreId ? centreId : { in: orgCentreIds },
+    // scopeCentre() reads the client-controlled ew_hq_centre cookie, so the
+    // picked centre must be INTERSECTED with the org's own, never replace it.
+    centreId: centreId && orgCentreIds.includes(centreId) ? centreId : { in: orgCentreIds },
   };
 
   const rows = await prisma.approvalRequest.findMany({

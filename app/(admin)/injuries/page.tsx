@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,12 +15,12 @@ import { ResponsiveTable } from "@/components/ui/responsive-table";
 export const dynamic = "force-dynamic";
 
 export default async function InjuriesPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
   // Bind to the caller's org so an HQ user's "all centres" (centreId=null)
   // can't return every org's rows. Fail closed if the org can't be resolved.
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
 
   const [rows, totalInjuries, horses, riders, centre] = await Promise.all([
     prisma.injuryLog.findMany({
@@ -46,7 +46,7 @@ export default async function InjuriesPage() {
     centreId
       ? prisma.centre.findFirst({
           where: { id: centreId, orgId },
-          select: { emergencyContactsJson: true },
+          select: { emergencyContactsJson: true, timezone: true },
         })
       : Promise.resolve(null),
   ]);
@@ -99,7 +99,7 @@ export default async function InjuriesPage() {
         <Kpi label="Recovered" value={rows.filter((r) => r.status === "recovered").length} />
       </div>
 
-      <InjuriesClient horses={horses} riders={riders} />
+      <InjuriesClient horses={horses} riders={riders} timezone={centre?.timezone ?? "Asia/Kolkata"} />
 
       <Card>
         <CardHeader>

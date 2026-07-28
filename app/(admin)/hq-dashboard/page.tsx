@@ -1,11 +1,15 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { StatTile } from "@/components/ui/stat-tile";
 import { ChartCard, HeroCard } from "@/components/dashboard/visuals";
 import { MiniBars, RingGauge } from "@/components/ui/charts";
 import { kpiIcon } from "@/lib/kpi-icon";
 import { Building2, Users } from "lucide-react";
+
+// Roles that hold a login but are not employees of the club. Excluded from
+// any headcount that claims to be "Staff".
+const NON_STAFF_ROLES = ["RIDER", "PARENT", "SCHOOL_ADMINISTRATOR", "INSPECTION_OFFICER"];
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +18,7 @@ export const dynamic = "force-dynamic";
 // want one screen to compare attendance, fees, pass rate, etc. across all
 // their centres at once. HQ-tier only (SUPER_ADMIN + ADMIN).
 export default async function HQDashboardPage() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   if (session.role !== "SUPER_ADMIN" && session.role !== "ADMIN") redirect("/dashboard");
   // Window for "recent" metrics. Tweakable: 30 days feels right for
   // attendance, 90 for exam pass rate. The page is read-only so we don't
@@ -35,7 +39,15 @@ export default async function HQDashboardPage() {
   const centreIds = centres.map((c) => c.id);
   const [riderGroups, staffGroups, horseGroups, unpaidGroups, certGroups, attendanceRows, examRows] = await Promise.all([
     prisma.rider.groupBy({ by: ["centreId"], where: { centreId: { in: centreIds }, status: "active" }, _count: true }),
-    prisma.user.groupBy({ by: ["centreId"], where: { centreId: { in: centreIds }, status: "active" }, _count: true }),
+    // Staff means employees. This counted every active User row, so a club's
+    // headcount silently included student-portal logins, parent accounts and
+    // the external inspection officer — the one number an owner uses to
+    // compare clubs was inflated by whoever happened to have a login.
+    prisma.user.groupBy({
+      by: ["centreId"],
+      where: { centreId: { in: centreIds }, status: "active", role: { notIn: NON_STAFF_ROLES } },
+      _count: true,
+    }),
     prisma.horse.groupBy({ by: ["centreId"], where: { centreId: { in: centreIds }, status: "active" }, _count: true }),
     prisma.invoice.groupBy({ by: ["centreId"], where: { centreId: { in: centreIds }, status: "due" }, _count: true }),
     prisma.certificate.groupBy({ by: ["centreId"], where: { centreId: { in: centreIds }, issuedAt: { gte: ninety } }, _count: true }),

@@ -11,7 +11,10 @@ import { LogoutButton } from "./logout-button";
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
-  if (!session) redirect("/login");
+  // ?ended=1 so the login page can explain itself. Layouts and pages render
+  // in parallel, so whichever redirect resolves first sets the Location —
+  // keep this in step with requireSession() and assertRoute().
+  if (!session) redirect("/login?ended=1");
   if (await shouldForceRotate(session.userId)) redirect("/account/rotate");
   // Only riders land here. Everyone else gets bounced to their own home.
   if (session.role !== "RIDER") {

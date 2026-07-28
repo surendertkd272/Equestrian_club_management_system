@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
-import { parseDateOnly, toDateOnly } from "@/lib/schemas/attendance";
+import { parseDateOnly } from "@/lib/schemas/attendance";
+import { todayYmdForCentre } from "@/lib/centre-tz";
 import { ENROLLED_RIDER_STATUSES } from "@/lib/rider-status";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,13 +19,16 @@ export default async function AttendancePage({
 }: {
   searchParams: { date?: string; batch?: string };
 }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/dashboard");
+  if (!orgId) redirect("/no-organisation");
   const where = tenantWhere(centreId, orgId);
 
-  const today = toDateOnly(new Date());
+  // The centre's calendar date, not the server's. toDateOnly(new Date()) is
+  // the UTC date, so for the first 5½ hours of every Indian day the register
+  // opened on YESTERDAY and today was not even selectable in the picker.
+  const today = await todayYmdForCentre(centreId);
   const date = searchParams.date && /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date) ? searchParams.date : today;
 
   // Coaches only see their own batches; managers/admins see all.

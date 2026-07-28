@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { indianMobile, indianPhone } from "@/lib/schemas/phone";
 
 // Internal-URL whitelist for uploaded files. lib/storage.ts returns `/uploads/<file>`
 // from both backends (local FS in dev, S3 via next.config rewrite in prod), so this regex
@@ -10,15 +11,32 @@ const uploadedUrl = z
   .optional()
   .or(z.literal(""));
 
+// A date of birth must parse, sit in the past, and be humanly plausible.
+// Without the bounds, fumbling the year on an Android date spinner had two
+// silent consequences: a future DOB was stored as-is, and a 1916 DOB made a
+// 9-year-old read as an adult, so the DPDPA parental-consent block the parent
+// had just filled in was discarded and never written to the record.
+const dobString = z
+  .string()
+  .min(1, "Required")
+  .refine((s) => {
+    const d = new Date(s);
+    if (Number.isNaN(d.getTime())) return false;
+    const now = new Date();
+    if (d.getTime() > now.getTime()) return false;
+    const oldest = new Date(now.getFullYear() - 100, now.getMonth(), now.getDate());
+    return d.getTime() >= oldest.getTime();
+  }, "Enter a real date of birth (in the past, within the last 100 years)");
+
 export const personalSchema = z.object({
   firstName: z.string().min(1, "Required"),
   lastName: z.string().min(1, "Required"),
-  dob: z.string().min(1, "Required"),
+  dob: dobString,
   placeOfBirth: z.string().optional(),
   nationality: z.string().optional(),
   gender: z.enum(["male", "female", "other"]),
   maritalStatus: z.string().optional(),
-  mobile: z.string().min(10, "10-digit number"),
+  mobile: indianMobile(),
   email: z.string().email().optional().or(z.literal("")),
   aadhaarNo: z.string().regex(/^\d{12}$/, "12 digits").optional().or(z.literal("")),
   aadhaarDocUrl: uploadedUrl,
@@ -37,11 +55,11 @@ export const addressSchema = z.object({
 
 export const parentsSchema = z.object({
   fatherName: z.string().optional(),
-  fatherPhone: z.string().optional(),
+  fatherPhone: indianMobile().optional().or(z.literal("")),
   motherName: z.string().optional(),
-  motherPhone: z.string().optional(),
+  motherPhone: indianMobile().optional().or(z.literal("")),
   emergencyName: z.string().min(1, "Required"),
-  emergencyPhone: z.string().min(10, "Required"),
+  emergencyPhone: indianPhone("Enter a reachable emergency number"),
 });
 
 // Height/weight are OPTIONAL at registration (field feedback: medical data
@@ -103,7 +121,7 @@ export const INDEMNITY_TEXT =
 export const parentalConsentSchema = z.object({
   parentName: z.string().min(1).max(120).optional(),
   parentRelation: z.enum(["father", "mother", "guardian"]).optional(),
-  parentPhone: z.string().min(10).max(20).optional(),
+  parentPhone: indianMobile().optional().or(z.literal("")),
   parentEmail: z.string().email().optional().or(z.literal("")),
   parentConsentAgreed: z.boolean().optional(),
 });
@@ -119,7 +137,7 @@ export const parentalConsentRequiredSchema = z.object({
   parentRelation: z.enum(["father", "mother", "guardian"], {
     errorMap: () => ({ message: "Select a relation" }),
   }),
-  parentPhone: z.string().min(10, "10+ digits").max(20),
+  parentPhone: indianMobile("Parent's 10-digit mobile number"),
   parentEmail: z.string().email("Valid email").optional().or(z.literal("")),
   parentConsentAgreed: z.literal(true, {
     errorMap: () => ({ message: "Parent must agree to the consent text" }),

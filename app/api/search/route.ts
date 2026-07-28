@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 
 // GET /api/search?q=… — backing for the Cmd+K palette.
@@ -42,7 +42,9 @@ export async function GET(req: NextRequest) {
   // caller's org, never every tenant's data. Fail closed if org unresolved.
   const orgId = await getOrgIdForSession(session);
   if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
-  const centreId = scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = scoped.centreId;
   // { centreId?, centre: { orgId } } — narrows to one centre for centre-scoped
   // roles, org-bounds for HQ. Applies to every centre-owned table below.
   const tWhere = tenantWhere(centreId, orgId);
@@ -92,8 +94,16 @@ export async function GET(req: NextRequest) {
         })
       : prisma.user.findMany({
           where: {
-            centreId: session.centreId ?? undefined,
-            OR: [{ name: { contains: q } }, { email: { contains: q } }],
+            // `centreId: session.centreId ?? undefined` looks like a filter and
+            // is not one: ADMIN is an HQ role carrying centreId = null, so the
+            // expression is undefined and Prisma DROPS the key — one tenant's
+            // admin searched every organisation's staff directory. Bind the org
+            // always, and the centre too when the caller has one.
+            AND: [
+              { OR: [{ orgId }, { centre: { orgId } }] },
+              { OR: [{ name: { contains: q } }, { email: { contains: q } }] },
+              ...(session.centreId ? [{ centreId: session.centreId }] : []),
+            ],
           },
           select: { id: true, name: true, email: true, role: true, centre: { select: { name: true } } },
           take: 5,

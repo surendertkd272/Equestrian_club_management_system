@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
@@ -41,8 +42,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!rider) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   // Centre-scoped approvers can only act on their own club.
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && session.centreId !== rider.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // isHQ alone let an HQ caller of ANY organisation through. centreFence
+  // keeps the centre rule and adds the org rule HQ never had.
+  const fence = await centreFence(session, rider.centreId);
+  if (fence) {
+    return NextResponse.json({ error: fence }, { status: 403 });
   }
   if (rider.status !== "pending_approval") {
     return NextResponse.json({ error: "NOT_PENDING_APPROVAL", current: rider.status }, { status: 409 });
@@ -76,8 +80,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     select: { name: true },
   });
   const centreName = centre?.name ?? "Equiwings";
-  const parentPhone = rider.fatherPhone ?? rider.motherPhone ?? rider.mobile;
-  const parentEmail = rider.email;
+  // Fall back to the guardian's details captured in the DPDPA consent step.
+  // Most riders here are children who have no email address of their own, so
+  // `rider.email` alone was routinely null: the approval and the payment link
+  // were generated, logged as sent, and delivered to nobody — the family just
+  // never heard back, and the club had no idea.
+  const consent = (rider.parentalConsentJson ?? null) as { parentPhone?: string; parentEmail?: string } | null;
+  const parentPhone =
+    rider.fatherPhone ?? rider.motherPhone ?? consent?.parentPhone ?? rider.mobile;
+  const parentEmail = rider.email || consent?.parentEmail || null;
   const riderFullName = `${rider.firstName} ${rider.lastName}`;
 
   if (!feesOn) {
@@ -216,5 +227,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     });
   }
 
-  return NextResponse.json({ ok: true, status: "pending_payment", invoiceId: invoice.id, amount: regAmount, payUrl });
+  // The rider is set active above; reporting "pending_payment" (a status this
+  // flow stopped writing) made callers and the UI disagree with the database.
+  return NextResponse.json({ ok: true, status: "active", invoiceId: invoice.id, amount: regAmount, payUrl });
 }

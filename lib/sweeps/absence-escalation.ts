@@ -41,7 +41,10 @@ export async function sweepAbsenceEscalation(): Promise<SweepResult> {
   }
 
   const riders = await prisma.rider.findMany({
-    where: { id: { in: flaggedRiderIds } },
+    // A family that has off-boarded must not be chased about attendance. The
+    // fee-due sweep got this filter; this one — the other parent-facing sweep —
+    // was missed, so a departed child still generated "3 absences" texts home.
+    where: { id: { in: flaggedRiderIds }, status: { not: "withdrawn" } },
     select: { id: true, centreId: true, firstName: true, lastName: true, fatherPhone: true, motherPhone: true, mobile: true, email: true, centre: { select: { name: true } } },
   });
 

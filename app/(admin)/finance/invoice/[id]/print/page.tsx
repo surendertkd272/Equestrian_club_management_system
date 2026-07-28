@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { centreFence } from "@/lib/authz-centre";
+import { requireSession } from "@/lib/auth";
 import { PrintButton } from "./print-button";
 import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
@@ -9,27 +10,59 @@ export const dynamic = "force-dynamic";
 // invoices to forward to accountants. Same Print → Save as PDF flow as
 // the SaaS-side invoice page; no library dep.
 export default async function TenantInvoicePrintPage({ params }: { params: { id: string } }) {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const invoice = await prisma.invoice.findUnique({
     where: { id: params.id },
     include: {
       centre: { select: { name: true, gstNo: true, address: true, org: { select: { name: true } } } },
       rider: { select: { firstName: true, lastName: true, email: true, mobile: true } },
       payments: { orderBy: { paidAt: "asc" } },
+      creditNotes: { select: { amount: true, gstAmount: true, createdAt: true } },
     },
   });
   if (!invoice) notFound();
-  if (session.role !== "SUPER_ADMIN" && invoice.centreId !== session.centreId) notFound();
+  // HQ roles carry centreId = null, so this comparison 404'd ADMIN on every
+  // one of these screens while org-fencing nobody. Same helper the API uses.
+  if (await centreFence(session, invoice.centreId)) notFound();
 
   const paidTotal = invoice.payments.reduce((sum, p) => sum + p.amount, 0);
-  const subtotal = invoice.amount;
-  const gst = invoice.gstAmount;
-  const total = subtotal + gst;
-  const balance = total - paidTotal;
+  // A credit note is a negative Invoice row. Printed as-is it came out as a tax
+  // invoice with a negative total, and the GST line vanished (it was gated on
+  // gst > 0), so Subtotal and Total disagreed by the hidden tax.
+  // Credits already issued against this invoice reduce what is owed.
+  const credited = invoice.creditNotes.reduce((t, c) => t + Math.abs(c.amount + c.gstAmount), 0);
+  const isCreditNote = !!invoice.creditNoteForId;
+  const voided = !!invoice.voidedAt;
+  // Credits already issued against this invoice reduce what is owed. Without
+  // this the document handed to a family bills them for a charge the club has
+  // partly cancelled.
+  const subtotal = Math.abs(invoice.amount);
+  const gst = Math.abs(invoice.gstAmount);
+  // Net of credits. Printing "Less credited −₹5,000" and then a Total that
+  // ignores it is worse than not showing the credit at all — the family reads
+  // the big number.
+  const total = Math.max(0, subtotal + gst - credited);
+  const balance = isCreditNote || voided ? 0 : Math.max(0, total - paidTotal);
 
   return (
     <main className="mx-auto max-w-3xl bg-white p-12 text-sm text-slate-900 print:p-8">
       <style>{`@media print { body { background:#fff } header,nav,footer,.no-print { display:none !important } }`}</style>
+
+      {voided && (
+        <div className="mb-6 rounded border-4 border-rose-600 p-4 text-center">
+          <div className="text-2xl font-black uppercase tracking-widest text-rose-700">Void — not payable</div>
+          {invoice.voidReason && <div className="mt-1 text-xs text-rose-700">{invoice.voidReason}</div>}
+        </div>
+      )}
+      {isCreditNote && (
+        <div className="mb-6 rounded border-2 border-slate-800 p-3 text-center">
+          <div className="text-lg font-bold uppercase tracking-wide">Credit Note</div>
+          <div className="text-xs text-slate-600">
+            Against invoice #{invoice.creditNoteForId?.slice(-8).toUpperCase()} — this cancels a charge; nothing is
+            payable on this document.
+          </div>
+        </div>
+      )}
 
       <div className="flex items-start justify-between border-b pb-6">
         <div>
@@ -77,10 +110,16 @@ export default async function TenantInvoicePrintPage({ params }: { params: { id:
               <td className="py-1 pr-8 text-right text-slate-600">Subtotal</td>
               <td className="py-1 text-right">₹{subtotal.toLocaleString("en-IN")}</td>
             </tr>
-            {gst > 0 && (
+            {gst !== 0 && (
               <tr>
                 <td className="py-1 pr-8 text-right text-slate-600">GST</td>
                 <td className="py-1 text-right">₹{gst.toLocaleString("en-IN")}</td>
+              </tr>
+            )}
+            {credited > 0.001 && (
+              <tr>
+                <td className="py-1 pr-8 text-right text-slate-600">Less credited</td>
+                <td className="py-1 text-right">−₹{Math.round(credited).toLocaleString("en-IN")}</td>
               </tr>
             )}
             <tr className="border-t">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { getParentChildren } from "@/lib/parent";
 import { getFeaturesForSession, getOrgIdForSession } from "@/lib/features-gate";
 import { prisma } from "@/lib/prisma";
@@ -11,7 +11,7 @@ import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 export default async function ParentDashboard() {
-  const session = (await getSession())!;
+  const session = await requireSession();
   const [children, features] = await Promise.all([
     getParentChildren(session.userId),
     getFeaturesForSession(session),

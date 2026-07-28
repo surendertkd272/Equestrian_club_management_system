@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { blockIfFeatureOff } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
@@ -26,8 +27,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const course = await prisma.course.findUnique({ where: { id: params.id } });
   if (!course) return NextResponse.json({ error: "COURSE_NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && course.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence10 = await centreFence(session, course.centreId);
+  if (fence10) {
+    return NextResponse.json({ error: fence10 }, { status: 403 });
   }
 
   // The enrolled user must belong to the course's centre — a course is
@@ -81,8 +85,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   });
   if (!e || e.courseId !== params.id) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   // Same cross-centre guard as POST — the enrolment's course must be in scope.
-  if (session.role !== "SUPER_ADMIN" && e.course.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence89 = await centreFence(session, e.course.centreId);
+  if (fence89) {
+    return NextResponse.json({ error: fence89 }, { status: 403 });
   }
 
   const updated = await prisma.courseEnrolment.update({

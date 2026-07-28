@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { blockIfFeatureOff, getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
-import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 
 // GET /api/staff-attendance?from=YYYY-MM-DD&to=YYYY-MM-DD&userId=... — list rows in a window.
 // Manager/head-coach/etc. see their centre; super-admin can pass ?centre=<id>.
@@ -24,7 +24,9 @@ export async function GET(req: NextRequest) {
 
   const orgId = await getOrgIdForSession(session);
   if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
-  const scopedCentre = scopeCentre(session, requestedCentre);
+  const s2 = scopeCentreForRoute(session, requestedCentre);
+  if (s2.error) return s2.error;
+  const scopedCentre = s2.centreId;
 
   const where: Record<string, unknown> = { ...tenantWhere(scopedCentre, orgId) };
   if (userId) where.userId = userId;

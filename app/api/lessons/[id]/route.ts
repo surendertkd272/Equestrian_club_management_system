@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { updateLessonSchema } from "@/lib/schemas/lesson";
 import { audit } from "@/lib/audit";
+import { notifyRiderAndParents } from "@/lib/notify";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { AllocConflict } from "@/lib/allocation-guard";
 import { DEFAULT_WORKLOAD_CAP_MIN } from "@/lib/schemas/horse";
-import { parseWallTimeInTz, startOfDayInTz, endOfDayInTz, sameLocalDay } from "@/lib/tz";
+import { parseWallTimeInTz, startOfDayInTz, endOfDayInTz, sameLocalDay, wallPartsInTz } from "@/lib/tz";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -27,8 +29,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     },
   });
   if (!lesson) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && lesson.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  // HQ roles carry centreId = null, so this locked ADMIN out of every centre
+  // while org-fencing nobody.
+  const fence1 = await centreFence(session, lesson.centreId);
+  if (fence1) {
+    return NextResponse.json({ error: fence1 }, { status: 403 });
   }
   return NextResponse.json({ lesson });
 }
@@ -42,12 +47,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
   const lesson = await prisma.lesson.findUnique({
     where: { id: params.id },
-    include: { centre: { select: { timezone: true } }, allocations: { select: { horseId: true } } },
+    // riderId comes along so a cancellation/reschedule can notify the families
+    // whose children were actually booked into this session.
+    include: { centre: { select: { timezone: true } }, allocations: { select: { horseId: true, riderId: true } } },
   });
   if (!lesson) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && lesson.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // isHQ alone let an HQ caller of ANY organisation through. centreFence
+  // keeps the centre rule and adds the org rule HQ never had.
+  const fence2 = await centreFence(session, lesson.centreId);
+  if (fence2) {
+    return NextResponse.json({ error: fence2 }, { status: 403 });
   }
   const tz = lesson.centre.timezone;
 
@@ -159,6 +169,28 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       before: { status: lesson.status, date: lesson.date },
       after: { status: updated.status, date: updated.date },
     });
+
+    // Tell the families. A cancelled or moved lesson previously notified nobody
+    // — the allocation was released cleanly and the riders' parents still drove
+    // to the centre. The riders to tell are the ones who had a horse allocated
+    // to this session; a lesson with no allocations has no one to warn.
+    const riderIds = Array.from(new Set(lesson.allocations.map((a) => a.riderId).filter(Boolean))) as string[];
+    if (riderIds.length > 0 && (willCancel || timeChanged)) {
+      const w = wallPartsInTz(lesson.date, tz);
+      const when = `${w.date} ${w.time}`;
+      for (const riderId of riderIds) {
+        await notifyRiderAndParents(riderId, {
+          type: willCancel ? "lesson.cancelled" : "lesson.rescheduled",
+          title: willCancel ? `Lesson cancelled — ${when}` : `Lesson moved — was ${when}`,
+          body: willCancel
+            ? `The session on ${when} has been cancelled${d.notes ? `: ${d.notes}` : "."} Please contact the centre if you need a make-up.`
+            : (() => { const n = wallPartsInTz(effDate, tz); return `That session now starts ${n.date} ${n.time}.`; })(),
+          link: `/parent`,
+          criticality: "critical",
+        });
+      }
+    }
+
     return NextResponse.json({ ok: true });
   } catch (e) {
     if (e instanceof AllocConflict) {
@@ -183,8 +215,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   // isHQ matches the canonical pattern used elsewhere — ADMIN deserves the
   // same cross-centre bypass that SUPER_ADMIN has.
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && lesson.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // isHQ alone let an HQ caller of ANY organisation through. centreFence
+  // keeps the centre rule and adds the org rule HQ never had.
+  const fence3 = await centreFence(session, lesson.centreId);
+  if (fence3) {
+    return NextResponse.json({ error: fence3 }, { status: 403 });
   }
   // Delete the lesson's HorseAllocation rows too. The FK is onDelete: SetNull,
   // so without this the rows would survive with lessonId=null and keep blocking

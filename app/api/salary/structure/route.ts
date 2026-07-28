@@ -4,14 +4,20 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { salaryStructureSchema } from "@/lib/schemas/payroll";
 
-// Only SUPER_ADMIN defines staff salaries.
+// Who defines staff salaries. This read `role === "SUPER_ADMIN"` while the
+// file header above declared SUPER_ADMIN / ADMIN / ACCOUNTANT — and the code
+// won. The consequence was that the accountant, whose job this is, could not
+// set a single salary: 10 of 12 staff at the sandbox club had no structure, so
+// payroll refused for them with a bare NO_SALARY_STRUCTURE and there was no
+// in-app way to resolve it without an HQ login.
 function canEdit(role: string): boolean {
-  return role === "SUPER_ADMIN";
+  return role === "SUPER_ADMIN" || role === "ADMIN" || role === "ACCOUNTANT";
 }
 
 function dateOnly(s: string): Date {
@@ -41,8 +47,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "STAFF_NOT_FOUND" }, { status: 404 });
   }
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  if (!isHQ && session.centreId !== staff.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // isHQ alone let an HQ caller of ANY organisation through. centreFence
+  // keeps the centre rule and adds the org rule HQ never had.
+  const fence = await centreFence(session, staff.centreId);
+  if (fence) {
+    return NextResponse.json({ error: fence }, { status: 403 });
   }
 
   const row = await prisma.salaryStructure.create({

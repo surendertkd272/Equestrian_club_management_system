@@ -5,6 +5,7 @@ import { sendEmail, renderEmail } from "../email";
 import { sendWhatsApp } from "../whatsapp";
 import { hasFeature } from "../features-gate";
 import { SweepResult, centreManagerMap, recentlyNotified } from "./shared";
+import { creditPosition } from "../credit-note";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Job 1: Fee-due reminders.
@@ -17,10 +18,22 @@ export async function sweepFeeDue(): Promise<SweepResult> {
   const windowEnd = new Date(now.getTime() + 4 * 24 * 60 * 60 * 1000);
 
   const invoices = await prisma.invoice.findMany({
-    where: { status: "due", dueDate: { gte: windowStart, lte: windowEnd } },
+    where: {
+      status: "due",
+      dueDate: { gte: windowStart, lte: windowEnd },
+      // Never chase a cancelled charge, and a credit note is not a bill.
+      voidedAt: null,
+      creditNoteForId: null,
+      // Nor a family that has left. They may still owe money, but a dunning
+      // SMS to someone who off-boarded is how disputes start; the balance
+      // stays on the books for staff to settle deliberately.
+      rider: { status: { not: "withdrawn" } },
+    },
     include: {
       rider: { select: { firstName: true, lastName: true, mobile: true, fatherPhone: true, motherPhone: true, email: true } },
       centre: { select: { name: true, orgId: true } },
+      payments: { select: { amount: true } },
+      creditNotes: { select: { amount: true, gstAmount: true } },
     },
   });
 
@@ -49,6 +62,18 @@ export async function sweepFeeDue(): Promise<SweepResult> {
       skipped += 1;
       continue;
     }
+    // What the family actually owes: face value, less credits, less payments.
+    // The old copy interpolated inv.amount, which is the pre-GST, pre-credit
+    // column — so a family credited ₹20,000 of a ₹23,600 bill was texted
+    // "₹20,000 is due" when they owed ₹3,600, and an uncredited bill was
+    // under-quoted by its GST.
+    const owed = creditPosition(inv).outstanding;
+    if (owed <= 0.001) {
+      skipped += 1;
+      continue;
+    }
+    const owedText = Math.round(owed).toLocaleString("en-IN");
+
     const mgrId = managers.get(inv.centreId) ?? null;
     if (!mgrId) {
       skipped += 1;
@@ -65,14 +90,14 @@ export async function sweepFeeDue(): Promise<SweepResult> {
       centreId: inv.centreId,
       type: "invoice.due_soon",
       title: `Fee due in ${days}d · ${inv.rider.firstName} ${inv.rider.lastName}`,
-      body: `₹${inv.amount.toLocaleString("en-IN")} · ${inv.kind.replace("_", " ")} · contact parent at ${parentPhone}`,
-      link: `/finance`,
+      body: `₹${owedText} · ${inv.kind.replace("_", " ")} · contact parent at ${parentPhone}`,
+      link: `/riders/${inv.riderId}`,
       payload: { invoiceId: inv.id, riderId: inv.riderId, days },
     });
     // Parent SMS — non-blocking; never throws.
     await sendSms({
       to: parentPhone,
-      body: `Equiwings: ₹${inv.amount.toLocaleString("en-IN")} fee for ${inv.rider.firstName} is due in ${days} day${days === 1 ? "" : "s"}. Pay via the link sent earlier or visit the centre.`,
+      body: `Equiwings: ₹${owedText} fee for ${inv.rider.firstName} is due in ${days} day${days === 1 ? "" : "s"}. Pay via the link sent earlier or visit the centre.`,
       ref: { type: "invoice.due_soon", rowId: inv.id, payload: { riderId: inv.riderId } },
     });
     // Parent WhatsApp — uses pre-approved template `ew_invoice_due_soon`.
@@ -84,10 +109,10 @@ export async function sweepFeeDue(): Promise<SweepResult> {
         bodyParams: [
           `${inv.rider.firstName} ${inv.rider.lastName}`,
           String(days),
-          `₹${inv.amount.toLocaleString("en-IN")}`,
+          `₹${owedText}`,
         ],
       },
-      previewBody: `Fee reminder for ${inv.rider.firstName}: ₹${inv.amount.toLocaleString("en-IN")} due in ${days}d`,
+      previewBody: `Fee reminder for ${inv.rider.firstName}: ₹${owedText} due in ${days}d`,
       ref: { type: "invoice.due_soon", rowId: inv.id, payload: { riderId: inv.riderId } },
     });
     // Parent email — richer than SMS, includes the breakdown.
@@ -97,11 +122,11 @@ export async function sweepFeeDue(): Promise<SweepResult> {
         subject: `Fee due in ${days} day${days === 1 ? "" : "s"} · ${inv.rider.firstName} ${inv.rider.lastName}`,
         html: renderEmail({
           centreName: inv.centre.name,
-          heading: `Fee reminder · ₹${inv.amount.toLocaleString("en-IN")}`,
+          heading: `Fee reminder · ₹${owedText}`,
           body: `<p>Dear Parent / Guardian,</p>
 <p>The <b>${inv.kind.replace("_", " ")}</b> fee for <b>${inv.rider.firstName} ${inv.rider.lastName}</b> is due on <b>${inv.dueDate.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}</b> (in ${days} day${days === 1 ? "" : "s"}).</p>
 <table style="margin:16px 0;border-collapse:collapse;">
-  <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Amount</td><td style="padding:4px 0;font-weight:600;">₹${inv.amount.toLocaleString("en-IN")}</td></tr>
+  <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Amount</td><td style="padding:4px 0;font-weight:600;">₹${owedText}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Kind</td><td style="padding:4px 0;">${inv.kind.replace("_", " ")}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Reference</td><td style="padding:4px 0;font-family:monospace;font-size:12px;">${inv.id.slice(-8)}</td></tr>
 </table>

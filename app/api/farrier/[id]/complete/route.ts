@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
@@ -16,7 +17,7 @@ import {
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  if (!can(session.role, "horse.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  if (!can(session.role, "farriery.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   const featureBlock = await blockIfFeatureOff(session, "farriery");
   if (featureBlock) return featureBlock;
   const readOnlyBlock = await blockIfReadOnly(session);
@@ -30,8 +31,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const visit = await prisma.farrierVisit.findUnique({ where: { id: params.id } });
   if (!visit) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (session.role !== "SUPER_ADMIN" && visit.centreId !== session.centreId) {
-    return NextResponse.json({ error: "FORBIDDEN_CROSS_CENTRE" }, { status: 403 });
+  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
+  // every centre while org-fencing nobody. centreFence does both.
+  const fence42 = await centreFence(session, visit.centreId);
+  if (fence42) {
+    return NextResponse.json({ error: fence42 }, { status: 403 });
   }
   if (visit.status === "completed") {
     return NextResponse.json({ error: "ALREADY_COMPLETED" }, { status: 409 });

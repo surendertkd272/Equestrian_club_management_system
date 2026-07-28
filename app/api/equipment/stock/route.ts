@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 
 // GET — list every catalog item joined with the centre's current stock
@@ -17,7 +17,9 @@ export async function GET(req: NextRequest) {
 
   const url = new URL(req.url);
   const requested = url.searchParams.get("centreId");
-  const centreId = requested && session.role === "SUPER_ADMIN" ? requested : scopeCentre(session);
+  const scoped = scopeCentreForRoute(session);
+  if (scoped.error) return scoped.error;
+  const centreId = requested && session.role === "SUPER_ADMIN" ? requested : scoped.centreId;
   if (!centreId) {
     return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
   }
