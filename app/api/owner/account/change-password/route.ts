@@ -4,6 +4,8 @@ import {
   getOwnerSession,
   hashOwnerPassword,
   verifyOwnerPassword,
+  signOwnerSession,
+  setOwnerSessionCookie,
 } from "@/lib/owner-auth";
 import { auditOwner } from "@/lib/owner-audit";
 import { changePasswordSchema } from "@/lib/schemas/account";
@@ -34,10 +36,23 @@ export async function POST(req: NextRequest) {
   }
 
   const newHash = await hashOwnerPassword(parsed.data.newPassword);
-  await prisma.platformUser.update({
+  const updated = await prisma.platformUser.update({
     where: { id: session.ownerId },
     data: { passwordHash: newHash, tokenVersion: { increment: 1 } },
+    select: { tokenVersion: true, name: true },
   });
+
+  // Same reasoning as the tenant route: the tokenVersion bump that signs out
+  // the owner's other devices also invalidates the cookie in front of us, so
+  // re-mint it or the owner is dumped on /owner/login the moment they navigate.
+  await setOwnerSessionCookie(
+    await signOwnerSession({
+      ownerId: session.ownerId,
+      role: session.role,
+      name: updated.name,
+      tokenVersion: updated.tokenVersion,
+    }),
+  );
 
   await auditOwner({
     actorId: session.ownerId,

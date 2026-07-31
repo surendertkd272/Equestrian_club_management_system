@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { emailIdentity } from "@/lib/email-normalize";
 import { PLANS } from "@/lib/plans";
 
 // Slug rules — same as Centre.slug today. Org slug shares the namespace at the
@@ -32,7 +33,7 @@ export const createTenantSchema = z.object({
   // Step 3 — first super admin
   superAdmin: z.object({
     name: z.string().min(2).max(120),
-    email: z.string().email().max(200),
+    email: emailIdentity(),
     phone: z.string().max(40).optional(),
   }),
 });

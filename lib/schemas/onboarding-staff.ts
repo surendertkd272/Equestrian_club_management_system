@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { emailIdentity } from "@/lib/email-normalize";
 import { ROLES } from "../roles";
 
 // The agreement + conduct terms (from the club's Employee Self Registration &
@@ -64,7 +65,7 @@ export const submitOnboardingSchema = z.object({
   emergencyContact: optStr(120),
   dob: optDate,
   permanentAddress: optStr(400),
-  email: z.string().email(),
+  email: emailIdentity(),
   maritalStatus: z.enum(["single", "married", "other"]).optional(),
   aadhaarNumber: optStr(20),
   panNumber: optStr(20),

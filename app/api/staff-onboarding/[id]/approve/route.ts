@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { normalizeEmail } from "@/lib/email-normalize";
 import { centreFence } from "@/lib/authz-centre";
 import { getSession, hashPassword } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -44,8 +45,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (ob.status !== "submitted") return NextResponse.json({ error: "NOT_SUBMITTED" }, { status: 409 });
   if (!ob.email || !ob.fullName) return NextResponse.json({ error: "INCOMPLETE_SUBMISSION" }, { status: 400 });
 
-  const emailTaken = await prisma.user.findUnique({ where: { email: ob.email } });
-  if (emailTaken) return NextResponse.json({ error: "EMAIL_TAKEN", email: ob.email }, { status: 409 });
+  // The address comes off the StaffOnboarding row, not this request — rows
+  // submitted before login emails were canonicalised can still hold mixed case,
+  // and the User row we're about to create must be canonical either way.
+  const email = normalizeEmail(ob.email);
+  const emailTaken = await prisma.user.findUnique({ where: { email } });
+  if (emailTaken) return NextResponse.json({ error: "EMAIL_TAKEN", email }, { status: 409 });
 
   const tempPassword = crypto.randomBytes(12).toString("base64url");
   const passwordHash = await hashPassword(tempPassword);
@@ -81,8 +86,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const result = await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
       data: {
+        emailVerifiedAt: new Date(), // admin-created: the admin vouches for the address
         name: ob.fullName!,
-        email: ob.email!,
+        email,
         role: d.role,
         centreId: ob.centreId,
         passwordHash,

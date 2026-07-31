@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { emailIdentity } from "@/lib/email-normalize";
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { getSession, hashPassword } from "@/lib/auth";
@@ -24,7 +25,7 @@ import { indianMobile } from "@/lib/schemas/phone";
 
 const rowSchema = z.object({
   name: z.string().min(1).max(120),
-  email: z.string().email(),
+  email: emailIdentity(),
   // Optional, but if a number IS given it has to be a real one — an
   // unreachable staff number is how a shift-change or an injury alert
   // silently fails to arrive. Same rule as every other capture path.
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
   });
 
   // Cross-row dedup + DB email uniqueness check.
-  const emails = valid.map((v) => v.data.email.toLowerCase());
+  const emails = valid.map((v) => v.data.email);
   const dupes = emails.filter((e, i) => emails.indexOf(e) !== i);
   if (dupes.length > 0) {
     return NextResponse.json({ error: "DUPLICATE_EMAILS_IN_PAYLOAD", details: [...new Set(dupes)] }, { status: 400 });
@@ -139,6 +140,7 @@ export async function POST(req: NextRequest) {
     const passwordHash = await hashPassword(tempPassword);
     const user = await prisma.user.create({
       data: {
+        emailVerifiedAt: new Date(), // admin-created: the admin vouches for the address
         name: v.data.name,
         email: v.data.email,
         phone: v.data.phone ?? null,

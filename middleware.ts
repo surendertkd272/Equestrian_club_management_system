@@ -9,27 +9,78 @@ import type { Role } from "@/lib/roles";
 // this many minutes of NO requests does the session lapse. Env can override.
 const SESSION_TTL_MIN = Number(process.env.JWT_ACCESS_TTL_MIN ?? 480); // 8h default
 
+// Owner sessions get their OWN ttl knob. Both used to read JWT_ACCESS_TTL_MIN
+// with different defaults (480 vs 60), so tuning the tenant idle window
+// silently retuned the highest-value session on the platform too.
+const OWNER_TTL_MIN = Number(process.env.OWNER_JWT_TTL_MIN ?? 60);
+
+const TENANT_AUDIENCE = "tenant";
+const OWNER_AUDIENCE = "owner";
+
+// Ceiling on how long one sign-in can be stretched by renewal. Mirrors
+// absoluteMaxMs() in lib/auth.ts — keep the two in step.
+const ABSOLUTE_MAX_MS = Number(process.env.SESSION_ABSOLUTE_MAX_DAYS ?? 30) * 86_400_000;
+
 // Re-mint the cookie when the token is past the halfway mark, carrying the
 // same claims forward with a fresh expiry. Keeps active sessions alive without
 // setting a cookie on every single request.
-async function slideRenewal(res: NextResponse, payload: Record<string, unknown>, secret: Uint8Array) {
+//
+// `jti` and `sst` ride along in ...claims, which matters twice over: a renewed
+// session keeps its identity (so a sign-out revocation still applies to it) and
+// keeps its original start time (so renewal can't outrun the absolute cap).
+async function slideRenewal(
+  res: NextResponse,
+  payload: Record<string, unknown>,
+  secret: Uint8Array,
+  opts: { cookie: string; ttlMin: number; audience: string; sameSite: "lax" | "strict" },
+) {
   const exp = typeof payload.exp === "number" ? payload.exp : 0;
   const now = Math.floor(Date.now() / 1000);
   const remaining = exp - now;
-  if (remaining > (SESSION_TTL_MIN * 60) / 2) return; // still fresh — skip
+  if (remaining > (opts.ttlMin * 60) / 2) return; // still fresh — skip
+
+  // Don't renew past the absolute lifetime. getSession() rejects the session at
+  // that point anyway; renewing would just hand out a cookie already dead on
+  // arrival.
+  const sst = typeof payload.sst === "number" ? payload.sst : null;
+  if (sst !== null && Date.now() > sst + ABSOLUTE_MAX_MS) return;
+
   const { exp: _e, iat: _i, ...claims } = payload as Record<string, unknown>;
   const fresh = await new SignJWT(claims)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime(`${SESSION_TTL_MIN}m`)
+    .setAudience(opts.audience)
+    .setExpirationTime(`${opts.ttlMin}m`)
     .sign(secret);
-  res.cookies.set("ew_session", fresh, {
+  res.cookies.set(opts.cookie, fresh, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: opts.sameSite,
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: SESSION_TTL_MIN * 60,
+    maxAge: opts.ttlMin * 60,
   });
+}
+
+// Owner sessions never passed through the renewal above, because /owner is in
+// PUBLIC_PREFIXES and the middleware returns before reaching it — so an owner
+// hard-dropped at 60 minutes mid-task with no warning. Renew here, but never
+// gate on it: /owner/* pages and /api/owner/* routes do their own enforcement
+// via getOwnerSession().
+async function slideOwnerRenewal(res: NextResponse, req: NextRequest) {
+  const token = req.cookies.get("ew_owner_session")?.value;
+  if (!token) return;
+  try {
+    const secret = new TextEncoder().encode(process.env.OWNER_JWT_SECRET ?? process.env.JWT_SECRET);
+    const { payload } = await jwtVerify(token, secret, { audience: OWNER_AUDIENCE });
+    await slideRenewal(res, payload as Record<string, unknown>, secret, {
+      cookie: "ew_owner_session",
+      ttlMin: OWNER_TTL_MIN,
+      audience: OWNER_AUDIENCE,
+      sameSite: "strict",
+    });
+  } catch {
+    // Expired or invalid — leave it alone; the portal's own guard bounces them.
+  }
 }
 
 const PUBLIC_PREFIXES = [
@@ -126,12 +177,15 @@ export async function middleware(req: NextRequest) {
   const { slug, logical } = stripSlugPrefix(pathname);
 
   if (isPublic(logical)) {
-    if (slug) {
-      const url = req.nextUrl.clone();
-      url.pathname = logical;
-      return NextResponse.rewrite(url);
+    const res = slug
+      ? NextResponse.rewrite((() => { const u = req.nextUrl.clone(); u.pathname = logical; return u; })())
+      : NextResponse.next();
+    // Owner paths are "public" to THIS middleware (they guard themselves), but
+    // they still need their cookie kept alive while the owner is working.
+    if (logical.startsWith("/owner") || logical.startsWith("/api/owner")) {
+      await slideOwnerRenewal(res, req);
     }
-    return NextResponse.next();
+    return res;
   }
 
   const isApi = logical.startsWith("/api/");
@@ -150,7 +204,7 @@ export async function middleware(req: NextRequest) {
 
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
+    const { payload } = await jwtVerify(token, secret, { audience: TENANT_AUDIENCE });
 
     // Central RBAC for admin PAGE routes: the sidebar only HIDES links; without
     // this a signed-in staff member could reach a page outside their role by
@@ -178,7 +232,12 @@ export async function middleware(req: NextRequest) {
       ? NextResponse.rewrite((() => { const u = req.nextUrl.clone(); u.pathname = logical; return u; })())
       : NextResponse.next();
     // Sliding renewal — extend the session while the user is active.
-    await slideRenewal(res, payload as Record<string, unknown>, secret);
+    await slideRenewal(res, payload as Record<string, unknown>, secret, {
+      cookie: "ew_session",
+      ttlMin: SESSION_TTL_MIN,
+      audience: TENANT_AUDIENCE,
+      sameSite: "lax",
+    });
     return res;
   } catch {
     if (isApi) {

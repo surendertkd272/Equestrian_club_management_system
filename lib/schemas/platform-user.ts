@@ -1,11 +1,12 @@
 import { z } from "zod";
+import { emailIdentity } from "@/lib/email-normalize";
 
 export const OWNER_ROLES = ["OWNER_ADMIN", "OWNER_EDITOR", "OWNER_BILLING"] as const;
 export type OwnerRoleKey = (typeof OWNER_ROLES)[number];
 
 export const inviteOwnerSchema = z.object({
   name: z.string().min(2).max(120),
-  email: z.string().email().max(200),
+  email: emailIdentity(),
   role: z.enum(OWNER_ROLES),
 });
 

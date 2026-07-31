@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { emailIdentity } from "@/lib/email-normalize";
 import { prisma } from "@/lib/prisma";
 import { issueOwnerResetToken } from "@/lib/owner-password-reset";
 import { sendEmail, renderEmail } from "@/lib/email";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 
-const schema = z.object({ email: z.string().email() });
+const schema = z.object({ email: emailIdentity() });
 
 // Public — always returns 200 to avoid enumerating the owner team.
 export async function POST(req: NextRequest) {
@@ -15,10 +16,10 @@ export async function POST(req: NextRequest) {
 
   // Tighter throttle than tenant forgot — owner team is a much smaller set.
   const ip = clientFingerprint(req);
-  if (!checkRate(`owner-forgot:ip:${ip}`, 3, 60 * 60_000).ok) {
+  if (!(await checkRate(`owner-forgot:ip:${ip}`, 3, 60 * 60_000)).ok) {
     return NextResponse.json({ ok: true });
   }
-  if (!checkRate(`owner-forgot:em:${parsed.data.email.toLowerCase()}`, 2, 60 * 60_000).ok) {
+  if (!(await checkRate(`owner-forgot:em:${parsed.data.email}`, 2, 60 * 60_000)).ok) {
     return NextResponse.json({ ok: true });
   }
 

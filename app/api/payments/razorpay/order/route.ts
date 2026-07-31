@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   }
 
   const ip = clientFingerprint(req);
-  const rl = checkRate(`razorpay:order:${ip}`, 30, 15 * 60_000);
+  const rl = await checkRate(`razorpay:order:${ip}`, 30, 15 * 60_000);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "RATE_LIMITED", retryAfterSec: rl.retryAfterSec },

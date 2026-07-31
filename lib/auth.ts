@@ -8,11 +8,36 @@ import { redirect } from "next/navigation";
 
 const COOKIE_NAME = "ew_session";
 
+// Tenant tokens are audience-tagged, and verification REQUIRES the tag.
+//
+// lib/owner-auth.ts already claimed the audience meant "an owner token can
+// never be reused as a tenant session (and vice versa)" — but only the owner
+// direction was enforced. verifySession() passed no audience, so it accepted
+// any HS256 token signed with the same key. Inert in production, where
+// OWNER_JWT_SECRET is set separately, but live for any deployment running on
+// JWT_SECRET alone (local dev, self-host).
+const TENANT_AUDIENCE = "tenant";
+
+// Hard ceiling on how long ONE sign-in can be stretched by sliding renewal.
+// Without it, a session touched once a day renewed forever: the 8h idle window
+// was the only bound, and it reset on every request. 30 days by default.
+function absoluteMaxMs(): number {
+  return Number(process.env.SESSION_ABSOLUTE_MAX_DAYS ?? 30) * 86_400_000;
+}
+
 export type SessionPayload = {
   userId: string;
   role: Role;
   centreId: string | null;
   name: string;
+  // Unique id for THIS session, minted at sign-in and carried across every
+  // sliding renewal. Signing out writes it to RevokedSession, which is what
+  // lets one device sign out without disturbing the user's other devices.
+  jti?: string;
+  // Session start time (epoch ms) — when the user actually signed in, as
+  // opposed to `iat`, which sliding renewal keeps moving forward. The absolute
+  // lifetime is measured from here.
+  sst?: number;
   // Snapshot of User.tokenVersion when the JWT was minted. The session
   // resolver compares this against the row's current tokenVersion on every
   // request — when they diverge, the JWT is rejected. Bumped on password
@@ -41,6 +66,22 @@ export async function verifyPassword(plain: string, hash: string) {
   return bcrypt.compare(plain, hash);
 }
 
+// A real cost-10 bcrypt hash of a random string nobody will ever submit.
+// Generated once and hard-coded rather than computed at module load, so
+// importing this file doesn't cost a ~100ms hash on every cold start.
+const TIMING_EQUALIZER_HASH = "$2a$10$RcDe8Wedd8QUQNWyosWGBeRj/Hnf9zUtKPYr.WwfJ./dptqq617B2";
+
+// Burn the same work a real password comparison costs.
+//
+// /api/auth/login returned immediately for an unknown or inactive account but
+// spent a full bcrypt round (~60-100ms) for a real one with a wrong password.
+// The response bodies were identical, the response TIMES were not — which
+// enumerates accounts just as well, only more quietly. Call this on every
+// path that answers INVALID_CREDENTIALS without having compared anything.
+export async function equalizePasswordTiming(): Promise<void> {
+  await bcrypt.compare("timing-equalizer", TIMING_EQUALIZER_HASH);
+}
+
 // DEFERRED — refresh-token rotation (#20): we currently mint a single
 // short-lived access JWT (default 60 min) and rely on the user signing in
 // again at expiry. The mature pattern is a separate refresh token, stored
@@ -50,16 +91,25 @@ export async function verifyPassword(plain: string, hash: string) {
 // expiry friction is a problem.
 export async function signSession(payload: SessionPayload) {
   const ttlMin = Number(process.env.JWT_ACCESS_TTL_MIN ?? 480);
-  return new SignJWT({ ...payload })
+  // Mint jti/sst on first sign-in; a re-mint (password change, sliding
+  // renewal) passes the existing ones through so the session keeps its
+  // identity and its original start time.
+  const claims: SessionPayload = {
+    ...payload,
+    jti: payload.jti ?? crypto.randomUUID(),
+    sst: payload.sst ?? Date.now(),
+  };
+  return new SignJWT({ ...claims })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
+    .setAudience(TENANT_AUDIENCE)
     .setExpirationTime(`${ttlMin}m`)
     .sign(getSecret());
 }
 
 export async function verifySession(token: string): Promise<SessionPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, getSecret());
+    const { payload } = await jwtVerify(token, getSecret(), { audience: TENANT_AUDIENCE });
     return payload as unknown as SessionPayload;
   } catch {
     return null;
@@ -98,6 +148,25 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
   if (!token) return null;
   const payload = await verifySession(token);
   if (!payload) return null;
+
+  // Absolute lifetime. Sliding renewal (middleware.ts) keeps pushing `exp`
+  // forward on every request, so an account touched daily never expired. `sst`
+  // is the one timestamp renewal doesn't move.
+  if (payload.sst && Date.now() > payload.sst + absoluteMaxMs()) return null;
+
+  // Per-session revocation — set by signing out on THIS device. Checked here
+  // rather than in middleware because middleware runs on the edge with no DB;
+  // a revoked token still passes the signature check there and even gets
+  // renewed, but renewal carries the same jti forward, so it stays revoked.
+  if (payload.jti) {
+    const { prisma } = await import("./prisma");
+    const revoked = await prisma.revokedSession.findUnique({
+      where: { jti: payload.jti },
+      select: { jti: true },
+    });
+    if (revoked) return null;
+  }
+
   // tokenVersion check — JWT carries the version it was minted at; if the
   // user row has been bumped past it, the session is dead. Implemented here
   // (not in verifySession) so the JWT signature check stays pure/edge-safe.

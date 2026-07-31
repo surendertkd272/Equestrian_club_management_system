@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { emailIdentity } from "@/lib/email-normalize";
 
 export const RELATIONSHIPS = ["father", "mother", "guardian"] as const;
 
@@ -13,7 +14,7 @@ export const createParentLinkSchema = z
     parent: z
       .object({
         name: z.string().min(2).max(120),
-        email: z.string().email(),
+        email: emailIdentity(),
         phone: z.string().optional(),
       })
       .optional(),

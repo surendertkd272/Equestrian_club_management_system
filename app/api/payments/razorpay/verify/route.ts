@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   // a CPU core re-running verifyCheckoutSignature. 30 requests / minute /
   // IP is comfortably above a real user's needs (one redirect from
   // Razorpay) and tight enough to make a script worthless.
-  const rl = checkRate(`razorpay-verify:${clientFingerprint(req)}`, 30, 60_000);
+  const rl = await checkRate(`razorpay-verify:${clientFingerprint(req)}`, 30, 60_000);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "RATE_LIMITED", retryAfterSec: rl.retryAfterSec },

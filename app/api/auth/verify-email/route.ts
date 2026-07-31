@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { emailIdentity } from "@/lib/email-normalize";
 import { redeemEmailVerifyCode } from "@/lib/email-verify";
 import { audit } from "@/lib/audit";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
@@ -12,7 +13,7 @@ import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 // Rate-limited in addition to the per-code attempt cap in redeemEmailVerifyCode
 // (5 tries per issued code) — this bounds how many DISTINCT codes an attacker
 // can burn through against one email/IP before backing off.
-const schema = z.object({ email: z.string().email(), code: z.string().regex(/^\d{6}$/, "6 digits") });
+const schema = z.object({ email: emailIdentity(), code: z.string().regex(/^\d{6}$/, "6 digits") });
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -22,10 +23,10 @@ export async function POST(req: NextRequest) {
   }
 
   const ip = clientFingerprint(req);
-  if (!checkRate(`verify-code:ip:${ip}`, 20, 60 * 60_000).ok) {
+  if (!(await checkRate(`verify-code:ip:${ip}`, 20, 60 * 60_000)).ok) {
     return NextResponse.json({ error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
   }
-  if (!checkRate(`verify-code:em:${parsed.data.email.toLowerCase()}`, 10, 60 * 60_000).ok) {
+  if (!(await checkRate(`verify-code:em:${parsed.data.email}`, 10, 60 * 60_000)).ok) {
     return NextResponse.json({ error: "TOO_MANY_ATTEMPTS" }, { status: 429 });
   }
 

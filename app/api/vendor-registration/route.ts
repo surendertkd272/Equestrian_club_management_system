@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   bindRlsBypass(); // public flow — no session to bind an org from
-  const rl = checkRate(`vendor-register:${clientFingerprint(req)}`, 10, 60 * 60_000);
+  const rl = await checkRate(`vendor-register:${clientFingerprint(req)}`, 10, 60 * 60_000);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "RATE_LIMITED", retryAfterSec: rl.retryAfterSec },

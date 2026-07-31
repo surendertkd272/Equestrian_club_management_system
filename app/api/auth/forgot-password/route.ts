@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { emailIdentity } from "@/lib/email-normalize";
 import { prisma } from "@/lib/prisma";
 import { issueResetToken } from "@/lib/password-reset";
 import { sendEmail, renderEmail } from "@/lib/email";
@@ -8,7 +9,7 @@ import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 import { verifyChallenge } from "@/lib/captcha";
 
 const schema = z.object({
-  email: z.string().email(),
+  email: emailIdentity(),
   // CAPTCHA — optional in dev (when captchaToken/captchaAnswer are blank,
   // we still process the request) but required in production. The
   // verify call returns true only when both are present and valid.
@@ -48,10 +49,10 @@ export async function POST(req: NextRequest) {
   // email bombing. We deliberately still return 200 on rate-limit to keep
   // the no-enumeration property, but we skip the actual send.
   const ip = clientFingerprint(req);
-  if (!checkRate(`forgot:ip:${ip}`, 5, 15 * 60_000).ok) {
+  if (!(await checkRate(`forgot:ip:${ip}`, 5, 15 * 60_000)).ok) {
     return NextResponse.json({ ok: true });
   }
-  if (!checkRate(`forgot:em:${parsed.data.email.toLowerCase()}`, 3, 60 * 60_000).ok) {
+  if (!(await checkRate(`forgot:em:${parsed.data.email}`, 3, 60 * 60_000)).ok) {
     return NextResponse.json({ ok: true });
   }
 

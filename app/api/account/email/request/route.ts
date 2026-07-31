@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   // Authenticated action, but still rate-limit per user — a live session
   // shouldn't be able to spam verification codes at an arbitrary inbox.
-  if (!checkRate(`email-change:u:${session.userId}`, 5, 60 * 60_000).ok) {
+  if (!(await checkRate(`email-change:u:${session.userId}`, 5, 60 * 60_000)).ok) {
     return NextResponse.json({ error: "RATE_LIMITED" }, { status: 429 });
   }
 

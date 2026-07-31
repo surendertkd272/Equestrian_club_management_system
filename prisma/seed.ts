@@ -381,6 +381,7 @@ async function seedClub(spec: ClubSpec, orgId: string, pwd: string) {
     const user = await prisma.user.upsert({
       where: { email: emailFor(s.roleKey, spec.slug) },
       create: {
+        emailVerifiedAt: new Date(), // seeded accounts are sign-in ready
         email: emailFor(s.roleKey, spec.slug),
         name: s.name,
         role: s.role,
@@ -402,6 +403,7 @@ async function seedClub(spec: ClubSpec, orgId: string, pwd: string) {
   const parent = await prisma.user.upsert({
     where: { email: emailFor("parent", spec.slug) },
     create: {
+        emailVerifiedAt: new Date(), // seeded accounts are sign-in ready
       email: emailFor("parent", spec.slug),
       name: spec.parentName,
       role: "PARENT",
@@ -573,6 +575,7 @@ async function seedClub(spec: ClubSpec, orgId: string, pwd: string) {
     const studentUser = await prisma.user.upsert({
       where: { email: studentEmail },
       create: {
+        emailVerifiedAt: new Date(), // seeded accounts are sign-in ready
         email: studentEmail,
         name: `${spec.name} Student`,
         role: "RIDER",
@@ -634,6 +637,7 @@ async function main() {
   await prisma.user.upsert({
     where: { email: "super@equiwings.in" },
     create: {
+        emailVerifiedAt: new Date(), // seeded accounts are sign-in ready
       email: "super@equiwings.in",
       name: "HQ Super Admin",
       role: "SUPER_ADMIN",
@@ -650,6 +654,7 @@ async function main() {
   await prisma.user.upsert({
     where: { email: "admin@equiwings.in" },
     create: {
+        emailVerifiedAt: new Date(), // seeded accounts are sign-in ready
       email: "admin@equiwings.in",
       name: "HQ Admin",
       role: "ADMIN",

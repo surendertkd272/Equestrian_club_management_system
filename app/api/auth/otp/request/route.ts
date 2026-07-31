@@ -4,12 +4,13 @@
 // per IP + per email to stop code-spam to an inbox.
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { emailIdentity } from "@/lib/email-normalize";
 import { prisma } from "@/lib/prisma";
 import { issueEmailVerifyCode } from "@/lib/email-verify";
 import { sendEmail, renderEmail } from "@/lib/email";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 
-const schema = z.object({ email: z.string().email() });
+const schema = z.object({ email: emailIdentity() });
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -17,10 +18,10 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ ok: true }); // no enumeration
 
   const ip = clientFingerprint(req);
-  const email = parsed.data.email.toLowerCase();
+  const email = parsed.data.email;
   // Both caps fail SILENTLY to 200 — never reveal existence via a 429 either.
-  if (!checkRate(`otp-login:ip:${ip}`, 15, 60 * 60_000).ok) return NextResponse.json({ ok: true });
-  if (!checkRate(`otp-login:em:${email}`, 5, 60 * 60_000).ok) return NextResponse.json({ ok: true });
+  if (!(await checkRate(`otp-login:ip:${ip}`, 15, 60 * 60_000)).ok) return NextResponse.json({ ok: true });
+  if (!(await checkRate(`otp-login:em:${email}`, 5, 60 * 60_000)).ok) return NextResponse.json({ ok: true });
 
   const user = await prisma.user.findUnique({
     where: { email },

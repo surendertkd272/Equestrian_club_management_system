@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { emailIdentity } from "@/lib/email-normalize";
 import { ROLES } from "@/lib/roles";
 import { indianMobile } from "@/lib/schemas/phone";
 import { optionalStoredUrl } from "@/lib/schemas/url";
@@ -20,7 +21,7 @@ const docUrl = optionalStoredUrl;
 
 export const createStaffSchema = z.object({
   name: z.string().min(2).max(80),
-  email: z.string().email(),
+  email: emailIdentity(),
   // The shared rule, like every other capture path. This form was the last
   // holdout on a length-only check, so Add Staff accepted "abcdefghij" while
   // the CSV importer rejected it — and the SMS password-reset fallback then
