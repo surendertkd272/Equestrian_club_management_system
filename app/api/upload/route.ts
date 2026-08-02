@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   // all — anyone could push files into the club's storage bucket in a loop, at
   // the tenant's expense. Sized well above a real registration (photo + two
   // Aadhaar sides + indemnity ≈ 4 files, a few retries) and far below abuse.
-  const rl = checkRate(`upload:${clientFingerprint(req)}`, 40, 60 * 60_000);
+  const rl = await checkRate(`upload:${clientFingerprint(req)}`, 40, 60 * 60_000);
   if (!rl.ok) {
     return NextResponse.json(
       {

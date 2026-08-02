@@ -66,6 +66,7 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.create({
     data: {
+      emailVerifiedAt: new Date(), // admin-created: the admin vouches for the address
       email: d.email,
       name: d.name,
       phone: d.phone || null,

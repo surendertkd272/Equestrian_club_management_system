@@ -21,6 +21,15 @@ const MESSAGES: Record<string, string> = {
   TOTP_INVALID: "That authenticator code is incorrect.",
   TOTP_REPLAY: "That code was already used — wait for the next one.",
   RECOVERY_INVALID: "That recovery code isn't valid.",
+  // Tenant sign-in emits TWO_FACTOR_* where the owner portal emits TOTP_*.
+  // Both are mapped so neither surface falls through to "Something went wrong".
+  TWO_FACTOR_REQUIRED: "Enter your authenticator code to continue.",
+  TWO_FACTOR_INVALID: "That code isn't right — try the current one from your authenticator.",
+  TWO_FACTOR_REPLAY: "That code was already used — wait for your authenticator to show the next one.",
+  CODE_EXPIRED: "That code has expired — request a new one.",
+  CODE_USED: "That code has already been used — request a new one.",
+  TOO_MANY_ATTEMPTS: "Too many incorrect attempts — request a new code.",
+  EMAIL_UNVERIFIED: "Confirm your email address to finish setting up your account.",
   ACCOUNT_SUSPENDED: "This account is suspended — please contact your administrator.",
   NOT_FOUND: "We couldn't find that record — it may have been removed.",
   NO_ORG: "We couldn't determine your organisation — please pick a centre and retry.",

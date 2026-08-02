@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, clearSessionCookie } from "@/lib/auth";
 import { audit } from "@/lib/audit";
+import { deletionScheduledFor } from "@/lib/dpdpa";
 import { sendEmail, renderEmail } from "@/lib/email";
 
 // POST /api/account/delete — DPDPA Section 12 right-to-erasure.
@@ -28,7 +29,7 @@ export async function POST() {
   if (!user) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   if (user.deletionRequestedAt) {
     return NextResponse.json(
-      { error: "ALREADY_REQUESTED", scheduledFor: new Date(user.deletionRequestedAt.getTime() + 30 * 86400000) },
+      { error: "ALREADY_REQUESTED", scheduledFor: deletionScheduledFor(user.deletionRequestedAt) },
       { status: 409 },
     );
   }
@@ -58,8 +59,8 @@ export async function POST() {
       heading: "We received your account deletion request",
       body: `<p>Hi ${user.name},</p>
 <p>Your Equiwings account will be permanently deleted on
-<b>${new Date(requestedAt.getTime() + 30 * 86400000).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}</b>.</p>
-<p>If you change your mind, sign in and visit Account Settings → "Cancel deletion" any time before that date. After deletion, we cannot restore your data.</p>
+<b>${deletionScheduledFor(requestedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}</b>.</p>
+<p>If you change your mind, go to the sign-in page and enter your usual email and password any time before that date — we'll offer you a "Keep my account" button instead of signing you in. After deletion, we cannot restore your data.</p>
 <p>Some records (paid invoices, certificates issued, audit-trail entries) are retained in an anonymised form because Indian tax and financial-services regulations require us to. These records no longer carry your name, email, or phone number.</p>`,
     }),
     ref: { type: "account.deletion_requested", rowId: user.id },
@@ -71,7 +72,7 @@ export async function POST() {
 
   return NextResponse.json({
     ok: true,
-    scheduledFor: new Date(requestedAt.getTime() + 30 * 86400000),
+    scheduledFor: deletionScheduledFor(requestedAt),
   });
 }
 

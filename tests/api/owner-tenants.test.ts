@@ -23,7 +23,16 @@ const { GET: getTenant, PATCH: patchTenant } = await import("@/app/api/owner/ten
 
 async function loginOwner(payload: OwnerSessionPayload) {
   cookieJar.clear();
-  cookieJar.set("ew_owner_session", { value: await signOwnerSession(payload) });
+  // Sessions must carry the row's tokenVersion: getOwnerSession() now rejects a
+  // token without one, because such a token opts out of every revocation check.
+  // An explicit tokenVersion in `payload` still wins (mismatch tests rely on it).
+  const row = await prisma.platformUser.findUnique({
+    where: { id: payload.ownerId },
+    select: { tokenVersion: true },
+  });
+  cookieJar.set("ew_owner_session", {
+    value: await signOwnerSession({ tokenVersion: row?.tokenVersion ?? 0, ...payload }),
+  });
 }
 
 async function mkPlatformAdmin(over: { name?: string; email?: string } = {}) {

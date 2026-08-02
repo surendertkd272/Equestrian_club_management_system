@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { emailIdentity } from "@/lib/email-normalize";
 import { ROLES } from "../roles";
 
 // pending_approval = staff hiring invite was redeemed; user can't sign in
@@ -16,7 +17,7 @@ export type UserStatus = (typeof USER_STATUSES)[number];
 // 2FA toggle is a future feature.
 export const updateUserSchema = z.object({
   name: z.string().min(2).max(150).optional(),
-  email: z.string().email().max(200).optional(),
+  email: emailIdentity().optional(),
   phone: z.string().max(20).nullable().optional(),
   role: z.enum(ROLES as readonly [string, ...string[]]).optional(),
   centreId: z.string().min(1).nullable().optional(),
@@ -30,7 +31,7 @@ export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 // consistent with reset-password + rider portal access).
 export const createUserSchema = z.object({
   name: z.string().min(2).max(150),
-  email: z.string().email().max(200),
+  email: emailIdentity(),
   phone: z.string().max(20).optional().or(z.literal("")),
   role: z.enum(ROLES as readonly [string, ...string[]]),
   centreId: z.string().min(1).nullable().optional(),

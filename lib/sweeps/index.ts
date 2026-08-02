@@ -30,6 +30,8 @@ import { sweepOnboardingDocsOverdue } from "./onboarding-docs-overdue";
 import { sweepOnboardingLinkPurge } from "./onboarding-link-purge";
 import { sweepTaskEscalation } from "./task-escalation";
 import { sweepRecurringTasks } from "./recurring-tasks";
+import { sweepRateLimitPurge } from "./rate-limit-purge";
+import { sweepSessionRevocationPurge } from "./session-revocation-purge";
 
 export {
   sweepFeeDue,
@@ -53,6 +55,8 @@ export {
   sweepOnboardingLinkPurge,
   sweepTaskEscalation,
   sweepRecurringTasks,
+  sweepRateLimitPurge,
+  sweepSessionRevocationPurge,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -96,4 +100,6 @@ export const SWEEP_JOBS: Record<string, (opts?: SweepOpts) => Promise<SweepResul
   onboarding_link_purge: () => sweepOnboardingLinkPurge(),
   task_escalation: () => sweepTaskEscalation(),
   recurring_tasks: () => sweepRecurringTasks(),
+  rate_limit_purge: () => sweepRateLimitPurge(),
+  session_revocation_purge: () => sweepSessionRevocationPurge(),
 };

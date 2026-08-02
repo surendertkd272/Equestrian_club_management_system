@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   // correcting a mistyped phone number three times burned three of her ten
   // slots on submissions that never created anything, and the bare
   // "RATE_LIMITED" string was rendered to her with no explanation.
-  const rl = checkRate(`onboarding:${clientFingerprint(req)}`, 10, 60 * 60_000);
+  const rl = await checkRate(`onboarding:${clientFingerprint(req)}`, 10, 60 * 60_000);
   if (!rl.ok) {
     return NextResponse.json(
       {

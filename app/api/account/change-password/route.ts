@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getSession, verifyPassword, hashPassword } from "@/lib/auth";
+import { getSession, verifyPassword, hashPassword, signSession, setSessionCookie } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { changePasswordSchema } from "@/lib/schemas/account";
 import { checkPasswordPolicy } from "@/lib/password-policy";
@@ -34,10 +34,35 @@ export async function POST(req: NextRequest) {
   }
 
   const newHash = await hashPassword(parsed.data.newPassword);
-  await prisma.user.update({
+  const updated = await prisma.user.update({
     where: { id: session.userId },
     data: { passwordHash: newHash, mustChangePassword: false, tokenVersion: { increment: 1 } },
+    select: { tokenVersion: true, centreId: true, name: true },
   });
+
+  // Bumping tokenVersion signs out every other device — that's the point of a
+  // password change. But it also kills THIS session, because getSession()
+  // compares the cookie's tokenVersion against the row. Without re-minting
+  // here, the very next request resolved to a null session and every layout
+  // bounced the user to /login?ended=1: on the forced-rotation path a brand-new
+  // staff member set their password, saw "welcome", and was thrown straight
+  // back to the sign-in screen. Re-issue with the same claims and the new
+  // version so the device that did the change stays signed in.
+  await setSessionCookie(
+    await signSession({
+      userId: session.userId,
+      role: session.role,
+      centreId: updated.centreId,
+      name: updated.name,
+      tokenVersion: updated.tokenVersion,
+      // Carry impersonation markers forward — an owner who rotates a password
+      // mid-impersonation must keep the marker (and its expiry), not shed it.
+      ...(session.impersonatedBy ? { impersonatedBy: session.impersonatedBy } : {}),
+      ...(session.impersonationExpiresAt
+        ? { impersonationExpiresAt: session.impersonationExpiresAt }
+        : {}),
+    }),
+  );
 
   await audit({
     userId: session.userId,

@@ -681,11 +681,16 @@ model User {
   // (getSession sees status≠active via the deletion gate) and the user
   // can sign in only to cancel the request.
   deletionRequestedAt   DateTime?
-  // Email-verification gate. Null when a verified email is on file
-  // (legacy rows + admin-created users with status="active" treated as
-  // verified). Non-null = pending: the verifyEmailToken row is the active
-  // proof and certain sensitive ops (impersonation target, password
-  // reset trigger) are blocked until verification.
+  // Email-verification gate. NON-NULL = verified, null = never proved — the
+  // opposite of what this comment used to claim, and the code has always been
+  // this way round (redeemEmailVerifyCode stamps it on success).
+  //
+  // It is now actually enforced: accountStateGate() in lib/sign-in.ts refuses a
+  // sign-in for a null row. The backfill migration stamped every pre-existing
+  // user, and admin-created users are stamped at creation, so in practice only
+  // the super-admin minted by tenant provisioning starts null — and they get a
+  // code emailed immediately. The email-OTP sign-in path is exempt: receiving
+  // the code at that address is itself the proof.
   emailVerifiedAt       DateTime?
   // Set true whenever HQ generates a temp password (create / reset). The
   // session middleware forces the user through /account/rotate on next sign-in
@@ -3093,4 +3098,50 @@ model BatchShiftRequest {
   @@index([riderId, status])
   @@index([toBatchId, status])
   @@index([status, createdAt])
+}
+
+// Durable rate-limit counters. Replaces the in-process Map that used to back
+// lib/rate-limit.ts: on Vercel every lambda instance kept its own copy and cold
+// starts reset it, so the effective login cap was (limit x live instances) and
+// brute-force protection was close to absent.
+//
+// Fixed-window counters, not a sliding log: one row per (key, window), bumped
+// with a single atomic INSERT .. ON CONFLICT DO UPDATE. That keeps it to one
+// round-trip per check and needs no locking. The trade is that a burst
+// straddling a window boundary can reach up to 2x the limit — acceptable for
+// throttling, and vastly better than per-instance memory.
+model RateLimitCounter {
+  key         String
+  // Epoch milliseconds, NOT DateTime. These columns are written by a raw
+  // INSERT .. ON CONFLICT (the atomic increment can't be expressed through the
+  // typed API) and read back through the typed API. Postgres TIMESTAMP(3) is
+  // "without time zone", so a Date bound into raw SQL lands as LOCAL wall time
+  // while the typed read interprets it as UTC — the two disagree by the
+  // server's offset, and every lookup misses. Integers have no timezone
+  // semantics, so both paths agree by construction.
+  windowStart BigInt
+  count       Int    @default(0)
+  expiresAt   BigInt
+
+  @@id([key, windowStart])
+  @@index([expiresAt])
+}
+
+// Revoked session identifiers — the denylist that makes "Sign out" mean it.
+//
+// Logging out only deleted the cookie, so a copy of the JWT (shared machine,
+// synced browser profile, a captured request) stayed valid for the rest of its
+// 8h life. Bumping tokenVersion would have fixed that by signing the user out
+// on EVERY device, which is not what pressing "Sign out" on one laptop means —
+// hence a per-session denylist keyed on the token's own jti claim.
+//
+// Rows live only until the token they revoke would have expired anyway; the
+// session_revocation_purge sweep clears them out after that.
+model RevokedSession {
+  jti       String   @id
+  userId    String?
+  revokedAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([expiresAt])
 }

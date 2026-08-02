@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { emailIdentity } from "@/lib/email-normalize";
 import { storedUrl } from "@/lib/schemas/url";
 
 export const updateProfileSchema = z
@@ -23,7 +24,7 @@ export const changePasswordSchema = z
 // then a 6-digit code goes to the new address; confirm step redeems it.
 export const requestEmailChangeSchema = z
   .object({
-    newEmail: z.string().email().max(200),
+    newEmail: emailIdentity(),
     currentPassword: z.string().min(1),
   })
   .strict();

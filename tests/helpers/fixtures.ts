@@ -73,6 +73,9 @@ export async function mkUser(over: {
       centreId: over.centreId ?? null,
       orgId,
       status: over.status ?? "active",
+      // Fixtures stand in for existing/admin-created users, which the backfill
+      // and the create paths both treat as verified.
+      emailVerifiedAt: new Date(),
     },
   });
 }

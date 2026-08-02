@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { emailIdentity } from "@/lib/email-normalize";
 import { prisma } from "@/lib/prisma";
 import { issueEmailVerifyCode } from "@/lib/email-verify";
 import { sendEmail, renderEmail } from "@/lib/email";
@@ -8,7 +9,7 @@ import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 // Public — anyone with a known email can request a fresh link. We always
 // return 200 to avoid leaking which emails exist (same pattern as
 // forgot-password). Rate-limited to 3/email/hour.
-const schema = z.object({ email: z.string().email() });
+const schema = z.object({ email: emailIdentity() });
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
@@ -16,10 +17,10 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ ok: true });
 
   const ip = clientFingerprint(req);
-  if (!checkRate(`verify-resend:ip:${ip}`, 10, 60 * 60_000).ok) {
+  if (!(await checkRate(`verify-resend:ip:${ip}`, 10, 60 * 60_000)).ok) {
     return NextResponse.json({ ok: true });
   }
-  if (!checkRate(`verify-resend:em:${parsed.data.email.toLowerCase()}`, 3, 60 * 60_000).ok) {
+  if (!(await checkRate(`verify-resend:em:${parsed.data.email}`, 3, 60 * 60_000)).ok) {
     return NextResponse.json({ ok: true });
   }
 

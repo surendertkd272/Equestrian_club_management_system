@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { z } from "zod";
+import { emailIdentity } from "@/lib/email-normalize";
 import { prisma } from "@/lib/prisma";
 import { centreFence } from "@/lib/authz-centre";
 import { getSession, hashPassword } from "@/lib/auth";
@@ -9,7 +10,7 @@ import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 const issueSchema = z.object({
-  email: z.string().email(),
+  email: emailIdentity(),
 });
 
 // POST /api/riders/[id]/portal-access — provision login access for a rider.
@@ -58,6 +59,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const user = await prisma.user.create({
     data: {
+      emailVerifiedAt: new Date(), // admin-created: the admin vouches for the address
       email,
       name: `${rider.firstName} ${rider.lastName}`,
       role: "RIDER",

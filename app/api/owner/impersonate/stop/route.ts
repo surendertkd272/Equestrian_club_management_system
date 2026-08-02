@@ -22,7 +22,7 @@ export async function POST() {
 
   const owner = await prisma.platformUser.findUnique({
     where: { id: session.impersonatedBy },
-    select: { id: true, name: true, role: true, status: true },
+    select: { id: true, name: true, role: true, status: true, tokenVersion: true },
   });
 
   // Clear the tenant session unconditionally — the impersonation is over.
@@ -33,10 +33,15 @@ export async function POST() {
     return NextResponse.json({ ok: true, redirect: "/owner/login" });
   }
 
+  // tokenVersion is NOT optional here. Minting the restored session without it
+  // used to make getOwnerSession skip its status/revocation re-check for the
+  // whole life of the cookie — so an owner suspended or password-reset while
+  // they were impersonating walked back out with a session nobody could revoke.
   const token = await signOwnerSession({
     ownerId: owner.id,
     role: owner.role as OwnerRole,
     name: owner.name,
+    tokenVersion: owner.tokenVersion,
   });
   await setOwnerSessionCookie(token);
 

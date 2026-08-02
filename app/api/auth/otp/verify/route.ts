@@ -5,13 +5,14 @@
 // so a 2FA user's code survives the TWO_FACTOR_REQUIRED round-trip.
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { emailIdentity } from "@/lib/email-normalize";
 import { prisma } from "@/lib/prisma";
 import { peekEmailVerifyCode, consumeEmailVerifyCode } from "@/lib/email-verify";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
-import { twoFactorGate, finishSignIn } from "@/lib/sign-in";
+import { twoFactorGate, finishSignIn, accountStateGate } from "@/lib/sign-in";
 
 const schema = z.object({
-  email: z.string().email(),
+  email: emailIdentity(),
   code: z.string().regex(/^\d{6}$/, "6 digits"),
   totpCode: z.string().regex(/^\d{6}$/).optional(),
   recoveryCode: z.string().min(4).max(40).optional(),
@@ -23,13 +24,13 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "VALIDATION" }, { status: 400 });
 
   const ip = clientFingerprint(req);
-  const email = parsed.data.email.toLowerCase();
+  const email = parsed.data.email;
   // Defence-in-depth on top of the per-code 5-attempt cap: bound how many codes
   // an attacker can burn through against one email/IP.
-  if (!checkRate(`otp-verify:ip:${ip}`, 20, 15 * 60_000).ok) {
+  if (!(await checkRate(`otp-verify:ip:${ip}`, 20, 15 * 60_000)).ok) {
     return NextResponse.json({ error: "RATE_LIMITED" }, { status: 429 });
   }
-  if (!checkRate(`otp-verify:em:${ip}:${email}`, 10, 15 * 60_000).ok) {
+  if (!(await checkRate(`otp-verify:em:${ip}:${email}`, 10, 15 * 60_000)).ok) {
     return NextResponse.json({ error: "RATE_LIMITED" }, { status: 429 });
   }
 
@@ -50,6 +51,12 @@ export async function POST(req: NextRequest) {
   });
   if (!user || user.status !== "active") return NextResponse.json({ error: "INVALID_CODE" }, { status: 400 });
 
+  // Account-state block (pending deletion). Runs BEFORE the code is consumed
+  // below, so a refused sign-in leaves the code live — the user needs it to
+  // authenticate the cancel-deletion call they're about to be offered.
+  const state = accountStateGate(user, { emailProven: true });
+  if (state) return state;
+
   // Suspended-tenant block (same as password login).
   const orgRef = user.centre?.org ?? user.org;
   if (orgRef?.status === "suspended") {
@@ -66,5 +73,5 @@ export async function POST(req: NextRequest) {
   const consumed = await consumeEmailVerifyCode(peek.tokenId, user.id);
   if (!consumed) return NextResponse.json({ error: "CODE_USED" }, { status: 400 });
 
-  return finishSignIn(user);
+  return finishSignIn(user, req, { emailProven: true });
 }

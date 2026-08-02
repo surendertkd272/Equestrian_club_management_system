@@ -23,7 +23,9 @@ function flag(name: string): boolean {
 }
 
 async function main() {
-  const email = arg("email");
+  // Canonical form, same as every other write to a login identity — the
+  // CHECK constraint on PlatformUser.email rejects anything else.
+  const email = arg("email")?.trim().toLowerCase();
   const name = arg("name");
   const passwordArg = arg("password");
   const resetPassword = flag("reset-password");

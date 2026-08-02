@@ -62,6 +62,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       tempPassword = crypto.randomBytes(8).toString("base64url");
       const created = await prisma.user.create({
         data: {
+          emailVerifiedAt: new Date(), // admin-created: the admin vouches for the address
           email: d.parent!.email,
           name: d.parent!.name,
           phone: d.parent!.phone ?? null,

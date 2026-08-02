@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma";
+import { DELETION_GRACE_MS } from "../dpdpa";
 import { SweepResult } from "./shared";
 
 // DPDPA Section 12: hard-delete users whose 30-day grace window has
@@ -13,7 +14,7 @@ import { SweepResult } from "./shared";
 //   • Invoices/Payments: preserved (Indian Income Tax Act demands 6+ years).
 //   • Notifications: deleted (no value, full PII).
 export async function sweepDpdpaDeletions(): Promise<SweepResult> {
-  const cutoff = new Date(Date.now() - 30 * 86400000);
+  const cutoff = new Date(Date.now() - DELETION_GRACE_MS);
   const due = await prisma.user.findMany({
     where: { deletionRequestedAt: { lt: cutoff, not: null } },
     select: { id: true, email: true },
