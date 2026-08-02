@@ -150,7 +150,14 @@ export const onboardingSchema = personalSchema
   .merge(medicalSchema)
   .merge(indemnitySchema)
   .merge(parentalConsentSchema)
-  .extend({ centreSlug: z.string().min(1) });
+  .extend({
+    centreSlug: z.string().min(1),
+    // Anti-spam challenge (lib/captcha.ts). Optional in the schema because
+    // dev/UAT submits without one; /api/onboarding enforces presence and
+    // correctness in production.
+    captchaToken: z.string().optional(),
+    captchaAnswer: z.string().optional(),
+  });
 
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
 

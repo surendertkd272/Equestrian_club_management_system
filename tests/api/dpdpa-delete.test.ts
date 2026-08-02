@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { resetDb } from "../helpers/db";
+import { mockReq } from "../helpers/request";
 import { mkUser } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession, type SessionPayload } from "@/lib/auth";
@@ -14,7 +15,19 @@ vi.mock("next/headers", () => ({
   }),
 }));
 
-const { POST: requestDelete } = await import("@/app/api/account/delete/route");
+const { POST: rawRequestDelete } = await import("@/app/api/account/delete/route");
+
+// Requesting erasure now re-proves the password (step-up auth), so the helper
+// presents it. Pass a different one to exercise the rejection path.
+function requestDelete(currentPassword = "pw") {
+  return rawRequestDelete(
+    mockReq("http://localhost/api/account/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ currentPassword }),
+    }),
+  );
+}
 const { POST: cancelDelete } = await import("@/app/api/account/delete/cancel/route");
 
 async function login(payload: SessionPayload) {
@@ -29,7 +42,7 @@ beforeEach(async () => {
 
 describe("DPDPA right-to-erasure", () => {
   it("schedules deletion + clears session + sets tokenVersion bump", async () => {
-    const u = await mkUser({ email: "leaver@test.local" });
+    const u = await mkUser({ email: "leaver@test.local", password: "pw" });
     const before = u.tokenVersion;
     await login({ userId: u.id, role: u.role as Role, centreId: null, name: u.name, tokenVersion: before });
 
@@ -46,7 +59,7 @@ describe("DPDPA right-to-erasure", () => {
   });
 
   it("refuses a second request while one is pending", async () => {
-    const u = await mkUser();
+    const u = await mkUser({ password: "pw" });
     await login({ userId: u.id, role: u.role as Role, centreId: null, name: u.name });
     await requestDelete();
 
@@ -58,7 +71,7 @@ describe("DPDPA right-to-erasure", () => {
   });
 
   it("cancels a pending deletion via cookie even when getSession is dead", async () => {
-    const u = await mkUser();
+    const u = await mkUser({ password: "pw" });
     // Issue a JWT now, then mark the user pending-deletion server-side.
     await login({ userId: u.id, role: u.role as Role, centreId: null, name: u.name, tokenVersion: u.tokenVersion });
     await prisma.user.update({

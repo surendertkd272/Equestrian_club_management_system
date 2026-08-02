@@ -294,9 +294,18 @@ sensitive actions.
 `SESSION_ABSOLUTE_MAX_DAYS` (default 30) and middleware stops renewing at the same
 point, so it never hands out a cookie that is already dead on arrival.
 
-Step-up re-authentication for sensitive actions is still not implemented; changing a
-password and disabling 2FA each require re-proving a factor, which covers the sharpest
-cases.
+**Step-up re-authentication is now implemented too**, and auditing for it turned up two
+endpoints that accepted a bare session:
+
+- `POST /api/account/delete` — scheduling a DPDPA erasure, the most destructive thing
+  an account can do to itself, needed only a cookie.
+- `/api/account/export-all` — a whole centre's (or org's) records, and it was a **GET**.
+  The session cookie is `sameSite: "lax"`, which deliberately *does* ride along on
+  top-level navigations, so a link was enough to make a signed-in manager's browser
+  pull the export. It is now a POST.
+
+Both re-prove the account password, matching the bar `change-password` and the
+email-change flow already set. Neither had a UI caller, so nothing broke.
 
 ### B7 — Tenant JWTs are not audience-checked `LOW` → `FIXED`
 

@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth";
+import { getSession, verifyPassword } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 
 // GET /api/account/export-all — one-shot full export for the caller's
@@ -17,11 +18,31 @@ import { audit } from "@/lib/audit";
 // We resolve the org via the user's centre (centre-scoped) or User.orgId
 // (HQ SUPER_ADMIN). Centre-scoped users only get their own centre's data;
 // HQ users get the whole org.
-export async function GET() {
+// POST, not GET, and step-up authenticated.
+//
+// This dumps an entire centre's (or org's) records. As a GET it was reachable
+// by top-level navigation, and the session cookie is `sameSite: "lax"` — which
+// deliberately DOES ride along on those — so a link was enough to make a
+// signed-in manager's browser pull the whole export. Requiring a POST with the
+// account password means a stolen cookie alone can no longer trigger a bulk
+// PII extraction. No caller in the app used the GET.
+export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (!["SUPER_ADMIN", "CENTRE_MANAGER"].includes(session.role)) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  }
+
+  const cred = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { passwordHash: true },
+  });
+  if (!cred) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  const body = await req.json().catch(() => null);
+  const creds = z.object({ currentPassword: z.string().min(1) }).safeParse(body);
+  if (!creds.success) return NextResponse.json({ error: "PASSWORD_REQUIRED" }, { status: 400 });
+  if (!(await verifyPassword(creds.data.currentPassword, cred.passwordHash))) {
+    return NextResponse.json({ error: "BAD_CURRENT_PASSWORD" }, { status: 401 });
   }
 
   const me = await prisma.user.findUnique({

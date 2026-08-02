@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getSession, clearSessionCookie } from "@/lib/auth";
+import { getSession, clearSessionCookie, verifyPassword } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { deletionScheduledFor } from "@/lib/dpdpa";
 import { sendEmail, renderEmail } from "@/lib/email";
@@ -18,15 +19,29 @@ import { sendEmail, renderEmail } from "@/lib/email";
 // Audit-log rows are kept (anonymised) to preserve the financial trail;
 // regulators require we can prove a transaction happened even after the
 // actor is gone.
-export async function POST() {
+export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
 
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { id: true, email: true, name: true, deletionRequestedAt: true },
+    select: { id: true, email: true, name: true, deletionRequestedAt: true, passwordHash: true },
   });
   if (!user) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+
+  // Step-up re-authentication. Scheduling an erasure is the most destructive
+  // thing an account can do to itself, and it used to need nothing but a valid
+  // cookie — so a session lifted off a shared machine could queue the owner's
+  // account for deletion. Re-prove the password, the same bar
+  // /api/account/change-password and the email-change flow already set.
+  const body = await req.json().catch(() => null);
+  const parsed = z.object({ currentPassword: z.string().min(1) }).safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "PASSWORD_REQUIRED" }, { status: 400 });
+  }
+  if (!(await verifyPassword(parsed.data.currentPassword, user.passwordHash))) {
+    return NextResponse.json({ error: "BAD_CURRENT_PASSWORD" }, { status: 401 });
+  }
   if (user.deletionRequestedAt) {
     return NextResponse.json(
       { error: "ALREADY_REQUESTED", scheduledFor: deletionScheduledFor(user.deletionRequestedAt) },

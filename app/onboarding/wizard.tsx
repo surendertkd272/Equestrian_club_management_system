@@ -20,6 +20,7 @@ import { useState, useEffect } from "react";
 import { useForm, type UseFormReturn, type FieldValues, type FieldPath } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { CaptchaField, EMPTY_CAPTCHA, type CaptchaValue } from "@/components/captcha-field";
 import { z } from "zod";
 import { compressForKind } from "@/lib/image-compress";
 import {
@@ -502,11 +503,17 @@ function IndemnityStep({
   onSubmit,
   onBack,
   submitting,
+  captcha,
+  onCaptchaChange,
+  captchaKey,
 }: {
   initial: WizardData;
   onSubmit: (d: IndemnityInput) => void | Promise<void>;
   onBack: () => void;
   submitting: boolean;
+  captcha: CaptchaValue;
+  onCaptchaChange: (v: CaptchaValue) => void;
+  captchaKey: number;
 }) {
   const methods = useForm<IndemnityInput>({
     resolver: zodResolver(indemnitySchema),
@@ -571,6 +578,13 @@ function IndemnityStep({
           </span>
         </label>
         {agreedError && <p className="text-xs text-destructive">{agreedError}</p>}
+
+        <CaptchaField
+          value={captcha}
+          onChange={onCaptchaChange}
+          disabled={submitting}
+          refreshKey={captchaKey}
+        />
       </div>
       <StepFooter canBack onBack={onBack} submitting={submitting} submitLabel="Submit Application" />
     </form>
@@ -697,6 +711,11 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
   // reference number the applicant can quote in follow-ups.
   const [result, setResult] = useState<{ riderId: string; status: string; feesOn?: boolean } | null>(null);
   const [restored, setRestored] = useState(false);
+  // Anti-spam challenge on this public endpoint. captchaKey is bumped after a
+  // rejected submit so the user gets a fresh question — a challenge is
+  // single-use and 5-minute-lived, so retrying with the old one always fails.
+  const [captcha, setCaptcha] = useState<CaptchaValue>(EMPTY_CAPTCHA);
+  const [captchaKey, setCaptchaKey] = useState(0);
 
   // Restore in an effect (not useState init) so SSR and client agree on
   // the first render — Next would warn about hydration mismatch otherwise.
@@ -752,7 +771,7 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
       res = await fetch("/api/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, ...captcha }),
       });
     } catch {
       // Network drop (barn wifi) — fetch rejects. Without this the button
@@ -764,6 +783,8 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
     setSubmitting(false);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      // Any rejection burns the challenge, not just a wrong answer.
+      setCaptchaKey((n) => n + 1);
       toast.error(err.message ?? err.error ?? "Submission failed");
       return;
     }
@@ -846,7 +867,15 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
           <ParentalConsentStep initial={data} onNext={applyStep} onBack={back} />
         )}
         {currentStep === "indemnity" && (
-          <IndemnityStep initial={data} onSubmit={submitAll} onBack={back} submitting={submitting} />
+          <IndemnityStep
+            initial={data}
+            onSubmit={submitAll}
+            onBack={back}
+            submitting={submitting}
+            captcha={captcha}
+            onCaptchaChange={setCaptcha}
+            captchaKey={captchaKey}
+          />
         )}
         {currentStep === "submitted" && (
           <SubmittedStep result={result} centreName={centreName} />

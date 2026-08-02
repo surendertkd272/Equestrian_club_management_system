@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { BookingsClient } from "./bookings-client";
 import { formatEnum } from "@/lib/labels";
+import { sameLocalDay } from "@/lib/tz";
 export const dynamic = "force-dynamic";
 
 export default async function FacilityBookingsPage() {
@@ -25,9 +26,29 @@ export default async function FacilityBookingsPage() {
   // FacilityBooking has a scalar centreId but NO `centre` relation, so the
   // tenantWhere() relation-filter can't bind it — constrain to the org's own
   // centres instead. A specific HQ pick narrows to that centre.
-  const orgCentreIds = (
-    await prisma.centre.findMany({ where: { orgId }, select: { id: true } })
-  ).map((c) => c.id);
+  // Timezone comes along for the ride: this page renders booking times, and
+  // this is a SERVER component, so a bare toLocaleString() formats in the
+  // server's zone — UTC on Vercel — showing every Indian booking ~5.5h out.
+  const orgCentres = await prisma.centre.findMany({
+    where: { orgId },
+    select: { id: true, timezone: true },
+  });
+  const orgCentreIds = orgCentres.map((c) => c.id);
+  const tzByCentre = new Map(orgCentres.map((c) => [c.id, c.timezone]));
+  const fallbackTz = orgCentres[0]?.timezone ?? "Asia/Kolkata";
+  // Each booking is formatted in ITS OWN centre's zone — an HQ user looking at
+  // "all centres" is otherwise reading several zones rendered as one.
+  const tzFor = (r: { centreId: string | null }) =>
+    (r.centreId ? tzByCentre.get(r.centreId) : null) ?? fallbackTz;
+  const fmt = (at: Date, tz: string) =>
+    new Date(at).toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: tz,
+    });
 
   const where: any = {
     endAt: { gte: new Date(Date.now() - 7 * 86400000) },
@@ -51,10 +72,10 @@ export default async function FacilityBookingsPage() {
   const facById = new Map(facilities.map((f) => [f.id, f]));
   const now = new Date();
   const upcoming = rows.filter((r) => r.startAt >= now);
-  const today = rows.filter((r) => {
-    const start = new Date(r.startAt);
-    return start.toDateString() === now.toDateString();
-  });
+  // Same bug, second form: toDateString() is server-local, so "today's
+  // bookings" was computed against a UTC calendar day. A 07:00 IST booking
+  // falls on the previous UTC day and vanished from the list.
+  const today = rows.filter((r) => sameLocalDay(new Date(r.startAt), now, tzFor(r)));
 
   return (
     <div className="space-y-6">
@@ -87,9 +108,9 @@ export default async function FacilityBookingsPage() {
                 primary: true,
                 cell: (r) => (
                   <div className="text-xs">
-                    <div className="font-medium">{new Date(r.startAt).toLocaleString()}</div>
+                    <div className="font-medium">{fmt(r.startAt, tzFor(r))}</div>
                     <div className="text-muted-foreground">
-                      → {new Date(r.endAt).toLocaleString()}
+                      → {fmt(r.endAt, tzFor(r))}
                     </div>
                   </div>
                 ),

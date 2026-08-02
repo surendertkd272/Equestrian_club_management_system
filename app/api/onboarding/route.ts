@@ -16,6 +16,7 @@ import { notifyCentreManager } from "@/lib/notify";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 import { bindRlsBypass } from "@/lib/tenant-context";
+import { verifyChallenge } from "@/lib/captcha";
 
 export const runtime = "nodejs";
 
@@ -27,6 +28,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
   const d = parsed.data;
+
+  // CAPTCHA gate. This is a public, unauthenticated endpoint that creates a
+  // record a human then has to review, so the cost of junk lands on the club's
+  // approval queue. Production only — dev/UAT stays frictionless — and it runs
+  // AFTER validation for the same reason the rate limit does: a parent fixing a
+  // mistyped phone number shouldn't be punished for it.
+  if (process.env.NODE_ENV === "production") {
+    if (!d.captchaToken || !d.captchaAnswer || !verifyChallenge(d.captchaToken, d.captchaAnswer)) {
+      return NextResponse.json(
+        {
+          error: "CAPTCHA_FAILED",
+          message: "That verification answer wasn't right — please try the new question.",
+        },
+        { status: 400 },
+      );
+    }
+  }
 
   // Public self-enrolment endpoint — no auth gate. Rate-limit per IP to
   // keep an attacker (or a buggy script) from filling the approval queue
