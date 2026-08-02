@@ -381,6 +381,44 @@ fetches a challenge, renders it, and submits token + answer; the forgot-password
 now sends them and keeps the submit button disabled until it has both. The owner
 forgot-password route has no CAPTCHA gate and was never affected.
 
+### Preview and Production shared a database — and it bit during this work
+
+`vercel.json` ran `prisma migrate deploy` on **every** build, and Preview's
+`DIRECT_URL` was byte-identical to Production's. So any push to any branch applied
+that branch's migrations to the live database.
+
+That is not hypothetical: it happened while remediating this audit. The branch was
+pushed with `[skip ci]` specifically to avoid it, **Vercel built it anyway**, and
+deployment `p8uazyqpt` applied all four migrations to production — before any merge or
+review. The guard added 16 minutes later worked (the next preview build logged
+`skipping migrate deploy (VERCEL_ENV=preview)`), but by then it had already run.
+
+What actually landed on production, and what was done about it:
+
+| Change | Effect on the running (old) code | Action |
+|---|---|---|
+| `RateLimitCounter`, `RevokedSession` created | Inert — old code never touches them | Left in place |
+| `emailVerifiedAt` backfilled | Inert — nothing read the column | Left in place |
+| `User.email` lowercased (1 row) | That user must now type their address in lowercase | Left — it is the intended end state |
+| `CHECK (email = lower(email))` on both tables | **Live break.** Old code writes emails as typed, so an admin creating `Rahul@Club.in` would hit a constraint violation | **Dropped**, and the migration row deleted so it re-applies at merge with the code that guarantees lowercase writes |
+
+Production was verified healthy afterwards, mixed-case writes accepted again, and
+`prisma migrate status` shows the one migration correctly pending.
+
+**Fixed properly now**, two ways:
+
+1. `vercel.json` only runs `prisma migrate deploy` when `VERCEL_ENV=production`, so a
+   preview build can no longer alter any schema. Confirmed in a real build log.
+2. Preview has its own database. `equiwings_preview` was created on the same instance
+   and fully migrated (all 42 migrations from empty), and Preview's `DATABASE_URL` and
+   `DIRECT_URL` are now separate records pointing at it — `DIRECT_URL` had been a
+   single record shared with Production and is now split.
+
+Remaining caveat: the preview database lives on the same Supabase instance and its URL
+carries the same superuser credential, so it shares compute and connection limits and
+is not a credential boundary. A dedicated low-privilege role, or a separate Supabase
+project, would close that.
+
 ---
 
 ## C. Correctness & consistency
@@ -501,11 +539,16 @@ Every item in the report is fixed. Order they were done in:
 
 - **B7 forces one re-login for everyone.** Audience-tagged tokens invalidate cookies
   issued before the deploy. No data is affected; pick a quiet moment.
-- **Four migrations ship with this**, applied automatically by `prisma migrate deploy`
-  on the Vercel build: lowercase login emails (+ CHECK constraint), `RateLimitCounter`,
-  `RevokedSession`, and the `emailVerifiedAt` backfill. All four were applied to a
-  scratch copy and inspected; the two backfills were checked against production data
-  first (1 mixed-case email, 0 collisions).
+- **Four migrations ship with this**, applied by `prisma migrate deploy` on the
+  Vercel build: lowercase login emails (+ CHECK constraint), `RateLimitCounter`,
+  `RevokedSession`, and the `emailVerifiedAt` backfill.
+
+- ⚠️ **Three of the four are ALREADY applied to production.** A preview build of the
+  first push ran the then-unguarded `prisma migrate deploy` against the shared
+  database before `vercel.json` was fixed. `migrate deploy` will skip those three at
+  merge (they are recorded in `_prisma_migrations`); only
+  `20260801090000_lowercase_login_emails` is pending, having been deliberately
+  unwound. See "Preview and Production shared a database" below.
 - **Optional new env vars**, all with working defaults: `OWNER_JWT_TTL_MIN` (60),
   `SESSION_ABSOLUTE_MAX_DAYS` (30).
 - **One residual, accepted:** an attacker who burns an account's 10 login failures
