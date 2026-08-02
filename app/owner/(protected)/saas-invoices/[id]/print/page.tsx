@@ -4,6 +4,7 @@ import { getOwnerSession } from "@/lib/owner-auth";
 import { redirect } from "next/navigation";
 import { PrintButton } from "./print-button";
 import { formatEnum } from "@/lib/labels";
+import { PLATFORM_TZ } from "@/lib/tz";
 export const dynamic = "force-dynamic";
 
 // Print-friendly SaaS invoice view. Owner opens this from the invoice
@@ -57,8 +58,8 @@ export default async function SaasInvoicePrintPage({ params }: { params: { id: s
         <div className="text-right">
           <div className="text-xs uppercase tracking-wider text-muted-foreground">Tax invoice</div>
           <div className="mt-1 font-mono text-lg">{invoice.number}</div>
-          <div className="mt-2 text-xs text-muted-foreground">Issued {new Date(invoice.issuedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div>
-          {invoice.paidAt && <div className="text-xs text-emerald-700">Paid {new Date(invoice.paidAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div>}
+          <div className="mt-2 text-xs text-muted-foreground">Issued {new Date(invoice.issuedAt).toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short", year: "numeric" })}</div>
+          {invoice.paidAt && <div className="text-xs text-emerald-700">Paid {new Date(invoice.paidAt).toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short", year: "numeric" })}</div>}
         </div>
       </div>
 
@@ -74,9 +75,9 @@ export default async function SaasInvoicePrintPage({ params }: { params: { id: s
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Billing period</div>
           <div className="mt-1 text-sm">
-            {new Date(invoice.periodStart).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+            {new Date(invoice.periodStart).toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short", year: "numeric" })}
             {" → "}
-            {new Date(invoice.periodEnd).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+            {new Date(invoice.periodEnd).toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short", year: "numeric" })}
           </div>
           <div className="mt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Status</div>
           <div className="mt-1 text-sm capitalize">{formatEnum(invoice.status)}</div>

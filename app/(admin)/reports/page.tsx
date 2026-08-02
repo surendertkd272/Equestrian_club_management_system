@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { FileText } from "lucide-react";
 import { DispatchPanel } from "./dispatch-panel";
+import { PLATFORM_TZ } from "@/lib/tz";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ function thisMonthRange(): { from: string; to: string; label: string } {
   return {
     from: fmt(from),
     to: fmt(to),
-    label: now.toLocaleString("en-IN", { month: "long", year: "numeric" }),
+    label: now.toLocaleString("en-IN", { timeZone: PLATFORM_TZ, month: "long", year: "numeric" }),
   };
 }
 
@@ -93,7 +94,7 @@ export default async function ReportsPage() {
                     <div className="text-xs text-muted-foreground">{d.body}</div>
                   </div>
                   <span className="ml-3 whitespace-nowrap text-xs text-muted-foreground">
-                    {new Date(d.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                    {new Date(d.createdAt).toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short", year: "numeric" })}
                   </span>
                 </li>
               ))}

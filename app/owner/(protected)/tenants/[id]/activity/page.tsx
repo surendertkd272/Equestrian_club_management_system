@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PLATFORM_TZ } from "@/lib/tz";
 
 export const dynamic = "force-dynamic";
 
@@ -101,7 +102,7 @@ export default async function TenantActivityPage({ params }: { params: SP }) {
               {merged.slice(0, 200).map((row) => (
                 <li key={row.id} className="grid grid-cols-[140px_80px_1fr] items-start gap-3 py-2 text-xs">
                   <span className="text-muted-foreground">
-                    {row.at.toLocaleString("en-IN", {
+                    {row.at.toLocaleString("en-IN", { timeZone: PLATFORM_TZ,
                       day: "2-digit",
                       month: "short",
                       year: "numeric",

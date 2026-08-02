@@ -9,6 +9,20 @@
 // so it's a constant +05:30, but this works for any zone). No date library —
 // Intl only.
 
+// Fallback display zone for SERVER-rendered dates where no specific centre is
+// in scope — org-wide roll-ups, the platform-owner portal, print templates.
+//
+// Server components run on Vercel in UTC, so a bare `toLocaleString()` formats
+// in UTC and every Indian time renders ~5.5h out. Where the relevant centre IS
+// in scope, pass `centre.timezone` instead — that stays the correct answer, and
+// this is only the floor.
+//
+// Overridable per deployment. Every centre on the platform today is
+// Asia/Kolkata (that is also the Centre.timezone column default), so this is
+// currently exact rather than approximate; a club in another zone would need
+// its pages threading a real centre timezone through.
+export const PLATFORM_TZ = process.env.PLATFORM_TIMEZONE ?? "Asia/Kolkata";
+
 // Milliseconds the zone is ahead of UTC at `at` (e.g. +19800000 for IST).
 function zoneOffsetMs(at: Date, timeZone: string): number {
   const dtf = new Intl.DateTimeFormat("en-US", {

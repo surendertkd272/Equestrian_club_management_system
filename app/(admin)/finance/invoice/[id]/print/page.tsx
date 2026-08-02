@@ -4,6 +4,7 @@ import { centreFence } from "@/lib/authz-centre";
 import { requireSession } from "@/lib/auth";
 import { PrintButton } from "./print-button";
 import { formatEnum } from "@/lib/labels";
+import { PLATFORM_TZ } from "@/lib/tz";
 export const dynamic = "force-dynamic";
 
 // Tenant-side invoice print view — riders/parents print their fee
@@ -74,8 +75,8 @@ export default async function TenantInvoicePrintPage({ params }: { params: { id:
         <div className="text-right">
           <div className="text-xs uppercase tracking-wider text-slate-500">Invoice</div>
           <div className="mt-1 font-mono">{invoice.id.slice(-12).toUpperCase()}</div>
-          <div className="mt-2 text-xs text-slate-600">Issued {new Date(invoice.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div>
-          <div className="text-xs text-slate-600">Due {new Date(invoice.dueDate).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</div>
+          <div className="mt-2 text-xs text-slate-600">Issued {new Date(invoice.createdAt).toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short", year: "numeric" })}</div>
+          <div className="text-xs text-slate-600">Due {new Date(invoice.dueDate).toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short", year: "numeric" })}</div>
         </div>
       </div>
 
@@ -148,7 +149,7 @@ export default async function TenantInvoicePrintPage({ params }: { params: { id:
           <ul className="mt-2 space-y-1 text-xs text-slate-600">
             {invoice.payments.map((p) => (
               <li key={p.id}>
-                {p.paidAt ? new Date(p.paidAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                {p.paidAt ? new Date(p.paidAt).toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short", year: "numeric" }) : "—"}
                 {" · "}
                 <span className="capitalize">{formatEnum(p.method)}</span>
                 {" · "}

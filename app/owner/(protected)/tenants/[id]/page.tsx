@@ -15,6 +15,7 @@ import { isPlanKey, PLAN_REGISTRY, planAllowsOverrides, type PlanKey } from "@/l
 import { getOwnerSession } from "@/lib/owner-auth";
 import { ownerCan } from "@/lib/owner-permissions";
 import { formatEnum } from "@/lib/labels";
+import { PLATFORM_TZ } from "@/lib/tz";
 export const dynamic = "force-dynamic";
 
 export default async function TenantDetailPage({ params }: { params: { id: string } }) {
@@ -71,8 +72,8 @@ export default async function TenantDetailPage({ params }: { params: { id: strin
           <span className="font-mono text-xs text-muted-foreground">{tenant.slug}</span>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          Onboarded {new Date(tenant.onboardedAt).toLocaleDateString()} · Last updated{" "}
-          {new Date(tenant.updatedAt).toLocaleDateString()}
+          Onboarded {new Date(tenant.onboardedAt).toLocaleDateString(undefined, { timeZone: PLATFORM_TZ })} · Last updated{" "}
+          {new Date(tenant.updatedAt).toLocaleDateString(undefined, { timeZone: PLATFORM_TZ })}
           {" · "}
           <Link href={`/owner/tenants/${tenant.id}/activity`} className="text-emerald-700 dark:text-emerald-400 hover:underline">
             View activity timeline →

@@ -2,6 +2,7 @@ import { ensurePricingRows } from "@/lib/pricing";
 import { PricingForm } from "./form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import Link from "next/link";
+import { PLATFORM_TZ } from "@/lib/tz";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ export default async function OwnerPricingPage() {
               </div>
               <CardDescription className="text-muted-foreground">
                 Sort order {row.sortOrder} · last updated{" "}
-                {new Date(row.updatedAt).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                {new Date(row.updatedAt).toLocaleString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
               </CardDescription>
             </CardHeader>
             <CardContent>

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCheck } from "lucide-react";
 import { MarkRead, MarkAllRead } from "./actions";
+import { PLATFORM_TZ } from "@/lib/tz";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +83,7 @@ export default async function NotificationsPage({
                         <Badge variant={meta.tone}>{meta.label}</Badge>
                         <span className={`text-sm ${isUnread ? "font-semibold" : ""}`}>{n.title}</span>
                         <span className="text-[11px] text-muted-foreground">
-                          {n.createdAt.toLocaleString("en-IN", {
+                          {n.createdAt.toLocaleString("en-IN", { timeZone: PLATFORM_TZ,
                             day: "2-digit",
                             month: "short",
                             hour: "2-digit",

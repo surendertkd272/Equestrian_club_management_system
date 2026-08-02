@@ -11,6 +11,7 @@ import { BarChart } from "@/components/charts/bar-chart";
 import { Sparkline } from "@/components/charts/sparkline";
 import { ChevronLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { PLATFORM_TZ } from "@/lib/tz";
 
 export const dynamic = "force-dynamic";
 
@@ -86,7 +87,7 @@ export default async function RiderAnalytics({ params }: { params: { id: string 
     for (let i = n - 1; i >= 0; i--) {
       const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
-      out.push({ label: start.toLocaleString("en-IN", { month: "short" }), start, end });
+      out.push({ label: start.toLocaleString("en-IN", { timeZone: PLATFORM_TZ, month: "short" }), start, end });
     }
     return out;
   }

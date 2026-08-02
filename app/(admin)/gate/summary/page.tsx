@@ -11,6 +11,7 @@ import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PLATFORM_TZ } from "@/lib/tz";
 
 export const dynamic = "force-dynamic";
 
@@ -202,14 +203,14 @@ export default async function GateSummaryPage({
                       <td className="py-2 font-medium">{r.staffName}</td>
                       <td className="py-2 text-xs text-muted-foreground">{r.staffRole.replaceAll("_", " ")}</td>
                       <td className="py-2 font-mono text-xs">
-                        {r.firstIn?.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) ?? "—"}
+                        {r.firstIn?.toLocaleTimeString("en-IN", { timeZone: PLATFORM_TZ, hour: "2-digit", minute: "2-digit" }) ?? "—"}
                       </td>
                       <td className="py-2 text-xs">
                         {r.shifts.map((s, i) => (
                           <span key={i} className="mr-1 inline-block rounded bg-muted px-1.5 py-0.5 font-mono">
-                            {s.start.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                            {s.start.toLocaleTimeString("en-IN", { timeZone: PLATFORM_TZ, hour: "2-digit", minute: "2-digit" })}
                             {" – "}
-                            {s.end ? s.end.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "now"}
+                            {s.end ? s.end.toLocaleTimeString("en-IN", { timeZone: PLATFORM_TZ, hour: "2-digit", minute: "2-digit" }) : "now"}
                           </span>
                         ))}
                       </td>

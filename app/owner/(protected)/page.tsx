@@ -8,6 +8,7 @@ import { Sparkline, MiniBars } from "@/components/ui/charts";
 import { kpiIcon } from "@/lib/kpi-icon";
 import { Building2, IndianRupee, Users } from "lucide-react";
 import { formatEnum } from "@/lib/labels";
+import { PLATFORM_TZ } from "@/lib/tz";
 export const dynamic = "force-dynamic";
 
 export default async function OwnerDashboardPage() {
@@ -19,7 +20,7 @@ export default async function OwnerDashboardPage() {
     const i = 5 - idx;
     const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-    return { start, end, label: start.toLocaleString("en-IN", { month: "short" }) };
+    return { start, end, label: start.toLocaleString("en-IN", { timeZone: PLATFORM_TZ, month: "short" }) };
   });
 
   const [orgs, centreCount, riderCount, userCount, billingEvents, paidThisMonth, dueOutstanding, signupsLast30d, recentInvoices, saasPaid6] = await Promise.all([
@@ -115,7 +116,7 @@ export default async function OwnerDashboardPage() {
           cta="View Tenants"
         />
         <ChartCard
-          label={`Paid · ${now.toLocaleString("en-IN", { month: "short" })}`}
+          label={`Paid · ${now.toLocaleString("en-IN", { timeZone: PLATFORM_TZ, month: "short" })}`}
           value={`₹${(paidThisMonth._sum.total ?? 0).toLocaleString("en-IN")}`}
           sub={`${paidThisMonth._count} invoice${paidThisMonth._count === 1 ? "" : "s"} · 6-month trend`}
           icon={<IndianRupee className="h-5 w-5" />}
@@ -184,7 +185,7 @@ export default async function OwnerDashboardPage() {
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span className={`rounded px-2 py-0.5 ${tone}`}>{label}</span>
-                    <span>{new Date(e.at).toLocaleString()}</span>
+                    <span>{new Date(e.at).toLocaleString(undefined, { timeZone: PLATFORM_TZ })}</span>
                   </div>
                 </li>
               );
@@ -239,7 +240,7 @@ export default async function OwnerDashboardPage() {
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <PlanBadge plan={o.plan} />
                   <StatusBadge status={o.status} />
-                  <span>{new Date(o.onboardedAt).toLocaleDateString()}</span>
+                  <span>{new Date(o.onboardedAt).toLocaleDateString(undefined, { timeZone: PLATFORM_TZ })}</span>
                 </div>
               </li>
             ))}

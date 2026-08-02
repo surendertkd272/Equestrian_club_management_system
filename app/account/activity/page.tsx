@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SignOutEverywhereButton } from "./sign-out-everywhere-button";
+import { PLATFORM_TZ } from "@/lib/tz";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,7 @@ export default async function ActivityPage() {
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="font-mono text-[10px]">{e.action.replace("auth.", "").replace("password.", "pw.")}</Badge>
                     <span className="text-xs text-muted-foreground">
-                      {new Date(e.at).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      {new Date(e.at).toLocaleString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground">

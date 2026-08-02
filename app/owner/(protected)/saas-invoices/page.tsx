@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatEnum } from "@/lib/labels";
+import { PLATFORM_TZ } from "@/lib/tz";
 export const dynamic = "force-dynamic";
 
 type SP = { status?: string; org?: string };
@@ -92,7 +93,7 @@ export default async function SaasInvoicesPage({ searchParams }: { searchParams:
                     </td>
                     <td className="py-2"><Badge variant="outline" className="text-[10px]">{i.plan}</Badge></td>
                     <td className="py-2 text-xs text-muted-foreground">
-                      {new Date(i.periodStart).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })} → {new Date(i.periodEnd).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" })}
+                      {new Date(i.periodStart).toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short" })} → {new Date(i.periodEnd).toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short", year: "2-digit" })}
                     </td>
                     <td className="py-2 text-right">₹{i.subtotal.toLocaleString("en-IN")}</td>
                     <td className="py-2 text-right">₹{i.taxAmount.toLocaleString("en-IN")}</td>

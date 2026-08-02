@@ -20,6 +20,7 @@ import { PayButton } from "./pay-button";
 import { bindRlsBypass } from "@/lib/tenant-context";
 import { formatEnum } from "@/lib/labels";
 import { creditPosition } from "@/lib/credit-note";
+import { PLATFORM_TZ } from "@/lib/tz";
 export const dynamic = "force-dynamic";
 
 export default async function PayPage({ params }: { params: { invoiceId: string } }) {
@@ -134,7 +135,7 @@ export default async function PayPage({ params }: { params: { invoiceId: string 
             <div className="border-t pt-3 text-center text-[11px] text-muted-foreground">
               Invoice <code className="font-mono">{invoice.id.slice(-10)}</code>
               {" · "}
-              Created {invoice.createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+              Created {invoice.createdAt.toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short", year: "numeric" })}
             </div>
           </CardContent>
         </Card>

@@ -15,6 +15,7 @@ import { BmiBanner } from "./bmi-banner";
 import { BatchShiftCard } from "./batch-shift-card";
 import { prisma } from "@/lib/prisma";
 import { formatEnum } from "@/lib/labels";
+import { PLATFORM_TZ } from "@/lib/tz";
 export const dynamic = "force-dynamic";
 
 // Monthly-skill rating scale (MonthlySkillMark.rating): 0 not-yet · 1 needs-work
@@ -53,7 +54,7 @@ export default async function StudentHome() {
   const detail = await getStudentDetail(session.userId);
   const { rider, attendancePct, attendedSessions, totalSessions, upcomingExam, latestCert, unpaidInvoices, monthlySkillsTotal, monthlySkillsMastered, skillsMonth } = summary;
   // "2026-06" → "June 2026" for display.
-  const monthLabel = new Date(`${skillsMonth}-01T00:00:00`).toLocaleString("en-IN", { month: "long", year: "numeric" });
+  const monthLabel = new Date(`${skillsMonth}-01T00:00:00`).toLocaleString("en-IN", { timeZone: PLATFORM_TZ, month: "long", year: "numeric" });
 
   // student-payment-visible defaults OFF — the parent handles payment
   // via the email link, not the student. Owner toggles it on per-tenant

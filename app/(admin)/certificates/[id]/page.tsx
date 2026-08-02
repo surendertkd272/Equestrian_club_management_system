@@ -10,6 +10,7 @@ import { PrintButton } from "./print-button";
 import { SendResultButton } from "./send-result-button";
 import { ChevronLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { PLATFORM_TZ } from "@/lib/tz";
 
 const SEND_RESULT_ROLES = new Set([
   "SUPER_ADMIN",
@@ -68,7 +69,7 @@ export default async function CertificateView({ params }: { params: { id: string
         <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] text-emerald-900 print:hidden">
           ✓ Result emailed to parent on{" "}
           <span className="font-mono">
-            {cert.resultEmailSentAt.toLocaleString("en-IN")}
+            {cert.resultEmailSentAt.toLocaleString("en-IN", { timeZone: PLATFORM_TZ })}
           </span>
         </div>
       )}

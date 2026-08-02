@@ -28,6 +28,7 @@ import {
   CoachDashboard,
 } from "./role-dashboards";
 import { startOfTodayForCentre, endOfTodayForCentre } from "@/lib/centre-tz";
+import { PLATFORM_TZ } from "@/lib/tz";
 
 export const dynamic = "force-dynamic";
 
@@ -166,7 +167,7 @@ export default async function DashboardPage() {
     const i = 5 - idx;
     const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
-    return { start, end, label: start.toLocaleString("en-IN", { month: "short" }) };
+    return { start, end, label: start.toLocaleString("en-IN", { timeZone: PLATFORM_TZ, month: "short" }) };
   });
   const [revenue6, newRiders6, ridersBeforeWindow, upcomingExams] = await Promise.all([
     Promise.all(

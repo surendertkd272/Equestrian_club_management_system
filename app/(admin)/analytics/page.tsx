@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart } from "@/components/charts/bar-chart";
 import { Sparkline } from "@/components/charts/sparkline";
+import { PLATFORM_TZ } from "@/lib/tz";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ function lastNMonths(n: number): { key: string; label: string; start: Date; end:
     const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
     const key = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}`;
-    const label = start.toLocaleString("en-IN", { month: "short" });
+    const label = start.toLocaleString("en-IN", { timeZone: PLATFORM_TZ, month: "short" });
     out.push({ key, label, start, end });
   }
   return out;

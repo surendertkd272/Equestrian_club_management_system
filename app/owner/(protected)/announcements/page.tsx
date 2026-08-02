@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { NewAnnouncementForm } from "./form";
 import { formatEnum } from "@/lib/labels";
+import { PLATFORM_TZ } from "@/lib/tz";
 export const dynamic = "force-dynamic";
 
 export default async function OwnerAnnouncementsPage() {
@@ -59,9 +60,9 @@ export default async function OwnerAnnouncementsPage() {
                         <div className="mt-1 text-xs text-muted-foreground">{a.body}</div>
                         <div className="mt-1 text-[10px] text-muted-foreground">
                           {a.publishedAt
-                            ? `Published ${a.publishedAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}`
+                            ? `Published ${a.publishedAt.toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short" })}`
                             : "Unpublished"}
-                          {a.expiresAt && ` · expires ${a.expiresAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}`}
+                          {a.expiresAt && ` · expires ${a.expiresAt.toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short" })}`}
                           {a.planFilter && ` · plans: ${a.planFilter}`}
                           {a.roleFilter && ` · roles: ${a.roleFilter}`}
                           {" · "}

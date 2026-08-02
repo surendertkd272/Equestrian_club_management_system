@@ -4,6 +4,7 @@ import { centreFence } from "@/lib/authz-centre";
 import { requireSession } from "@/lib/auth";
 import { PrintButton } from "./print-button";
 import { qrSvg, verifyUrl } from "@/lib/cert";
+import { PLATFORM_TZ } from "@/lib/tz";
 
 export const dynamic = "force-dynamic";
 
@@ -33,14 +34,14 @@ export default async function CertificatePrintPage({ params }: { params: { id: s
     ? await prisma.user.findUnique({ where: { id: cert.signedBy }, select: { name: true } })
     : null;
 
-  const issuedDate = new Date(cert.issuedAt).toLocaleDateString("en-IN", {
+  const issuedDate = new Date(cert.issuedAt).toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ,
     day: "2-digit",
     month: "long",
     year: "numeric",
   });
   const occasion =
     cert.type === "promotion" && cert.exam
-      ? `Level ${cert.exam.level} promotion · ${new Date(cert.exam.date).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}`
+      ? `Level ${cert.exam.level} promotion · ${new Date(cert.exam.date).toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "long", year: "numeric" })}`
       : null;
 
   const verifyHref = verifyUrl(cert.serialNo);
