@@ -292,7 +292,8 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
                           if (v === l.orderIndex) return;
                           patch(l.id, { orderIndex: v }, "Re-ordered");
                         }}
-                        className="h-8 w-16"
+                        onWheel={(e) => e.currentTarget.blur()}
+                        className="no-spinner h-8 w-16"
                       />
                     </td>
                     <td className="px-3 py-1.5">
@@ -325,7 +326,8 @@ export function LevelsManager({ initial }: { initial: Level[] }) {
                           if (v === l.passThreshold) return;
                           patch(l.id, { passThreshold: v }, "Pass mark updated");
                         }}
-                        className="h-8 w-16"
+                        onWheel={(e) => e.currentTarget.blur()}
+                        className="no-spinner h-8 w-16"
                       />
                     </td>
                     <td className="px-3 py-1.5">

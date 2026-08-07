@@ -127,3 +127,20 @@
 .ew-tour .driver-popover-arrow-side-right { border-right-color: hsl(var(--card)); }
 .ew-tour .driver-popover-arrow-side-top { border-top-color: hsl(var(--card)); }
 .ew-tour .driver-popover-arrow-side-bottom { border-bottom-color: hsl(var(--card)); }
+
+/* Quantity inputs in dense tables (equipment stock, consumables).
+ *
+ * Native number spinners eat ~18px of an already narrow field: a 3-digit
+ * count like 143 was being clipped to "14", which looked exactly like the app
+ * had dropped the digit. They also make the mouse wheel change the value while
+ * scrolling a long table, which silently edits stock counts. Hiding them fixes
+ * both, and the arrows were never usable for numbers this large anyway. */
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spinner {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

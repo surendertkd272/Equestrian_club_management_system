@@ -105,7 +105,14 @@ export function InventoryRow({
         // — the source of the "Total shows 60" field report. Selecting the
         // current value means typing always REPLACES it.
         onFocus={(e) => e.target.select()}
-        className="h-7 w-14 text-center"
+        // Scrolling a long inventory table with the cursor over a focused
+        // number input makes the wheel change the value — silently editing a
+        // stock count nobody meant to touch. Dropping focus on wheel stops it.
+        onWheel={(e) => e.currentTarget.blur()}
+        // w-14 (56px) minus the native spinner left room for two digits, so a
+        // real count of 143 rendered as "14" — the value was stored correctly
+        // the whole time, it was only ever clipped. Wider field, no spinner.
+        className="no-spinner h-7 w-20 text-center"
         disabled={busy}
         key={value /* re-mount on server-side change so the visible value matches */}
       />
@@ -172,7 +179,8 @@ export function InventoryRow({
             min={0}
             defaultValue={threshold}
             onBlur={onBlurNumber("threshold", threshold)}
-            className="h-7 w-16"
+            onWheel={(e) => e.currentTarget.blur()}
+            className="no-spinner h-7 w-20 text-center"
             disabled={busy}
             title={`Catalog default: ${defaultThreshold}`}
           />
