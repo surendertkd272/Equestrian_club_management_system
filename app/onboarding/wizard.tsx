@@ -147,19 +147,25 @@ function Field<T extends FieldValues>({
 function TextareaField<T extends FieldValues>({
   methods,
   name,
+  label,
   placeholder,
+  required,
 }: {
   methods: UseFormReturn<T>;
   name: FieldPath<T>;
+  label: string;
   placeholder?: string;
+  required?: boolean;
 }) {
   const { register, formState } = methods;
   const err = (formState.errors[name] as { message?: string } | undefined)?.message;
+  // Routed through FormField like every other input, so the error is announced
+  // (role=alert), linked to the control (aria-describedby) and the control is
+  // marked invalid — this one rendered a bare <p> and did none of that.
   return (
-    <>
-      <Textarea placeholder={placeholder} {...register(name)} />
-      {err && <p className="text-xs text-destructive">{err}</p>}
-    </>
+    <FormField label={label} error={err} required={required}>
+      {(p) => <Textarea placeholder={placeholder} {...p} {...register(name)} />}
+    </FormField>
   );
 }
 
@@ -344,14 +350,12 @@ function AddressStep({
   return (
     <form onSubmit={methods.handleSubmit(onNext)} className="space-y-6">
       <div className="grid gap-4">
-        <div className="space-y-1.5">
-          <Label>Present Address *</Label>
-          <TextareaField methods={methods} name="addressPresent" />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Permanent Address (Leave Blank if Same)</Label>
-          <TextareaField methods={methods} name="addressPermanent" />
-        </div>
+        <TextareaField methods={methods} name="addressPresent" label="Present Address" required />
+        <TextareaField
+          methods={methods}
+          name="addressPermanent"
+          label="Permanent Address (leave blank if same)"
+        />
         <div className="max-w-xs">
           <Field methods={methods} name="pincode" label="Pincode" required placeholder="201001" inputMode="numeric" />
         </div>
@@ -419,14 +423,18 @@ function MedicalStep({
             <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm">{bmi ?? "—"}</div>
           </div>
         </div>
-        <div className="space-y-1.5">
-          <Label>Medical Conditions</Label>
-          <TextareaField methods={methods} name="medicalNotes" placeholder="Asthma, prior fractures, etc." />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Allergies</Label>
-          <TextareaField methods={methods} name="allergies" placeholder="Drugs, food, dust, hay…" />
-        </div>
+        <TextareaField
+          methods={methods}
+          name="medicalNotes"
+          label="Medical Conditions"
+          placeholder="Asthma, prior fractures, etc."
+        />
+        <TextareaField
+          methods={methods}
+          name="allergies"
+          label="Allergies"
+          placeholder="Drugs, food, dust, hay…"
+        />
       </div>
       <StepFooter canBack onBack={onBack} submitting={false} submitLabel="Next" />
     </form>
@@ -467,13 +475,13 @@ function ParentalConsentStep({
           <Field methods={methods} name="parentName" label="Parent / Guardian Full Name" required />
           <div className="space-y-1.5">
             <Label htmlFor="parentRelation">Relation *</Label>
-            <Select id="parentRelation" {...methods.register("parentRelation")}>
+            <Select id="parentRelation" aria-invalid={!!relationError} aria-describedby={relationError ? "parentRelation-err" : undefined} {...methods.register("parentRelation")}>
               <option value="">— select —</option>
               <option value="father">Father</option>
               <option value="mother">Mother</option>
               <option value="guardian">Legal Guardian</option>
             </Select>
-            {relationError && <p className="text-xs text-destructive">{relationError}</p>}
+            {relationError && <p id="parentRelation-err" role="alert" className="text-xs text-destructive">{relationError}</p>}
           </div>
           <Field methods={methods} name="parentPhone" label="Parent's Phone" required placeholder="10-digit mobile" inputMode="tel" />
           <Field methods={methods} name="parentEmail" label="Parent's Email" type="email" />
@@ -485,13 +493,13 @@ function ParentalConsentStep({
         </div>
 
         <label className="flex items-start gap-2 text-sm font-medium">
-          <input type="checkbox" className="mt-1" {...methods.register("parentConsentAgreed")} />
+          <input type="checkbox" className="mt-1" aria-invalid={!!consentError} aria-describedby={consentError ? "parentConsentAgreed-err" : undefined} {...methods.register("parentConsentAgreed")} />
           <span>
             I am the parent / legal guardian named above and I agree to the consent text.
             My agreement is recorded with timestamp + IP as digital proof under DPDPA Section 9.
           </span>
         </label>
-        {consentError && <p className="text-xs text-destructive">{consentError}</p>}
+        {consentError && <p id="parentConsentAgreed-err" role="alert" className="text-xs text-destructive">{consentError}</p>}
       </div>
       <StepFooter canBack onBack={onBack} submitting={false} submitLabel="Next" />
     </form>
@@ -558,26 +566,26 @@ function IndemnityStep({
             still administer reasonable first aid and authorise emergency medical care if needed.
           </p>
           <label className="mt-3 flex items-start gap-2 text-sm font-medium text-amber-900">
-            <input type="checkbox" className="mt-1" {...methods.register("injuryNocAgreed")} />
+            <input type="checkbox" className="mt-1" aria-invalid={!!nocError} aria-describedby={nocError ? "injuryNocAgreed-err" : undefined} {...methods.register("injuryNocAgreed")} />
             <span>I agree to the NOC for injuries (digital consent).</span>
           </label>
-          {nocError && <p className="mt-1 text-xs text-destructive">{nocError}</p>}
+          {nocError && <p id="injuryNocAgreed-err" role="alert" className="mt-1 text-xs text-destructive">{nocError}</p>}
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="fullNameSignature">Type your full name to sign *</Label>
-          <Input id="fullNameSignature" placeholder="Full legal name" {...methods.register("fullNameSignature")} />
-          {fullNameError && <p className="text-xs text-destructive">{fullNameError}</p>}
+          <Input id="fullNameSignature" aria-invalid={!!fullNameError} aria-describedby={fullNameError ? "fullNameSignature-err" : undefined} placeholder="Full legal name" {...methods.register("fullNameSignature")} />
+          {fullNameError && <p id="fullNameSignature-err" role="alert" className="text-xs text-destructive">{fullNameError}</p>}
         </div>
 
         <label className="flex items-start gap-2 text-sm">
-          <input type="checkbox" className="mt-1" {...methods.register("agreed")} />
+          <input type="checkbox" className="mt-1" aria-invalid={!!agreedError} aria-describedby={agreedError ? "agreed-err" : undefined} {...methods.register("agreed")} />
           <span>
             I have read and agree to the indemnity above. I understand my electronic signature will be recorded with
             timestamp and IP address as legal proof of consent.
           </span>
         </label>
-        {agreedError && <p className="text-xs text-destructive">{agreedError}</p>}
+        {agreedError && <p id="agreed-err" role="alert" className="text-xs text-destructive">{agreedError}</p>}
 
         <CaptchaField
           value={captcha}
