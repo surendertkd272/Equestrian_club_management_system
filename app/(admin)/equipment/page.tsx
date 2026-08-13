@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function EquipmentPage({
   searchParams,
 }: {
-  searchParams: { centreId?: string; q?: string };
+  searchParams: { centreId?: string; q?: string; uncounted?: string };
 }) {
   const session = await requireSession();
   // HQ-tier admins (SUPER_ADMIN + ADMIN) without a centre context (via
@@ -62,9 +62,15 @@ export default async function EquipmentPage({
   // Text search across item names (?q=) — server-side so the whole page
   // (grouping, counts) reflects the filter. Empty/absent q = full catalog.
   const q = (searchParams.q ?? "").trim().toLowerCase();
-  const visibleCatalog = q
+  const searched = q
     ? catalog.filter((c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q))
     : catalog;
+  // ?uncounted=1 — work the "nobody has ever counted this here" list
+  // deliberately, rather than hunting for blanks among 153 rows.
+  const onlyUncounted = searchParams.uncounted === "1";
+  const visibleCatalog = onlyUncounted
+    ? searched.filter((c) => !stockByCatalog.has(c.id))
+    : searched;
 
   // Group by category. Map preserves insertion order — pre-sort the
   // catalog by EQUIPMENT_CATEGORY_ORDER so the resulting iteration
@@ -82,12 +88,18 @@ export default async function EquipmentPage({
 
   // Available = unused + in-use (for-repair + damaged don't count). Below
   // threshold → "low".
+  //
+  // Counted rows ONLY. This used to include every item with no stock row,
+  // which is most of the catalog at most centres — so the banner reported
+  // ~91 of 153 "below reorder point" at a centre that had simply never
+  // counted them, and the one number meant to drive reordering was noise.
   const lowCount = catalog.filter((c) => {
     const s = stockByCatalog.get(c.id);
-    const t = s?.threshold ?? c.defaultThreshold;
-    const available = (s?.qtyUnused ?? 0) + (s?.qtyInUse ?? 0);
-    return available < t;
+    if (!s) return false;
+    const t = s.threshold ?? c.defaultThreshold;
+    return s.qtyUnused + s.qtyInUse < t;
   }).length;
+  const uncountedCount = catalog.filter((c) => !stockByCatalog.has(c.id)).length;
 
   return (
     <div className="space-y-6">
@@ -95,10 +107,23 @@ export default async function EquipmentPage({
         <div>
           <h1 className="text-2xl font-bold">Tack &amp; Equipment</h1>
           <p className="text-sm text-muted-foreground">
-            {centre?.name ?? "Centre"} inventory. {lowCount > 0 && (
+            {centre?.name ?? "Centre"} inventory.{" "}
+            {lowCount > 0 && (
               <span className="text-rose-600">
-                {lowCount} item{lowCount === 1 ? "" : "s"} below reorder point.
+                {lowCount} counted item{lowCount === 1 ? "" : "s"} below reorder point.
               </span>
+            )}{" "}
+            {uncountedCount > 0 && (
+              <Link
+                href={
+                  searchParams.centreId
+                    ? `/equipment?centreId=${searchParams.centreId}&uncounted=1`
+                    : "/equipment?uncounted=1"
+                }
+                className="underline decoration-dotted underline-offset-2 hover:text-foreground"
+              >
+                {uncountedCount} never counted here
+              </Link>
             )}
           </p>
         </div>
@@ -123,6 +148,7 @@ export default async function EquipmentPage({
           centreId is preserved for HQ users browsing a specific club. */}
       <form method="GET" className="flex max-w-md items-center gap-2">
         {isHQ && searchParams.centreId && <input type="hidden" name="centreId" value={searchParams.centreId} />}
+        {onlyUncounted && <input type="hidden" name="uncounted" value="1" />}
         <input
           type="search"
           name="q"
@@ -132,12 +158,20 @@ export default async function EquipmentPage({
           aria-label="Search equipment"
         />
         <Button type="submit" variant="outline" size="sm">Search</Button>
-        {q && (
+        {(q || onlyUncounted) && (
           <Button asChild variant="ghost" size="sm">
             <Link href={searchParams.centreId ? `/equipment?centreId=${searchParams.centreId}` : "/equipment"}>Clear</Link>
           </Button>
         )}
       </form>
+
+      {onlyUncounted && (
+        <div className="rounded-md border border-dashed bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          Showing only items <strong>never counted</strong> at {centre?.name ?? "this centre"} —
+          {" "}{visibleCatalog.length} of {catalog.length}. These show{" "}
+          <span className="font-mono">—</span> rather than 0, because no one has looked yet.
+        </div>
+      )}
 
       {catalog.length === 0 ? (
         <Card>
@@ -156,7 +190,11 @@ export default async function EquipmentPage({
       ) : visibleCatalog.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            No items match &ldquo;{searchParams.q}&rdquo;.
+            {onlyUncounted && !q
+              ? "Every item has been counted at this centre."
+              : onlyUncounted
+                ? `No uncounted items match “${searchParams.q}”.`
+                : `No items match “${searchParams.q}”.`}
           </CardContent>
         </Card>
       ) : (
@@ -208,6 +246,7 @@ export default async function EquipmentPage({
                           defaultThreshold={c.defaultThreshold}
                           canEdit={canEdit}
                           canSetThreshold={canManageCatalog || ["CENTRE_MANAGER", "INVENTORY_MANAGER"].includes(session.role)}
+                          hasRecord={!!s}
                         />
                       );
                     })}

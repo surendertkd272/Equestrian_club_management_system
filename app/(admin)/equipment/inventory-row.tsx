@@ -29,6 +29,7 @@ export function InventoryRow({
   defaultThreshold,
   canEdit,
   canSetThreshold,
+  hasRecord,
 }: {
   centreId: string;
   catalogId: string;
@@ -47,17 +48,26 @@ export function InventoryRow({
   defaultThreshold: number;
   canEdit: boolean;
   canSetThreshold: boolean;
+  // False when this centre has NO stock row for the item — i.e. nobody has ever
+  // counted it here. Previously indistinguishable from a real count of zero:
+  // both rendered "0" and both tripped the red "low" badge, so most of the
+  // reorder alerts on this page were for gear nobody had looked at yet.
+  hasRecord: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+  // Which field just saved, so it can flash. Saving happens on blur with no
+  // dialog and no button, so without this the UI is completely silent about
+  // whether the number landed — the reason a clipped "143" read as data loss.
+  const [savedField, setSavedField] = useState<string | null>(null);
 
   const total = qtyUnused + qtyInUse + qtyForRepair + qtyDamaged;
   // Available stock = Unused + In-Use. Damaged + For-Repair don't count.
   const available = qtyUnused + qtyInUse;
-  const isLow = available < threshold;
-  const isWatch = !isLow && available < threshold * 1.5;
+  const isLow = hasRecord && available < threshold;
+  const isWatch = hasRecord && !isLow && available < threshold * 1.5;
 
-  async function patch(body: Record<string, unknown>) {
+  async function patch(field: string, body: Record<string, unknown>) {
     setBusy(true);
     try {
       const url = `/api/equipment/stock/${catalogId}${centreId ? `?centreId=${centreId}` : ""}`;
@@ -71,6 +81,10 @@ export function InventoryRow({
         toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
+      // Deliberately a flash on the field rather than a toast: these are
+      // high-frequency edits and a toast per cell would bury the screen.
+      setSavedField(field);
+      setTimeout(() => setSavedField((f) => (f === field ? null : f)), 1600);
       router.refresh();
     } finally {
       setBusy(false);
@@ -79,17 +93,23 @@ export function InventoryRow({
 
   function onBlurNumber(field: string, current: number) {
     return (e: React.FocusEvent<HTMLInputElement>) => {
-      const v = Number(e.target.value);
-      if (Number.isFinite(v) && v >= 0 && v !== current) {
-        patch({ [field]: v, reason: "adjustment" });
-      }
+      const raw = e.target.value.trim();
+      // Tabbing through an uncounted (empty) field is not a count of zero —
+      // it must not create a stock record.
+      if (raw === "") return;
+      const v = Number(raw);
+      if (!Number.isFinite(v) || v < 0) return;
+      // On an uncounted row an explicit 0 IS meaningful ("checked, we have
+      // none"), so it has to save even though it equals the displayed default.
+      if (v === current && hasRecord) return;
+      patch(field, { [field]: v, reason: "adjustment" });
     };
   }
 
   function onBlurText(field: string, current: string | null) {
     return (e: React.FocusEvent<HTMLInputElement>) => {
       const v = e.target.value.trim();
-      if (v !== (current ?? "")) patch({ [field]: v || null });
+      if (v !== (current ?? "")) patch(field, { [field]: v || null });
     };
   }
 
@@ -98,7 +118,10 @@ export function InventoryRow({
       <Input
         type="number"
         min={0}
-        defaultValue={value}
+        // Blank, not 0, when nothing has ever been counted here — so the field
+        // invites a number instead of asserting one.
+        defaultValue={hasRecord ? value : ""}
+        placeholder={hasRecord ? undefined : "—"}
         onBlur={onBlurNumber(field, value)}
         // Select-all on focus: without this, clicking a field showing "0" and
         // typing "6" can produce "60" (cursor lands beside the existing digit)
@@ -112,9 +135,13 @@ export function InventoryRow({
         // w-14 (56px) minus the native spinner left room for two digits, so a
         // real count of 143 rendered as "14" — the value was stored correctly
         // the whole time, it was only ever clipped. Wider field, no spinner.
-        className="no-spinner h-7 w-20 text-center"
+        className={`no-spinner h-7 w-20 text-center transition-shadow ${
+          savedField === field ? "ring-2 ring-emerald-500" : ""
+        }`}
         disabled={busy}
-        key={value /* re-mount on server-side change so the visible value matches */}
+        // Re-mount on server-side change so the visible value matches. hasRecord
+        // is in the key too: the first save flips a blank field to a real value.
+        key={`${hasRecord}:${value}`}
       />
     ) : (
       <span className="font-mono text-xs">{value}</span>
@@ -124,6 +151,12 @@ export function InventoryRow({
   return (
     <tr className={`border-t ${isLow ? "bg-rose-50/40" : ""}`}>
       <td className="py-2">
+        {/* Screen-reader confirmation for the save, which is otherwise purely
+            visual (a ring flash on the field). Lives inside the name cell so
+            the row keeps its 11 columns. */}
+        <span className="sr-only" aria-live="polite">
+          {savedField ? `${name} saved` : ""}
+        </span>
         <div className="flex items-center gap-2">
           {photoUrl && (
             // eslint-disable-next-line @next/next/no-img-element
@@ -144,7 +177,9 @@ export function InventoryRow({
       <td className="py-2">{qtyInput("qtyInUse", qtyInUse)}</td>
       <td className="py-2">{qtyInput("qtyForRepair", qtyForRepair)}</td>
       <td className="py-2">{qtyInput("qtyDamaged", qtyDamaged)}</td>
-      <td className="py-2 text-center font-mono font-semibold">{total}</td>
+      <td className="py-2 text-center font-mono font-semibold">
+        {hasRecord ? total : <span className="text-muted-foreground">—</span>}
+      </td>
       <td className="py-2">{qtyInput("newRequired", newRequired)}</td>
       <td className="py-2">
         {canEdit ? (
@@ -189,7 +224,13 @@ export function InventoryRow({
         )}
       </td>
       <td className="py-2">
-        {isLow ? (
+        {/* "not counted" is a distinct state from "ok" — claiming stock is
+            fine when nobody has looked is how a shortage goes unnoticed. */}
+        {!hasRecord ? (
+          <Badge variant="outline" title="No one has counted this item at this centre yet">
+            not counted
+          </Badge>
+        ) : isLow ? (
           <Badge variant="destructive">low</Badge>
         ) : isWatch ? (
           <Badge variant="warning">watch</Badge>
