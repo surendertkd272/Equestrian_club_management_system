@@ -33,20 +33,29 @@ export default async function TenantActivityPage({ params }: { params: SP }) {
     })
   ).map((u) => u.id);
 
-  const [platformEvents, tenantEvents] = await Promise.all([
+  // This is an audit trail, so a silently clipped list is worse here than
+  // almost anywhere else: "no record of it" and "the record was past row 200"
+  // look identical. Count alongside, and say so in the header.
+  const EVENT_LIMIT = 200;
+  const [platformEvents, tenantEvents, platformTotal, tenantTotal] = await Promise.all([
     prisma.platformAuditLog.findMany({
       where: { orgId: org.id },
       orderBy: { at: "desc" },
-      take: 200,
+      take: EVENT_LIMIT,
       select: { id: true, action: true, actorId: true, at: true, before: true, after: true },
     }),
     prisma.auditLog.findMany({
       where: { userId: { in: userIds } },
       orderBy: { at: "desc" },
-      take: 200,
+      take: EVENT_LIMIT,
       select: { id: true, action: true, userId: true, tableName: true, rowId: true, at: true },
     }),
+    prisma.platformAuditLog.count({ where: { orgId: org.id } }),
+    prisma.auditLog.count({ where: { userId: { in: userIds } } }),
   ]);
+  const shownTotal = platformEvents.length + tenantEvents.length;
+  const trueTotal = platformTotal + tenantTotal;
+  const truncated = trueTotal > shownTotal;
 
   // Merge + sort.
   type Row = {
@@ -92,7 +101,17 @@ export default async function TenantActivityPage({ params }: { params: SP }) {
       <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle className="text-base">Timeline</CardTitle>
-          <CardDescription className="text-muted-foreground">Newest first.</CardDescription>
+          <CardDescription className="text-muted-foreground">
+            Newest first.{" "}
+            {truncated ? (
+              <span className="text-amber-600">
+                Showing the {shownTotal} most recent of {trueTotal} recorded events — older
+                entries exist but are not listed here.
+              </span>
+            ) : (
+              <>All {trueTotal} recorded events.</>
+            )}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {merged.length === 0 ? (

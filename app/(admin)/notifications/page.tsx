@@ -22,18 +22,26 @@ const TYPE_LABEL: Record<string, { label: string; tone: "success" | "warning" | 
 export default async function NotificationsPage({
   searchParams,
 }: {
-  searchParams: { filter?: string };
+  searchParams: { filter?: string; limit?: string };
 }) {
   const session = await requireSession();
   // ?filter=unread mirrors the topbar dropdown's slice so "View all" is a
   // continuation rather than a context switch.
   const unreadOnly = searchParams.filter === "unread";
-  const items = await prisma.notification.findMany({
-    where: { userId: session.userId, ...(unreadOnly ? { readAt: null } : {}) },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  });
-  const unread = items.filter((n) => !n.readAt).length;
+  const where = { userId: session.userId, ...(unreadOnly ? { readAt: null } : {}) };
+  // "Show older" raises the window rather than paging: notifications are read
+  // top-down and losing your place mid-list is worse than a longer page.
+  const PAGE = 100;
+  const limit = Math.min(Math.max(Number(searchParams.limit) || PAGE, PAGE), 1000);
+  const [items, total, unread] = await Promise.all([
+    prisma.notification.findMany({ where, orderBy: { createdAt: "desc" }, take: limit }),
+    prisma.notification.count({ where }),
+    // Counted in the DB, NOT from `items`. Deriving it from the fetched page
+    // meant a user with more unread than the page size saw a capped number —
+    // the badge said 100 when they had 109.
+    prisma.notification.count({ where: { userId: session.userId, readAt: null } }),
+  ]);
+  const hasMore = total > items.length;
 
   return (
     <div className="space-y-6">
@@ -41,7 +49,7 @@ export default async function NotificationsPage({
         <div>
           <h1 className="text-2xl font-bold">Notifications</h1>
           <p className="text-sm text-muted-foreground">
-            {items.length} {unreadOnly ? "unread shown" : "recent"}
+            {hasMore ? `Showing ${items.length} of ${total}` : `${items.length} ${unreadOnly ? "unread" : "total"}`}
             {!unreadOnly && unread > 0 && (
               <> · <span className="font-semibold text-primary">{unread} unread</span></>
             )}
@@ -103,6 +111,20 @@ export default async function NotificationsPage({
                 );
               })}
             </ul>
+          )}
+
+          {hasMore && (
+            <div className="mt-4 border-t pt-3 text-center">
+              <Link
+                href={`/notifications?${new URLSearchParams({
+                  ...(unreadOnly ? { filter: "unread" } : {}),
+                  limit: String(limit + PAGE),
+                }).toString()}`}
+                className="text-xs text-primary underline"
+              >
+                Show older ({total - items.length} more)
+              </Link>
+            </div>
           )}
         </CardContent>
       </Card>
