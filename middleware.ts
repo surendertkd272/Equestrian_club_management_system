@@ -154,9 +154,60 @@ const PUBLIC_PREFIXES = [
   "/api/owner",
 ];
 
+// Prefix match on a PATH BOUNDARY, not a raw string prefix.
+//
+// A bare startsWith() meant "/login" also whitelisted "/loginsomething" and
+// "/api/auth" whitelisted "/api/authsomething". No such route exists today, so
+// this was latent rather than live — but it is exactly the kind of trap that
+// turns an innocuous new route name into a public one.
+//
+// Three shapes have to keep working: entries already ending in "/" ("/r/",
+// "/pay/"), whole-segment prefixes ("/api/auth" → "/api/auth/login"), and
+// literal file prefixes where the next char is a dot ("/favicon" →
+// "/favicon.ico").
+function matchesPrefix(pathname: string, p: string): boolean {
+  if (p.endsWith("/")) return pathname.startsWith(p);
+  return pathname === p || pathname.startsWith(p + "/") || pathname.startsWith(p + ".");
+}
+
 function isPublic(pathname: string) {
   if (pathname === "/") return true;
-  return PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+  return PUBLIC_PREFIXES.some((p) => matchesPrefix(pathname, p));
+}
+
+// /api/owner/* is "public" to the tenant middleware because owner routes carry
+// their own getOwnerSession() guard. All of them do today — but that is a
+// convention, and the one route that forgets is silently wide open on the
+// highest-privilege surface in the system, with nothing upstream to catch it.
+//
+// So the middleware now fails CLOSED there: a valid owner cookie is required
+// before the request reaches the handler. Routes keep their own guard, which is
+// what performs the DB revocation/status re-check; this is the backstop that
+// makes forgetting it a 401 instead of a breach.
+//
+// Exempt: the pre-auth owner endpoints (you cannot have a cookie yet), and
+// impersonate/stop, which deliberately runs on a TENANT session — the owner
+// cookie was cleared when the impersonation began.
+const OWNER_API_OPEN = [
+  "/api/owner/auth/login",
+  "/api/owner/auth/forgot-password",
+  "/api/owner/auth/reset-password",
+  "/api/owner/auth/logout",
+  "/api/owner/impersonate/stop",
+];
+
+async function ownerApiGate(req: NextRequest, logical: string): Promise<NextResponse | null> {
+  if (!logical.startsWith("/api/owner")) return null;
+  if (OWNER_API_OPEN.some((p) => matchesPrefix(logical, p))) return null;
+  const token = req.cookies.get("ew_owner_session")?.value;
+  if (!token) return NextResponse.json({ error: "UNAUTHENTICATED_OWNER" }, { status: 401 });
+  try {
+    const secret = new TextEncoder().encode(process.env.OWNER_JWT_SECRET ?? process.env.JWT_SECRET);
+    await jwtVerify(token, secret, { audience: OWNER_AUDIENCE });
+    return null;
+  } catch {
+    return NextResponse.json({ error: "UNAUTHENTICATED_OWNER" }, { status: 401 });
+  }
 }
 
 // V2 slug-prefix routing: `/t/<slug>/whatever` is an alternative entry point
@@ -177,12 +228,16 @@ export async function middleware(req: NextRequest) {
   const { slug, logical } = stripSlugPrefix(pathname);
 
   if (isPublic(logical)) {
+    // Fail-closed backstop for owner APIs before anything else runs.
+    const ownerBlock = await ownerApiGate(req, logical);
+    if (ownerBlock) return ownerBlock;
+
     const res = slug
       ? NextResponse.rewrite((() => { const u = req.nextUrl.clone(); u.pathname = logical; return u; })())
       : NextResponse.next();
     // Owner paths are "public" to THIS middleware (they guard themselves), but
     // they still need their cookie kept alive while the owner is working.
-    if (logical.startsWith("/owner") || logical.startsWith("/api/owner")) {
+    if (matchesPrefix(logical, "/owner") || matchesPrefix(logical, "/api/owner")) {
       await slideOwnerRenewal(res, req);
     }
     return res;
