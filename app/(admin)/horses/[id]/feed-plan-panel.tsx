@@ -179,41 +179,43 @@ export function FeedPlanPanel({
               </Button>
             )}
           </div>
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs tracking-wide text-muted-foreground">
-              <tr>
-                <th className="pb-1">Feed</th>
-                <th className="pb-1 w-24">Qty</th>
-                <th className="pb-1 w-24">Unit</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {r.items.map((it, ii) => (
-                <tr key={ii}>
-                  <td className="py-1 pr-2">
-                    <Input value={it.feed} onChange={(e) => setItem(ri, ii, { feed: e.target.value })} placeholder="Hay / Oats / Mash" />
-                  </td>
-                  <td className="py-1 pr-2">
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={it.qty}
-                      onChange={(e) => setItem(ri, ii, { qty: Number(e.target.value) })}
-                    />
-                  </td>
-                  <td className="py-1 pr-2">
-                    <Input value={it.unit} onChange={(e) => setItem(ri, ii, { unit: e.target.value })} placeholder="kg" />
-                  </td>
-                  <td className="py-1 text-right">
-                    <Button variant="ghost" size="sm" onClick={() => removeItem(ri, ii)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="pb-1">Feed</th>
+                  <th className="pb-1 w-24">Qty</th>
+                  <th className="pb-1 w-24">Unit</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y">
+                {r.items.map((it, ii) => (
+                  <tr key={ii}>
+                    <td className="py-1 pr-2">
+                      <Input value={it.feed} onChange={(e) => setItem(ri, ii, { feed: e.target.value })} placeholder="Hay / Oats / Mash" />
+                    </td>
+                    <td className="py-1 pr-2">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={it.qty}
+                        onChange={(e) => setItem(ri, ii, { qty: Number(e.target.value) })}
+                      />
+                    </td>
+                    <td className="py-1 pr-2">
+                      <Input value={it.unit} onChange={(e) => setItem(ri, ii, { unit: e.target.value })} placeholder="kg" />
+                    </td>
+                    <td className="py-1 text-right">
+                      <Button variant="ghost" size="sm" onClick={() => removeItem(ri, ii)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <Button variant="outline" size="sm" type="button" onClick={() => addItem(ri)} className="mt-2">
             <Plus className="mr-1 h-3 w-3" /> Add item
           </Button>

@@ -96,64 +96,66 @@ export function RegistrationsPanel({
         {registrations.length === 0 ? (
           <p className="text-sm text-muted-foreground">No registrations yet.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs text-muted-foreground">
-              <tr>
-                <th className="pb-2">Rider</th>
-                <th className="pb-2 w-32">Status</th>
-                <th className="pb-2 w-24">Paid</th>
-                <th className="pb-2 w-8"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {registrations.map((r) => (
-                <tr key={r.id} className="border-t">
-                  <td className="py-2 font-medium">{r.riderName}</td>
-                  <td className="py-2">
-                    {canManage ? (
-                      <Select
-                        value={r.status}
-                        onChange={(e) => patch(r.id, { status: e.target.value }, "Status updated")}
-                        className="h-8 text-xs"
-                      >
-                        <option value="registered">Registered</option>
-                        <option value="attended">Attended</option>
-                        <option value="no_show">No-Show</option>
-                        <option value="cancelled">Cancelled</option>
-                      </Select>
-                    ) : (
-                      <Badge variant="outline">{formatEnum(r.status)}</Badge>
-                    )}
-                  </td>
-                  <td className="py-2">
-                    {canManage && fee > 0 ? (
-                      <button
-                        type="button"
-                        onClick={() => patch(r.id, { paid: !r.paid }, r.paid ? "Marked unpaid" : "Marked paid")}
-                        className="rounded-md border px-2 py-0.5 text-xs hover:bg-muted"
-                      >
-                        {r.paid ? "Paid" : "Unpaid"}
-                      </button>
-                    ) : (
-                      <Badge variant={r.paid ? "success" : "outline"}>{r.paid ? "paid" : "—"}</Badge>
-                    )}
-                  </td>
-                  <td className="py-2 text-right">
-                    {canManage && (
-                      <button
-                        type="button"
-                        onClick={() => remove(r.id)}
-                        className="text-muted-foreground hover:text-destructive"
-                        aria-label="remove"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs text-muted-foreground">
+                <tr>
+                  <th className="pb-2">Rider</th>
+                  <th className="pb-2 w-32">Status</th>
+                  <th className="pb-2 w-24">Paid</th>
+                  <th className="pb-2 w-8"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {registrations.map((r) => (
+                  <tr key={r.id} className="border-t">
+                    <td className="py-2 font-medium">{r.riderName}</td>
+                    <td className="py-2">
+                      {canManage ? (
+                        <Select
+                          value={r.status}
+                          onChange={(e) => patch(r.id, { status: e.target.value }, "Status updated")}
+                          className="h-8 text-xs"
+                        >
+                          <option value="registered">Registered</option>
+                          <option value="attended">Attended</option>
+                          <option value="no_show">No-Show</option>
+                          <option value="cancelled">Cancelled</option>
+                        </Select>
+                      ) : (
+                        <Badge variant="outline">{formatEnum(r.status)}</Badge>
+                      )}
+                    </td>
+                    <td className="py-2">
+                      {canManage && fee > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => patch(r.id, { paid: !r.paid }, r.paid ? "Marked unpaid" : "Marked paid")}
+                          className="rounded-md border px-2 py-0.5 text-xs hover:bg-muted"
+                        >
+                          {r.paid ? "Paid" : "Unpaid"}
+                        </button>
+                      ) : (
+                        <Badge variant={r.paid ? "success" : "outline"}>{r.paid ? "paid" : "—"}</Badge>
+                      )}
+                    </td>
+                    <td className="py-2 text-right">
+                      {canManage && (
+                        <button
+                          type="button"
+                          onClick={() => remove(r.id)}
+                          className="text-muted-foreground hover:text-destructive"
+                          aria-label="remove"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {canManage && accepting && riders.length > 0 && (

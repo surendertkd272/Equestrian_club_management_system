@@ -165,6 +165,20 @@ export default async function EquipmentPage({
         )}
       </form>
 
+      {byCategory.size > 1 && (
+        <nav aria-label="Jump to category" className="flex flex-wrap gap-1.5">
+          {Array.from(byCategory.entries()).map(([category, rows]) => (
+            <a
+              key={category}
+              href={`#cat-${category}`}
+              className="rounded-full border bg-card px-2.5 py-1 text-[11px] uppercase tracking-wide text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              {category} <span className="font-mono">{rows.length}</span>
+            </a>
+          ))}
+        </nav>
+      )}
+
       {onlyUncounted && (
         <div className="rounded-md border border-dashed bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
           Showing only items <strong>never counted</strong> at {centre?.name ?? "this centre"} —
@@ -199,8 +213,8 @@ export default async function EquipmentPage({
         </Card>
       ) : (
         Array.from(byCategory.entries()).map(([category, rows]) => (
-          <Card key={category}>
-            <CardHeader>
+          <Card key={category} id={`cat-${category}`} className="scroll-mt-4">
+            <CardHeader className="sticky top-0 z-10 rounded-t-lg border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
               <CardTitle className="text-base uppercase tracking-wide">{category}</CardTitle>
               <CardDescription>{rows.length} item{rows.length === 1 ? "" : "s"}</CardDescription>
             </CardHeader>

@@ -92,55 +92,57 @@ export default async function ProcurementReportPage() {
               <CardTitle className="text-base">{centre.name}</CardTitle>
             </CardHeader>
             <CardContent>
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs text-muted-foreground">
-                  <tr>
-                    <th className="pb-2">Category</th>
-                    <th className="pb-2">Last Date</th>
-                    <th className="pb-2 text-right">Rate</th>
-                    <th className="pb-2 text-right">Qty</th>
-                    <th className="pb-2 text-right">Amount</th>
-                    <th className="pb-2">Payment</th>
-                    <th className="pb-2">Vendor</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {CATEGORY_VIEW.map(({ code, label }) => {
-                    const catId = catIdByCode.get(code);
-                    const e = catId ? latest.get(`${centre.id}:${catId}`) : undefined;
-                    return (
-                      <tr key={code} className="border-t">
-                        <td className="py-2 font-medium">{label}</td>
-                        {e ? (
-                          <>
-                            <td className="py-2">{formatDate(e.spentAt)}</td>
-                            <td className="py-2 text-right font-mono">
-                              {inr(e.unitRate ?? e.amount)}
-                              {e.unitRate != null && <span className="text-[10px] text-muted-foreground"> /unit</span>}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-left text-xs text-muted-foreground">
+                    <tr>
+                      <th className="pb-2">Category</th>
+                      <th className="pb-2">Last Date</th>
+                      <th className="pb-2 text-right">Rate</th>
+                      <th className="pb-2 text-right">Qty</th>
+                      <th className="pb-2 text-right">Amount</th>
+                      <th className="pb-2">Payment</th>
+                      <th className="pb-2">Vendor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {CATEGORY_VIEW.map(({ code, label }) => {
+                      const catId = catIdByCode.get(code);
+                      const e = catId ? latest.get(`${centre.id}:${catId}`) : undefined;
+                      return (
+                        <tr key={code} className="border-t">
+                          <td className="py-2 font-medium">{label}</td>
+                          {e ? (
+                            <>
+                              <td className="py-2">{formatDate(e.spentAt)}</td>
+                              <td className="py-2 text-right font-mono">
+                                {inr(e.unitRate ?? e.amount)}
+                                {e.unitRate != null && <span className="text-[10px] text-muted-foreground"> /unit</span>}
+                              </td>
+                              <td className="py-2 text-right font-mono">{e.qty != null ? e.qty : "—"}</td>
+                              <td className="py-2 text-right font-mono">{inr(e.amount)}</td>
+                              <td className="py-2">
+                                {e.paid ? (
+                                  <Badge variant="success">
+                                    Paid{e.method ? ` · ${e.method}` : ""}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline">Unpaid</Badge>
+                                )}
+                              </td>
+                              <td className="py-2">{e.vendor?.name ?? "—"}</td>
+                            </>
+                          ) : (
+                            <td className="py-2 text-muted-foreground" colSpan={6}>
+                              No record
                             </td>
-                            <td className="py-2 text-right font-mono">{e.qty != null ? e.qty : "—"}</td>
-                            <td className="py-2 text-right font-mono">{inr(e.amount)}</td>
-                            <td className="py-2">
-                              {e.paid ? (
-                                <Badge variant="success">
-                                  Paid{e.method ? ` · ${e.method}` : ""}
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline">Unpaid</Badge>
-                              )}
-                            </td>
-                            <td className="py-2">{e.vendor?.name ?? "—"}</td>
-                          </>
-                        ) : (
-                          <td className="py-2 text-muted-foreground" colSpan={6}>
-                            No record
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                          )}
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </CardContent>
           </Card>
         ))

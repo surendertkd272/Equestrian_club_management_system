@@ -150,32 +150,34 @@ export function HealthLogPanel({
       {logs.length > 0 && (
         <details className="text-sm">
           <summary className="cursor-pointer text-muted-foreground">Recent readings ({logs.length})</summary>
-          <table className="mt-2 w-full text-xs">
-            <thead className="text-[10px] text-muted-foreground">
-              <tr>
-                <th className="px-1 py-1 text-left">When</th>
-                <th className="px-1 py-1 text-right">Temp</th>
-                <th className="px-1 py-1 text-right">HR</th>
-                <th className="px-1 py-1 text-right">RPM</th>
-                <th className="px-1 py-1">Appetite</th>
-                <th className="px-1 py-1">Manure</th>
-                <th className="px-1 py-1 text-left">Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.slice(0, 15).map((l) => (
-                <tr key={l.id} className="border-t">
-                  <td className="px-1 py-1">{new Date(l.recordedAt).toLocaleString()}</td>
-                  <td className={`px-1 py-1 text-right ${tempCls(l.tempC)}`}>{l.tempC ?? "—"}</td>
-                  <td className="px-1 py-1 text-right">{l.heartRateBpm ?? "—"}</td>
-                  <td className="px-1 py-1 text-right">{l.respirationRpm ?? "—"}</td>
-                  <td className="px-1 py-1 text-xs">{l.appetite ?? "—"}</td>
-                  <td className="px-1 py-1 text-xs">{l.manure ?? "—"}</td>
-                  <td className="px-1 py-1 text-xs text-muted-foreground">{l.notes ?? ""}</td>
+          <div className="overflow-x-auto">
+            <table className="mt-2 w-full text-xs">
+              <thead className="text-[10px] text-muted-foreground">
+                <tr>
+                  <th className="px-1 py-1 text-left">When</th>
+                  <th className="px-1 py-1 text-right">Temp</th>
+                  <th className="px-1 py-1 text-right">HR</th>
+                  <th className="px-1 py-1 text-right">RPM</th>
+                  <th className="px-1 py-1">Appetite</th>
+                  <th className="px-1 py-1">Manure</th>
+                  <th className="px-1 py-1 text-left">Notes</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {logs.slice(0, 15).map((l) => (
+                  <tr key={l.id} className="border-t">
+                    <td className="px-1 py-1">{new Date(l.recordedAt).toLocaleString()}</td>
+                    <td className={`px-1 py-1 text-right ${tempCls(l.tempC)}`}>{l.tempC ?? "—"}</td>
+                    <td className="px-1 py-1 text-right">{l.heartRateBpm ?? "—"}</td>
+                    <td className="px-1 py-1 text-right">{l.respirationRpm ?? "—"}</td>
+                    <td className="px-1 py-1 text-xs">{l.appetite ?? "—"}</td>
+                    <td className="px-1 py-1 text-xs">{l.manure ?? "—"}</td>
+                    <td className="px-1 py-1 text-xs text-muted-foreground">{l.notes ?? ""}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </details>
       )}
     </div>

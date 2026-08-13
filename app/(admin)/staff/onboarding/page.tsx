@@ -211,38 +211,40 @@ export default async function StaffOnboardingPage() {
         <Card>
           <CardHeader><CardTitle className="text-base">All Links</CardTitle></CardHeader>
           <CardContent>
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs text-muted-foreground">
-                <tr><th className="pb-2">Candidate / Employee</th><th className="pb-2">Role</th><th className="pb-2">Created</th><th className="pb-2">Status</th></tr>
-              </thead>
-              <tbody>
-                {others.map((r) => {
-                  const active = r.status === "draft" && r.expiresAt >= new Date();
-                  return (
-                    <tr key={r.id} className="border-t align-top">
-                      <td className="py-2">
-                        {r.fullName ?? r.reviewNotes ?? <span className="text-muted-foreground">link not used yet</span>}
-                        {isHQ ? <div className="text-[11px] text-muted-foreground">{r.centre.name}</div> : null}
-                      </td>
-                      <td className="py-2 text-xs text-muted-foreground">{r.intendedRole ? r.intendedRole.replaceAll("_", " ").toLowerCase() : "—"}</td>
-                      <td className="py-2 text-xs text-muted-foreground">{formatDate(r.createdAt)}</td>
-                      <td className="py-2">
-                        {r.status === "approved" ? (
-                          <Badge variant="success">approved → staff created</Badge>
-                        ) : r.status === "rejected" ? (
-                          <Badge variant="destructive">rejected</Badge>
-                        ) : r.expiresAt < new Date() ? (
-                          <Badge variant="outline">link expired</Badge>
-                        ) : (
-                          <Badge variant="warning">link active · expires {formatDate(r.expiresAt)}</Badge>
-                        )}
-                        {active && r.shareToken ? <LinkShareButtons token={r.shareToken} note={r.reviewNotes} /> : null}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-xs text-muted-foreground">
+                  <tr><th className="pb-2">Candidate / Employee</th><th className="pb-2">Role</th><th className="pb-2">Created</th><th className="pb-2">Status</th></tr>
+                </thead>
+                <tbody>
+                  {others.map((r) => {
+                    const active = r.status === "draft" && r.expiresAt >= new Date();
+                    return (
+                      <tr key={r.id} className="border-t align-top">
+                        <td className="py-2">
+                          {r.fullName ?? r.reviewNotes ?? <span className="text-muted-foreground">link not used yet</span>}
+                          {isHQ ? <div className="text-[11px] text-muted-foreground">{r.centre.name}</div> : null}
+                        </td>
+                        <td className="py-2 text-xs text-muted-foreground">{r.intendedRole ? r.intendedRole.replaceAll("_", " ").toLowerCase() : "—"}</td>
+                        <td className="py-2 text-xs text-muted-foreground">{formatDate(r.createdAt)}</td>
+                        <td className="py-2">
+                          {r.status === "approved" ? (
+                            <Badge variant="success">approved → staff created</Badge>
+                          ) : r.status === "rejected" ? (
+                            <Badge variant="destructive">rejected</Badge>
+                          ) : r.expiresAt < new Date() ? (
+                            <Badge variant="outline">link expired</Badge>
+                          ) : (
+                            <Badge variant="warning">link active · expires {formatDate(r.expiresAt)}</Badge>
+                          )}
+                          {active && r.shareToken ? <LinkShareButtons token={r.shareToken} note={r.reviewNotes} /> : null}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
       )}

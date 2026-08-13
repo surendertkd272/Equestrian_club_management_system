@@ -107,46 +107,48 @@ export default async function RequisitionPOPage({ params }: { params: { id: stri
       </div>
 
       {/* Line items */}
-      <table className="mb-6 w-full border-collapse text-sm">
-        <thead>
-          <tr className="border-b-2 border-black text-left">
-            <th className="px-2 py-1.5">#</th>
-            <th className="px-2 py-1.5">Item</th>
-            <th className="px-2 py-1.5 text-right">Qty</th>
-            <th className="px-2 py-1.5">Unit</th>
-            <th className="px-2 py-1.5 text-right">Unit Cost</th>
-            <th className="px-2 py-1.5 text-right">Line Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((it, i) => {
-            const line = it.qty * it.estimatedUnitCost;
-            return (
-              <tr key={i} className="border-b">
-                <td className="px-2 py-1.5">{i + 1}</td>
-                <td className="px-2 py-1.5">
-                  {it.name}
-                  {it.notes && <div className="text-[10px] text-gray-500">{it.notes}</div>}
-                </td>
-                <td className="px-2 py-1.5 text-right font-mono">{it.qty}</td>
-                <td className="px-2 py-1.5">{it.unit ?? "—"}</td>
-                <td className="px-2 py-1.5 text-right font-mono">₹{it.estimatedUnitCost.toLocaleString("en-IN")}</td>
-                <td className="px-2 py-1.5 text-right font-mono">₹{line.toLocaleString("en-IN")}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-        <tfoot>
-          <tr className="border-t-2 border-black">
-            <td colSpan={5} className="px-2 py-1.5 text-right font-semibold uppercase tracking-wide">
-              Estimated total
-            </td>
-            <td className="px-2 py-1.5 text-right font-mono font-bold">
-              ₹{Math.round(req.totalEstimatedCost).toLocaleString("en-IN")}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+      <div className="overflow-x-auto">
+        <table className="mb-6 w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b-2 border-black text-left">
+              <th className="px-2 py-1.5">#</th>
+              <th className="px-2 py-1.5">Item</th>
+              <th className="px-2 py-1.5 text-right">Qty</th>
+              <th className="px-2 py-1.5">Unit</th>
+              <th className="px-2 py-1.5 text-right">Unit Cost</th>
+              <th className="px-2 py-1.5 text-right">Line Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((it, i) => {
+              const line = it.qty * it.estimatedUnitCost;
+              return (
+                <tr key={i} className="border-b">
+                  <td className="px-2 py-1.5">{i + 1}</td>
+                  <td className="px-2 py-1.5">
+                    {it.name}
+                    {it.notes && <div className="text-[10px] text-gray-500">{it.notes}</div>}
+                  </td>
+                  <td className="px-2 py-1.5 text-right font-mono">{it.qty}</td>
+                  <td className="px-2 py-1.5">{it.unit ?? "—"}</td>
+                  <td className="px-2 py-1.5 text-right font-mono">₹{it.estimatedUnitCost.toLocaleString("en-IN")}</td>
+                  <td className="px-2 py-1.5 text-right font-mono">₹{line.toLocaleString("en-IN")}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-black">
+              <td colSpan={5} className="px-2 py-1.5 text-right font-semibold uppercase tracking-wide">
+                Estimated total
+              </td>
+              <td className="px-2 py-1.5 text-right font-mono font-bold">
+                ₹{Math.round(req.totalEstimatedCost).toLocaleString("en-IN")}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
 
       {/* Approval trail */}
       <div className="mb-6 grid grid-cols-2 gap-6 text-xs">

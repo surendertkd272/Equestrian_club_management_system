@@ -220,31 +220,33 @@ export default async function ReportCard({
           {exams.length === 0 ? (
             <p className="text-xs text-muted-foreground">No exams completed in this period.</p>
           ) : (
-            <table className="w-full text-xs">
-              <thead className="text-left">
-                <tr className="text-[10px] uppercase text-muted-foreground">
-                  <th className="pb-1">Date</th>
-                  <th className="pb-1">Level</th>
-                  <th className="pb-1">Score</th>
-                  <th className="pb-1">Examiner</th>
-                  <th className="pb-1">Result</th>
-                </tr>
-              </thead>
-              <tbody>
-                {exams.map((e) => (
-                  <tr key={e.id} className="border-t border-dashed">
-                    <td className="py-1">{formatDate(e.date)}</td>
-                    <td className="py-1">L{e.level}</td>
-                    <td className="py-1">{e.totalScore ?? "—"}</td>
-                    <td className="py-1">{e.examinerName}</td>
-                    <td className="py-1">
-                      {e.passed === true && <Badge variant="success">PASS</Badge>}
-                      {e.passed === false && <Badge variant="destructive">FAIL</Badge>}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="text-left">
+                  <tr className="text-[10px] uppercase text-muted-foreground">
+                    <th className="pb-1">Date</th>
+                    <th className="pb-1">Level</th>
+                    <th className="pb-1">Score</th>
+                    <th className="pb-1">Examiner</th>
+                    <th className="pb-1">Result</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {exams.map((e) => (
+                    <tr key={e.id} className="border-t border-dashed">
+                      <td className="py-1">{formatDate(e.date)}</td>
+                      <td className="py-1">L{e.level}</td>
+                      <td className="py-1">{e.totalScore ?? "—"}</td>
+                      <td className="py-1">{e.examinerName}</td>
+                      <td className="py-1">
+                        {e.passed === true && <Badge variant="success">PASS</Badge>}
+                        {e.passed === false && <Badge variant="destructive">FAIL</Badge>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Section>
 
@@ -253,40 +255,42 @@ export default async function ReportCard({
           {liveInvoices.length === 0 ? (
             <p className="text-xs text-muted-foreground">No invoices raised in this period.</p>
           ) : (
-            <table className="w-full text-xs">
-              <thead className="text-left">
-                <tr className="text-[10px] uppercase text-muted-foreground">
-                  <th className="pb-1">Date</th>
-                  <th className="pb-1">Kind</th>
-                  <th className="pb-1">Amount</th>
-                  <th className="pb-1">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {liveInvoices.map((inv) => (
-                  <tr key={inv.id} className="border-t border-dashed">
-                    <td className="py-1">{formatDate(inv.createdAt)}</td>
-                    <td className="py-1 capitalize">{formatEnum(inv.kind)}</td>
-                    <td className="py-1">₹{inv.amount.toLocaleString("en-IN")}</td>
-                    <td className="py-1">
-                      <Badge
-                        variant={inv.status === "paid" ? "success" : inv.status === "due" ? "warning" : "destructive"}
-                      >
-                        {formatEnum(inv.status)}
-                      </Badge>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="text-left">
+                  <tr className="text-[10px] uppercase text-muted-foreground">
+                    <th className="pb-1">Date</th>
+                    <th className="pb-1">Kind</th>
+                    <th className="pb-1">Amount</th>
+                    <th className="pb-1">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {liveInvoices.map((inv) => (
+                    <tr key={inv.id} className="border-t border-dashed">
+                      <td className="py-1">{formatDate(inv.createdAt)}</td>
+                      <td className="py-1 capitalize">{formatEnum(inv.kind)}</td>
+                      <td className="py-1">₹{inv.amount.toLocaleString("en-IN")}</td>
+                      <td className="py-1">
+                        <Badge
+                          variant={inv.status === "paid" ? "success" : inv.status === "due" ? "warning" : "destructive"}
+                        >
+                          {formatEnum(inv.status)}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="border-t font-semibold">
+                    <td colSpan={2} className="pt-1">
+                      Period Total
+                    </td>
+                    <td colSpan={2} className="pt-1">₹{invoicedTotal.toLocaleString("en-IN")} invoiced · ₹
+                      {Math.round(paidInPeriod).toLocaleString("en-IN")} paid
                     </td>
                   </tr>
-                ))}
-                <tr className="border-t font-semibold">
-                  <td colSpan={2} className="pt-1">
-                    Period Total
-                  </td>
-                  <td colSpan={2} className="pt-1">₹{invoicedTotal.toLocaleString("en-IN")} invoiced · ₹
-                    {Math.round(paidInPeriod).toLocaleString("en-IN")} paid
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
           )}
         </Section>
 

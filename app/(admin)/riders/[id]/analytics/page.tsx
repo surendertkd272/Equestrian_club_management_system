@@ -143,29 +143,31 @@ export default async function RiderAnalytics({ params }: { params: { id: string 
                     <Sparkline values={examScores} stroke="currentColor" width={200} height={48} />
                   </div>
                 </div>
-                <table className="w-full text-xs">
-                  <thead className="text-left text-[10px] text-muted-foreground">
-                    <tr>
-                      <th className="pb-1">Date</th>
-                      <th className="pb-1">Level</th>
-                      <th className="pb-1">Score</th>
-                      <th className="pb-1">Result</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {exams.map((e) => (
-                      <tr key={e.id} className="border-t border-dashed">
-                        <td className="py-1">{formatDate(e.date)}</td>
-                        <td className="py-1">L{e.level}</td>
-                        <td className="py-1 font-mono">{e.totalScore ?? "—"}</td>
-                        <td className="py-1">
-                          {e.passed === true && <Badge variant="success">PASS</Badge>}
-                          {e.passed === false && <Badge variant="destructive">FAIL</Badge>}
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="text-left text-[10px] text-muted-foreground">
+                      <tr>
+                        <th className="pb-1">Date</th>
+                        <th className="pb-1">Level</th>
+                        <th className="pb-1">Score</th>
+                        <th className="pb-1">Result</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {exams.map((e) => (
+                        <tr key={e.id} className="border-t border-dashed">
+                          <td className="py-1">{formatDate(e.date)}</td>
+                          <td className="py-1">L{e.level}</td>
+                          <td className="py-1 font-mono">{e.totalScore ?? "—"}</td>
+                          <td className="py-1">
+                            {e.passed === true && <Badge variant="success">PASS</Badge>}
+                            {e.passed === false && <Badge variant="destructive">FAIL</Badge>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </>
             )}
           </CardContent>

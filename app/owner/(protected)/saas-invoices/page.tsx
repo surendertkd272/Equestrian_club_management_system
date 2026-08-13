@@ -70,51 +70,53 @@ export default async function SaasInvoicesPage({ searchParams }: { searchParams:
           {invoices.length === 0 ? (
             <p className="text-sm text-muted-foreground">No invoices match this filter.</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs tracking-wider text-muted-foreground">
-                <tr>
-                  <th className="pb-2">Number</th>
-                  <th className="pb-2">Tenant</th>
-                  <th className="pb-2">Plan</th>
-                  <th className="pb-2">Period</th>
-                  <th className="pb-2 text-right">Subtotal</th>
-                  <th className="pb-2 text-right">GST</th>
-                  <th className="pb-2 text-right">Total</th>
-                  <th className="pb-2">Status</th>
-                  <th className="pb-2" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {invoices.map((i) => (
-                  <tr key={i.id}>
-                    <td className="py-2 font-mono text-xs">{i.number}</td>
-                    <td className="py-2">
-                      <Link href={`/owner/tenants/${i.orgId}`} className="hover:underline">{i.org.name}</Link>
-                    </td>
-                    <td className="py-2"><Badge variant="outline" className="text-[10px]">{i.plan}</Badge></td>
-                    <td className="py-2 text-xs text-muted-foreground">
-                      {new Date(i.periodStart).toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short" })} → {new Date(i.periodEnd).toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short", year: "2-digit" })}
-                    </td>
-                    <td className="py-2 text-right">₹{i.subtotal.toLocaleString("en-IN")}</td>
-                    <td className="py-2 text-right">₹{i.taxAmount.toLocaleString("en-IN")}</td>
-                    <td className="py-2 text-right font-semibold">₹{i.total.toLocaleString("en-IN")}</td>
-                    <td className="py-2">
-                      <Badge variant={STATUS_VARIANT[i.status] ?? "outline"} className="text-xs">{formatEnum(i.status)}</Badge>
-                    </td>
-                    <td className="py-2 text-right">
-                      <Link
-                        href={`/owner/saas-invoices/${i.id}/print`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-emerald-700 dark:text-emerald-400 hover:underline"
-                      >
-                        Print/PDF
-                      </Link>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-xs tracking-wider text-muted-foreground">
+                  <tr>
+                    <th className="pb-2">Number</th>
+                    <th className="pb-2">Tenant</th>
+                    <th className="pb-2">Plan</th>
+                    <th className="pb-2">Period</th>
+                    <th className="pb-2 text-right">Subtotal</th>
+                    <th className="pb-2 text-right">GST</th>
+                    <th className="pb-2 text-right">Total</th>
+                    <th className="pb-2">Status</th>
+                    <th className="pb-2" />
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {invoices.map((i) => (
+                    <tr key={i.id}>
+                      <td className="py-2 font-mono text-xs">{i.number}</td>
+                      <td className="py-2">
+                        <Link href={`/owner/tenants/${i.orgId}`} className="hover:underline">{i.org.name}</Link>
+                      </td>
+                      <td className="py-2"><Badge variant="outline" className="text-[10px]">{i.plan}</Badge></td>
+                      <td className="py-2 text-xs text-muted-foreground">
+                        {new Date(i.periodStart).toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short" })} → {new Date(i.periodEnd).toLocaleDateString("en-IN", { timeZone: PLATFORM_TZ, day: "2-digit", month: "short", year: "2-digit" })}
+                      </td>
+                      <td className="py-2 text-right">₹{i.subtotal.toLocaleString("en-IN")}</td>
+                      <td className="py-2 text-right">₹{i.taxAmount.toLocaleString("en-IN")}</td>
+                      <td className="py-2 text-right font-semibold">₹{i.total.toLocaleString("en-IN")}</td>
+                      <td className="py-2">
+                        <Badge variant={STATUS_VARIANT[i.status] ?? "outline"} className="text-xs">{formatEnum(i.status)}</Badge>
+                      </td>
+                      <td className="py-2 text-right">
+                        <Link
+                          href={`/owner/saas-invoices/${i.id}/print`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs text-emerald-700 dark:text-emerald-400 hover:underline"
+                        >
+                          Print/PDF
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>

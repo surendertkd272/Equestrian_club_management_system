@@ -67,26 +67,28 @@ export default async function AccreditationsListPage({
             <CardTitle>Rollup by Issuing Body</CardTitle>
           </CardHeader>
           <CardContent>
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs text-muted-foreground">
-                <tr>
-                  <th className="pb-2">Body</th>
-                  <th className="pb-2">Active</th>
-                  <th className="pb-2">Expired</th>
-                  <th className="pb-2">Revoked</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Array.from(byBody.entries()).map(([b, c]) => (
-                  <tr key={b} className="border-t">
-                    <td className="py-2 font-medium">{b}</td>
-                    <td className="py-2"><Badge variant="success">{c.active}</Badge></td>
-                    <td className="py-2"><Badge variant="warning">{c.expired}</Badge></td>
-                    <td className="py-2"><Badge variant="destructive">{c.revoked}</Badge></td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-xs text-muted-foreground">
+                  <tr>
+                    <th className="pb-2">Body</th>
+                    <th className="pb-2">Active</th>
+                    <th className="pb-2">Expired</th>
+                    <th className="pb-2">Revoked</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {Array.from(byBody.entries()).map(([b, c]) => (
+                    <tr key={b} className="border-t">
+                      <td className="py-2 font-medium">{b}</td>
+                      <td className="py-2"><Badge variant="success">{c.active}</Badge></td>
+                      <td className="py-2"><Badge variant="warning">{c.expired}</Badge></td>
+                      <td className="py-2"><Badge variant="destructive">{c.revoked}</Badge></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </CardContent>
         </Card>
       )}

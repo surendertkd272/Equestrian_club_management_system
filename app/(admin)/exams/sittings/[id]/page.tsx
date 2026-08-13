@@ -70,58 +70,60 @@ export default async function SittingDetail({ params }: { params: { id: string }
           )}
         </CardHeader>
         <CardContent>
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs text-muted-foreground">
-              <tr>
-                <th className="pb-2">Rider</th>
-                <th className="pb-2">Status</th>
-                <th className="pb-2 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sitting.exams.map((e) => {
-                const name = `${e.rider.firstName} ${e.rider.lastName}`;
-                const mine = e.examinerId === session.userId;
-                return (
-                  <tr key={e.id} className="border-t">
-                    <td className="py-2 font-medium">{name}</td>
-                    <td className="py-2">
-                      {e.status === "completed" ? (
-                        <Badge variant="success">Completed</Badge>
-                      ) : !e.examinerId ? (
-                        <Badge variant="outline">Unassigned</Badge>
-                      ) : (
-                        <Badge variant="warning">Marking · {e.examinerName}</Badge>
-                      )}
-                    </td>
-                    <td className="py-2 text-right">
-                      {e.status === "completed" ? (
-                        <Link href={`/exams/${e.id}`} className="text-xs text-primary underline">
-                          View
-                        </Link>
-                      ) : !e.examinerId ? (
-                        inPool ? (
-                          <ClaimButton examId={e.id} />
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs text-muted-foreground">
+                <tr>
+                  <th className="pb-2">Rider</th>
+                  <th className="pb-2">Status</th>
+                  <th className="pb-2 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sitting.exams.map((e) => {
+                  const name = `${e.rider.firstName} ${e.rider.lastName}`;
+                  const mine = e.examinerId === session.userId;
+                  return (
+                    <tr key={e.id} className="border-t">
+                      <td className="py-2 font-medium">{name}</td>
+                      <td className="py-2">
+                        {e.status === "completed" ? (
+                          <Badge variant="success">Completed</Badge>
+                        ) : !e.examinerId ? (
+                          <Badge variant="outline">Unassigned</Badge>
                         ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )
-                      ) : mine ? (
-                        <Button asChild size="sm" variant="outline">
-                          <Link href={`/exams/${e.id}`}>Continue marking</Link>
-                        </Button>
-                      ) : isManager ? (
-                        <Link href={`/exams/${e.id}`} className="text-xs text-primary underline">
-                          Open
-                        </Link>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Locked · {e.examinerName}</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                          <Badge variant="warning">Marking · {e.examinerName}</Badge>
+                        )}
+                      </td>
+                      <td className="py-2 text-right">
+                        {e.status === "completed" ? (
+                          <Link href={`/exams/${e.id}`} className="text-xs text-primary underline">
+                            View
+                          </Link>
+                        ) : !e.examinerId ? (
+                          inPool ? (
+                            <ClaimButton examId={e.id} />
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )
+                        ) : mine ? (
+                          <Button asChild size="sm" variant="outline">
+                            <Link href={`/exams/${e.id}`}>Continue marking</Link>
+                          </Button>
+                        ) : isManager ? (
+                          <Link href={`/exams/${e.id}`} className="text-xs text-primary underline">
+                            Open
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Locked · {e.examinerName}</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
     </div>

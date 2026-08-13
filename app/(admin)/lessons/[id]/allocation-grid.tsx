@@ -68,65 +68,67 @@ export function AllocationGrid({
 
   return (
     <div className="space-y-3">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
-            <th className="pb-2">Rider</th>
-            <th className="pb-2">Horse</th>
-            <th className="pb-2">Notes</th>
-            <th className="pb-2" />
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {pairs.length === 0 && (
-            <tr>
-              <td colSpan={4} className="py-6 text-center text-xs text-muted-foreground">
-                No riders yet. Click <b>Add rider</b> below to start.
-              </td>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <th className="pb-2">Rider</th>
+              <th className="pb-2">Horse</th>
+              <th className="pb-2">Notes</th>
+              <th className="pb-2" />
             </tr>
-          )}
-          {pairs.map((p, i) => (
-            <tr key={i}>
-              <td className="py-2 pr-2">
-                <select
-                  value={p.riderId}
-                  onChange={(e) => setRow(i, { riderId: e.target.value })}
-                  className="h-9 w-full rounded border bg-card px-2"
-                >
-                  <option value="">— Select rider —</option>
-                  {riders.map((r) => (
-                    <option key={r.id} value={r.id}>{r.firstName} {r.lastName}</option>
-                  ))}
-                </select>
-              </td>
-              <td className="py-2 pr-2">
-                <select
-                  value={p.horseId}
-                  onChange={(e) => setRow(i, { horseId: e.target.value })}
-                  className="h-9 w-full rounded border bg-card px-2"
-                >
-                  <option value="">— Select horse —</option>
-                  {horses.map((h) => (
-                    <option key={h.id} value={h.id}>{h.name}{h.stableNo ? ` (${h.stableNo})` : ""}</option>
-                  ))}
-                </select>
-              </td>
-              <td className="py-2 pr-2">
-                <Input
-                  value={p.notes}
-                  onChange={(e) => setRow(i, { notes: e.target.value })}
-                  placeholder="Optional"
-                />
-              </td>
-              <td className="py-2 text-right">
-                <Button variant="ghost" size="sm" type="button" onClick={() => removeRow(i)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y">
+            {pairs.length === 0 && (
+              <tr>
+                <td colSpan={4} className="py-6 text-center text-xs text-muted-foreground">
+                  No riders yet. Click <b>Add rider</b> below to start.
+                </td>
+              </tr>
+            )}
+            {pairs.map((p, i) => (
+              <tr key={i}>
+                <td className="py-2 pr-2">
+                  <select
+                    value={p.riderId}
+                    onChange={(e) => setRow(i, { riderId: e.target.value })}
+                    className="h-9 w-full rounded border bg-card px-2"
+                  >
+                    <option value="">— Select rider —</option>
+                    {riders.map((r) => (
+                      <option key={r.id} value={r.id}>{r.firstName} {r.lastName}</option>
+                    ))}
+                  </select>
+                </td>
+                <td className="py-2 pr-2">
+                  <select
+                    value={p.horseId}
+                    onChange={(e) => setRow(i, { horseId: e.target.value })}
+                    className="h-9 w-full rounded border bg-card px-2"
+                  >
+                    <option value="">— Select horse —</option>
+                    {horses.map((h) => (
+                      <option key={h.id} value={h.id}>{h.name}{h.stableNo ? ` (${h.stableNo})` : ""}</option>
+                    ))}
+                  </select>
+                </td>
+                <td className="py-2 pr-2">
+                  <Input
+                    value={p.notes}
+                    onChange={(e) => setRow(i, { notes: e.target.value })}
+                    placeholder="Optional"
+                  />
+                </td>
+                <td className="py-2 text-right">
+                  <Button variant="ghost" size="sm" type="button" onClick={() => removeRow(i)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <div className="flex justify-between">
         <Button variant="outline" type="button" onClick={addRow}>
           <Plus className="mr-1 h-4 w-4" /> Add rider
