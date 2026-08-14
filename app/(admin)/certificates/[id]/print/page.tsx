@@ -67,7 +67,7 @@ export default async function CertificatePrintPage({ params }: { params: { id: s
 
       <div className="cert-page relative border-[6px] border-double border-amber-700/60 px-12 py-16 text-center">
         {/* Top crest band */}
-        <div className="text-[10px] font-semibold uppercase tracking-[0.3em] text-amber-800">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.3em] text-warning-foreground">
           {cert.centre.org.name}
         </div>
         <div className="mt-1 text-[14px] text-slate-600">{cert.centre.name}</div>
@@ -141,8 +141,8 @@ export default async function CertificatePrintPage({ params }: { params: { id: s
         </div>
 
         {cert.revokedAt && (
-          <div className="absolute inset-0 flex items-center justify-center bg-rose-50/40">
-            <div className="rotate-[-15deg] border-4 border-rose-700 px-12 py-4 font-serif text-5xl font-bold uppercase tracking-widest text-rose-700/80">
+          <div className="absolute inset-0 flex items-center justify-center bg-danger-soft">
+            <div className="rotate-[-15deg] border-4 border-rose-700 px-12 py-4 font-serif text-5xl font-bold uppercase tracking-widest text-danger-foreground/80">
               Revoked
             </div>
           </div>

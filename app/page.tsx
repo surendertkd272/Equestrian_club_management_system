@@ -32,7 +32,7 @@ export default function Home() {
       {/* Hero */}
       <section className="container mx-auto max-w-6xl px-6 py-20 md:py-28">
         <div className="max-w-3xl">
-          <div className="inline-block rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+          <div className="inline-block rounded-full bg-warning-soft px-3 py-1 text-xs font-semibold text-warning-foreground">
             BUILT IN INDIA · FOR INDIAN EQUESTRIAN CLUBS
           </div>
           <h1 className="mt-5 text-4xl font-bold tracking-tight md:text-6xl">
@@ -58,7 +58,7 @@ export default function Home() {
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           {FEATURES.map((f) => (
             <div key={f.title} className="rounded-xl border bg-card p-6 shadow-sm">
-              <div className="text-xs font-semibold uppercase tracking-wider text-amber-700">{f.group}</div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-warning-foreground">{f.group}</div>
               <div className="mt-2 text-lg font-semibold">{f.title}</div>
               <p className="mt-2 text-sm text-muted-foreground">{f.body}</p>
             </div>

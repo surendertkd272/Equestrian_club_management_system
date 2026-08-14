@@ -50,9 +50,9 @@ export function ResetForm({ token }: { token: string }) {
   if (done) {
     return (
       <div className="space-y-3">
-        <div className="rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900">
+        <div className="rounded-md border border-success/30 bg-success-soft p-3 text-sm text-success-foreground">
           <div className="font-semibold">Password updated.</div>
-          <p className="mt-1 text-xs text-emerald-800">Sign in with your new credentials.</p>
+          <p className="mt-1 text-xs text-success-foreground">Sign in with your new credentials.</p>
         </div>
         <Button className="w-full" onClick={() => router.push("/login")}>
           Go to sign in

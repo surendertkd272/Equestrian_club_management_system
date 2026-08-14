@@ -13,8 +13,8 @@ type Skill = { id: string; name: string; discipline: string; status: SkillStatus
 
 const STATUS_META: Record<SkillStatus, { cls: string; label: string; icon: any }> = {
   not_started: { cls: "border-input bg-card text-muted-foreground hover:bg-muted", label: "not started", icon: Circle },
-  in_progress: { cls: "border-amber-400 bg-amber-50 text-amber-800", label: "in progress", icon: CircleDot },
-  mastered: { cls: "border-emerald-500 bg-emerald-50 text-emerald-800", label: "mastered", icon: Check },
+  in_progress: { cls: "border-amber-400 bg-warning-soft text-warning-foreground", label: "in progress", icon: CircleDot },
+  mastered: { cls: "border-emerald-500 bg-success-soft text-success-foreground", label: "mastered", icon: Check },
 };
 
 export function SkillChecklist({

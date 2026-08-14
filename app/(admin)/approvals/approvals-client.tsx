@@ -60,7 +60,7 @@ export function ReviewButtons({
             type="button"
             disabled={busy}
             onClick={() => review("approved")}
-            className="rounded border border-emerald-500 px-2 py-0.5 text-[11px] text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+            className="rounded border border-emerald-500 px-2 py-0.5 text-[11px] text-success-foreground hover:bg-success-soft disabled:opacity-50"
           >
             Approve
           </button>
@@ -68,7 +68,7 @@ export function ReviewButtons({
             type="button"
             disabled={busy}
             onClick={() => review("rejected")}
-            className="rounded border border-rose-500 px-2 py-0.5 text-[11px] text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+            className="rounded border border-rose-500 px-2 py-0.5 text-[11px] text-danger-foreground hover:bg-danger-soft disabled:opacity-50"
           >
             Reject
           </button>

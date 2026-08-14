@@ -98,12 +98,12 @@ export function ParentLinksPanel({
   return (
     <div className="space-y-3">
       {tempPassword && (
-        <div className="rounded-md border border-amber-400 bg-amber-50 p-3 text-sm">
-          <div className="font-semibold text-amber-900">Share these credentials with the parent</div>
-          <div className="mt-1 font-mono text-xs text-amber-900">
+        <div className="rounded-md border border-amber-400 bg-warning-soft p-3 text-sm">
+          <div className="font-semibold text-warning-foreground">Share these credentials with the parent</div>
+          <div className="mt-1 font-mono text-xs text-warning-foreground">
             Password: <span className="font-bold">{tempPassword}</span>
           </div>
-          <div className="mt-1 text-xs text-amber-800">
+          <div className="mt-1 text-xs text-warning-foreground">
             This password is shown once. Ask the parent to change it after first sign-in.
           </div>
         </div>

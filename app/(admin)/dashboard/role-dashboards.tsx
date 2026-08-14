@@ -133,9 +133,9 @@ export async function FarrierDashboard({ centreId, features }: { centreId: strin
             ) : (
               <ul className="space-y-1 text-sm">
                 {overdue.map((v) => (
-                  <li key={v.id} className="flex items-center justify-between rounded border border-amber-300 bg-amber-50 px-2 py-1">
+                  <li key={v.id} className="flex items-center justify-between rounded border border-warning/30 bg-warning-soft px-2 py-1">
                     <span className="font-medium">{v.horse.name}</span>
-                    <span className="text-xs text-amber-700">Due {formatDateIndia(v.nextDueAt!)}</span>
+                    <span className="text-xs text-warning-foreground">Due {formatDateIndia(v.nextDueAt!)}</span>
                   </li>
                 ))}
               </ul>

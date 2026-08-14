@@ -104,7 +104,7 @@ export default async function PayPage({ params }: { params: { invoiceId: string 
             </div>
 
             {cancelled ? (
-              <div className="rounded-md border-2 border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+              <div className="rounded-md border-2 border-warning/30 bg-warning-soft p-4 text-sm text-warning-foreground">
                 <div className="font-semibold">This invoice has been cancelled.</div>
                 <p className="mt-1">
                   {invoice.centre.name} withdrew this charge, so there is nothing to pay. If you were
@@ -112,7 +112,7 @@ export default async function PayPage({ params }: { params: { invoiceId: string 
                 </p>
               </div>
             ) : paid ? (
-              <div className="rounded-md border-2 border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900">
+              <div className="rounded-md border-2 border-success/30 bg-success-soft p-4 text-sm text-success-foreground">
                 <div className="font-semibold">✓ This invoice has been paid.</div>
                 <p className="mt-1">
                   Receipt was sent to the registered email on file. No action needed —

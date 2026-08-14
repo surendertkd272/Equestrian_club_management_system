@@ -29,6 +29,9 @@ export type Column<T> = {
   hideOnMobile?: boolean;
   className?: string;
   headerClassName?: string;
+  /** Right-align and use tabular figures. Digits then line up in a column, so
+   *  the eye can compare down a numeric column instead of re-reading each row. */
+  numeric?: boolean;
 };
 
 export function ResponsiveTable<T>({
@@ -57,11 +60,11 @@ export function ResponsiveTable<T>({
     <>
       {/* Desktop / tablet: a real table. */}
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm tabular-nums">
           <thead className="text-left text-xs text-muted-foreground">
             <tr>
               {columns.map((c) => (
-                <th key={c.key} className={cn("pb-2 pr-3", c.headerClassName)}>
+                <th key={c.key} className={cn("pb-2 pr-3", c.numeric && "text-right", c.headerClassName)}>
                   {c.header}
                 </th>
               ))}
@@ -69,9 +72,9 @@ export function ResponsiveTable<T>({
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={getRowKey(row)} className="border-t align-top">
+              <tr key={getRowKey(row)} className="border-t align-top transition-colors hover:bg-muted/40">
                 {columns.map((c) => (
-                  <td key={c.key} className={cn("py-2 pr-3", c.className)}>
+                  <td key={c.key} className={cn("py-2 pr-3", c.numeric && "text-right", c.className)}>
                     {c.cell(row)}
                   </td>
                 ))}

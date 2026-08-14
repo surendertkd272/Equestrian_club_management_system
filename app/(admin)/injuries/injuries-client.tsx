@@ -199,7 +199,7 @@ export function InjuryRowActions({ id, status }: { id: string; status: string })
             if (!ok) return;
             patch({ status: "recovered" }, "Marked recovered");
           }}
-          className="inline-flex min-h-[40px] items-center justify-center rounded border border-emerald-500 px-3 text-sm text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+          className="inline-flex min-h-[40px] items-center justify-center rounded border border-emerald-500 px-3 text-sm text-success-foreground hover:bg-success-soft disabled:opacity-50"
         >
           Mark recovered
         </button>

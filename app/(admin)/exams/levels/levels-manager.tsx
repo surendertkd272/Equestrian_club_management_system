@@ -723,14 +723,14 @@ function RubricEditor({
 
   return (
     <div className="space-y-3">
-      <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs">
+      <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning/30 bg-warning-soft px-3 py-2 text-xs">
         <div>
-          <span className="font-semibold text-amber-900">Editing rubric</span>
-          <span className="ml-2 text-amber-800">
+          <span className="font-semibold text-warning-foreground">Editing rubric</span>
+          <span className="ml-2 text-warning-foreground">
             {cats.length} section{cats.length === 1 ? "" : "s"} · max <span className="font-mono">/{grandTotal}</span>
           </span>
-          <span className="ml-2 text-[10px] text-amber-700">
-            <kbd className="rounded bg-amber-100 px-1 font-mono">⌘S</kbd> save · <kbd className="rounded bg-amber-100 px-1 font-mono">Esc</kbd> cancel
+          <span className="ml-2 text-[10px] text-warning-foreground">
+            <kbd className="rounded bg-warning-soft px-1 font-mono">⌘S</kbd> save · <kbd className="rounded bg-warning-soft px-1 font-mono">Esc</kbd> cancel
           </span>
         </div>
         <div className="flex items-center gap-2">

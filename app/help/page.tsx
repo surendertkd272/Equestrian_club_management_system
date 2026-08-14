@@ -206,7 +206,7 @@ export default async function HelpIndex() {
           ))}
         </div>
 
-        <Card className="mt-10 border bg-amber-50">
+        <Card className="mt-10 border bg-warning-soft">
           <CardContent className="py-6 text-sm">
             <strong>Still stuck?</strong> Email{" "}
             <a href={`mailto:${supportEmail}`} className="text-primary underline">

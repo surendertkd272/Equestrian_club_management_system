@@ -207,7 +207,7 @@ export function TeamRosterControls({
                     type="button"
                     onClick={() => remove(rid)}
                     disabled={busy}
-                    className="rounded border border-rose-300 px-1.5 py-0.5 text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                    className="rounded border border-danger/30 px-1.5 py-0.5 text-danger-foreground hover:bg-danger-soft disabled:opacity-50"
                   >
                     Remove
                   </button>

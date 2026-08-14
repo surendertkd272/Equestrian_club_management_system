@@ -68,9 +68,9 @@ export function VerifyEmailForm() {
 
   if (verified) {
     return (
-      <div className="rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900">
+      <div className="rounded-md border border-success/30 bg-success-soft p-3 text-sm text-success-foreground">
         <div className="font-semibold">Email verified.</div>
-        <p className="mt-1 text-xs text-emerald-800">
+        <p className="mt-1 text-xs text-success-foreground">
           You can <a href="/login" className="underline">sign in</a> now.
         </p>
       </div>
@@ -106,10 +106,10 @@ export function VerifyEmailForm() {
       </div>
 
       {error && (
-        <div className="rounded-md border border-rose-300 bg-rose-50 p-2.5 text-xs text-rose-900">{error}</div>
+        <div className="rounded-md border border-danger/30 bg-danger-soft p-2.5 text-xs text-danger-foreground">{error}</div>
       )}
       {resent && !error && (
-        <div className="rounded-md border border-emerald-300 bg-emerald-50 p-2.5 text-xs text-emerald-900">
+        <div className="rounded-md border border-success/30 bg-success-soft p-2.5 text-xs text-success-foreground">
           If that email is on file, a new code is on its way.
         </div>
       )}

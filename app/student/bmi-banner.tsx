@@ -38,8 +38,8 @@ export function BmiBanner({ riderId, bmi }: { riderId: string; bmi: number | nul
 
   const tone =
     band === "obese"
-      ? "border-rose-300 bg-rose-50 text-rose-900"
-      : "border-amber-300 bg-amber-50 text-amber-900";
+      ? "border-danger/30 bg-danger-soft text-danger-foreground"
+      : "border-warning/30 bg-warning-soft text-warning-foreground";
 
   return (
     <div className={`flex items-start justify-between gap-3 rounded-md border-2 px-4 py-3 text-sm ${tone}`}>

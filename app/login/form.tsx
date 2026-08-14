@@ -265,7 +265,7 @@ export function LoginForm({
     const when = pendingDeletion ? formatDeletionDate(pendingDeletion) : null;
     return (
       <div className="space-y-4">
-        <div className="rounded-md border border-red-300 bg-red-50 p-3 text-xs text-red-900">
+        <div className="rounded-md border border-danger/30 bg-danger-soft p-3 text-xs text-danger-foreground">
           <div className="font-semibold">This account is scheduled for deletion</div>
           <p className="mt-1">
             {when
@@ -363,8 +363,8 @@ export function LoginForm({
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {quickPickEnabled && (
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-2 text-xs">
-          <div className="mb-1 font-semibold text-amber-900">Dev quick-pick — local testing only</div>
+        <div className="rounded-md border border-warning/30 bg-warning-soft p-2 text-xs">
+          <div className="mb-1 font-semibold text-warning-foreground">Dev quick-pick — local testing only</div>
           <select
             value={email}
             onChange={(e) => {

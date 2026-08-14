@@ -235,7 +235,7 @@ function UploadField<T extends FieldValues>({
       {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
       {busy && <p className="text-[10px] text-muted-foreground">Uploading…</p>}
       {value && !busy && (
-        <p className="text-[11px] text-emerald-700">
+        <p className="text-[11px] text-success-foreground">
           ✓ Uploaded — <a href={value} target="_blank" rel="noreferrer" className="underline">preview</a>
         </p>
       )}
@@ -465,7 +465,7 @@ function ParentalConsentStep({
   return (
     <form onSubmit={methods.handleSubmit(onNext)} className="space-y-6">
       <div className="space-y-4">
-        <div className="rounded-md border-2 border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+        <div className="rounded-md border-2 border-warning/30 bg-warning-soft p-3 text-xs text-warning-foreground">
           The rider is under 18. DPDPA Section 9 requires a parent or legal guardian to
           provide consent before we can process the rider's personal data. Fill the
           fields below — the parent's name + agreement is the legal signature.
@@ -555,9 +555,9 @@ function IndemnityStep({
         {/* NOC for injuries — separate from the general indemnity block above
             so the consent record is unambiguous: both boxes must be ticked.
             Highlighted styling so a quick scrolling reader can't miss it. */}
-        <div className="rounded-md border-2 border-amber-300 bg-amber-50 p-4 text-sm leading-relaxed">
-          <p className="font-semibold text-amber-900">NOC for Injuries</p>
-          <p className="mt-2 text-amber-900">
+        <div className="rounded-md border-2 border-warning/30 bg-warning-soft p-4 text-sm leading-relaxed">
+          <p className="font-semibold text-warning-foreground">NOC for Injuries</p>
+          <p className="mt-2 text-warning-foreground">
             I (the rider, or parent/guardian for minors) give my No-Objection Consent for the rider to participate
             in horse-riding activity at this centre. I acknowledge that riding involves a real risk of injury —
             falls, kicks, bites, equipment failure, and unpredictable horse behaviour can occur even under qualified
@@ -565,7 +565,7 @@ function IndemnityStep({
             injuries sustained in the normal course of training, competition, or stable work. Centre staff will
             still administer reasonable first aid and authorise emergency medical care if needed.
           </p>
-          <label className="mt-3 flex items-start gap-2 text-sm font-medium text-amber-900">
+          <label className="mt-3 flex items-start gap-2 text-sm font-medium text-warning-foreground">
             <input type="checkbox" className="mt-1" aria-invalid={!!nocError} aria-describedby={nocError ? "injuryNocAgreed-err" : undefined} {...methods.register("injuryNocAgreed")} />
             <span>I agree to the NOC for injuries (digital consent).</span>
           </label>
@@ -631,10 +631,10 @@ function SubmittedStep({
   const feesOn = result.feesOn !== false;
   return (
     <div className="space-y-4 text-center">
-      <div className="rounded-md border-2 border-emerald-300 bg-emerald-50 p-6">
+      <div className="rounded-md border-2 border-success/30 bg-success-soft p-6">
         <div className="text-3xl">✓</div>
-        <h2 className="mt-2 text-lg font-bold text-emerald-900">Application Received</h2>
-        <p className="mt-2 text-sm text-emerald-900">
+        <h2 className="mt-2 text-lg font-bold text-success-foreground">Application Received</h2>
+        <p className="mt-2 text-sm text-success-foreground">
           Thank you. Your registration with <b>{centreName}</b> is now with the
           centre team for review.
         </p>
@@ -840,7 +840,7 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
             user so they don't wonder why fields are pre-filled. Hide once
             they submit (result is set) or discard. */}
         {restored && !result && (
-          <div className="flex items-start justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          <div className="flex items-start justify-between gap-3 rounded-md border border-warning/30 bg-warning-soft px-3 py-2 text-xs text-warning-foreground">
             <div>
               We restored your draft from this session — your previous progress is preserved.
               Wrong rider?{" "}
@@ -857,7 +857,7 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
               type="button"
               onClick={() => setRestored(false)}
               aria-label="Dismiss"
-              className="text-amber-700 hover:text-amber-900"
+              className="text-warning-foreground hover:text-warning-foreground"
             >
               ✕
             </button>

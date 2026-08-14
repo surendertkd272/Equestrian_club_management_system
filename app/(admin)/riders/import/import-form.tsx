@@ -159,12 +159,12 @@ export function ImportForm({
           )}
           {preview.errors.length > 0 && (
             <details>
-              <summary className="cursor-pointer text-xs font-medium text-rose-700">
+              <summary className="cursor-pointer text-xs font-medium text-danger-foreground">
                 Errors ({preview.errors.length})
               </summary>
               <ul className="mt-1 space-y-0.5 text-xs">
                 {preview.errors.slice(0, 50).map((e, i) => (
-                  <li key={i} className="font-mono text-rose-700">
+                  <li key={i} className="font-mono text-danger-foreground">
                     Line {e.line}: {e.reason}
                   </li>
                 ))}
@@ -178,14 +178,14 @@ export function ImportForm({
       )}
 
       {result && (
-        <div className="rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900">
+        <div className="rounded-md border border-success/30 bg-success-soft p-3 text-sm text-success-foreground">
           <div className="font-semibold">
             Imported {result.created} rider{result.created === 1 ? "" : "s"}.
             {result.examsScheduled > 0 && ` Scheduled ${result.examsScheduled} exam(s).`}
           </div>
           {result.errors.length > 0 && (
             <details className="mt-2">
-              <summary className="cursor-pointer text-xs text-amber-700">
+              <summary className="cursor-pointer text-xs text-warning-foreground">
                 Skipped {result.errors.length} row(s)
               </summary>
               <ul className="mt-1 space-y-0.5 text-xs">

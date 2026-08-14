@@ -332,7 +332,7 @@ export default async function ReportCard({
 
 function Tile({ label, value, sub, warn }: { label: string; value: string; sub?: string; warn?: boolean }) {
   return (
-    <div className={`rounded-md border p-2 ${warn ? "border-amber-400 bg-amber-50" : ""}`}>
+    <div className={`rounded-md border p-2 ${warn ? "border-amber-400 bg-warning-soft" : ""}`}>
       <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="mt-0.5 text-lg font-extrabold">{value}</div>
       {sub && <div className="text-[10px] text-muted-foreground">{sub}</div>}
@@ -353,7 +353,7 @@ function KV({ label, value, good, bad }: { label: string; value: number; good?: 
   return (
     <div
       className={`rounded-md border p-2 ${
-        good ? "border-emerald-300 bg-emerald-50" : bad ? "border-red-300 bg-red-50" : "border-muted bg-muted/40"
+        good ? "border-success/30 bg-success-soft" : bad ? "border-danger/30 bg-danger-soft" : "border-muted bg-muted/40"
       }`}
     >
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>

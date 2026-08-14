@@ -33,13 +33,13 @@ export function ForgotForm() {
 
   if (sent) {
     return (
-      <div className="rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900">
+      <div className="rounded-md border border-success/30 bg-success-soft p-3 text-sm text-success-foreground">
         <div className="font-semibold">Check your email.</div>
-        <p className="mt-1 text-xs text-emerald-800">
+        <p className="mt-1 text-xs text-success-foreground">
           If <code className="font-mono">{email}</code> is on file, a reset link is on its
           way. It expires in 30 minutes.
         </p>
-        <p className="mt-2 text-xs text-emerald-800">
+        <p className="mt-2 text-xs text-success-foreground">
           Didn't get anything? Check spam, or ask your club admin to reset for you.
         </p>
       </div>

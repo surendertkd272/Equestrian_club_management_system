@@ -63,7 +63,7 @@ export function TaskCard({
   const borderCls = task.escalated
     ? "border-destructive bg-destructive/5"
     : task.overdue
-    ? "border-amber-500 bg-amber-50"
+    ? "border-amber-500 bg-warning-soft"
     : "border-border bg-card";
 
   return (

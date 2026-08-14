@@ -66,7 +66,7 @@ export default async function CertificateView({ params }: { params: { id: string
         </div>
       </div>
       {canSendResult && cert.resultEmailSentAt && (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[11px] text-emerald-900 print:hidden">
+        <div className="rounded-md border border-success/30 bg-success-soft px-3 py-1.5 text-[11px] text-success-foreground print:hidden">
           ✓ Result emailed to parent on{" "}
           <span className="font-mono">
             {cert.resultEmailSentAt.toLocaleString("en-IN", { timeZone: PLATFORM_TZ })}
@@ -81,7 +81,7 @@ export default async function CertificateView({ params }: { params: { id: string
 
           <div className="relative flex h-full flex-col items-center justify-between text-center">
             <div>
-              <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-amber-700">Equiwings · {cert.centre.name}</div>
+              <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-warning-foreground">Equiwings · {cert.centre.name}</div>
               <h1 className="mt-2 text-4xl font-extrabold tracking-tight text-primary">Certificate of {cert.type === "promotion" ? "Promotion" : cert.type === "winner" ? "Achievement" : "Participation"}</h1>
               <p className="mt-2 text-sm italic text-muted-foreground">This is to certify that</p>
             </div>

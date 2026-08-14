@@ -136,7 +136,7 @@ export function InventoryRow({
         // real count of 143 rendered as "14" — the value was stored correctly
         // the whole time, it was only ever clipped. Wider field, no spinner.
         className={`no-spinner h-7 w-20 text-center transition-shadow ${
-          savedField === field ? "ring-2 ring-emerald-500" : ""
+          savedField === field ? "ring-2 ring-success" : ""
         }`}
         disabled={busy}
         // Re-mount on server-side change so the visible value matches. hasRecord
@@ -149,7 +149,7 @@ export function InventoryRow({
   );
 
   return (
-    <tr className={`border-t ${isLow ? "bg-rose-50/40" : ""}`}>
+    <tr className={`border-t ${isLow ? "bg-danger-soft" : ""}`}>
       <td className="py-2">
         {/* Screen-reader confirmation for the save, which is otherwise purely
             visual (a ring flash on the field). Lives inside the name cell so
@@ -177,7 +177,7 @@ export function InventoryRow({
       <td className="py-2">{qtyInput("qtyInUse", qtyInUse)}</td>
       <td className="py-2">{qtyInput("qtyForRepair", qtyForRepair)}</td>
       <td className="py-2">{qtyInput("qtyDamaged", qtyDamaged)}</td>
-      <td className="py-2 text-center font-mono font-semibold">
+      <td className="py-2 text-right font-mono font-semibold tabular-nums">
         {hasRecord ? total : <span className="text-muted-foreground">—</span>}
       </td>
       <td className="py-2">{qtyInput("newRequired", newRequired)}</td>

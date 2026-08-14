@@ -228,11 +228,11 @@ export function UserActions({
 
   if (tempPassword) {
     return (
-      <div className="space-y-2 rounded-md border border-amber-400 bg-amber-50 p-2 text-left">
-        <div className="text-[10px] font-semibold uppercase text-amber-900">
+      <div className="space-y-2 rounded-md border border-amber-400 bg-warning-soft p-2 text-left">
+        <div className="text-[10px] font-semibold uppercase text-warning-foreground">
           Share this with {user.name}:
         </div>
-        <div className="font-mono text-xs font-bold text-amber-900 break-all">{tempPassword}</div>
+        <div className="font-mono text-xs font-bold text-warning-foreground break-all">{tempPassword}</div>
         <Button
           size="sm"
           variant="outline"
@@ -299,7 +299,7 @@ export function UserActions({
             variant="outline"
             disabled={busy}
             onClick={deleteUser}
-            className="border-rose-400 text-rose-700 hover:bg-rose-50"
+            className="border-rose-400 text-danger-foreground hover:bg-danger-soft"
           >
             Delete
           </Button>
@@ -498,31 +498,31 @@ export function NewUserCard({
           <CardTitle className="text-base">Share These Credentials</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border border-amber-400 bg-amber-50 p-3 text-sm">
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-900">
+          <div className="rounded-md border border-amber-400 bg-warning-soft p-3 text-sm">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-warning-foreground">
               Send to {created.name}
             </div>
-            <div className="space-y-1 font-mono text-xs text-amber-900">
+            <div className="space-y-1 font-mono text-xs text-warning-foreground">
               <div>
-                <span className="text-amber-700">Email:</span>{" "}
-                <code className="rounded bg-amber-100 px-1.5 py-0.5">{created.email}</code>
+                <span className="text-warning-foreground">Email:</span>{" "}
+                <code className="rounded bg-warning-soft px-1.5 py-0.5">{created.email}</code>
               </div>
               <div>
-                <span className="text-amber-700">Temp password:</span>{" "}
-                <code className="rounded bg-amber-100 px-1.5 py-0.5 font-bold">{created.tempPassword}</code>
+                <span className="text-warning-foreground">Temp password:</span>{" "}
+                <code className="rounded bg-warning-soft px-1.5 py-0.5 font-bold">{created.tempPassword}</code>
                 <button
                   type="button"
                   onClick={async () => {
                     await navigator.clipboard.writeText(created.tempPassword);
                     toast.success("Copied");
                   }}
-                  className="ml-2 rounded border border-amber-400 px-2 py-0.5 text-[10px] text-amber-900 hover:bg-amber-100"
+                  className="ml-2 rounded border border-amber-400 px-2 py-0.5 text-[10px] text-warning-foreground hover:bg-warning-soft"
                 >
                   Copy
                 </button>
               </div>
             </div>
-            <p className="mt-2 text-xs text-amber-800">
+            <p className="mt-2 text-xs text-warning-foreground">
               Shown once. The user signs in at <code>/login</code> and should rotate it after
               first login.
             </p>

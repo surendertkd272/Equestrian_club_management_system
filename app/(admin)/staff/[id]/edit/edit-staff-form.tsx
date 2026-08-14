@@ -161,12 +161,12 @@ export function EditStaffForm({
         <div className="space-y-3 rounded-md border border-dashed p-4">
           <div className="text-sm font-semibold">Password</div>
           {tempPassword ? (
-            <div className="space-y-2 rounded-md border border-amber-400 bg-amber-50 p-3">
-              <div className="text-xs font-semibold uppercase text-amber-900">
+            <div className="space-y-2 rounded-md border border-amber-400 bg-warning-soft p-3">
+              <div className="text-xs font-semibold uppercase text-warning-foreground">
                 Share this temporary password with {state.name || "the staff member"}:
               </div>
-              <div className="break-all font-mono text-sm font-bold text-amber-900">{tempPassword}</div>
-              <p className="text-xs text-amber-800">
+              <div className="break-all font-mono text-sm font-bold text-warning-foreground">{tempPassword}</div>
+              <p className="text-xs text-warning-foreground">
                 Shown once — copy it now. They&apos;ll be asked to set their own password at next sign-in.
               </p>
               <Button type="button" size="sm" variant="outline" onClick={() => setTempPassword(null)}>

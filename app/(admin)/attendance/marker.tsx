@@ -122,16 +122,16 @@ export function AttendanceMarker({
         </div>
         {canEdit && (
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => setAll("present")} className="border-emerald-400 text-emerald-700 hover:bg-emerald-50">
+            <Button variant="outline" size="sm" onClick={() => setAll("present")} className="border-emerald-400 text-success-foreground hover:bg-success-soft">
               All P
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setAll("absent")} className="border-rose-400 text-rose-700 hover:bg-rose-50">
+            <Button variant="outline" size="sm" onClick={() => setAll("absent")} className="border-rose-400 text-danger-foreground hover:bg-danger-soft">
               All A
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setAll("late")} className="border-amber-400 text-amber-700 hover:bg-amber-50">
+            <Button variant="outline" size="sm" onClick={() => setAll("late")} className="border-amber-400 text-warning-foreground hover:bg-warning-soft">
               All L
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setAll("excused")} className="border-blue-400 text-blue-700 hover:bg-blue-50">
+            <Button variant="outline" size="sm" onClick={() => setAll("excused")} className="border-blue-400 text-info-foreground hover:bg-info-soft">
               All E
             </Button>
             <Button variant="outline" size="sm" onClick={() => setState({})}>

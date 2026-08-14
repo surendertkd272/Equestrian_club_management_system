@@ -207,7 +207,7 @@ export default function PrivacyPage() {
           If you have a concern about how your data is handled, contact our
           Grievance Officer first:
         </p>
-        <p className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <p className="rounded-lg border border-border bg-muted p-4">
           <strong>Grievance Officer</strong><br />
           [Name of Grievance Officer]<br />
           <a href="mailto:info@equiwings.com" className="text-primary underline">info@equiwings.com</a><br />
@@ -261,7 +261,7 @@ export default function PrivacyPage() {
         <p>
           For any privacy question, or to reach our Data Protection Officer:
         </p>
-        <p className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <p className="rounded-lg border border-border bg-muted p-4">
           <strong>Data Protection Officer</strong><br />
           [Name of Data Protection Officer]<br />
           <a href="mailto:info@equiwings.com" className="text-primary underline">info@equiwings.com</a><br />

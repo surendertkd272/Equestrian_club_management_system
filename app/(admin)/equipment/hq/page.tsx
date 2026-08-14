@@ -110,7 +110,7 @@ export default async function HqEquipmentMatrix() {
                               <td
                                 key={c.id}
                                 className={`px-2 py-1.5 text-center font-mono ${
-                                  low ? "bg-rose-100 text-rose-900" : watch ? "bg-amber-50" : ""
+                                  low ? "bg-danger-soft text-danger-foreground" : watch ? "bg-warning-soft" : ""
                                 }`}
                                 title={`${qty} ${item.unit}${qty === 1 ? "" : "s"} · reorder at ${threshold}`}
                               >

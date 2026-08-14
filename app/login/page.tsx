@@ -44,7 +44,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { next
               suspended. Without a word of explanation that bounce just looks
               like the app logged you out at random. */}
           {searchParams.ended === "1" && (
-            <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <div className="mb-4 rounded-md border border-warning/30 bg-warning-soft px-3 py-2 text-xs text-warning-foreground">
               Your session has ended. This happens after signing out everywhere, a password change,
               or if your account access changed. Please sign in again — if it keeps happening,
               contact your centre.

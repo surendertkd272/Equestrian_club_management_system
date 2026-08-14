@@ -48,7 +48,7 @@ export default async function MyDocumentsPage() {
         <>
           <div
             className={`rounded-md border p-3 text-sm ${
-              overdue ? "border-rose-300 bg-rose-50 text-rose-800" : "border-amber-300 bg-amber-50 text-amber-800"
+              overdue ? "border-danger/30 bg-danger-soft text-danger-foreground" : "border-warning/30 bg-warning-soft text-warning-foreground"
             }`}
           >
             {overdue ? (

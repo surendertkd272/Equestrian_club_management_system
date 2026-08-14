@@ -78,7 +78,7 @@ export default async function VendorsPage({ searchParams }: { searchParams: { ca
           <CardContent>
             <ul className="space-y-2">
               {pending.map((v) => (
-                <li key={v.id} className="rounded-md border bg-amber-50/40 p-3 text-sm">
+                <li key={v.id} className="rounded-md border bg-warning-soft p-3 text-sm">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <div>
                       <span className="font-semibold">{v.name}</span>

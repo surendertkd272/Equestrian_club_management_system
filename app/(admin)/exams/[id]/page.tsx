@@ -143,8 +143,8 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
         </CardHeader>
         {otherExams.length > 0 && (
           <CardContent>
-            <div className="rounded-md border bg-blue-50 p-3 text-sm">
-              <div className="mb-2 text-xs font-bold uppercase text-blue-700">
+            <div className="rounded-md border bg-info-soft p-3 text-sm">
+              <div className="mb-2 text-xs font-bold uppercase text-info-foreground">
                 Other exams for this rider with you
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -164,7 +164,7 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
       </Card>
 
       {exam.previousExam && (
-        <Card className="border-amber-300 bg-amber-50">
+        <Card className="border-warning/30 bg-warning-soft">
           <CardContent className="py-3 text-sm">
             <span className="font-semibold">Attempt {exam.attemptNumber}.</span>{" "}
             Previous attempt on {formatDate(exam.previousExam.date)} —{" "}

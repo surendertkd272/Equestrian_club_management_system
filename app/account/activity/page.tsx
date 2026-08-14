@@ -40,7 +40,7 @@ export default async function ActivityPage() {
         <h1 className="text-2xl font-bold">Account Activity</h1>
       </div>
 
-      <Card className="border-amber-300 bg-amber-50">
+      <Card className="border-warning/30 bg-warning-soft">
         <CardHeader>
           <CardTitle className="text-base">Sign Out Everywhere</CardTitle>
           <CardDescription>

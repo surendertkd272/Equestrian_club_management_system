@@ -352,11 +352,11 @@ export default async function DashboardPage() {
           error state for this — the register just comes up empty for the coach,
           who has no way to know why or who to ask. */}
       {(ridersWithoutBatch > 0 || batchesWithoutCoach > 0) && (
-        <Card className="border-amber-300 bg-amber-50/60">
+        <Card className="border-warning/30 bg-warning-soft">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base text-amber-900">Attendance isn&apos;t usable yet</CardTitle>
+            <CardTitle className="text-base text-warning-foreground">Attendance isn&apos;t usable yet</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-amber-900">
+          <CardContent className="space-y-2 text-sm text-warning-foreground">
             {ridersWithoutBatch > 0 && (
               <p>
                 <strong>{ridersWithoutBatch}</strong> enrolled rider

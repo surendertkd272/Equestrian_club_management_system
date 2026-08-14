@@ -155,7 +155,7 @@ export function RidersTable({
               </Link>
             ),
           },
-          { key: "mobile", header: "Mobile", cell: (r) => r.mobile },
+          { key: "mobile", header: "Mobile", numeric: true, cell: (r) => r.mobile },
           { key: "joined", header: "Joined", cell: (r) => formatDate(r.joiningDate as Date) },
           {
             key: "batch",
