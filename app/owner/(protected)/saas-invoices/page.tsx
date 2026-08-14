@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatEnum } from "@/lib/labels";
+import { SettleButton } from "./settle-button";
 import { PLATFORM_TZ } from "@/lib/tz";
 export const dynamic = "force-dynamic";
 
@@ -103,6 +104,12 @@ export default async function SaasInvoicesPage({ searchParams }: { searchParams:
                         <Badge variant={STATUS_VARIANT[i.status] ?? "outline"} className="text-xs">{formatEnum(i.status)}</Badge>
                       </td>
                       <td className="py-2 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                        {/* Only a due invoice can be settled; paid and void are
+                            terminal, and correcting one is a deliberate act. */}
+                        {i.status === "due" && (
+                          <SettleButton invoiceId={i.id} number={i.number} total={i.total} />
+                        )}
                         <Link
                           href={`/owner/saas-invoices/${i.id}/print`}
                           target="_blank"
@@ -111,6 +118,7 @@ export default async function SaasInvoicesPage({ searchParams }: { searchParams:
                         >
                           Print/PDF
                         </Link>
+                        </div>
                       </td>
                     </tr>
                   ))}

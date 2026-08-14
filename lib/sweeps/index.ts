@@ -32,6 +32,7 @@ import { sweepTaskEscalation } from "./task-escalation";
 import { sweepRecurringTasks } from "./recurring-tasks";
 import { sweepRateLimitPurge } from "./rate-limit-purge";
 import { sweepSessionRevocationPurge } from "./session-revocation-purge";
+import { sweepSaasBillingRun } from "./saas-billing-run";
 
 export {
   sweepFeeDue,
@@ -57,6 +58,7 @@ export {
   sweepRecurringTasks,
   sweepRateLimitPurge,
   sweepSessionRevocationPurge,
+  sweepSaasBillingRun,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -102,4 +104,5 @@ export const SWEEP_JOBS: Record<string, (opts?: SweepOpts) => Promise<SweepResul
   recurring_tasks: () => sweepRecurringTasks(),
   rate_limit_purge: () => sweepRateLimitPurge(),
   session_revocation_purge: () => sweepSessionRevocationPurge(),
+  saas_billing_run: (opts?: SweepOpts) => sweepSaasBillingRun(opts),
 };

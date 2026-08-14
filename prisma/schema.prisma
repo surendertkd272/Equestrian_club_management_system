@@ -529,6 +529,11 @@ model SaasInvoice {
 
   org Organisation @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
+  // One invoice per org per billing period, enforced by the database rather
+  // than by the caller remembering. The monthly run is therefore idempotent by
+  // construction: a retry, an overlapping manual issue, or two cron instances
+  // firing at once all collide here instead of double-billing a customer.
+  @@unique([orgId, periodStart])
   @@index([orgId, issuedAt])
   @@index([status, issuedAt])
 }
