@@ -47,7 +47,7 @@ export default async function PricingPage() {
           <Link href="/" className="text-lg font-bold">Equiwings</Link>
           <div className="flex items-center gap-2">
             <Button asChild size="sm" variant="outline"><Link href="/login">Sign in</Link></Button>
-            <Button asChild size="sm"><Link href="mailto:info@equiwings.com?subject=Trial">Start trial</Link></Button>
+            <Button asChild size="sm"><Link href="/signup">Start trial</Link></Button>
           </div>
         </div>
       </header>

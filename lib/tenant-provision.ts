@@ -32,9 +32,26 @@ export type ProvisionTenantResult =
     }
   | { ok: false; error: ProvisionTenantError };
 
+// Options that differ between the two ways a tenant is born:
+//   • owner-operated  — the owner types the details, the admin gets a temp
+//     password to rotate on first sign-in.
+//   • self-signup     — the person IS the admin and is right there, so they
+//     choose their own password and there is nothing to rotate. They start on
+//     a trial instead of straight to active.
+// Both paths share this one transaction so they cannot drift.
+export type ProvisionOptions = {
+  /** Self-signup: the admin chose this. Omit to generate a temp password. */
+  password?: string;
+  /** Organisation.status at creation. Defaults to "active". */
+  status?: "active" | "trial";
+  /** Sets trialEndsAt. Only meaningful with status "trial". */
+  trialDays?: number;
+};
+
 export async function provisionTenant(
   input: CreateTenantInput,
   actorId?: string | null,
+  opts: ProvisionOptions = {},
 ): Promise<ProvisionTenantResult> {
   // Uniqueness pre-flight — three independent lookups in parallel.
   const [orgDupe, centreDupe, emailDupe] = await Promise.all([
@@ -46,8 +63,12 @@ export async function provisionTenant(
   if (centreDupe) return { ok: false, error: "CENTRE_SLUG_TAKEN" };
   if (emailDupe) return { ok: false, error: "EMAIL_TAKEN" };
 
-  const tempPassword = crypto.randomBytes(12).toString("base64url");
-  const passwordHash = await hashPassword(tempPassword);
+  // When the admin supplied their own password there is nothing to hand over
+  // and nothing to force-rotate; tempPassword is still returned (empty) so the
+  // result shape stays one type for both callers.
+  const selfChosen = Boolean(opts.password);
+  const tempPassword = selfChosen ? "" : crypto.randomBytes(12).toString("base64url");
+  const passwordHash = await hashPassword(opts.password ?? tempPassword);
 
   const planKey = input.plan as PlanKey;
   const bundle = new Set<FeatureKey>(planFeatures(planKey));
@@ -60,7 +81,9 @@ export async function provisionTenant(
         slug: input.slug,
         name: input.name,
         plan: input.plan,
-        status: "active",
+        status: opts.status ?? "active",
+        trialEndsAt:
+          opts.trialDays != null ? new Date(Date.now() + opts.trialDays * 86_400_000) : null,
         contactName: input.contactName?.trim() || null,
         billingEmail: input.billingEmail?.trim() || null,
         phone: input.phone?.trim() || null,
@@ -94,7 +117,7 @@ export async function provisionTenant(
         centreId: null, // HQ admin sees all centres under their org
         orgId: org.id, // Explicit org binding for HQ users.
         passwordHash,
-        mustChangePassword: true,
+        mustChangePassword: !selfChosen,
       },
     });
 

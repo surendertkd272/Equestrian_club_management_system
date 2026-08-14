@@ -85,6 +85,7 @@ async function slideOwnerRenewal(res: NextResponse, req: NextRequest) {
 
 const PUBLIC_PREFIXES = [
   "/login",
+  "/signup",                       // public self-serve club registration
   "/onboarding",
   "/verify-email",
   "/verify",
