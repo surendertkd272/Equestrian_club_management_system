@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
-import { getOrgIdForSession } from "@/lib/features-gate";
+import { getOrgIdForSession, getFeaturesForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -15,8 +15,12 @@ const APPROVER_ROLES = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "SCHOOL_ADMINI
 
 // Approval queue for public self-enrolments. Riders who signed up via the
 // onboarding link sit in status="pending_approval" until a School Admin /
-// Centre Manager approves (→ pending_payment + registration invoice) or
-// rejects them.
+// Centre Manager approves or rejects them. What approval DOES depends on the
+// club's fee-collection switch: with fees on, the rider moves to
+// pending_payment and a registration invoice is raised; with fees off there is
+// no invoice and they go straight to active. The API already branches on this
+// (app/api/enrolments/[id]/route.ts) — the page now says so too, rather than
+// describing a payment step that will never happen.
 export default async function EnrolmentsPage() {
   const session = await requireSession();
   if (!APPROVER_ROLES.includes(session.role)) redirect("/dashboard");
@@ -25,6 +29,8 @@ export default async function EnrolmentsPage() {
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/no-organisation");
   const where = tenantWhere(centreId, orgId);
+  // Drives the approval copy below — see the note at the top of this file.
+  const feesOn = (await getFeaturesForSession(session)).has("fee-collection");
 
   const [pending, recent] = await Promise.all([
     prisma.rider.findMany({
@@ -53,7 +59,12 @@ export default async function EnrolmentsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Pending Approval</CardTitle>
-          <CardDescription>{pending.length} waiting</CardDescription>
+          <CardDescription>
+            {pending.length} waiting ·{" "}
+            {feesOn
+              ? "approving raises a registration invoice and sends a payment link"
+              : "approving activates the rider immediately — this club doesn't bill riders"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ResponsiveTable

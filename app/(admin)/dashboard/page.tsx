@@ -422,6 +422,10 @@ export default async function DashboardPage() {
 
       {/* Charted headline row — the metrics that show momentum. */}
       <div className="grid gap-4 lg:grid-cols-3">
+        {/* Revenue here is rider fees. With fee-collection off it is always
+            ₹0, which looks like a reporting failure rather than a club that
+            doesn't bill. */}
+        {features.has("fee-collection") && (
         <ChartCard
           label="Revenue (MTD)"
           value={`₹${Math.round(revThis).toLocaleString("en-IN")}`}
@@ -430,6 +434,7 @@ export default async function DashboardPage() {
           icon={<IndianRupee className="h-5 w-5" />}
           chart={<MiniBars data={revenueSeries} />}
         />
+        )}
         <ChartCard
           label="New Riders (This Month)"
           value={newRidersThisMonth}

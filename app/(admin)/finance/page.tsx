@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
-import { getOrgIdForSession } from "@/lib/features-gate";
+import { getOrgIdForSession, getFeaturesForSession } from "@/lib/features-gate";
 import { startOfTodayForCentre } from "@/lib/centre-tz";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,10 +45,15 @@ export default async function FinancePage() {
   // only. The sidebar already hides this link from other roles, but a direct
   // URL hit would otherwise render it.
   if (!can(session.role, "finance.read")) redirect("/dashboard");
-  // Note: fee-collection is the parent-facing-payment switch. Staff
-  // bookkeeping (this page) stays on regardless — the page draws from
-  // existing invoices and lets staff record cash/cheque payments even
-  // when the parent-side payment flow is disabled.
+  // fee-collection decides whether this club bills riders at all.
+  //
+  // It used to gate only parent-FACING surfaces, on the reasoning that staff
+  // might still log offline payments. But a club that has the switch off never
+  // raises a rider invoice, so every receivable figure here is structurally
+  // zero: "Outstanding ₹0 · 0 invoices · 0 overdue" is not neutral, it reads
+  // as a system that is broken or unconfigured. The expense/P&L half is
+  // governed by its own `expenses` flag and stays regardless.
+  const feesOn = (await getFeaturesForSession(session)).has("fee-collection");
   const centreId = scopeCentre(session);
   // HQ users (SUPER_ADMIN/ADMIN) have centreId=null → "all centres". Bind to
   // their org so the "all" filter stays org-scoped instead of leaking every
@@ -189,7 +194,12 @@ export default async function FinancePage() {
         <StatTile label="Income (MTD)" value={inr(incomeMTD)} sub={`YTD ${inr(incomeYTD)}`} tone="green" icon={<TrendingUp className="h-5 w-5" />} />
         <StatTile label="Expenses (MTD)" value={inr(expenseMTD)} sub={`YTD ${inr(expenseYTD)}`} tone="rose" icon={<TrendingDown className="h-5 w-5" />} />
         <StatTile label="Net P&L (MTD)" value={inr(netMTD)} sub={`YTD ${inr(netYTD)}`} tone={netMTD >= 0 ? "green" : "rose"} icon={<IndianRupee className="h-5 w-5" />} />
-        <StatTile label="Outstanding" value={inr(outstandingAmt)} sub={`${outstanding._count} invoices · ${overdueCount} overdue`} tone="amber" icon={<Receipt className="h-5 w-5" />} />
+        {/* Receivables only exist if this club bills riders. With fees off the
+            figure is structurally zero, which reads as broken rather than as
+            "not applicable". */}
+        {feesOn && (
+          <StatTile label="Outstanding" value={inr(outstandingAmt)} sub={`${outstanding._count} invoices · ${overdueCount} overdue`} tone="amber" icon={<Receipt className="h-5 w-5" />} />
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -242,10 +252,13 @@ export default async function FinancePage() {
         </Card>
       </div>
 
-      {can(session.role, "finance.write") && bulkRows.length > 0 && (
+      {feesOn && can(session.role, "finance.write") && bulkRows.length > 0 && (
         <BulkMarkPaid dueInvoices={bulkRows} />
       )}
 
+      {/* The rider-invoice ledger itself. A club with fees off has none, and
+          an empty ledger invites staff to wonder what they've configured wrong. */}
+      {feesOn && (
       <Card>
         <CardHeader>
           <CardTitle>Recent Invoices</CardTitle>
@@ -305,6 +318,7 @@ export default async function FinancePage() {
           </div>
         </CardContent>
       </Card>
+      )}
 
       <Card>
         <CardHeader>

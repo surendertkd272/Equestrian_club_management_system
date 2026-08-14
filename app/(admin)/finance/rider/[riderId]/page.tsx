@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { creditPosition } from "@/lib/credit-note";
 import { requireSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
-import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
+import { getOrgIdForSession, getOrgIdForCentre, getFeaturesForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,9 @@ export default async function RiderStatement({ params }: { params: { riderId: st
     return notFound();
   }
   const centreId = scopeCentre(session);
+  // A per-rider fee ledger for a club that doesn't bill riders is an empty
+  // page implying missing data. Send them to the finance overview instead.
+  if (!(await getFeaturesForSession(session)).has("fee-collection")) redirect("/finance");
   const orgId = await getOrgIdForSession(session);
   if (!orgId) notFound();
 
