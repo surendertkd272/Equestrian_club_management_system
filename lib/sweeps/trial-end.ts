@@ -1,5 +1,6 @@
 import { prisma } from "../prisma";
 import { sendEmail, renderEmail } from "../email";
+import { notifyOwner, esc } from "../notify-owner";
 import { SweepResult } from "./shared";
 
 // Sweep: trial-end → past_due → suspended.
@@ -58,6 +59,19 @@ export async function sweepTrialEnd(): Promise<SweepResult> {
     } else {
       skipped++;
     }
+    // Billing is manual for now, so this email IS the follow-up process: a
+    // trial that lapses without one is a customer nobody chases.
+    await notifyOwner({
+      subject: `Trial ended — ${o.name}`,
+      heading: "A trial just ended",
+      body: `<p><strong>${esc(o.name)}</strong> reached the end of its trial on
+${o.trialEndsAt?.toISOString().slice(0, 10) ?? "today"} and has moved to <strong>past due</strong>.</p>
+<p>Billing contact: ${o.billingEmail ? esc(o.billingEmail) : "<em>none on file</em>"}</p>
+<p>They have been told they have 7 days before the account goes read-only. Nothing
+will be charged automatically — decide whether to invoice, extend the trial, or
+let it lapse.</p>`,
+      ref: { type: "owner.trial_ended", rowId: o.id },
+    });
     transitions.push(`trial→past_due: ${o.name}`);
    } catch (err) {
      console.error("[trial_end] trial→past_due failed", { orgId: o.id, err });
@@ -103,6 +117,15 @@ export async function sweepTrialEnd(): Promise<SweepResult> {
     } else {
       skipped++;
     }
+    await notifyOwner({
+      subject: `Tenant suspended — ${o.name}`,
+      heading: "A tenant has gone read-only",
+      body: `<p><strong>${esc(o.name)}</strong> spent 7 days past due with no payment recorded and is
+now <strong>suspended</strong> — staff can view but not edit. Their data is intact.</p>
+<p>Billing contact: ${o.billingEmail ? esc(o.billingEmail) : "<em>none on file</em>"}</p>
+<p>Reactivate from the owner portal once payment is settled.</p>`,
+      ref: { type: "owner.tenant_suspended", rowId: o.id },
+    });
     transitions.push(`past_due→suspended: ${o.name}`);
    } catch (err) {
      console.error("[trial_end] past_due→suspended failed", { orgId: o.id, err });

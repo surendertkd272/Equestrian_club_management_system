@@ -9,6 +9,7 @@ import { provisionTenant } from "@/lib/tenant-provision";
 import { uniqueSlug } from "@/lib/slugify";
 import { bindRlsBypass } from "@/lib/tenant-context";
 import { audit } from "@/lib/audit";
+import { notifyOwner, esc } from "@/lib/notify-owner";
 
 // POST /api/auth/signup — public self-serve club registration.
 //
@@ -145,6 +146,26 @@ export async function POST(req: NextRequest) {
     after: { slug: orgSlug, plan: "starter", trialDays: TRIAL_DAYS },
     ip,
     userAgent: req.headers.get("user-agent"),
+  });
+
+  // Tell the owner a club arrived. With self-serve live this is the only
+  // signal a lead exists at all -- and it is also the abuse tripwire: a burst
+  // of these is what a spam run looks like. Deliberately after the audit write
+  // and never awaited into the failure path, so a mail problem cannot fail a
+  // signup that already succeeded.
+  await notifyOwner({
+    subject: `New club signed up — ${d.clubName}`,
+    heading: "A club just signed up",
+    body: `<p><strong>${esc(d.clubName)}</strong> registered and started a ${TRIAL_DAYS}-day trial.</p>
+<ul>
+  <li>Administrator: ${esc(d.adminName)} &lt;${esc(d.email)}&gt;</li>
+  <li>Web address: <code>${esc(orgSlug)}</code></li>
+  <li>Plan: starter (trial)</li>
+</ul>
+<p>They have not confirmed their email address yet, so they cannot sign in until
+they enter the code. If that never happens, the account stays dormant and can be
+ignored.</p>`,
+    ref: { type: "owner.tenant_signup", rowId: result.orgId },
   });
 
   return NextResponse.json({ ok: true, pendingVerification: true });

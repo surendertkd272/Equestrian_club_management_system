@@ -130,3 +130,33 @@ describe("POST /api/auth/signup", () => {
     expect((await call({ ...GOOD, clubName: "" })).status).toBe(400);
   });
 });
+
+describe("owner notification", () => {
+  it("escapes user-supplied names before they reach the email body", async () => {
+    const { esc } = await import("@/lib/notify-owner");
+    // A club name is unauthenticated input; unescaped it would render as a
+    // live link in a message that looks system-generated.
+    expect(esc('<a href="evil">Click here</a>')).toBe(
+      "&lt;a href=&quot;evil&quot;&gt;Click here&lt;/a&gt;",
+    );
+    expect(esc("Ranjit & Sons")).toBe("Ranjit &amp; Sons");
+    expect(esc(null)).toBe("");
+  });
+
+  it("falls back to OPS_ALERT_EMAIL when no dedicated address is set", async () => {
+    const { ownerNotifyAddress } = await import("@/lib/notify-owner");
+    vi.stubEnv("OWNER_NOTIFY_EMAIL", "");
+    vi.stubEnv("OPS_ALERT_EMAIL", "ops@club.in");
+    expect(ownerNotifyAddress()).toBe("ops@club.in");
+    vi.stubEnv("OWNER_NOTIFY_EMAIL", "owner@club.in");
+    expect(ownerNotifyAddress()).toBe("owner@club.in");
+  });
+
+  it("a signup still succeeds when no notify address is configured", async () => {
+    vi.stubEnv("OWNER_NOTIFY_EMAIL", "");
+    vi.stubEnv("OPS_ALERT_EMAIL", "");
+    const r = await call({ ...GOOD, email: "nonotify@club.in" });
+    expect(r.status).toBe(200);
+    expect(await prisma.organisation.count({ where: { name: GOOD.clubName } })).toBe(1);
+  });
+});
