@@ -29,7 +29,14 @@ async function releaseSweepLock(): Promise<void> {
 // Auth: shared secret. Caller can pass it via:
 //   - Authorization: Bearer <CRON_SECRET>           (curl, GitHub Actions)
 //   - x-cron-secret: <CRON_SECRET>                  (custom schedulers)
-//   - ?secret=<CRON_SECRET>                         (Vercel Cron, which doesn't set headers reliably)
+//   - ?secret=<CRON_SECRET>                         (manual / custom schedulers)
+//
+// Vercel Cron itself uses the BEARER form: it sends
+// `Authorization: Bearer $CRON_SECRET` automatically whenever CRON_SECRET is
+// set on the project. vercel.json used to carry `?secret=$CRON_SECRET` in the
+// cron path, which never worked — Vercel does not interpolate env vars into a
+// cron path, so it requested the literal string "$CRON_SECRET" and got a 401
+// every night. The query form stays supported for manual runs.
 function isAuthorized(req: NextRequest): boolean {
   const expected = process.env.CRON_SECRET;
   if (!expected) return false; // never allow without a configured secret
@@ -45,10 +52,40 @@ function isAuthorized(req: NextRequest): boolean {
   }
 }
 
+// A rejected cron used to return 401 and write NOTHING, so a scheduler that was
+// being turned away every night at 02:00 left no trace anywhere — which is
+// exactly how the nightly batch stayed dead for two months without anyone
+// noticing. Now it leaves one, capped at a row an hour so an unauthenticated
+// endpoint can't be used to flood the audit log.
+async function recordRejectedCron(req: NextRequest): Promise<void> {
+  try {
+    const { checkRate, clientFingerprint } = await import("@/lib/rate-limit");
+    if (!(await checkRate("cron-reject-audit", 1, 60 * 60_000)).ok) return;
+    const { audit } = await import("@/lib/audit");
+    await audit({
+      action: "cron.sweep_rejected",
+      tableName: "cronLock",
+      rowId: SWEEP_LOCK_ID,
+      after: {
+        reason: process.env.CRON_SECRET ? "bad_or_missing_secret" : "CRON_SECRET_not_set",
+        // Which form the caller tried, so a misconfigured scheduler is
+        // identifiable without logging the secret itself.
+        sawAuthHeader: Boolean(req.headers.get("authorization")),
+        sawQuerySecret: req.nextUrl.searchParams.has("secret"),
+      },
+      ip: clientFingerprint(req),
+      userAgent: req.headers.get("user-agent"),
+    });
+  } catch {
+    // Never let bookkeeping turn a 401 into a 500.
+  }
+}
+
 // POST = run sweeps. Optional ?job=<name> picks a single sweep; default runs all.
 export async function POST(req: NextRequest) {
   bindRlsBypass(); // cron sweeps are cross-org by design
   if (!isAuthorized(req)) {
+    await recordRejectedCron(req);
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 

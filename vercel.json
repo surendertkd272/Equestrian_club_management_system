@@ -1,10 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "regions": ["bom1"],
+  "regions": [
+    "bom1"
+  ],
   "buildCommand": "prisma generate && sh -c 'if [ \"$VERCEL_ENV\" = production ]; then prisma migrate deploy; else echo \"skipping migrate deploy (VERCEL_ENV=$VERCEL_ENV)\"; fi' && next build",
   "crons": [
     {
-      "path": "/api/cron/sweep?secret=$CRON_SECRET",
+      "path": "/api/cron/sweep",
       "schedule": "0 2 * * *"
     }
   ],

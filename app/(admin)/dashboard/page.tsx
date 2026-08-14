@@ -96,6 +96,7 @@ export default async function DashboardPage() {
     todaysAttendance,
     ridersWithoutBatch,
     batchesWithoutCoach,
+    lastSweep,
     openTasks,
     overdueTasks,
     reqPendingMine,
@@ -151,6 +152,14 @@ export default async function DashboardPage() {
         where: { ...where, batchId: null, status: { in: [...ENROLLED_RIDER_STATUSES] } },
       }),
       prisma.batch.count({ where: { ...where, coachId: null } }),
+      // Nightly-batch heartbeat. This is deliberately on the ADMIN dashboard,
+      // not just the owner portal: the sweep was dead for two months and the
+      // only staleness indicator lived on a page no club ever opens.
+      prisma.auditLog.findFirst({
+        where: { action: "cron.sweep" },
+        orderBy: { at: "desc" },
+        select: { at: true },
+      }),
       prisma.task.count({ where: { ...where, status: { in: ["open", "in_progress"] } } }),
       prisma.task.count({
         where: { ...where, status: { in: ["open", "in_progress"] }, dueAt: { lt: new Date() } },
@@ -347,6 +356,34 @@ export default async function DashboardPage() {
       </div>
 
       <AnnouncementsBanner />
+
+      {/* Automated jobs stopped running. Reminders, dunning, expiry alerts and
+          the DPDPA erasure sweep all ride on this, and every one of them fails
+          silently — no email is a non-event nobody reports. */}
+      {(!lastSweep || Date.now() - lastSweep.at.getTime() > 25 * 3_600_000) && (
+        <Card className="border-danger/30 bg-danger-soft">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base text-danger-foreground">
+              Automated daily jobs aren&apos;t running
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm text-danger-foreground">
+            <p>
+              {lastSweep
+                ? `The nightly batch last ran on ${lastSweep.at.toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                    timeZone: PLATFORM_TZ,
+                  })}.`
+                : "The nightly batch has never completed a run."}{" "}
+              Fee reminders, overdue-invoice chasing, medicine and vaccination expiry
+              alerts, and scheduled account deletions are all paused. Please contact
+              support — nothing is lost, but none of it is being sent.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Setup gaps that silently disable a whole feature. Attendance has no
           error state for this — the register just comes up empty for the coach,
