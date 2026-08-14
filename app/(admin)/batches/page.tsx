@@ -13,6 +13,8 @@ import { NewBatchForm } from "./new-form";
 import { BatchDeleteButton } from "./delete-button";
 import { BatchEditButton } from "./edit-button";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
+import { ManageRiders } from "./manage-riders";
+import { ENROLLED_RIDER_STATUSES } from "@/lib/rider-status";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +53,18 @@ export default async function BatchesPage() {
   // The edit dialog needs the coaches of the batch's OWN centre, which for an
   // HQ admin viewing every centre at once is not the list above. Fetch across
   // the same scope and index by centre so each row offers only its own.
+  // Riders for the "Riders" picker, scoped to the centres whose batches are on
+  // screen. Enrolled only — a withdrawn rider has no business on a register.
+  const pickerRiders = await prisma.rider.findMany({
+    where: {
+      centreId: { in: [...new Set(batches.map((b) => b.centreId))] },
+      status: { in: [...ENROLLED_RIDER_STATUSES] },
+    },
+    select: { id: true, firstName: true, lastName: true, centreId: true, batchId: true,
+              batch: { select: { name: true } } },
+    orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+  });
+
   const scopedCoaches = await prisma.user.findMany({
     where: { ...where, role: "COACH", status: "active" },
     select: { id: true, name: true, centreId: true },
@@ -140,6 +154,18 @@ export default async function BatchesPage() {
                               }}
                               coaches={coachesByCentre.get(b.centreId) ?? []}
                               riderCount={b._count.riders}
+                            />
+                            <ManageRiders
+                              batchId={b.id}
+                              batchName={b.name}
+                              riders={pickerRiders
+                                .filter((r) => r.centreId === b.centreId)
+                                .map((r) => ({
+                                  id: r.id,
+                                  name: `${r.firstName} ${r.lastName}`,
+                                  batchId: r.batchId,
+                                  batchName: r.batch?.name ?? null,
+                                }))}
                             />
                             <BatchDeleteButton id={b.id} name={b.name} riderCount={b._count.riders} />
                           </>

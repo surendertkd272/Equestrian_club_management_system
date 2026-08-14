@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ENROLLED_RIDER_STATUSES } from "@/lib/rider-status";
 import { requireSession } from "@/lib/auth";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { getFeaturesForSession, getOrgIdForSession } from "@/lib/features-gate";
@@ -92,6 +94,8 @@ export default async function DashboardPage() {
     lowStock,
     expiringSoon,
     todaysAttendance,
+    ridersWithoutBatch,
+    batchesWithoutCoach,
     openTasks,
     overdueTasks,
     reqPendingMine,
@@ -139,6 +143,14 @@ export default async function DashboardPage() {
         where: { date: { gte: todayStart, lt: todayEnd }, batch: tenantWhere(centreId, orgId) },
         _count: true,
       }),
+      // Attendance rosters come from batch membership, and a coach only sees
+      // batches assigned to them. When either link is missing the register is
+      // simply empty — which is what happened here for three months, invisibly,
+      // because nothing ever told the people who could fix it.
+      prisma.rider.count({
+        where: { ...where, batchId: null, status: { in: [...ENROLLED_RIDER_STATUSES] } },
+      }),
+      prisma.batch.count({ where: { ...where, coachId: null } }),
       prisma.task.count({ where: { ...where, status: { in: ["open", "in_progress"] } } }),
       prisma.task.count({
         where: { ...where, status: { in: ["open", "in_progress"] }, dueAt: { lt: new Date() } },
@@ -335,6 +347,39 @@ export default async function DashboardPage() {
       </div>
 
       <AnnouncementsBanner />
+
+      {/* Setup gaps that silently disable a whole feature. Attendance has no
+          error state for this — the register just comes up empty for the coach,
+          who has no way to know why or who to ask. */}
+      {(ridersWithoutBatch > 0 || batchesWithoutCoach > 0) && (
+        <Card className="border-amber-300 bg-amber-50/60">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base text-amber-900">Attendance isn&apos;t usable yet</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-amber-900">
+            {ridersWithoutBatch > 0 && (
+              <p>
+                <strong>{ridersWithoutBatch}</strong> enrolled rider
+                {ridersWithoutBatch === 1 ? " is" : "s are"} not in a batch, so they can&apos;t be
+                marked present.{" "}
+                <Link href="/riders" className="underline">
+                  Select them on the Riders page and assign a batch →
+                </Link>
+              </p>
+            )}
+            {batchesWithoutCoach > 0 && (
+              <p>
+                <strong>{batchesWithoutCoach}</strong> batch
+                {batchesWithoutCoach === 1 ? " has" : "es have"} no coach assigned. A coach only
+                sees their own batches, so those registers are invisible to them.{" "}
+                <Link href="/batches" className="underline">
+                  Assign coaches →
+                </Link>
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
       {showChecklist && <SetupChecklist items={checklist} />}
       <NpsWidget />
 

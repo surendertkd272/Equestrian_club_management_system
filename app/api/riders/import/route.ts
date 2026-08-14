@@ -46,6 +46,14 @@ const rowSchema = z.object({
   // (not undefined); without it z.coerce turns "" into 0 and .min(1) rejects
   // the whole row, silently dropping riders who don't sit an exam.
   level: z.coerce.number().int().min(1).max(50).optional().or(z.literal("").transform(() => undefined)),
+  // Optional batch NAME (not id — a spreadsheet holds "Tue 5pm Beginners",
+  // never a cuid). Resolved against the target centre's batches below.
+  //
+  // Without this every imported rider arrived with no batch, and batch
+  // membership is what the attendance register is built from — so a bulk
+  // intake produced a roll of riders who could never be marked present, and
+  // the only fix was editing each one by hand afterwards.
+  batch: z.string().max(120).optional().transform((v) => v?.trim() || undefined),
 });
 
 const payloadSchema = z.object({
@@ -207,6 +215,31 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // Resolve batch names once. Matching is case/whitespace-insensitive because
+  // the name is typed into a spreadsheet by hand; an unmatched name is reported
+  // as a row error rather than silently importing the rider with no batch,
+  // which is the failure this column exists to prevent.
+  const batchNames = [...new Set(valid.map((v) => v.row.batch).filter(Boolean) as string[])];
+  const batchByName = new Map<string, string>();
+  if (batchNames.length > 0) {
+    const found = await prisma.batch.findMany({
+      where: { centreId: targetCentreId },
+      select: { id: true, name: true },
+    });
+    for (const b of found) batchByName.set(b.name.trim().toLowerCase(), b.id);
+    const unknown = batchNames.filter((n) => !batchByName.has(n.trim().toLowerCase()));
+    if (unknown.length > 0) {
+      return NextResponse.json(
+        {
+          error: "UNKNOWN_BATCH",
+          message: `No batch at this centre named: ${unknown.join(", ")}. Create it first, or leave the column blank.`,
+          details: unknown,
+        },
+        { status: 400 },
+      );
+    }
+  }
+
   // Create in a single transaction so a mid-batch failure rolls everything
   // back. Schedule a per-rider exam if both `level` and a target examiner
   // are supplied.
@@ -225,6 +258,7 @@ export async function POST(req: NextRequest) {
           gender: row.gender ?? null,
           school: row.school ?? null,
           joiningDate: row.joining_date ? new Date(row.joining_date) : new Date(),
+          batchId: row.batch ? batchByName.get(row.batch.trim().toLowerCase()) ?? null : null,
           status: "active",
         },
       });

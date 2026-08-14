@@ -19,7 +19,9 @@ import { cn } from "@/lib/utils";
 
 export type Column<T> = {
   key: string;
-  header: string;
+  /** ReactNode, not string: a select-all checkbox is a legitimate header.
+   *  Rendered as-is in the <th> and as the <dt> label on the mobile card. */
+  header: React.ReactNode;
   cell: (row: T) => React.ReactNode;
   /** Becomes the card title on mobile (first such column wins; defaults to col 0). */
   primary?: boolean;

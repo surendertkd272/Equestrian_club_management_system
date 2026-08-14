@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
 import { isReadOnly } from "@/lib/roles";
+import { can } from "@/lib/permissions";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +14,7 @@ import { formatDate } from "@/lib/utils";
 import { Plus, Users } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { parsePaging } from "@/lib/paging";
-import { ResponsiveTable } from "@/components/ui/responsive-table";
+import { RidersTable } from "./riders-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ExportCsvButton } from "@/components/ui/export-csv";
 import { formatEnum } from "@/lib/labels";
@@ -52,7 +53,7 @@ export default async function RidersPage({
   }
 
   const { page, pageSize, skip, take } = parsePaging(searchParams, { pageSize: 25 });
-  const [total, riders] = await Promise.all([
+  const [total, riders, batches] = await Promise.all([
     prisma.rider.count({ where }),
     prisma.rider.findMany({
       where,
@@ -60,6 +61,11 @@ export default async function RidersPage({
       orderBy: { createdAt: "desc" },
       skip,
       take,
+    }),
+    prisma.batch.findMany({
+      where: tenantWhere(centreId, orgId),
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
     }),
   ]);
 
@@ -140,27 +146,19 @@ export default async function RidersPage({
           </form>
         </CardHeader>
         <CardContent>
-          <ResponsiveTable
-            rows={riders}
-            getRowKey={(r) => r.id}
-            emptyMessage="No riders match these filters."
-            columns={[
-              {
-                key: "name",
-                header: "Name",
-                primary: true,
-                cell: (r) => (
-                  <Link href={`/riders/${r.id}`} className="font-medium hover:underline">
-                    {r.firstName} {r.lastName}
-                  </Link>
-                ),
-              },
-              { key: "mobile", header: "Mobile", cell: (r) => r.mobile },
-              { key: "joined", header: "Joined", cell: (r) => formatDate(r.joiningDate) },
-              { key: "batch", header: "Batch", cell: (r) => r.batch?.name ?? "—" },
-              { key: "level", header: "Level", cell: (r) => r.currentLevel ?? "—" },
-              { key: "status", header: "Status", cell: (r) => <Badge variant={statusVariant(r.status) as any}>{formatEnum(r.status)}</Badge> },
-            ]}
+          <RidersTable
+            riders={riders.map((r) => ({
+              id: r.id,
+              firstName: r.firstName,
+              lastName: r.lastName,
+              mobile: r.mobile,
+              joiningDate: r.joiningDate,
+              currentLevel: r.currentLevel,
+              status: r.status,
+              batchName: r.batch?.name ?? null,
+            }))}
+            batches={batches}
+            canAssign={can(session.role, "rider.write") && !isReadOnly(session.role)}
           />
           <Pagination total={total} page={page} pageSize={pageSize} />
         </CardContent>
