@@ -31,12 +31,20 @@ async function releaseSweepLock(): Promise<void> {
 //   - x-cron-secret: <CRON_SECRET>                  (custom schedulers)
 //   - ?secret=<CRON_SECRET>                         (manual / custom schedulers)
 //
-// Vercel Cron itself uses the BEARER form: it sends
-// `Authorization: Bearer $CRON_SECRET` automatically whenever CRON_SECRET is
-// set on the project. vercel.json used to carry `?secret=$CRON_SECRET` in the
-// cron path, which never worked — Vercel does not interpolate env vars into a
-// cron path, so it requested the literal string "$CRON_SECRET" and got a 401
-// every night. The query form stays supported for manual runs.
+// The scheduler is GitHub Actions (.github/workflows/nightly-sweep.yml), using
+// the BEARER form. It is not Vercel Cron, despite the entry still in
+// vercel.json.
+//
+// That entry originally carried `?secret=$CRON_SECRET`, which never worked:
+// Vercel does not interpolate env vars into a cron path, so it requested the
+// literal string and got a 401 every night. Removing it changed nothing, and
+// the rejection log below proves why — after two nights there were ZERO
+// rejected attempts, meaning nothing was arriving at all. This project is on
+// Vercel's Hobby plan, where cron is restricted and best-effort.
+//
+// The vercel.json entry is left as a harmless fallback: acquireSweepLock()
+// single-flights the batch, so if Vercel ever does start firing it cannot
+// double-run alongside the GitHub schedule.
 function isAuthorized(req: NextRequest): boolean {
   const expected = process.env.CRON_SECRET;
   if (!expected) return false; // never allow without a configured secret

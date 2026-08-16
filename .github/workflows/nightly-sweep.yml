@@ -1,0 +1,99 @@
+name: Nightly sweep
+
+# Drives the nightly batch (fee reminders, dunning, expiry alerts, DPDPA
+# erasure, SaaS invoicing, purges) by calling /api/cron/sweep.
+#
+# Why not Vercel Cron, which vercel.json also declares?
+#
+# Because it does not fire. The scheduled batch ran three times ever — all
+# manual tests on 8 June — against a platform live since May. The first cause
+# was a real bug: the cron path carried "?secret=$CRON_SECRET", and Vercel does
+# not interpolate env vars into a cron path, so it requested the literal string
+# and got a 401 every night. Fixing that changed nothing, and the reason is
+# now provable: the endpoint logs every rejected attempt, and after two nights
+# there were ZERO rejections. Nothing is arriving. This project is on Vercel's
+# Hobby plan, where cron is restricted and best-effort.
+#
+# So the schedule lives here instead, where it has a run history anyone can
+# inspect. The vercel.json entry is left in place as a harmless fallback: the
+# sweep takes a single-flight lock (CronLock), so if Vercel ever does start
+# firing, the two cannot double-run the batch.
+
+on:
+  schedule:
+    # 02:00 UTC = 07:30 IST — after midnight everywhere the platform operates,
+    # before staff arrive. GitHub schedules are best-effort too and can lag by
+    # minutes under load, which is fine for a daily batch.
+    - cron: "0 2 * * *"
+  # So a human can run it on demand — catching up after an outage, or testing
+  # a single job without waiting for tomorrow.
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Single job to run (blank = all). e.g. saas_billing_run"
+        required: false
+        type: string
+      force:
+        description: "Ignore day-of-month guards (monthly jobs)"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  # Never let a manual run collide with the scheduled one. The server-side lock
+  # would catch it anyway; this avoids the confusing half-run in the log.
+  group: nightly-sweep
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Trigger sweep
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BASE_URL: ${{ vars.APP_BASE_URL || 'https://cms.bharatsportsventure.com' }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::CRON_SECRET is not set in repository secrets — the sweep cannot authenticate."
+            echo "Add it under Settings → Secrets and variables → Actions, matching the value in Vercel."
+            exit 1
+          fi
+
+          URL="${BASE_URL}/api/cron/sweep"
+          [ -n "${{ inputs.job }}" ] && URL="${URL}?job=${{ inputs.job }}"
+          if [ "${{ inputs.force }}" = "true" ]; then
+            case "$URL" in *\?*) URL="${URL}&force=1";; *) URL="${URL}?force=1";; esac
+          fi
+          echo "POST ${URL}"
+
+          # Bearer, not a query string: the secret stays out of any URL that
+          # might be logged by a proxy on the way.
+          HTTP=$(curl -sS -o /tmp/sweep.json -w '%{http_code}' \
+            --max-time 540 \
+            -X POST "$URL" \
+            -H "Authorization: Bearer ${CRON_SECRET}")
+
+          echo "--- response ---"
+          cat /tmp/sweep.json | head -c 4000
+          echo
+
+          if [ "$HTTP" != "200" ]; then
+            # A non-200 must FAIL the workflow. The whole reason this batch went
+            # unnoticed for two months is that failure was silent; GitHub emails
+            # on a failed scheduled run, so this is the alarm.
+            echo "::error::Sweep returned HTTP ${HTTP} — the nightly batch did not complete."
+            exit 1
+          fi
+
+          # A 200 carrying per-job errors is still a bad night. runAllSweeps
+          # reports a failed job as an `error` field rather than throwing, so
+          # surface it instead of reporting a green tick.
+          if grep -q '"error"' /tmp/sweep.json; then
+            echo "::warning::One or more sweep jobs reported an error — see the response above."
+          fi
+
+          echo "Sweep completed."
