@@ -121,6 +121,10 @@ const PUBLIC_PREFIXES = [
   // still requires auth to mutate.
   "/booking-confirmation",
   "/uploads",                      // public — dev local-fs uploads served from /public/uploads
+  // Blank import templates. Static, non-sensitive, and worth being shareable
+  // with a club admin before they have an account — a 307 to /login on a
+  // download link is a confusing dead end.
+  "/templates/",
   "/api/auth",
   "/api/auth/verify-email",
   "/api/captcha",
