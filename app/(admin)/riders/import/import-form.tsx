@@ -88,6 +88,23 @@ export function ImportForm({
             onChange={(e) => readFile(e.target.files?.[0] ?? null)}
             className="mt-1 block w-full text-sm"
           />
+          {/* Nothing on this page previously said what the columns were, so a
+              club's first attempt was a guess. The workbook carries the exact
+              headers, per-column notes, and the batch names that exist at each
+              centre. It also pre-formats the date and mobile columns as text —
+              Excel will otherwise re-emit 2014-08-23 as 23-08-2014 on CSV
+              export and fail every row. */}
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            Not sure of the format?{" "}
+            <a
+              href="/templates/equiwings-rider-import-template.xlsx"
+              className="text-primary underline"
+              download
+            >
+              Download the Excel template
+            </a>{" "}
+            — fill it in, then save as CSV.
+          </p>
         </div>
         <div>
           <Label>Schedule Exam at Level (optional)</Label>
