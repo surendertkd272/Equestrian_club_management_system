@@ -19,6 +19,16 @@ export default async function RidersImportPage() {
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
+  // Name the destination. Import is centre-wise and irreversible in practice —
+  // nobody wants to discover afterwards that a club's whole roll went into the
+  // wrong centre — so the page states where the rows will land, and refuses to
+  // show the form at all when an HQ user is on "All centres".
+  const targetCentre = centreId
+    ? await prisma.centre.findFirst({
+        where: { id: centreId, orgId },
+        select: { name: true },
+      })
+    : null;
 
   // Examiners are surfaced as a dropdown so the import can optionally
   // schedule exams in the same shot (any row that has a `level` column
@@ -52,7 +62,26 @@ export default async function RidersImportPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ImportForm examiners={examiners} />
+          {targetCentre ? (
+            <>
+              <div className="mb-4 rounded-md border border-info/30 bg-info-soft px-3 py-2 text-sm text-info-foreground">
+                Riders in this file will be added to{" "}
+                <strong>{targetCentre.name}</strong>. Upload one file per centre — the
+                spreadsheet has no centre column, so the destination is whichever centre is
+                selected here.
+              </div>
+              <ImportForm examiners={examiners} />
+            </>
+          ) : (
+            <div className="rounded-md border border-warning/30 bg-warning-soft px-3 py-3 text-sm text-warning-foreground">
+              <p className="font-medium">Pick a centre first.</p>
+              <p className="mt-1">
+                You&apos;re viewing <strong>All centres</strong>. Riders are imported into one
+                centre, so choose the destination from the centre selector in the top bar, then
+                come back.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

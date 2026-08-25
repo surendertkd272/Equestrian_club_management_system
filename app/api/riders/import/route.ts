@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { resolveWriteCentre } from "@/lib/resolve-centre";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
@@ -120,19 +121,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  // Resolve target centre.
-  const centreId = session.centreId;
-  if (!centreId && session.role !== "SUPER_ADMIN") {
-    return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
-  }
-  // SUPER_ADMIN can pass ?centreId= as a query param if they want a
-  // different target — checked below.
+  // Resolve target centre through the shared helper rather than by hand.
+  //
+  // The hand-rolled version read session.centreId, which is NULL for
+  // SUPER_ADMIN — so an HQ admin, the person most likely to be loading a new
+  // club's roll, got NO_CENTRE_CONTEXT and could not bulk upload at all. It
+  // also accepted ?centreId= from a SUPER_ADMIN with no org check, so a
+  // hand-crafted request could import riders into ANOTHER TENANT's centre.
+  //
+  // resolveWriteCentre() fixes both: it honours the top-bar centre picker
+  // (via cookie, which rides along with the fetch), and fences the resolved
+  // centre to the caller's own organisation. This is the invariant every
+  // centre-scoped write route is supposed to use.
   const url = new URL(req.url);
-  const targetCentreId =
-    session.role === "SUPER_ADMIN" ? url.searchParams.get("centreId") ?? centreId ?? "" : centreId!;
-  if (!targetCentreId) {
-    return NextResponse.json({ error: "NO_CENTRE_CONTEXT" }, { status: 400 });
-  }
+  const resolved = await resolveWriteCentre(session, {
+    centreId: url.searchParams.get("centreId") ?? undefined,
+  });
+  if (resolved.error) return resolved.error;
+  const targetCentreId = resolved.centreId;
 
   // Parse input → rows array.
   let rawRows: Record<string, string>[] = [];
