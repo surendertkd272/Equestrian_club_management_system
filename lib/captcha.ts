@@ -11,7 +11,15 @@
 
 import crypto from "node:crypto";
 
-const TTL_MS = 5 * 60 * 1000; // 5 min — fits the slowest human onboarding form
+// The challenge must outlive the FORM it sits on, not the moment of typing.
+// It was 5 minutes, and on the rider onboarding wizard it is rendered on the
+// indemnity step — a scrollable wall of legal text, a NOC, a typed signature
+// and two tick-boxes. A parent reading that properly takes longer than five
+// minutes, so the token expired while they read and the submit was rejected
+// with "that answer wasn't right" — blaming their arithmetic for our clock.
+// The anti-bot value comes from requiring a solved challenge at all, not from
+// a tight window; a script solves this in milliseconds either way.
+const TTL_MS = 30 * 60 * 1000;
 
 function secret(): string {
   // Reuse JWT_SECRET — captcha is short-lived and using a separate
@@ -45,14 +53,50 @@ export function issueChallenge(): { question: string; token: string } {
   return { question, token };
 }
 
-export function verifyChallenge(token: string, answer: string | number): boolean {
-  if (typeof token !== "string" || !token.includes(".")) return false;
+export type CaptchaFailure = "malformed" | "expired" | "wrong";
+
+/**
+ * Verify a challenge, saying WHY it failed.
+ *
+ * Expiry and a wrong answer are different events and deserve different words:
+ * one is the user's mistake, the other is ours. Collapsing them into `false`
+ * is what produced a misleading error on a live parent-facing form.
+ */
+export function verifyChallengeDetailed(
+  token: string,
+  answer: string | number,
+): { ok: true } | { ok: false; reason: CaptchaFailure } {
+  if (typeof token !== "string" || !token.includes(".")) return { ok: false, reason: "malformed" };
   const [encoded, sig] = token.split(".");
-  if (!encoded || !sig) return false;
-  const payload = Buffer.from(encoded, "base64url").toString("utf8");
-  if (hmac(payload) !== sig) return false;
+  if (!encoded || !sig) return { ok: false, reason: "malformed" };
+  let payload: string;
+  try {
+    payload = Buffer.from(encoded, "base64url").toString("utf8");
+  } catch {
+    return { ok: false, reason: "malformed" };
+  }
+  // Constant-time compare: the signature is the only thing standing between a
+  // guessed payload and a forged "answer".
+  const expectedSig = hmac(payload);
+  const a = Buffer.from(sig);
+  const b = Buffer.from(expectedSig);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    return { ok: false, reason: "malformed" };
+  }
   const [, expected, expiresAtStr] = payload.split("|");
-  if (!expected || !expiresAtStr) return false;
-  if (Date.now() > Number(expiresAtStr)) return false;
-  return String(answer).trim() === expected;
+  if (!expected || !expiresAtStr) return { ok: false, reason: "malformed" };
+  if (Date.now() > Number(expiresAtStr)) return { ok: false, reason: "expired" };
+  if (String(answer).trim() !== expected) return { ok: false, reason: "wrong" };
+  return { ok: true };
+}
+
+export function verifyChallenge(token: string, answer: string | number): boolean {
+  return verifyChallengeDetailed(token, answer).ok;
+}
+
+/** Wording that tells the truth about which of the two things went wrong. */
+export function captchaMessage(reason: CaptchaFailure): string {
+  return reason === "expired"
+    ? "This form was open a while, so the verification check expired. Here's a new question — your answers below are all still here."
+    : "That verification answer wasn't right — please try the new question.";
 }

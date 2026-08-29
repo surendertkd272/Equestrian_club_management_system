@@ -16,7 +16,7 @@ import { notifyCentreManager } from "@/lib/notify";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 import { bindRlsBypass } from "@/lib/tenant-context";
-import { verifyChallenge } from "@/lib/captcha";
+import { verifyChallengeDetailed, captchaMessage } from "@/lib/captcha";
 
 export const runtime = "nodejs";
 
@@ -35,12 +35,12 @@ export async function POST(req: NextRequest) {
   // AFTER validation for the same reason the rate limit does: a parent fixing a
   // mistyped phone number shouldn't be punished for it.
   if (process.env.NODE_ENV === "production") {
-    if (!d.captchaToken || !d.captchaAnswer || !verifyChallenge(d.captchaToken, d.captchaAnswer)) {
+    const cap = !d.captchaToken || !d.captchaAnswer
+      ? ({ ok: false, reason: "malformed" } as const)
+      : verifyChallengeDetailed(d.captchaToken, d.captchaAnswer);
+    if (!cap.ok) {
       return NextResponse.json(
-        {
-          error: "CAPTCHA_FAILED",
-          message: "That verification answer wasn't right — please try the new question.",
-        },
+        { error: "CAPTCHA_FAILED", reason: cap.reason, message: captchaMessage(cap.reason) },
         { status: 400 },
       );
     }

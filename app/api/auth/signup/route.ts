@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { emailIdentity } from "@/lib/email-normalize";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
-import { verifyChallenge } from "@/lib/captcha";
+import { verifyChallengeDetailed, captchaMessage } from "@/lib/captcha";
 import { checkPasswordPolicy } from "@/lib/password-policy";
 import { provisionTenant } from "@/lib/tenant-provision";
 import { uniqueSlug } from "@/lib/slugify";
@@ -68,9 +68,12 @@ export async function POST(req: NextRequest) {
   }
 
   if (process.env.NODE_ENV === "production") {
-    if (!d.captchaToken || !d.captchaAnswer || !verifyChallenge(d.captchaToken, d.captchaAnswer)) {
+    const cap = !d.captchaToken || !d.captchaAnswer
+      ? ({ ok: false, reason: "malformed" } as const)
+      : verifyChallengeDetailed(d.captchaToken, d.captchaAnswer);
+    if (!cap.ok) {
       return NextResponse.json(
-        { error: "CAPTCHA_FAILED", message: "That verification answer wasn't right — try the new question." },
+        { error: "CAPTCHA_FAILED", reason: cap.reason, message: captchaMessage(cap.reason) },
         { status: 400 },
       );
     }

@@ -249,18 +249,21 @@ function StepFooter({
   canBack,
   submitting,
   submitLabel,
+  blocked,
 }: {
   onBack?: () => void;
   canBack: boolean;
   submitting: boolean;
   submitLabel: string;
+  /** Why the submit is unavailable, shown as a title so it isn't a dead button. */
+  blocked?: string | null;
 }) {
   return (
     <div className="flex items-center justify-between border-t pt-4">
       <Button type="button" variant="outline" onClick={onBack} disabled={!canBack || submitting}>
         <ChevronLeft className="h-4 w-4" /> Back
       </Button>
-      <Button type="submit" disabled={submitting}>
+      <Button type="submit" disabled={submitting || Boolean(blocked)} title={blocked ?? undefined}>
         {submitting ? "Working…" : submitLabel} <ChevronRight className="h-4 w-4" />
       </Button>
     </div>
@@ -514,6 +517,7 @@ function IndemnityStep({
   captcha,
   onCaptchaChange,
   captchaKey,
+  captchaError,
 }: {
   initial: WizardData;
   onSubmit: (d: IndemnityInput) => void | Promise<void>;
@@ -522,6 +526,7 @@ function IndemnityStep({
   captcha: CaptchaValue;
   onCaptchaChange: (v: CaptchaValue) => void;
   captchaKey: number;
+  captchaError: string | null;
 }) {
   const methods = useForm<IndemnityInput>({
     resolver: zodResolver(indemnitySchema),
@@ -592,9 +597,26 @@ function IndemnityStep({
           onChange={onCaptchaChange}
           disabled={submitting}
           refreshKey={captchaKey}
+          error={captchaError}
         />
       </div>
-      <StepFooter canBack onBack={onBack} submitting={submitting} submitLabel="Submit Application" />
+      {/* The verification box is the last thing on the longest step and is easy
+          to scroll past. Disabling the button until it is answered turns a
+          server rejection — which wipes the answer and reloads the question —
+          into something the parent can see and fix before they submit. */}
+      <StepFooter
+        canBack
+        onBack={onBack}
+        submitting={submitting}
+        submitLabel="Submit Application"
+        blocked={
+          !captcha.captchaToken
+            ? "Waiting for the verification question to load"
+            : !captcha.captchaAnswer.trim()
+              ? "Answer the quick check above to submit"
+              : null
+        }
+      />
     </form>
   );
 }
@@ -720,10 +742,13 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
   const [result, setResult] = useState<{ riderId: string; status: string; feesOn?: boolean } | null>(null);
   const [restored, setRestored] = useState(false);
   // Anti-spam challenge on this public endpoint. captchaKey is bumped after a
-  // rejected submit so the user gets a fresh question — a challenge is
-  // single-use and 5-minute-lived, so retrying with the old one always fails.
+  // CAPTCHA rejection specifically, so the user gets a fresh question: the
+  // token may have expired, and retrying an expired one always fails. It is
+  // NOT bumped for other errors — doing that wiped a correct answer and made
+  // the next attempt fail for a second, unrelated reason.
   const [captcha, setCaptcha] = useState<CaptchaValue>(EMPTY_CAPTCHA);
   const [captchaKey, setCaptchaKey] = useState(0);
+  const [captchaError, setCaptchaError] = useState<string | null>(null);
 
   // Restore in an effect (not useState init) so SSR and client agree on
   // the first render — Next would warn about hydration mismatch otherwise.
@@ -773,6 +798,7 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
 
   async function submitAll(indemnity: IndemnityInput) {
     const payload = { ...data, ...indemnity };
+    setCaptchaError(null);
     setSubmitting(true);
     let res: Response;
     try {
@@ -791,9 +817,18 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
     setSubmitting(false);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      // Any rejection burns the challenge, not just a wrong answer.
-      setCaptchaKey((n) => n + 1);
-      toast.error(err.message ?? err.error ?? "Submission failed");
+      const msg = err.message ?? err.error ?? "Submission failed";
+      if (err.error === "CAPTCHA_FAILED") {
+        // Only a captcha rejection should cost them the question. Reloading it
+        // on every failure meant an unrelated error (a duplicate rider, say)
+        // also silently cleared the answer, so their next attempt failed too.
+        setCaptchaKey((n) => n + 1);
+        setCaptchaError(msg);
+        // Everything else they typed survives — say so, because the field
+        // going blank looks like the form reset itself.
+        document.getElementById("captcha-answer")?.scrollIntoView({ block: "center" });
+      }
+      toast.error(msg);
       return;
     }
     const body = await res.json();
@@ -881,8 +916,12 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
             onBack={back}
             submitting={submitting}
             captcha={captcha}
-            onCaptchaChange={setCaptcha}
+            onCaptchaChange={(v) => {
+              setCaptchaError(null);
+              setCaptcha(v);
+            }}
             captchaKey={captchaKey}
+            captchaError={captchaError}
           />
         )}
         {currentStep === "submitted" && (
