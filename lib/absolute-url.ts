@@ -9,18 +9,25 @@
 // A caller that fails loudly at send time is recoverable; one that quietly
 // emails a dead link to ninety parents is not.
 
-const FALLBACKS = [
-  process.env.NEXT_PUBLIC_APP_URL,
-  process.env.APP_BASE_URL,
-  // Vercel injects this on every deployment; it is the right last resort
-  // rather than giving up entirely.
-  process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : undefined,
-];
+// Read at CALL time, not module scope. A module-level const captures whatever
+// process.env held at import, which on a server that loads this early means a
+// later-populated variable is invisible for the life of the process — and it
+// makes the behaviour untestable, since a test cannot arrange the environment
+// after the import.
+function candidates(): (string | undefined)[] {
+  return [
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.APP_BASE_URL,
+    // Vercel injects this on every deployment; a sensible last resort rather
+    // than giving up entirely.
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : undefined,
+  ];
+}
 
 export function baseUrl(): string {
-  for (const candidate of FALLBACKS) {
+  for (const candidate of candidates()) {
     const trimmed = candidate?.trim().replace(/\/+$/, "");
     if (trimmed) return trimmed;
   }

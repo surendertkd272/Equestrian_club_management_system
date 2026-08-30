@@ -15,9 +15,26 @@ describe("verifyUrl", () => {
     process.env.NEXT_PUBLIC_APP_URL = "https://equiwings.in/";
     expect(verifyUrl("EW-L1-ABCDEFGH")).toBe("https://equiwings.in/verify/EW-L1-ABCDEFGH");
   });
-  it("falls back to a relative path when base is unset", () => {
+  it("REFUSES to build a relative path when base is unset", () => {
+    // This string is persisted as Certificate.qrCode and encoded into the QR
+    // printed on the certificate. "/verify/X" there is a permanently dead QR
+    // on a document handed to a rider, and re-rendering later cannot fix it
+    // because the broken value was already stored. Throwing at issue time is
+    // recoverable; fifty unscannable certificates are not.
     delete process.env.NEXT_PUBLIC_APP_URL;
-    expect(verifyUrl("EW-L1-ABCDEFGH")).toBe("/verify/EW-L1-ABCDEFGH");
+    delete process.env.APP_BASE_URL;
+    delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    expect(() => verifyUrl("EW-L1-ABCDEFGH")).toThrow(/base URL/i);
+  });
+
+  it("falls back to APP_BASE_URL, then the Vercel production URL", () => {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    process.env.APP_BASE_URL = "https://cms.example.in";
+    expect(verifyUrl("EW-L1-ABCDEFGH")).toBe("https://cms.example.in/verify/EW-L1-ABCDEFGH");
+
+    delete process.env.APP_BASE_URL;
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = "cms.vercel.app";
+    expect(verifyUrl("EW-L1-ABCDEFGH")).toBe("https://cms.vercel.app/verify/EW-L1-ABCDEFGH");
   });
 });
 

@@ -8,6 +8,7 @@ import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { updateExamScoreSchema, parseRubric, computeTotal, findScoreViolations, countUnscored } from "@/lib/schemas/exam";
 import { audit } from "@/lib/audit";
 import { generateUniqueSerial, verifyUrl } from "@/lib/cert";
+import { hasBaseUrl } from "@/lib/absolute-url";
 import { notifyCentreManager, notify, notifyRiderAndParents } from "@/lib/notify";
 import { sendSms } from "@/lib/sms";
 import { sendEmail, renderEmail } from "@/lib/email";
@@ -265,6 +266,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (alreadyHeld) {
       certificateId = alreadyHeld.id;
     } else {
+      // Checked here rather than at the top of the route: a FAILED exam
+      // issues no certificate, and refusing to record that result over a
+      // missing URL would block work that has nothing to do with QR codes.
+      // At this point we are definitely about to mint one, so stopping is
+      // correct — and it throws inside the transaction, so the exam result
+      // rolls back rather than leaving a pass with no certificate behind it.
+      if (!hasBaseUrl()) {
+        throw new Error(
+          "No public site address is configured (NEXT_PUBLIC_APP_URL), so this certificate's QR code would be unscannable. Set it, then re-score this exam.",
+        );
+      }
       const serial = await generateUniqueSerial(exam.level);
       const cert = await prisma.certificate.create({
         data: {

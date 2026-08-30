@@ -7,6 +7,7 @@ import { can } from "@/lib/permissions";
 import { blockIfFeatureOff } from "@/lib/features-gate";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { generateUniqueSerial, verifyUrl } from "@/lib/cert";
+import { hasBaseUrl } from "@/lib/absolute-url";
 import { audit } from "@/lib/audit";
 
 // Bulk certificate issuance. Two modes:
@@ -49,6 +50,20 @@ export async function POST(req: NextRequest) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
+  }
+
+  // A certificate's QR is PERSISTED, so a missing base URL has to stop us
+  // before we mint any — a stored relative path is a permanently dead QR on a
+  // printed document, and re-rendering later cannot repair it (lib/cert.ts).
+  if (!hasBaseUrl()) {
+    return NextResponse.json(
+      {
+        error: "NO_BASE_URL",
+        message:
+          "No public site address is configured, so the certificate QR codes would be unscannable. Set NEXT_PUBLIC_APP_URL before issuing certificates.",
+      },
+      { status: 500 },
+    );
   }
 
   const { source, sourceId } = parsed.data;
