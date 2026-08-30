@@ -43,6 +43,16 @@ const issueSchema = z.object({
    * working.
    */
   includeAlreadyIssued: z.boolean().default(false),
+  /**
+   * Count who would be affected without touching anything.
+   *
+   * Needed because "issue for anyone without a stored credential" means
+   * EVERYONE until this feature has been used once — the column starts null on
+   * every pre-existing row. Without a preview, the first click of a button
+   * labelled "issue for new staff" would reset a whole club's passwords and
+   * sign them all out.
+   */
+  dryRun: z.boolean().default(false),
 });
 
 /** Never mint credentials for these — they are not staff accounts. */
@@ -134,6 +144,16 @@ export async function POST(req: NextRequest) {
     select: { id: true, name: true, email: true, role: true },
     orderBy: [{ role: "asc" }, { name: "asc" }],
   });
+
+  if (d.dryRun) {
+    return NextResponse.json({
+      ok: true,
+      dryRun: true,
+      centreId: resolved.centreId,
+      wouldAffect: targets.length,
+      names: targets.slice(0, 20).map((t) => t.name),
+    });
+  }
 
   const issued: Array<{ id: string; name: string; email: string; role: string; password: string }> = [];
   for (const t of targets) {

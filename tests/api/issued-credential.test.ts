@@ -186,6 +186,26 @@ describe("POST /api/users/credentials — bulk issue", () => {
       .toHaveLength(1);
   });
 
+  it("dryRun counts without touching a single password", async () => {
+    // The guard against a label that lies: until this feature has been used
+    // once, "issue for anyone without a stored credential" means EVERYONE,
+    // because the column starts null on every pre-existing row. The UI counts
+    // first and names the number, so nobody resets a club by accident.
+    const a = await mkUser({ role: "COACH", centreId: centre.id, email: "d1@club.in" });
+    await mkUser({ role: "GROOM", centreId: centre.id, email: "d2@club.in" });
+    const before = await prisma.user.findUniqueOrThrow({ where: { id: a.id } });
+    await signIn(hq);
+
+    const body = await (await call({ centreId: centre.id, dryRun: true })).json();
+    expect(body.dryRun).toBe(true);
+    expect(body.wouldAffect).toBe(2);
+
+    const after = await prisma.user.findUniqueOrThrow({ where: { id: a.id } });
+    expect(after.passwordHash).toBe(before.passwordHash);
+    expect(after.issuedPasswordEnc).toBeNull();
+    expect(after.tokenVersion).toBe(before.tokenVersion);
+  });
+
   it("cannot reach into another club, even with an explicit id", async () => {
     const other = await mkOrg("Rival Club");
     const otherCentre = await mkCentre({ orgId: other.id, name: "Rival Centre" });

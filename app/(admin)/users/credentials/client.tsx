@@ -46,16 +46,47 @@ export function CredentialSheet({
 
   async function issue(includeAlreadyIssued: boolean) {
     if (!centreId) return;
-    // Re-issuing replaces working passwords and signs those people out, so it
-    // is worth one confirmation rather than a surprise.
+
+    // ALWAYS count first, and name the number in the confirm.
+    //
+    // "Issue for new staff" reads as a safe, additive action, but it targets
+    // anyone without a stored credential — which is every user until this
+    // page has been used once, because the column starts null on existing
+    // rows. The first click would otherwise reset a whole club's passwords
+    // and sign everyone out, with a label that promised the opposite. So the
+    // confirmation states the real count rather than describing the intent.
+    setBusy(true);
+    const pre = await fetch("/api/users/credentials", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ centreId, includeAlreadyIssued, dryRun: true }),
+    });
+    setBusy(false);
+    if (!pre.ok) {
+      const e = await pre.json().catch(() => ({}));
+      toast.error(e.message ?? e.error ?? "Couldn't check who this affects");
+      return;
+    }
+    const { wouldAffect, names } = await pre.json();
+
+    if (wouldAffect === 0) {
+      toast.info("Nobody to issue for — everyone here has either signed in or already holds a password.");
+      return;
+    }
+
+    const sample = names.slice(0, 8).join(", ");
+    const more = wouldAffect > 8 ? ` and ${wouldAffect - 8} more` : "";
     if (
-      includeAlreadyIssued &&
       !confirm(
-        "This replaces the password of everyone at this centre who already has one, and signs them out of any active session. Continue?",
+        `This will generate a NEW password for ${wouldAffect} ${wouldAffect === 1 ? "person" : "people"} ` +
+          `at ${centreName}:\n\n${sample}${more}\n\n` +
+          `Their current password stops working immediately and any active session is signed out. ` +
+          `Anyone who has already been given a login will need the new one.\n\nContinue?`,
       )
     ) {
       return;
     }
+
     setBusy(true);
     const res = await fetch("/api/users/credentials", {
       method: "POST",
@@ -116,7 +147,7 @@ export function CredentialSheet({
             Open sheet
           </Button>
           <Button size="sm" onClick={() => issue(false)} disabled={busy || !centreId}>
-            Issue for new staff
+            Issue passwords
           </Button>
           <Button size="sm" variant="outline" onClick={() => issue(true)} disabled={busy || !centreId}>
             Re-issue for everyone
