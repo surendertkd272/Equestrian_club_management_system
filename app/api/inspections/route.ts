@@ -43,14 +43,58 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
   }
 
-  const template = AUDIT_TEMPLATES[parsed.data.scope] ?? [];
+  // An inventory run counts the ACTUAL register, not a generic prompt list.
+  //
+  // The old checklist asked "Saddles present & accounted for" — a line a
+  // manager can tick in a second without opening the tack room, and which
+  // tells HQ nothing afterwards. Seeding one line per stock item, with the
+  // expected quantity snapshotted at start, turns the run into a real count
+  // and makes the discrepancy the output.
+  //
+  // Falls back to the generic template when the centre has no stock rows at
+  // all, so starting a run never produces an empty sheet.
+  let lines: {
+    area: string;
+    label: string;
+    expected?: number | null;
+    stockId?: string | null;
+  }[] = (AUDIT_TEMPLATES[parsed.data.scope] ?? []).map((t) => ({ area: t.area, label: t.label }));
+
+  if (parsed.data.scope === "inventory") {
+    const stock = await prisma.equipmentStock.findMany({
+      where: { centreId, catalog: { active: true } },
+      select: {
+        id: true,
+        qtyUnused: true,
+        qtyInUse: true,
+        catalog: { select: { name: true, category: true, unit: true } },
+      },
+      orderBy: [{ catalog: { category: "asc" } }, { catalog: { name: "asc" } }],
+    });
+    if (stock.length > 0) {
+      lines = stock.map((s) => ({
+        area: s.catalog.category,
+        label: `${s.catalog.name} (${s.catalog.unit})`,
+        // Usable only. Asking someone to find the damaged ones as well turns a
+        // count into an inspection of the scrap pile.
+        expected: s.qtyUnused + s.qtyInUse,
+        stockId: s.id,
+      }));
+    }
+  }
+
   const run = await prisma.auditRun.create({
     data: {
       centreId,
       inspectorUserId: session.userId,
       scope: parsed.data.scope,
       items: {
-        create: template.map((t) => ({ area: t.area, label: t.label })),
+        create: lines.map((t) => ({
+          area: t.area,
+          label: t.label,
+          expected: t.expected ?? null,
+          stockId: t.stockId ?? null,
+        })),
       },
     },
   });
@@ -60,7 +104,7 @@ export async function POST(req: NextRequest) {
     action: "inspection.start",
     tableName: "auditRun",
     rowId: run.id,
-    after: { scope: parsed.data.scope, items: template.length },
+    after: { scope: parsed.data.scope, items: lines.length, countedAgainstRegister: parsed.data.scope === "inventory" && lines.some((l) => l.stockId != null) },
   });
 
   return NextResponse.json({ ok: true, id: run.id });

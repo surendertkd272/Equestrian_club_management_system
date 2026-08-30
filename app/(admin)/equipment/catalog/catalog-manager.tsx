@@ -29,6 +29,15 @@ type Item = {
   photoUrl: string | null;
   active: boolean;
   adoptedBy: number;
+  /** Summed across every centre that stocks this item. */
+  stock: {
+    usable: number;
+    unused: number;
+    inUse: number;
+    forRepair: number;
+    damaged: number;
+    newRequired: number;
+  };
 };
 
 export function CatalogManager({ initial }: { initial: Item[] }) {
@@ -224,6 +233,7 @@ export function CatalogManager({ initial }: { initial: Item[] }) {
                   <th className="px-3 py-2 w-32">Code</th>
                   <th className="px-3 py-2 w-20">Unit</th>
                   <th className="px-3 py-2 w-24">Reorder</th>
+                  <th className="px-3 py-2 w-40">In stock</th>
                   <th className="px-3 py-2 w-32">Adoption</th>
                   <th className="px-3 py-2 w-16"></th>
                 </tr>
@@ -284,6 +294,32 @@ export function CatalogManager({ initial }: { initial: Item[] }) {
                         }}
                         className="h-8 w-20"
                       />
+                    </td>
+                    <td className="px-3 py-1.5">
+                      {i.adoptedBy === 0 ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <div className="text-xs">
+                          <span className="font-medium">
+                            {i.stock.usable} {i.unit}
+                            {i.stock.usable === 1 ? "" : "s"}
+                          </span>
+                          <span className="block text-[10px] text-muted-foreground">
+                            {i.stock.unused} new · {i.stock.inUse} in use
+                            {/* Damaged and for-repair are excluded from the
+                                headline number on purpose. A centre that
+                                "has" twelve helmets, four of them cracked,
+                                has eight helmets. */}
+                            {i.stock.forRepair > 0 && ` · ${i.stock.forRepair} repair`}
+                            {i.stock.damaged > 0 && ` · ${i.stock.damaged} damaged`}
+                          </span>
+                          {i.stock.newRequired > 0 && (
+                            <span className="block text-[10px] text-amber-600 dark:text-amber-500">
+                              {i.stock.newRequired} more needed
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
                     <td className="px-3 py-1.5">
                       {i.adoptedBy > 0 ? (

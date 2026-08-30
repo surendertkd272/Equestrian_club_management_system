@@ -43,7 +43,14 @@ export async function PATCH(
 
   await prisma.auditItem.update({
     where: { id: item.id },
-    data: { result: parsed.data.result, remarks: parsed.data.remarks ?? null },
+    data: {
+      result: parsed.data.result,
+      remarks: parsed.data.remarks ?? null,
+      // `undefined` leaves the stored count alone; an explicit null clears it.
+      // Distinguishing the two matters: marking a line "pass" must not wipe
+      // the number somebody just counted.
+      ...(parsed.data.counted !== undefined ? { counted: parsed.data.counted } : {}),
+    },
   });
 
   await audit({

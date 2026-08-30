@@ -14,6 +14,16 @@ export const startAuditSchema = z.object({
 export const markAuditItemSchema = z.object({
   result: z.enum(AUDIT_RESULTS),
   remarks: z.string().max(300).optional(),
+  // What was actually on the shelf, for inventory lines. Nullable so a line
+  // can be cleared, and coerced because a number input hands back a string.
+  counted: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(100000)
+    .nullable()
+    .optional()
+    .or(z.literal("").transform(() => null)),
 });
 
 export const completeAuditSchema = z.object({

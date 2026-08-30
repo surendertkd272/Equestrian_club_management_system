@@ -68,6 +68,8 @@ export default async function InspectionDetailPage({ params }: { params: { id: s
               label: i.label,
               result: i.result,
               remarks: i.remarks,
+              expected: i.expected,
+              counted: i.counted,
             }))}
           />
         </CardContent>

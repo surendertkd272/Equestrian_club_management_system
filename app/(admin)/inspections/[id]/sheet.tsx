@@ -13,6 +13,9 @@ type Item = {
   label: string;
   result: string;
   remarks: string | null;
+  /** Register quantity snapshotted when the run started. Null on non-stock lines. */
+  expected: number | null;
+  counted: number | null;
 };
 
 const RESULTS: { key: string; label: string; cls: string }[] = [
@@ -47,13 +50,20 @@ export function InspectionSheet({
 
   const pending = items.filter((i) => i.result === "pending").length;
 
-  async function mark(itemId: string, result: string, remarks?: string) {
+  async function mark(
+    itemId: string,
+    result: string,
+    remarks?: string,
+    counted?: number | null,
+  ) {
     setBusy(itemId);
     try {
       const res = await fetch(`/api/inspections/${runId}/items/${itemId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ result, remarks }),
+        // counted is omitted unless supplied, so ticking pass/fail never wipes
+        // a number somebody already counted.
+        body: JSON.stringify({ result, remarks, ...(counted !== undefined ? { counted } : {}) }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -95,7 +105,53 @@ export function InspectionSheet({
             {rows.map((it) => (
               <li key={it.id} className="px-3 py-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="min-w-[180px] flex-1 text-sm">{it.label}</span>
+                  <span className="min-w-[180px] flex-1 text-sm">
+                    {it.label}
+                    {it.expected != null && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        register says {it.expected}
+                      </span>
+                    )}
+                  </span>
+                  {it.expected != null && (
+                    // The count is the point of an inventory line. Auto-marks
+                    // pass or fail from the number so nobody has to record the
+                    // same judgement twice — and a mismatch cannot be recorded
+                    // as a pass by accident.
+                    <div className="flex items-center gap-1.5">
+                      <label htmlFor={`count-${it.id}`} className="text-xs text-muted-foreground">
+                        Counted
+                      </label>
+                      <Input
+                        id={`count-${it.id}`}
+                        type="number"
+                        min={0}
+                        inputMode="numeric"
+                        className="h-8 w-20"
+                        disabled={completed || busy === it.id}
+                        defaultValue={it.counted ?? ""}
+                        onBlur={(e) => {
+                          const raw = e.target.value.trim();
+                          if (raw === "" && it.counted == null) return;
+                          const n = raw === "" ? null : Number(raw);
+                          if (n !== null && Number.isNaN(n)) return;
+                          if (n === it.counted) return;
+                          mark(
+                            it.id,
+                            n === null ? "pending" : n === it.expected ? "pass" : "fail",
+                            it.remarks ?? undefined,
+                            n,
+                          );
+                        }}
+                      />
+                      {it.counted != null && it.counted !== it.expected && (
+                        <span className="text-xs font-medium text-rose-600 dark:text-rose-400">
+                          {it.counted > it.expected ? "+" : ""}
+                          {it.counted - it.expected}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     {RESULTS.map((r) => (
                       <button

@@ -19,9 +19,40 @@ export default async function EquipmentCatalogPage() {
     prisma.equipmentCatalog.findMany({
       orderBy: [{ category: "asc" }, { name: "asc" }],
     }),
-    prisma.equipmentStock.groupBy({ by: ["catalogId"], _count: { _all: true } }),
+    // Adoption answered "how many centres stock this", which is not the
+    // question anyone actually has in front of a catalog row. "3 centres" tells
+    // you nothing about whether you own three tendon boots or three hundred,
+    // so sum the quantities too.
+    prisma.equipmentStock.groupBy({
+      by: ["catalogId"],
+      _count: { _all: true },
+      _sum: {
+        qtyUnused: true,
+        qtyInUse: true,
+        qtyForRepair: true,
+        qtyDamaged: true,
+        newRequired: true,
+      },
+    }),
   ]);
   const adopted = new Map(adoption.map((r) => [r.catalogId, r._count._all]));
+  const totals = new Map(
+    adoption.map((r) => [
+      r.catalogId,
+      {
+        // Usable = what a coach could actually pick up today. Damaged and
+        // for-repair are deliberately excluded from this figure and shown
+        // separately — counting them as stock is how a centre "has" twelve
+        // helmets and finds four of them cracked.
+        usable: (r._sum.qtyUnused ?? 0) + (r._sum.qtyInUse ?? 0),
+        unused: r._sum.qtyUnused ?? 0,
+        inUse: r._sum.qtyInUse ?? 0,
+        forRepair: r._sum.qtyForRepair ?? 0,
+        damaged: r._sum.qtyDamaged ?? 0,
+        newRequired: r._sum.newRequired ?? 0,
+      },
+    ]),
+  );
 
   return (
     <div className="space-y-6">
@@ -54,6 +85,9 @@ export default async function EquipmentCatalogPage() {
               photoUrl: i.photoUrl,
               active: i.active,
               adoptedBy: adopted.get(i.id) ?? 0,
+              stock: totals.get(i.id) ?? {
+                usable: 0, unused: 0, inUse: 0, forRepair: 0, damaged: 0, newRequired: 0,
+              },
             }))}
           />
         </CardContent>

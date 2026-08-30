@@ -69,6 +69,32 @@ export async function notifyRole(role: Role, rest: Omit<NotifyInput, "userId"> &
   );
 }
 
+// Notify the HQ tier of an ORGANISATION.
+//
+// Not expressible with notifyRole(), and the reason is a recurring bug class
+// here: HQ users have centreId = null, so any lookup filtered by centre finds
+// nobody and the notification silently goes nowhere. Resolve them by org
+// instead — directly via User.orgId for HQ rows, or via their centre's org for
+// anyone who has one.
+export async function notifyHq(
+  orgId: string,
+  rest: Omit<NotifyInput, "userId"> & { centreId?: string | null },
+) {
+  const users = await prisma.user.findMany({
+    where: {
+      role: { in: ["SUPER_ADMIN", "ADMIN"] },
+      status: "active",
+      OR: [{ orgId }, { centre: { orgId } }],
+    },
+    select: { id: true },
+  });
+  await notifyMany(
+    users.map((u) => u.id),
+    rest,
+  );
+  return users.length;
+}
+
 // Notify the manager(s) of a centre. Centre.managerId is the single point of contact.
 export async function notifyCentreManager(centreId: string, rest: Omit<NotifyInput, "userId" | "centreId">) {
   const centre = await prisma.centre.findUnique({ where: { id: centreId }, select: { managerId: true } });

@@ -8,6 +8,7 @@ import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { completeAuditSchema, CAN_INSPECT } from "@/lib/schemas/audit-run";
+import { notifyHqOfInspection } from "@/lib/inspection-report";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -57,6 +58,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     tableName: "auditRun",
     rowId: run.id,
   });
+
+  // Tell HQ. Completing a run used to stamp a timestamp and stop — the whole
+  // point of a centre manager inspecting stock is that somebody above them
+  // hears the result, and "it is in the system if you go looking" is the same
+  // shape of failure as the cron that died unnoticed for two months.
+  //
+  // Deliberately after the audit write and never allowed to fail the request:
+  // a notification problem must not undo a completed inspection.
+  try {
+    await notifyHqOfInspection(run.id, run.centreId, session.userId);
+  } catch (e) {
+    console.error("[inspection] HQ notification failed", e);
+  }
 
   return NextResponse.json({ ok: true });
 }

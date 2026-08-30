@@ -3037,6 +3037,19 @@ model AuditItem {
   label   String
   result  String  @default("pending") // pass | fail | na | pending
   remarks String?
+  // Count-against-register, for inventory scopes.
+  //
+  // The checklist used to be six generic prompts ("Saddles present &
+  // accounted for") that a manager could tick without counting anything. For
+  // an inventory audit the whole point is the DISCREPANCY, so an inventory run
+  // now seeds one line per stock item, with `expected` snapshotted from the
+  // register at the moment the run started and `counted` filled in on the
+  // floor. Null on non-inventory scopes, where a pass/fail is the right shape.
+  expected Int?
+  counted  Int?
+  // The stock row this line counts, so a discrepancy can be traced back to the
+  // item rather than matched on a label string.
+  stockId  String?
 
   run AuditRun @relation(fields: [runId], references: [id], onDelete: Cascade)
 
