@@ -31,7 +31,9 @@ export async function sweepFeeDue(): Promise<SweepResult> {
     },
     include: {
       rider: { select: { firstName: true, lastName: true, mobile: true, fatherPhone: true, motherPhone: true, email: true } },
-      centre: { select: { name: true, orgId: true } },
+      // timezone: the due date is rendered into the parent's email, and the
+      // server runs UTC — without it a date near midnight states the wrong day.
+      centre: { select: { name: true, orgId: true, timezone: true } },
       payments: { select: { amount: true } },
       creditNotes: { select: { amount: true, gstAmount: true } },
     },
@@ -124,7 +126,7 @@ export async function sweepFeeDue(): Promise<SweepResult> {
           centreName: inv.centre.name,
           heading: `Fee reminder · ₹${owedText}`,
           body: `<p>Dear Parent / Guardian,</p>
-<p>The <b>${inv.kind.replace("_", " ")}</b> fee for <b>${inv.rider.firstName} ${inv.rider.lastName}</b> is due on <b>${inv.dueDate.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}</b> (in ${days} day${days === 1 ? "" : "s"}).</p>
+<p>The <b>${inv.kind.replace("_", " ")}</b> fee for <b>${inv.rider.firstName} ${inv.rider.lastName}</b> is due on <b>${inv.dueDate.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric", timeZone: inv.centre.timezone })}</b> (in ${days} day${days === 1 ? "" : "s"}).</p>
 <table style="margin:16px 0;border-collapse:collapse;">
   <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Amount</td><td style="padding:4px 0;font-weight:600;">₹${owedText}</td></tr>
   <tr><td style="padding:4px 12px 4px 0;color:#6b7280;">Kind</td><td style="padding:4px 0;">${inv.kind.replace("_", " ")}</td></tr>

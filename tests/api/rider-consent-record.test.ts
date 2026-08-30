@@ -113,6 +113,39 @@ describe("what registration captures", () => {
   });
 });
 
+describe("the signer's own copy", () => {
+  it("a parent who signs AT REGISTRATION gets a receipt too", async () => {
+    // This only went out on the emailed-link path, which left two tiers of
+    // parent for the same legal act: one holding a written record, one holding
+    // a green box that vanished when they closed the tab. The registration
+    // form makes the stronger promise of the two.
+    const sent: { to: string; subject: string }[] = [];
+    const email = await import("@/lib/email");
+    const spy = vi.spyOn(email, "sendEmail").mockImplementation(async (o: never) => {
+      sent.push(o as unknown as { to: string; subject: string });
+      return { ok: true as const };
+    });
+    try {
+      await submit(application({ email: "receipt@club.in" }));
+      expect(sent.some((m) => m.subject.includes("Your signed indemnity"))).toBe(true);
+      expect(sent.some((m) => m.to === "receipt@club.in")).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it("registers fine when the applicant gave no email", async () => {
+    // No address is a normal state, not a failure — the registration must
+    // still complete.
+    const res = await submit(
+      application({ email: "", firstName: "NoMail", mobile: "9000000009" }),
+    );
+    expect(res.status).toBe(200);
+    const rider = await prisma.rider.findFirstOrThrow({ where: { firstName: "NoMail" } });
+    expect(rider.indemnitySignedAt).not.toBeNull();
+  });
+});
+
 describe("rendering the record", () => {
   // The bug this guards: formatDate() has no timeZone and the server runs UTC,
   // so a consent signed just after midnight IST rendered as the PREVIOUS day —

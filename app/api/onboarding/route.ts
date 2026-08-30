@@ -7,7 +7,9 @@ import {
   PARENTAL_CONSENT_TEXT,
   PARENTAL_CONSENT_VERSION,
   INDEMNITY_VERSION,
+  INDEMNITY_TEXT,
   INJURY_NOC_VERSION,
+  INJURY_NOC_TEXT,
 } from "@/lib/schemas/rider-onboarding";
 import { calcBmi } from "@/lib/utils";
 import { encryptPII, last4 } from "@/lib/pii";
@@ -17,6 +19,7 @@ import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 import { bindRlsBypass } from "@/lib/tenant-context";
 import { verifyChallengeDetailed, captchaMessage } from "@/lib/captcha";
+import { sendConsentReceipt } from "@/lib/rider-consent-request";
 
 export const runtime = "nodejs";
 
@@ -227,6 +230,35 @@ export async function POST(req: NextRequest) {
     link: `/enrolments`,
     payload: { riderId: rider.id },
   });
+
+  // The signer's own copy of what they just agreed to.
+  //
+  // This was only sent on the emailed-link path, which left two tiers of
+  // parent for the same legal act: one holding a written record, one holding
+  // a green box that vanished when they closed the tab. The registration form
+  // makes the stronger promise of the two — it tells them their signature is
+  // recorded "as legal proof of consent" — so if either path deserved the
+  // receipt it was this one.
+  //
+  // Never awaited into the failure path: the rider and the consent are already
+  // committed, and losing a receipt must not fail a completed registration.
+  if (d.email) {
+    await sendConsentReceipt({
+      to: d.email,
+      riderName: `${rider.firstName} ${rider.lastName}`,
+      centreName: centre.name,
+      timeZone: centre.timezone,
+      signature: d.fullNameSignature,
+      // The wizard asks who is signing only via the parental-consent block;
+      // fall back to "self" so the wording stays truthful either way.
+      signerRelation: d.parentRelation ?? "self",
+      signedAt: new Date(),
+      indemnityText: INDEMNITY_TEXT,
+      indemnityVersion: INDEMNITY_VERSION,
+      nocText: INJURY_NOC_TEXT,
+      nocVersion: INJURY_NOC_VERSION,
+    });
+  }
 
   // Signal whether the centre takes rider payments — the wizard's
   // post-submit card adapts its "what happens next" copy from this so
