@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { bindRlsBypass } from "@/lib/tenant-context";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
-import { findLiveRequest } from "@/lib/rider-consent-request";
+import { findLiveRequest, sendConsentReceipt } from "@/lib/rider-consent-request";
 import {
   INDEMNITY_VERSION,
   INDEMNITY_TEXT,
@@ -112,6 +112,23 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
       where: { id: request.id },
       data: { signedAt: now },
     });
+  });
+
+  // Their copy. Deliberately after the transaction and never awaited into the
+  // failure path — the signature is already recorded, and losing the receipt is
+  // a nuisance where failing the request would lose the consent itself.
+  await sendConsentReceipt({
+    to: request.email,
+    riderName: `${request.rider.firstName} ${request.rider.lastName}`,
+    centreName: request.centre.name,
+    timeZone: request.centre.timezone,
+    signature: d.fullNameSignature,
+    signerRelation: d.signerRelation,
+    signedAt: now,
+    indemnityText: INDEMNITY_TEXT,
+    indemnityVersion: INDEMNITY_VERSION,
+    nocText: INJURY_NOC_TEXT,
+    nocVersion: INJURY_NOC_VERSION,
   });
 
   await audit({

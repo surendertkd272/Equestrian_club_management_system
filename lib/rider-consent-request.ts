@@ -176,7 +176,8 @@ export async function findLiveRequest(rawToken: string) {
       rider: {
         select: { id: true, firstName: true, lastName: true, dob: true, indemnitySignedAt: true },
       },
-      centre: { select: { id: true, name: true, orgId: true } },
+      // timezone: the receipt states when they signed, and the server runs UTC.
+      centre: { select: { id: true, name: true, orgId: true, timezone: true } },
     },
   });
   if (!req) return null;
@@ -186,3 +187,79 @@ export async function findLiveRequest(rawToken: string) {
 }
 
 export { hashToken };
+
+/**
+ * Email the signer their own copy of what they just agreed to.
+ *
+ * Without this the parent ticks two legal agreements, sees a green box, closes
+ * the tab, and holds nothing. The registration form promises the signature is
+ * recorded "as legal proof of consent" — proof only the club holds is a weak
+ * version of that, and a copy in the parent's inbox is the first thing anyone
+ * asks for after an incident.
+ *
+ * Contains the FULL agreement text rather than a link, so the record survives
+ * the wording being revised later and does not depend on a URL still resolving
+ * in three years.
+ *
+ * Never throws: a mail failure must not undo a signature that is already
+ * recorded.
+ */
+export async function sendConsentReceipt(opts: {
+  to: string;
+  riderName: string;
+  centreName: string;
+  timeZone: string;
+  signature: string;
+  signerRelation: string;
+  signedAt: Date;
+  indemnityText: string;
+  indemnityVersion: string;
+  nocText: string;
+  nocVersion: string;
+}): Promise<void> {
+  try {
+    if (!isValidEmail(opts.to)) return;
+    const when = opts.signedAt.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: opts.timeZone,
+    });
+    const relation =
+      opts.signerRelation === "self" ? "the rider" : opts.signerRelation;
+
+    await sendEmail({
+      to: opts.to,
+      subject: `Your signed indemnity for ${opts.riderName}`,
+      html: renderEmail({
+        centreName: opts.centreName,
+        heading: "Your copy of the signed indemnity",
+        body: `<p>Thank you — this is your record of the agreement signed for
+<strong>${escapeHtml(opts.riderName)}</strong> at ${escapeHtml(opts.centreName)}.
+Keep this email; you do not need to do anything else.</p>
+
+<table style="width:100%;margin:16px 0;border-collapse:collapse;font-size:14px">
+  <tr><td style="padding:8px;background:#f9fafb;border:1px solid #e5e7eb;color:#6b7280;font-size:12px;text-transform:uppercase">Signed by</td><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600">${escapeHtml(opts.signature)} (${escapeHtml(relation)})</td></tr>
+  <tr><td style="padding:8px;background:#f9fafb;border:1px solid #e5e7eb;color:#6b7280;font-size:12px;text-transform:uppercase">Signed on</td><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600">${when}</td></tr>
+  <tr><td style="padding:8px;background:#f9fafb;border:1px solid #e5e7eb;color:#6b7280;font-size:12px;text-transform:uppercase">Rider</td><td style="padding:8px;border:1px solid #e5e7eb;font-weight:600">${escapeHtml(opts.riderName)}</td></tr>
+</table>
+
+<h3 style="font-size:15px;margin:20px 0 6px">Indemnity &amp; liability release <span style="font-weight:400;color:#6b7280">(${escapeHtml(opts.indemnityVersion)})</span></h3>
+<p style="font-size:13px;line-height:1.6;color:#374151">${escapeHtml(opts.indemnityText)}</p>
+
+<h3 style="font-size:15px;margin:20px 0 6px">No-Objection Consent for injuries <span style="font-weight:400;color:#6b7280">(${escapeHtml(opts.nocVersion)})</span></h3>
+<p style="font-size:13px;line-height:1.6;color:#374151">${escapeHtml(opts.nocText)}</p>
+
+<p style="margin-top:20px;font-size:13px;color:#6b7280">If you did not sign this, or anything above is wrong,
+reply to this email or contact ${escapeHtml(opts.centreName)} straight away.</p>`,
+      }),
+      ref: { type: "rider.consent_receipt", payload: { riderName: opts.riderName } },
+    });
+  } catch (e) {
+    // The signature is already recorded. Losing the receipt is a nuisance;
+    // failing the request would lose the consent.
+    console.error("[consent] receipt email failed", e);
+  }
+}

@@ -148,3 +148,76 @@ describe("sending consent requests", () => {
     expect(new Set(tokens).size).toBe(25);
   });
 });
+
+describe("the signer's own copy", () => {
+  it("emails a receipt containing the full agreement, not a link", async () => {
+    const { sendConsentReceipt } = await import("@/lib/rider-consent-request");
+    await sendConsentReceipt({
+      to: "parent@club.in",
+      riderName: "Aarav Sharma",
+      centreName: "Send Centre",
+      timeZone: "Asia/Kolkata",
+      signature: "Priya Sharma",
+      signerRelation: "parent",
+      // 19:00 UTC is 00:30 the NEXT day in IST.
+      signedAt: new Date("2026-08-14T19:00:00.000Z"),
+      indemnityText: "I acknowledge that horse riding is inherently risky.",
+      indemnityVersion: "v1",
+      nocText: "I give my No-Objection Consent for injuries.",
+      nocVersion: "v1",
+    });
+
+    const receipt = sent.find((s) => s.subject.includes("Your signed indemnity"));
+    expect(receipt).toBeTruthy();
+    expect(receipt!.to).toBe("parent@club.in");
+    // The wording itself, so the copy survives a later revision and does not
+    // depend on a URL still resolving in three years.
+    expect(receipt!.html).toContain("inherently risky");
+    expect(receipt!.html).toContain("No-Objection Consent");
+    expect(receipt!.html).toContain("Priya Sharma");
+    expect(receipt!.html).toContain("v1");
+    // Centre-local time, not UTC — otherwise the receipt states the wrong day.
+    expect(receipt!.html).toContain("15 August");
+  });
+
+  it("escapes a name rather than rendering it as markup", async () => {
+    const { sendConsentReceipt } = await import("@/lib/rider-consent-request");
+    await sendConsentReceipt({
+      to: "x@club.in",
+      riderName: "<img src=x onerror=alert(1)>",
+      centreName: "C",
+      timeZone: "Asia/Kolkata",
+      signature: '<a href="evil">Click</a>',
+      signerRelation: "parent",
+      signedAt: new Date(),
+      indemnityText: "t",
+      indemnityVersion: "v1",
+      nocText: "n",
+      nocVersion: "v1",
+    });
+    const receipt = sent.find((s) => s.subject.includes("Your signed indemnity"))!;
+    // The signature is whatever a parent typed into a public form.
+    expect(receipt.html).not.toContain("<img src=x");
+    expect(receipt.html).not.toContain('<a href="evil"');
+    expect(receipt.html).toContain("&lt;a href=&quot;evil&quot;&gt;");
+  });
+
+  it("never throws — a lost receipt must not undo a recorded signature", async () => {
+    const { sendConsentReceipt } = await import("@/lib/rider-consent-request");
+    await expect(
+      sendConsentReceipt({
+        to: "not-an-email",
+        riderName: "R",
+        centreName: "C",
+        timeZone: "Asia/Kolkata",
+        signature: "S",
+        signerRelation: "self",
+        signedAt: new Date(),
+        indemnityText: "t",
+        indemnityVersion: "v1",
+        nocText: "n",
+        nocVersion: "v1",
+      }),
+    ).resolves.toBeUndefined();
+  });
+});

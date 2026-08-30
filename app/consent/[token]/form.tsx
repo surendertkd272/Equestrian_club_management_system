@@ -73,6 +73,12 @@ export function ConsentSignForm({
           The indemnity and NOC for {riderName} are now on file. The centre will confirm it at
           their end. You can close this page; there is nothing else to do.
         </p>
+        {/* Say the receipt is coming, so a parent knows to expect it and
+            notices if it doesn't arrive. */}
+        <p className="mt-2 text-sm">
+          We&apos;ve emailed you a copy of exactly what you signed, including the date and time.
+          Keep it for your records.
+        </p>
       </div>
     );
   }
