@@ -15,10 +15,44 @@ export async function sweepOnboardingDocsOverdue(): Promise<SweepResult> {
   let skipped = 0;
   if (rows.length === 0) return { job: "onboarding_docs_overdue", scanned: 0, notified, skipped };
 
-  const hqAdmins = await prisma.user.findMany({
-    where: { role: { in: ["SUPER_ADMIN", "ADMIN"] }, status: "active" },
-    select: { id: true },
-  });
+  // HQ admins, resolved PER ORGANISATION.
+  //
+  // This used to fetch every SUPER_ADMIN/ADMIN on the platform once, with no
+  // org filter, and then notify all of them about every overdue row — while
+  // `rows` spans every tenant. So one club's HQ received another club's
+  // employee name, email and pending-document list, nightly. A cross-tenant
+  // leak in a batch job, which is the kind nobody sees because the evidence
+  // lands in someone else's notification inbox.
+  //
+  // Cached per org so a sweep across many tenants stays one query each rather
+  // than one per row.
+  const hqByOrg = new Map<string, string[]>();
+  async function hqAdminsFor(centreId: string): Promise<string[]> {
+    const centre = await prisma.centre.findUnique({
+      where: { id: centreId },
+      select: { orgId: true },
+    });
+    const orgId = centre?.orgId;
+    // Fail closed: with no resolvable org we cannot prove who is entitled to
+    // see this, so nobody at HQ gets it. The centre manager is still notified.
+    if (!orgId) return [];
+    const cached = hqByOrg.get(orgId);
+    if (cached) return cached;
+    const users = await prisma.user.findMany({
+      where: {
+        role: { in: ["SUPER_ADMIN", "ADMIN"] },
+        status: "active",
+        // HQ users carry orgId directly (centreId is null for them); centre
+        // staff resolve through their centre. Match either, or the alert goes
+        // nowhere for exactly the people who need it.
+        OR: [{ orgId }, { centre: { orgId } }],
+      },
+      select: { id: true },
+    });
+    const ids = users.map((u) => u.id);
+    hqByOrg.set(orgId, ids);
+    return ids;
+  }
 
   for (const ob of rows) {
     const pending = pendingItems(ob as unknown as Record<string, unknown>, parseWaived(ob.waivedItemsJson));
@@ -41,8 +75,9 @@ export async function sweepOnboardingDocsOverdue(): Promise<SweepResult> {
       link: "/staff/onboarding",
       payload: { onboardingId: ob.id },
     });
+    const hqAdmins = await hqAdminsFor(ob.centreId);
     if (hqAdmins.length > 0) {
-      await notifyMany(hqAdmins.map((u) => u.id), {
+      await notifyMany(hqAdmins, {
         centreId: ob.centreId,
         type: "staff_onboarding.overdue",
         title,
