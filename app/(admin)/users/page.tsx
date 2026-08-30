@@ -66,6 +66,17 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
   const orgClause = { OR: [{ orgId }, { centre: { orgId } }] };
   where.AND = [orgClause];
 
+  // Mirror the active filters into the export link. Deliberately excludes
+  // `page` — an export is the whole filtered set, not the slice on screen.
+  const exportQuery = new URLSearchParams(
+    Object.entries({
+      q: searchParams.q,
+      role: searchParams.role,
+      centreId: searchParams.centreId,
+      status: searchParams.status,
+    }).filter(([, v]) => Boolean(v)) as [string, string][],
+  ).toString();
+
   const page = Math.max(1, Number.parseInt(searchParams.page ?? "1", 10) || 1);
 
   const [users, centres, totalAll, filteredTotal, pendingApprovals] = await Promise.all([
@@ -125,8 +136,25 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">Users</h1>
+        <div className="flex items-center gap-2">
+          {/* Carries the CURRENT filters through, so the file matches the view
+              you are looking at rather than silently exporting everything. */}
+          <Link
+            href={`/api/users/export${exportQuery ? `?${exportQuery}` : ""}`}
+            prefetch={false}
+            className="inline-flex h-9 items-center rounded-md border px-3 text-sm hover:bg-accent"
+          >
+            Export CSV
+          </Link>
+          <Link
+            href="/users/credentials"
+            className="inline-flex h-9 items-center rounded-md border px-3 text-sm hover:bg-accent"
+          >
+            Credential sheet
+          </Link>
+        </div>
       </div>
 
       <ApprovalQueue
