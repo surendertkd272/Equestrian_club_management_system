@@ -34,6 +34,10 @@ export function CredentialSheet({
   const [centreId, setCentreId] = useState(initialCentreId);
   const [rows, setRows] = useState<Row[] | null>(null);
   const [busy, setBusy] = useState(false);
+  const [shared, setShared] = useState(false);
+  // Shown once, big, after a shared issue — it is the single thing being
+  // communicated to the club, so it should not be hidden in a table column.
+  const [sharedPassword, setSharedPassword] = useState<string | null>(null);
 
   const centreName =
     centreId === ALL_CENTRES
@@ -100,7 +104,7 @@ export function CredentialSheet({
     const res = await fetch("/api/users/credentials", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ centreId, includeAlreadyIssued }),
+      body: JSON.stringify({ centreId, includeAlreadyIssued, shared }),
     });
     setBusy(false);
     if (!res.ok) {
@@ -109,6 +113,7 @@ export function CredentialSheet({
       return;
     }
     const body = await res.json();
+    setSharedPassword(body.sharedPassword ?? null);
     if (body.issued.length === 0) {
       toast.info("Everyone here already has an unused password — use “Open sheet” to read it.");
     } else {
@@ -155,6 +160,15 @@ export function CredentialSheet({
             ))}
             <option value={ALL_CENTRES}>All centres ({centres.length})</option>
           </select>
+          <label className="flex items-center gap-1.5 text-sm" title="One password for everyone in this batch, instead of one each">
+            <input
+              type="checkbox"
+              checked={shared}
+              onChange={(e) => setShared(e.target.checked)}
+              disabled={busy}
+            />
+            One shared password
+          </label>
           <Button size="sm" variant="outline" onClick={load} disabled={busy || !centreId}>
             Open sheet
           </Button>
@@ -168,6 +182,18 @@ export function CredentialSheet({
       </CardHeader>
 
       <CardContent>
+        {sharedPassword && (
+          <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/40">
+            <p className="text-sm font-medium">One password for everyone in this batch</p>
+            <p className="my-2 font-mono text-2xl tracking-wide">{sharedPassword}</p>
+            <p className="text-xs text-muted-foreground">
+              This is the only time it is shown as a single value — after this it lives per person in
+              the table below. Everyone must change it at first sign-in. Until they do, anyone
+              holding it can sign in as any of them, so treat it as a one-week handover key rather
+              than a lasting password, and don&apos;t post it anywhere the club can&apos;t take back.
+            </p>
+          </div>
+        )}
         {rows === null ? (
           <p className="text-sm text-muted-foreground">
             Pick a centre and choose <strong>Open sheet</strong> to see who currently holds an unused

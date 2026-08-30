@@ -221,6 +221,51 @@ describe("POST /api/users/credentials — bulk issue", () => {
     expect(after.issuedPasswordEnc).toBeNull();
   });
 
+  it("gives one shared password to the whole batch when asked", async () => {
+    // The ergonomic need behind "set them all to the same thing": handing a
+    // club one sentence instead of a spreadsheet.
+    await mkUser({ role: "COACH", centreId: centre.id, email: "s1@club.in" });
+    await mkUser({ role: "GROOM", centreId: centre.id, email: "s2@club.in" });
+    await signIn(hq);
+
+    const body = await (await call({ centreId: centre.id, shared: true })).json();
+    expect(body.issued).toHaveLength(2);
+    const unique = new Set(body.issued.map((i: { password: string }) => i.password));
+    expect(unique.size).toBe(1);
+    expect(body.sharedPassword).toBe([...unique][0]);
+
+    // It must actually work for each of them, not just be echoed back.
+    const bcrypt = (await import("bcryptjs")).default;
+    for (const row of body.issued) {
+      const u = await prisma.user.findUniqueOrThrow({ where: { id: row.id } });
+      expect(await bcrypt.compare(body.sharedPassword, u.passwordHash)).toBe(true);
+      // Shared means the exposure has to end quickly — everyone rotates.
+      expect(u.mustChangePassword).toBe(true);
+    }
+  });
+
+  it("the shared password is generated, never a guessable word", async () => {
+    await mkUser({ role: "COACH", centreId: centre.id, email: "s3@club.in" });
+    await signIn(hq);
+    const { sharedPassword } = await (await call({ centreId: centre.id, shared: true })).json();
+
+    // The whole point of refusing "password": one guess must not open a club.
+    expect(sharedPassword.toLowerCase()).not.toContain("password");
+    expect(sharedPassword.length).toBeGreaterThanOrEqual(12);
+    // No ambiguous glyphs — this gets dictated over the phone and retyped.
+    expect(sharedPassword).not.toMatch(/[OI01]/);
+  });
+
+  it("issues distinct passwords by default", async () => {
+    // Shared must be opt-in. The safe shape stays the default.
+    await mkUser({ role: "COACH", centreId: centre.id, email: "s4@club.in" });
+    await mkUser({ role: "GROOM", centreId: centre.id, email: "s5@club.in" });
+    await signIn(hq);
+    const body = await (await call({ centreId: centre.id })).json();
+    expect(new Set(body.issued.map((i: { password: string }) => i.password)).size).toBe(2);
+    expect(body.sharedPassword).toBeNull();
+  });
+
   it("covers every centre in the org when asked explicitly", async () => {
     const second = await mkCentre({ orgId: org.id, name: "Second Centre" });
     await mkUser({ role: "COACH", centreId: centre.id, email: "a1@club.in" });

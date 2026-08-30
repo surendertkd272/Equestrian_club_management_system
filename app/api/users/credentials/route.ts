@@ -90,7 +90,38 @@ const issueSchema = z.object({
    * sign them all out.
    */
   dryRun: z.boolean().default(false),
+  /**
+   * Give the whole batch ONE password instead of one each.
+   *
+   * The real request behind this: handing a club a list where every row has a
+   * different string is awkward to communicate — "here is your password" is a
+   * single sentence, forty-seven of them is a spreadsheet nobody reads
+   * properly. That ergonomic need is legitimate.
+   *
+   * What it is NOT is a licence to use a guessable word. The shared value is
+   * still generated (see sharedPassword()), so it is unguessable, and every
+   * account still carries mustChangePassword — the first thing each person
+   * does is replace it. The exposure is "one club's staff share a strong
+   * string for a few days", not "anyone who knows an email address is in".
+   */
+  shared: z.boolean().default(false),
 });
+
+/**
+ * One strong password for a whole onboarding batch.
+ *
+ * Readable on purpose — this gets spoken aloud, written on a whiteboard, and
+ * retyped on a phone, so ambiguous glyphs are removed rather than trusting
+ * people to distinguish O from 0. Roughly 57 bits from the random half, which
+ * is far past anything guessable while still being one short line to dictate.
+ */
+function sharedPassword(): string {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ"; // no I or O
+  const digits = "23456789"; // no 0 or 1
+  const pick = (set: string, n: number) =>
+    Array.from({ length: n }, () => set[crypto.randomInt(set.length)]).join("");
+  return `${pick(alphabet, 4)}-${pick(digits, 4)}-${pick(alphabet, 4)}`;
+}
 
 /** Never mint credentials for these — they are not staff accounts. */
 const EXCLUDED_ROLES = ["SUPER_ADMIN", "ADMIN"];
@@ -202,8 +233,13 @@ export async function POST(req: NextRequest) {
     centre: string;
     password: string;
   }> = [];
+
+  // One value for the batch, or one each. Computed once outside the loop so a
+  // shared batch really is shared.
+  const batchPassword = d.shared ? sharedPassword() : null;
+
   for (const t of targets) {
-    const tempPassword = crypto.randomBytes(12).toString("base64url");
+    const tempPassword = batchPassword ?? crypto.randomBytes(12).toString("base64url");
     const passwordHash = await hashPassword(tempPassword);
     await prisma.user.update({
       where: { id: t.id },
@@ -220,10 +256,18 @@ export async function POST(req: NextRequest) {
     action: "user.credentials_issued",
     tableName: "user",
     rowId: scope.label,
-    after: { count: issued.length, userIds: issued.map((i) => i.id) },
+    // Record that this batch shared one password. If it ever has to be
+    // investigated, "could another member of staff have signed in as them"
+    // has a different answer for a shared batch, and the log should say so.
+    after: { count: issued.length, shared: d.shared, userIds: issued.map((i) => i.id) },
     ip: req.headers.get("x-forwarded-for"),
     userAgent: req.headers.get("user-agent"),
   });
 
-  return NextResponse.json({ ok: true, scope: scope.label, issued });
+  return NextResponse.json({
+    ok: true,
+    scope: scope.label,
+    sharedPassword: batchPassword,
+    issued,
+  });
 }
