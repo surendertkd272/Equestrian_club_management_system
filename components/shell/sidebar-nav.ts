@@ -60,6 +60,7 @@ export const NAV: NavGroup[] = [
       // Self-enrolment approval queue — School Admin / Centre Manager vet
       // public sign-ups before they become billable registrations.
       { href: "/enrolments", label: "Enrolment Approvals", iconName: "UserCheck", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "SCHOOL_ADMINISTRATOR"] },
+      { href: "/riders/consent", label: "Consent Collection", iconName: "FileSignature", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
       { href: "/batches", label: "Batches", iconName: "CalendarClock", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"] },
       { href: "/lessons", label: "Lessons", iconName: "CalendarDays", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"] },
       { href: "/attendance", label: "Attendance", iconName: "CalendarCheck2", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "SCHOOL_ADMINISTRATOR"], feature: "attendance" },

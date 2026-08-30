@@ -56,7 +56,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (fence) {
     return NextResponse.json({ error: fence }, { status: 403 });
   }
-  if (rider.status !== "pending_approval") {
+  // Only approve/reject need a pending enrolment. Verification does NOT:
+  // riders added by bulk import are created active and never sit in
+  // pending_approval, yet checking their signed indemnity is exactly the case
+  // this exists for. Gating verify on the enrolment status would have made it
+  // unreachable for the majority of a club's roster.
+  const decidesEnrolment =
+    parsed.data.action === "approve" || parsed.data.action === "reject";
+  if (decidesEnrolment && rider.status !== "pending_approval") {
     return NextResponse.json({ error: "NOT_PENDING_APPROVAL", current: rider.status }, { status: 409 });
   }
 

@@ -651,6 +651,7 @@ model Centre {
   auditRuns            AuditRun[]
   injuryLogs           InjuryLog[]
   teams                Team[]
+  consentRequests      RiderConsentRequest[]
 }
 
 // Role is a string union enforced at the app layer (see lib/roles.ts).
@@ -984,6 +985,7 @@ model Rider {
   horseAllocations   HorseAllocation[]
   exams              Exam[]
   parentLinks        ParentLink[]
+  consentRequests    RiderConsentRequest[]
   eventRegistrations EventRegistration[]
   accreditations     Accreditation[]
   batchShiftRequests BatchShiftRequest[]
@@ -3183,4 +3185,43 @@ model RevokedSession {
   expiresAt DateTime
 
   @@index([expiresAt])
+}
+
+// A request to a rider (or their parent) to sign the indemnity and injury NOC
+// after the fact.
+//
+// Riders created by bulk import or by staff never pass through the public
+// registration form, so they have no signature — which meant a club could
+// import 90 riders and have every one of them mounting with no consent on
+// file at all. This closes that: import, then email each of them a tokenised
+// link to the same versioned agreement the public form uses.
+//
+// The token is stored HASHED. A rider consent link is a bearer credential —
+// whoever holds it can sign in that rider's name — so a database leak must not
+// hand over a working set of them. Same reasoning as PasswordResetToken.
+model RiderConsentRequest {
+  id       String @id @default(cuid())
+  riderId  String
+  // Denormalised from the rider so the RLS policy has a column to fence on
+  // without a join, matching every other centre-scoped table here.
+  centreId String
+  // Snapshot of where it was actually sent, in case the rider's address is
+  // later corrected — "who did we ask" has to stay answerable.
+  email       String
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  sentAt      DateTime  @default(now())
+  remindedAt  DateTime?
+  signedAt    DateTime?
+  // Null for a request raised automatically by an import.
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  rider  Rider  @relation(fields: [riderId], references: [id], onDelete: Cascade)
+  centre Centre @relation(fields: [centreId], references: [id], onDelete: Cascade)
+
+  // "Which riders at this centre are still outstanding?" — the query behind
+  // both the reminder sweep and the chase-up list.
+  @@index([centreId, signedAt])
+  @@index([riderId, signedAt])
 }

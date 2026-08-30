@@ -87,6 +87,9 @@ const PUBLIC_PREFIXES = [
   "/login",
   "/signup",                       // public self-serve club registration
   "/onboarding",
+  "/consent",                      // emailed indemnity/NOC signing link — the
+                                   // signer is a parent with no account, so
+                                   // the token in the URL is the authorisation
   "/verify-email",
   "/verify",
   "/privacy",
@@ -129,6 +132,7 @@ const PUBLIC_PREFIXES = [
   "/api/auth/verify-email",
   "/api/captcha",
   "/api/onboarding",
+  "/api/consent",                  // token-authorised, see /consent above
   "/_next",
   "/favicon",
   // PWA assets

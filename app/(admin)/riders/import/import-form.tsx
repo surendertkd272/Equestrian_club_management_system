@@ -200,6 +200,20 @@ export function ImportForm({
             Imported {result.created} rider{result.created === 1 ? "" : "s"}.
             {result.examsScheduled > 0 && ` Scheduled ${result.examsScheduled} exam(s).`}
           </div>
+          {result.created > 0 && (
+            // Imported riders have NO indemnity — the spreadsheet cannot carry
+            // a signature. Saying so here, at the moment the roster lands, is
+            // the difference between a club noticing and a club discovering it
+            // after an incident.
+            <p className="mt-2">
+              These riders have no indemnity or injury NOC on file — a spreadsheet can&apos;t
+              carry a signature.{" "}
+              <a href="/riders/consent" className="font-medium underline">
+                Email them a signing link
+              </a>
+              .
+            </p>
+          )}
           {result.errors.length > 0 && (
             <details className="mt-2">
               <summary className="cursor-pointer text-xs text-warning-foreground">
