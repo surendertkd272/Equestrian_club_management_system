@@ -121,8 +121,8 @@ describe("the signer's own copy", () => {
     // form makes the stronger promise of the two.
     const sent: { to: string; subject: string }[] = [];
     const email = await import("@/lib/email");
-    const spy = vi.spyOn(email, "sendEmail").mockImplementation(async (o: never) => {
-      sent.push(o as unknown as { to: string; subject: string });
+    const spy = vi.spyOn(email, "sendEmail").mockImplementation(async (o) => {
+      sent.push({ to: o.to, subject: o.subject });
       return { ok: true as const };
     });
     try {
