@@ -864,6 +864,12 @@ model Rider {
   // body in lib/i18n-sms.ts. Defaults to "en" when null.
   preferredLanguage      String? // en | hi | ta | te | bn | mr | gu | kn | ml | pa
   school                 String? // PRD §4 Module 1 — name of the rider's school
+  // Class and section at that school. Free text rather than an enum: boards
+  // in India label these very differently (5 / V / Grade 5 / UKG / XI-Science),
+  // and a dropdown that doesn't list a club's local convention just gets
+  // filled with the nearest wrong answer.
+  schoolClass            String?
+  schoolSection          String?
   education              String?
   occupation             String?
   // Address
@@ -952,6 +958,18 @@ model Rider {
   selfEnrolled           Boolean   @default(false)
   approvedByUserId       String?
   approvedAt             DateTime?
+  // Document verification, a required step BEFORE approval.
+  //
+  // Approving used to be one click straight off a summary row, which meant the
+  // approver never had to open the Aadhaar scan or the photo they were
+  // attesting to. Splitting verify from approve makes "I have looked at this
+  // person's documents" a separate, recorded act with a name against it —
+  // which is the only version of it worth having if it is ever questioned.
+  // Cleared if the enrolment is sent back for correction, so a re-check is a
+  // fresh act rather than an inherited tick.
+  verifiedAt             DateTime?
+  verifiedByUserId       String?
+  verifyNote             String?
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 

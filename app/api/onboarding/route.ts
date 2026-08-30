@@ -164,6 +164,8 @@ export async function POST(req: NextRequest) {
       aadhaarBackDocUrl: d.aadhaarBackDocUrl || null,
       photoUrl: d.photoUrl || null,
       school: d.school || null,
+      schoolClass: d.schoolClass || null,
+      schoolSection: d.schoolSection || null,
       education: d.education || null,
       occupation: d.occupation || null,
       addressPresent: d.addressPresent,

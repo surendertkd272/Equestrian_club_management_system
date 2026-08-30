@@ -42,6 +42,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { bmiBand, bmiBandLabel, bmiBandTone } from "@/lib/bmi";
 import { calcBmi } from "@/lib/utils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -301,6 +302,8 @@ function PersonalStep({ initial, onNext }: { initial: WizardData; onNext: (d: Pe
         <Field methods={methods} name="nationality" label="Nationality" placeholder="Indian" />
         <Field methods={methods} name="maritalStatus" label="Marital Status" />
         <Field methods={methods} name="school" label="School" placeholder="School / college name" />
+        <Field methods={methods} name="schoolClass" label="Class" placeholder="e.g. 7, VII, Grade 7" />
+        <Field methods={methods} name="schoolSection" label="Section" placeholder="e.g. A" />
         <Field methods={methods} name="education" label="Education" />
         <Field methods={methods} name="occupation" label="Occupation" />
 
@@ -423,7 +426,15 @@ function MedicalStep({
           <Field methods={methods} name="weightKg" label="Weight (kg)" type="number" />
           <div className="space-y-1.5">
             <Label>BMI (Auto)</Label>
-            <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm">{bmi ?? "—"}</div>
+            <div className="flex h-10 items-center gap-2 rounded-md border bg-muted px-3 text-sm">
+              <span>{bmi ?? "—"}</span>
+              {/* A bare number means nothing to a parent filling this in on a
+                  phone. The band is the part that is actually readable, and it
+                  is the same wording the club sees on the rider profile. */}
+              {bmi != null && (
+                <Badge variant={bmiBandTone(bmiBand(bmi))}>{bmiBandLabel(bmiBand(bmi))}</Badge>
+              )}
+            </div>
           </div>
         </div>
         <TextareaField

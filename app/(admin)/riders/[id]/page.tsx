@@ -230,6 +230,12 @@ export default async function RiderProfile({ params }: { params: { id: string } 
               <dd>{rider.nationality ?? "—"}</dd>
               <dt className="text-muted-foreground">School</dt>
               <dd>{rider.school ?? "—"}</dd>
+              <dt className="text-muted-foreground">Class / Section</dt>
+              <dd>
+                {rider.schoolClass || rider.schoolSection
+                  ? `${rider.schoolClass ?? "—"} / ${rider.schoolSection ?? "—"}`
+                  : "—"}
+              </dd>
             </dl>
           </CardContent>
         </Card>

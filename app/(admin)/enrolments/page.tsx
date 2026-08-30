@@ -7,11 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
-import { EnrolmentActions } from "./enrolment-actions";
+import { VerifyPanel } from "./verify-panel";
 import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 const APPROVER_ROLES = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "SCHOOL_ADMINISTRATOR"];
+// Vouching for a rider's documents is a write, so the read-only partner
+// account is not on this list even though it can see the queue.
+const VERIFIER_ROLES = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"];
 
 // Approval queue for public self-enrolments. Riders who signed up via the
 // onboarding link sit in status="pending_approval" until a School Admin /
@@ -38,7 +41,18 @@ export default async function EnrolmentsPage() {
       orderBy: { createdAt: "asc" },
       select: {
         id: true, firstName: true, lastName: true, dob: true, mobile: true, email: true,
-        school: true, addressPresent: true, pincode: true, createdAt: true,
+        school: true, schoolClass: true, schoolSection: true,
+        addressPresent: true, pincode: true, createdAt: true,
+        // The documents the verifier is being asked to attest to. Approving
+        // without seeing these was the gap — a summary row told you a name and
+        // a phone number and asked you to vouch for the person.
+        photoUrl: true, aadhaarDocUrl: true, aadhaarBackDocUrl: true,
+        aadhaarNo: true,
+        heightCm: true, weightKg: true, bmi: true,
+        medicalNotes: true, allergies: true,
+        fatherName: true, motherName: true, emergencyName: true, emergencyPhone: true,
+        indemnitySignedAt: true,
+        verifiedAt: true, verifyNote: true, verifiedByUserId: true,
         centre: { select: { name: true } },
       },
     }),
@@ -93,7 +107,20 @@ export default async function EnrolmentsPage() {
                   </>
                 ),
               },
-              { key: "school", header: "School", cell: (r) => <span className="text-xs">{r.school ?? "—"}</span> },
+              {
+                key: "school",
+                header: "School",
+                cell: (r) => (
+                  <span className="text-xs">
+                    {r.school ?? "—"}
+                    {(r.schoolClass || r.schoolSection) && (
+                      <span className="block text-[11px] text-muted-foreground">
+                        Class {r.schoolClass ?? "—"} · Sec {r.schoolSection ?? "—"}
+                      </span>
+                    )}
+                  </span>
+                ),
+              },
               ...(!centreId
                 ? [{ key: "centre", header: "Centre", cell: (r: (typeof pending)[number]) => <span className="text-xs">{r.centre.name}</span> }]
                 : []),
@@ -102,7 +129,9 @@ export default async function EnrolmentsPage() {
                 key: "action",
                 header: "Action",
                 headerClassName: "text-right",
-                cell: (r) => <EnrolmentActions riderId={r.id} />,
+                cell: ({ centre, createdAt, verifiedByUserId, ...rider }) => (
+                  <VerifyPanel rider={rider} canVerify={VERIFIER_ROLES.includes(session.role)} />
+                ),
               },
             ]}
           />

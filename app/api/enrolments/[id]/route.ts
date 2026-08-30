@@ -19,9 +19,17 @@ import { z } from "zod";
 const APPROVER_ROLES = new Set(["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "SCHOOL_ADMINISTRATOR"]);
 
 const schema = z.object({
-  action: z.enum(["approve", "reject"]),
+  // "verify" records that a human opened this rider's documents and checked
+  // them. "unverify" undoes that, for when a second look changes the answer.
+  action: z.enum(["verify", "unverify", "approve", "reject"]),
   reason: z.string().max(300).optional(),
+  note: z.string().max(300).optional(),
 });
+
+// Who may attest to documents. Deliberately excludes SCHOOL_ADMINISTRATOR:
+// they sit in APPROVER_ROLES for visibility but are a read-only partner
+// account, and vouching for a rider's Aadhaar is not a read.
+const VERIFIER_ROLES = new Set(["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"]);
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -50,6 +58,49 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
   if (rider.status !== "pending_approval") {
     return NextResponse.json({ error: "NOT_PENDING_APPROVAL", current: rider.status }, { status: 409 });
+  }
+
+  if (parsed.data.action === "verify" || parsed.data.action === "unverify") {
+    if (!VERIFIER_ROLES.has(session.role)) {
+      return NextResponse.json(
+        { error: "FORBIDDEN", message: "Only HQ or the centre manager can verify documents." },
+        { status: 403 },
+      );
+    }
+    const verifying = parsed.data.action === "verify";
+    await prisma.rider.update({
+      where: { id: rider.id },
+      data: verifying
+        ? {
+            verifiedAt: new Date(),
+            verifiedByUserId: session.userId,
+            verifyNote: parsed.data.note || null,
+          }
+        : { verifiedAt: null, verifiedByUserId: null, verifyNote: null },
+    });
+    await audit({
+      userId: session.userId,
+      action: verifying ? "enrolment.verify" : "enrolment.unverify",
+      tableName: "rider",
+      rowId: rider.id,
+      after: { name: `${rider.firstName} ${rider.lastName}`, note: parsed.data.note ?? null },
+      ip: req.headers.get("x-forwarded-for"),
+      userAgent: req.headers.get("user-agent"),
+    });
+    return NextResponse.json({ ok: true, verified: verifying });
+  }
+
+  // Approval requires a prior document check. Without this the verify button
+  // would be decorative — anyone could skip straight to Approve and the
+  // attestation would mean nothing.
+  if (parsed.data.action === "approve" && !rider.verifiedAt) {
+    return NextResponse.json(
+      {
+        error: "NOT_VERIFIED",
+        message: "Check this rider's documents and mark them verified before approving.",
+      },
+      { status: 409 },
+    );
   }
 
   if (parsed.data.action === "reject") {

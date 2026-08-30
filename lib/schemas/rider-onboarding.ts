@@ -43,6 +43,9 @@ export const personalSchema = z.object({
   aadhaarBackDocUrl: uploadedUrl,
   photoUrl: uploadedUrl,
   school: z.string().max(150).optional(),
+  // Free text, not a dropdown — see the schema note on Rider.schoolClass.
+  schoolClass: z.string().max(40).optional(),
+  schoolSection: z.string().max(20).optional(),
   education: z.string().optional(),
   occupation: z.string().optional(),
 });
