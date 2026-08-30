@@ -8,6 +8,7 @@ import { getSession, hashPassword } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { storeIssuedCredential } from "@/lib/issued-credential";
 
 const issueSchema = z.object({
   email: emailIdentity(),
@@ -77,6 +78,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     rowId: rider.id,
     after: { userId: user.id, email },
   });
+
+  // Onto the centre's handover sheet; cleared when they choose their own.
+  await storeIssuedCredential(prisma, user.id, tempPassword, session.userId);
 
   return NextResponse.json({ ok: true, userId: user.id, email, tempPassword });
 }

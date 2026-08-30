@@ -701,6 +701,22 @@ model User {
   // session middleware forces the user through /account/rotate on next sign-in
   // before reaching any other page. Cleared once they pick a new password.
   mustChangePassword    Boolean   @default(false)
+  // Credential handover. When HQ generates a temp password (create / reset /
+  // bulk issue), the plaintext is kept AES-256-GCM encrypted (lib/pii.ts) so
+  // the handover sheet can be re-opened and given to a club — which is what
+  // "we lost the printout" needs, without resetting every account again.
+  //
+  // INVARIANT — the whole safety of this feature rests on it: non-null ONLY
+  // while the password is still the system-generated temp the user has never
+  // replaced. Every path that writes passwordHash must call
+  // clearIssuedCredential() (lib/issued-credential.ts), so this column can
+  // never hold a password a human chose for themselves. Users reuse personal
+  // passwords across services; a system-generated single-use string is a very
+  // different thing to be holding.
+  issuedPasswordEnc     String?
+  issuedPasswordAt      DateTime?
+  // Who generated it — a reveal is an audited act and needs an author.
+  issuedById            String?
   // Monotonic counter embedded in every JWT for this user. Incrementing
   // invalidates every active session for the user at once — used on
   // password reset / "sign out everywhere". Without this, a stolen JWT

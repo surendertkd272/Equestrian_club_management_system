@@ -44,6 +44,7 @@ export const NAV: NavGroup[] = [
       // is not granted to ADMIN.
       { href: "/centres", label: "Clubs (HQ)", iconName: "Building2", perm: ["SUPER_ADMIN", "ADMIN"] },
       { href: "/users", label: "Users (HQ)", iconName: "UserCog", perm: ["SUPER_ADMIN", "ADMIN"] },
+      { href: "/users/credentials", label: "Credential Sheet", iconName: "KeyRound", perm: ["SUPER_ADMIN", "ADMIN"] },
       { href: "/hq-dashboard", label: "HQ Comparative", iconName: "LineChart", perm: ["SUPER_ADMIN", "ADMIN"], feature: "hq-dashboard" },
       { href: "/hq-expenses", label: "HQ Invoices", iconName: "Receipt", perm: ["SUPER_ADMIN", "ADMIN"] },
       { href: "/settings", label: "Settings", iconName: "Settings", perm: ["SUPER_ADMIN", "ADMIN"] },

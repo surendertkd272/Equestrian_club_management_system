@@ -11,6 +11,7 @@ import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { callerSharesOrgWithUser } from "@/lib/authz-org";
+import { storeIssuedCredential } from "@/lib/issued-credential";
 
 const schema = z.object({
   action: z.enum(["approve", "reject"]),
@@ -118,6 +119,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     body: "Your account has been approved. Sign in with the temporary password the admin shared.",
     link: "/dashboard",
   });
+
+  // Onto the centre's handover sheet; cleared when they choose their own.
+  await storeIssuedCredential(prisma, target.id, tempPassword, session.userId);
 
   return NextResponse.json({ ok: true, tempPassword });
 }

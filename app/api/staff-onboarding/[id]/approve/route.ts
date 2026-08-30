@@ -12,6 +12,7 @@ import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { approveOnboardingSchema } from "@/lib/schemas/onboarding-staff";
 import { ASSIGNABLE_STAFF_ROLES } from "@/lib/schemas/staff";
+import { storeIssuedCredential } from "@/lib/issued-credential";
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -134,6 +135,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     rowId: ob.id,
     after: { staffId: result.staffId, userId: result.userId, role: d.role },
   });
+
+  // Onto the centre's handover sheet; cleared when they choose their own.
+  await storeIssuedCredential(prisma, result.userId, tempPassword, session.userId);
 
   return NextResponse.json({ ok: true, ...result, tempPassword });
 }

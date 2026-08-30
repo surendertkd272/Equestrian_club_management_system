@@ -10,6 +10,7 @@ import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { parseCsv } from "@/lib/csv-parse";
 import { indianMobile } from "@/lib/schemas/phone";
+import { storeIssuedCredential } from "@/lib/issued-credential";
 
 // Bulk staff import. Creates a User per row + a linked Staff row.
 // Each user gets a temp password (printed in the response) and
@@ -160,6 +161,7 @@ export async function POST(req: NextRequest) {
         salaryBand: v.data.salary_band ?? null,
       },
     });
+    await storeIssuedCredential(prisma, user.id, tempPassword, session.userId);
     created.push({ id: user.id, email: user.email, tempPassword });
   }
 

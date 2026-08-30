@@ -7,6 +7,7 @@ import { USER_STATUSES, createUserSchema } from "@/lib/schemas/user-admin";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { getOrgIdForSession } from "@/lib/features-gate";
+import { storeIssuedCredential } from "@/lib/issued-credential";
 
 // GET /api/users — HQ search/filter across every user in every club.
 // Query params:
@@ -139,6 +140,10 @@ export async function POST(req: NextRequest) {
       mustChangePassword: true,
     },
   });
+
+  // Keep the generated temp so the handover sheet for this centre can be
+  // re-opened later. Cleared the moment the user picks their own password.
+  await storeIssuedCredential(prisma, user.id, tempPassword, session.userId);
 
   await audit({
     userId: session.userId,

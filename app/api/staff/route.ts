@@ -62,6 +62,9 @@ export async function POST(req: NextRequest) {
   const existing = await prisma.user.findUnique({ where: { email: d.email } });
   if (existing) return NextResponse.json({ error: "EMAIL_IN_USE" }, { status: 409 });
 
+  // NOTE: chosen by the admin, not generated. Deliberately never goes on a
+  // handover sheet — a human-chosen string is the one thing
+  // issuedPasswordEnc must never hold (see lib/issued-credential.ts).
   const passwordHash = await hashPassword(d.password);
 
   const user = await prisma.user.create({

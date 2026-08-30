@@ -29,6 +29,7 @@ export const FEATURE_GUIDES: Record<string, FeatureGuide> = {
   "/analytics": { title: "Analytics", blurb: "Performance and revenue trend charts.", help: "Track how riders, attendance, and income are trending over time." },
   "/centres": { title: "Clubs (HQ)", blurb: "List and manage every club in your organisation.", help: "HQ oversight of all centres — open one to see its details." },
   "/users": { title: "Users (HQ)", blurb: "Manage all login accounts across the organisation.", help: "Create accounts, set roles, and reset access for any user." },
+  "/users/credentials": { title: "Credential Sheet", blurb: "Issue and re-read sign-in details for a centre's staff.", help: "Onboarding a club means creating many accounts at once. Issue passwords for a whole centre here and hand the sheet over; you can re-open it until each person signs in and picks their own, at which point their entry disappears and cannot be recovered. Passwords people chose themselves are never shown." },
   "/hq-dashboard": { title: "HQ Comparative", blurb: "Side-by-side numbers for every centre.", help: "Compare clubs on the same metrics to spot outliers." },
   "/hq-expenses": { title: "HQ Invoices", blurb: "Organisation-level billing across clubs.", help: "Review and record invoices rolled up across all centres." },
   "/settings": { title: "Settings", blurb: "Your organisation's public contact details.", help: "Set the support email and phone shown to riders, parents, and staff on the Help Center and portals." },

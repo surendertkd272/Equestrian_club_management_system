@@ -6,6 +6,7 @@ import { getSession, hashPassword } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { callerSharesOrgWithUser } from "@/lib/authz-org";
+import { storeIssuedCredential, clearIssuedCredential } from "@/lib/issued-credential";
 
 // POST /api/users/[id]/reset-password — HQ resets a user's password.
 // Two modes:
@@ -53,6 +54,15 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // password (important when resetting a departed/compromised account).
     data: { passwordHash, mustChangePassword: !manual, tokenVersion: { increment: 1 } },
   });
+
+  // A generated temp goes on the handover sheet. A manually chosen one does
+  // NOT — the admin picked that string and may well have reused it, so it is
+  // exactly the kind of password this column must never hold.
+  if (manual) {
+    await clearIssuedCredential(prisma, target.id);
+  } else {
+    await storeIssuedCredential(prisma, target.id, tempPassword, session.userId);
+  }
 
   await audit({
     userId: session.userId,

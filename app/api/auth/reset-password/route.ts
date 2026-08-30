@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/auth";
+import { CLEAR_ISSUED_CREDENTIAL } from "@/lib/issued-credential";
 import { redeemResetToken } from "@/lib/password-reset";
 import { audit } from "@/lib/audit";
 import { checkPasswordPolicy } from "@/lib/password-policy";
@@ -44,6 +45,8 @@ export async function POST(req: NextRequest) {
       passwordHash: newHash,
       mustChangePassword: false,
       tokenVersion: { increment: 1 },
+      // Self-chosen via the reset link — drop the issued temp.
+      ...CLEAR_ISSUED_CREDENTIAL,
     },
   });
 

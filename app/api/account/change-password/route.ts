@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, verifyPassword, hashPassword, signSession, setSessionCookie } from "@/lib/auth";
+import { CLEAR_ISSUED_CREDENTIAL } from "@/lib/issued-credential";
 import { audit } from "@/lib/audit";
 import { changePasswordSchema } from "@/lib/schemas/account";
 import { checkPasswordPolicy } from "@/lib/password-policy";
@@ -36,7 +37,15 @@ export async function POST(req: NextRequest) {
   const newHash = await hashPassword(parsed.data.newPassword);
   const updated = await prisma.user.update({
     where: { id: session.userId },
-    data: { passwordHash: newHash, mustChangePassword: false, tokenVersion: { increment: 1 } },
+    // The user has chosen their own password, so the issued temp is no
+    // longer on this account — forget it, or the handover sheet would show
+    // a password that no longer works AND outlive its one legitimate use.
+    data: {
+      passwordHash: newHash,
+      mustChangePassword: false,
+      tokenVersion: { increment: 1 },
+      ...CLEAR_ISSUED_CREDENTIAL,
+    },
     select: { tokenVersion: true, centreId: true, name: true },
   });
 
