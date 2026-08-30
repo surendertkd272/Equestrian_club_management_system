@@ -23,6 +23,8 @@ import { WithdrawPanel, WithdrawnRiderBanner } from "./withdraw-panel";
 import { creditPosition } from "@/lib/credit-note";
 import { InvoiceReversalActions, ReversePaymentButton } from "@/components/finance/reversal-actions";
 import { RecordPaymentButton } from "@/components/finance/record-payment-button";
+import { ConsentRecord } from "./consent-record";
+import { PLATFORM_TZ } from "@/lib/tz";
 export const dynamic = "force-dynamic";
 
 function AttendanceSummary({ attendances }: { attendances: { status: string }[] }) {
@@ -41,12 +43,17 @@ export default async function RiderProfile({ params }: { params: { id: string } 
   // Same role gate as the list — the detail page exposes the most PII (DOB,
   // contacts, Aadhaar doc), so enforce the /riders nav perm server-side.
   const session = await assertRoute("/riders");
+  // Who sees the full consent evidence. HQ tier only: it carries a parent's IP
+  // and device, which are needed for a dispute rather than for running a club.
+  const isHqViewer = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
   const centreId = scopeCentre(session);
 
   const rider = await prisma.rider.findUnique({
     where: { id: params.id },
     include: {
-      centre: { select: { id: true, name: true } },
+      // timezone: the consent record renders a legal timestamp, and the server
+      // runs UTC — without it a 00:30 IST signature reads as the day before.
+      centre: { select: { id: true, name: true, timezone: true } },
       batch: { select: { name: true, startTime: true, endTime: true, dayOfWeek: true } },
       invoices: {
         orderBy: { createdAt: "desc" },
@@ -349,22 +356,30 @@ export default async function RiderProfile({ params }: { params: { id: string } 
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Indemnity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid grid-cols-2 gap-y-2 text-sm">
-              <dt className="text-muted-foreground">Signed At</dt>
-              <dd>{rider.indemnitySignedAt ? formatDate(rider.indemnitySignedAt) : "Not signed"}</dd>
-              <dt className="text-muted-foreground">Signer IP</dt>
-              <dd className="font-mono text-xs">{rider.indemnitySignerIp ?? "—"}</dd>
-              <dt className="text-muted-foreground">User Agent</dt>
-              <dd className="font-mono text-xs truncate">{rider.indemnitySignerUa ?? "—"}</dd>
-            </dl>
-          </CardContent>
-        </Card>
+        {/* Non-HQ staff get the fact, not the evidence: whether a signature
+            exists is operationally useful (don't let an unsigned rider mount),
+            while the IP and device are a parent's personal data that only
+            matter in a dispute. The full record is HQ-only, below. */}
+        {!isHqViewer && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Indemnity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid grid-cols-2 gap-y-2 text-sm">
+                <dt className="text-muted-foreground">Signed At</dt>
+                <dd>
+                  {rider.indemnitySignedAt ? formatDate(rider.indemnitySignedAt) : "Not signed"}
+                </dd>
+              </dl>
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      {isHqViewer && (
+        <ConsentRecord rider={rider} timeZone={rider.centre?.timezone ?? PLATFORM_TZ} />
+      )}
 
       <Card>
         <CardHeader>
