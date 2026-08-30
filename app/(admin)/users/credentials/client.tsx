@@ -14,9 +14,15 @@ type Row = {
   email: string;
   role: string;
   status?: string;
+  centre?: string;
   password: string | null;
   issuedAt?: string | null;
 };
+
+// Must match the sentinel the API expects. Deliberately not "" — an empty
+// value is what a dropped parameter looks like, and that must never mean
+// "every centre" on an action that resets passwords.
+const ALL_CENTRES = "__all__";
 
 export function CredentialSheet({
   centres,
@@ -29,7 +35,10 @@ export function CredentialSheet({
   const [rows, setRows] = useState<Row[] | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const centreName = centres.find((c) => c.id === centreId)?.name ?? "";
+  const centreName =
+    centreId === ALL_CENTRES
+      ? `all ${centres.length} centres`
+      : (centres.find((c) => c.id === centreId)?.name ?? "");
 
   const load = useCallback(async () => {
     if (!centreId) return;
@@ -113,7 +122,9 @@ export function CredentialSheet({
     const text = [
       `Sign-in details — ${centreName}`,
       "",
-      ...rows.map((r) => `${r.name}\t${r.email}\t${r.password ?? "—"}\t${roleLabel(r.role)}`),
+      ...rows.map(
+        (r) => `${r.name}\t${r.email}\t${r.password ?? "—"}\t${roleLabel(r.role)}\t${r.centre ?? ""}`,
+      ),
       "",
       "Everyone must change their password at first sign-in.",
     ].join("\n");
@@ -142,6 +153,7 @@ export function CredentialSheet({
                 {c.name}
               </option>
             ))}
+            <option value={ALL_CENTRES}>All centres ({centres.length})</option>
           </select>
           <Button size="sm" variant="outline" onClick={load} disabled={busy || !centreId}>
             Open sheet
@@ -185,6 +197,7 @@ export function CredentialSheet({
                     <th className="py-2 pr-3">Email (username)</th>
                     <th className="py-2 pr-3">Password</th>
                     <th className="py-2 pr-3">Role</th>
+                    <th className="py-2 pr-3">Centre</th>
                     <th className="py-2">Issued</th>
                   </tr>
                 </thead>
@@ -197,6 +210,7 @@ export function CredentialSheet({
                       <td className="py-2 pr-3">
                         <Badge variant="outline">{roleLabel(r.role)}</Badge>
                       </td>
+                      <td className="py-2 pr-3 text-xs text-muted-foreground">{r.centre ?? "—"}</td>
                       <td className="py-2 text-xs text-muted-foreground">
                         {r.issuedAt ? formatDate(r.issuedAt) : "—"}
                       </td>

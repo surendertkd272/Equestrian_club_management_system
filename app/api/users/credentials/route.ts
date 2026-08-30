@@ -7,6 +7,7 @@ import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { storeIssuedCredential, revealIssuedCredential } from "@/lib/issued-credential";
 import { resolveWriteCentre } from "@/lib/resolve-centre";
+import { getOrgIdForSession } from "@/lib/features-gate";
 
 // The credential handover sheet for a centre.
 //
@@ -29,6 +30,42 @@ import { resolveWriteCentre } from "@/lib/resolve-centre";
 // every account under them, so it stays at HQ until someone asks for it.
 function hqOnly(role: string) {
   return role === "SUPER_ADMIN" || role === "ADMIN";
+}
+
+// Onboarding a multi-centre client is the same job at every club, and clicking
+// through them one at a time invites doing four and forgetting the fifth. So
+// "every centre" is expressible — but only as an EXPLICIT sentinel, never as
+// the default. A missing or empty centreId still goes through
+// resolveWriteCentre, so a dropped parameter can never silently widen a
+// single-club action into a platform-wide password reset.
+const ALL_CENTRES = "__all__";
+
+/**
+ * Resolve the centre filter for a request. Org-fenced on both branches, and
+ * always returns a bounded clause — "all centres" becomes an explicit list of
+ * THIS org's centre ids, never an absent filter.
+ */
+async function resolveScope(
+  session: Parameters<typeof resolveWriteCentre>[0],
+  requested: string | undefined,
+): Promise<
+  | { where: { centreId: string | { in: string[] } }; label: string; error?: never }
+  | { error: NextResponse; where?: never; label?: never }
+> {
+  if (requested === ALL_CENTRES) {
+    const orgId = await getOrgIdForSession(session);
+    // Fail closed: without a resolvable org we cannot prove which centres
+    // belong to the caller, and "all centres" must never become "all tenants".
+    if (!orgId) return { error: NextResponse.json({ error: "NO_ORG" }, { status: 403 }) };
+    const centres = await prisma.centre.findMany({ where: { orgId }, select: { id: true } });
+    return {
+      where: { centreId: { in: centres.map((c) => c.id) } },
+      label: `all-centres (${centres.length})`,
+    };
+  }
+  const resolved = await resolveWriteCentre(session, { centreId: requested });
+  if (resolved.error) return { error: resolved.error };
+  return { where: { centreId: resolved.centreId }, label: resolved.centreId };
 }
 
 const issueSchema = z.object({
@@ -64,14 +101,12 @@ export async function GET(req: NextRequest) {
   if (!hqOnly(session.role)) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
 
   const url = new URL(req.url);
-  const resolved = await resolveWriteCentre(session, {
-    centreId: url.searchParams.get("centreId") ?? undefined,
-  });
-  if (resolved.error) return resolved.error;
+  const scope = await resolveScope(session, url.searchParams.get("centreId") ?? undefined);
+  if (scope.error) return scope.error;
 
   const rows = await prisma.user.findMany({
     where: {
-      centreId: resolved.centreId,
+      ...scope.where,
       role: { notIn: EXCLUDED_ROLES },
       issuedPasswordEnc: { not: null },
     },
@@ -83,8 +118,9 @@ export async function GET(req: NextRequest) {
       status: true,
       issuedPasswordEnc: true,
       issuedPasswordAt: true,
+      centre: { select: { name: true } },
     },
-    orderBy: [{ role: "asc" }, { name: "asc" }],
+    orderBy: [{ centreId: "asc" }, { role: "asc" }, { name: "asc" }],
   });
 
   // Reading a batch of live credentials is a privileged act, so it leaves a
@@ -93,7 +129,7 @@ export async function GET(req: NextRequest) {
     userId: session.userId,
     action: "user.credentials_revealed",
     tableName: "user",
-    rowId: resolved.centreId,
+    rowId: scope.label,
     after: { count: rows.length, userIds: rows.map((r) => r.id) },
     ip: req.headers.get("x-forwarded-for"),
     userAgent: req.headers.get("user-agent"),
@@ -101,13 +137,14 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    centreId: resolved.centreId,
+    scope: scope.label,
     rows: rows.map((r) => ({
       id: r.id,
       name: r.name,
       email: r.email,
       role: r.role,
       status: r.status,
+      centre: r.centre?.name ?? "—",
       issuedAt: r.issuedPasswordAt,
       password: revealIssuedCredential(r.issuedPasswordEnc),
     })),
@@ -128,34 +165,43 @@ export async function POST(req: NextRequest) {
   }
   const d = parsed.data;
 
-  const resolved = await resolveWriteCentre(session, { centreId: d.centreId });
-  if (resolved.error) return resolved.error;
+  const scope = await resolveScope(session, d.centreId);
+  if (scope.error) return scope.error;
 
   const targets = await prisma.user.findMany({
     where: {
       // Centre-scoped, ALWAYS — this is the fence that stops an id from
-      // another club being slipped into userIds.
-      centreId: resolved.centreId,
+      // another club being slipped into userIds. Even the all-centres branch
+      // resolves to an explicit list of THIS org's centre ids, never to an
+      // absent filter.
+      ...scope.where,
       role: { notIn: EXCLUDED_ROLES },
       ...(d.userIds?.length ? { id: { in: d.userIds } } : {}),
       ...(d.roles?.length ? { role: { in: d.roles } } : {}),
       ...(d.includeAlreadyIssued ? {} : { issuedPasswordEnc: null }),
     },
-    select: { id: true, name: true, email: true, role: true },
-    orderBy: [{ role: "asc" }, { name: "asc" }],
+    select: { id: true, name: true, email: true, role: true, centre: { select: { name: true } } },
+    orderBy: [{ centreId: "asc" }, { role: "asc" }, { name: "asc" }],
   });
 
   if (d.dryRun) {
     return NextResponse.json({
       ok: true,
       dryRun: true,
-      centreId: resolved.centreId,
+      scope: scope.label,
       wouldAffect: targets.length,
       names: targets.slice(0, 20).map((t) => t.name),
     });
   }
 
-  const issued: Array<{ id: string; name: string; email: string; role: string; password: string }> = [];
+  const issued: Array<{
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    centre: string;
+    password: string;
+  }> = [];
   for (const t of targets) {
     const tempPassword = crypto.randomBytes(12).toString("base64url");
     const passwordHash = await hashPassword(tempPassword);
@@ -166,18 +212,18 @@ export async function POST(req: NextRequest) {
       data: { passwordHash, mustChangePassword: true, tokenVersion: { increment: 1 } },
     });
     await storeIssuedCredential(prisma, t.id, tempPassword, session.userId);
-    issued.push({ ...t, password: tempPassword });
+    issued.push({ ...t, centre: t.centre?.name ?? "—", password: tempPassword });
   }
 
   await audit({
     userId: session.userId,
     action: "user.credentials_issued",
     tableName: "user",
-    rowId: resolved.centreId,
+    rowId: scope.label,
     after: { count: issued.length, userIds: issued.map((i) => i.id) },
     ip: req.headers.get("x-forwarded-for"),
     userAgent: req.headers.get("user-agent"),
   });
 
-  return NextResponse.json({ ok: true, centreId: resolved.centreId, issued });
+  return NextResponse.json({ ok: true, scope: scope.label, issued });
 }

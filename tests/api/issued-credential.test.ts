@@ -221,6 +221,56 @@ describe("POST /api/users/credentials — bulk issue", () => {
     expect(after.issuedPasswordEnc).toBeNull();
   });
 
+  it("covers every centre in the org when asked explicitly", async () => {
+    const second = await mkCentre({ orgId: org.id, name: "Second Centre" });
+    await mkUser({ role: "COACH", centreId: centre.id, email: "a1@club.in" });
+    await mkUser({ role: "GROOM", centreId: second.id, email: "a2@club.in" });
+    await signIn(hq);
+
+    const body = await (await call({ centreId: "__all__" })).json();
+    expect(body.issued).toHaveLength(2);
+    expect(body.issued.map((i: { email: string }) => i.email).sort()).toEqual([
+      "a1@club.in",
+      "a2@club.in",
+    ]);
+  });
+
+  it("all-centres still stops at the org boundary", async () => {
+    // The dangerous version of this feature: "all centres" quietly meaning
+    // "all tenants". It resolves to an explicit list of THIS org's centre ids,
+    // so another club's staff are untouched.
+    const other = await mkOrg("Rival Org");
+    const otherCentre = await mkCentre({ orgId: other.id, name: "Rival Centre" });
+    const victim = await mkUser({ role: "COACH", centreId: otherCentre.id, email: "v2@rival.in" });
+    const before = await prisma.user.findUniqueOrThrow({ where: { id: victim.id } });
+    await mkUser({ role: "COACH", centreId: centre.id, email: "ours2@club.in" });
+    await signIn(hq);
+
+    const body = await (await call({ centreId: "__all__" })).json();
+    expect(body.issued.map((i: { email: string }) => i.email)).toEqual(["ours2@club.in"]);
+    const after = await prisma.user.findUniqueOrThrow({ where: { id: victim.id } });
+    expect(after.passwordHash).toBe(before.passwordHash);
+    expect(after.tokenVersion).toBe(before.tokenVersion);
+  });
+
+  it("an empty centreId never means every centre", async () => {
+    // A dropped parameter must not widen a single-club action into a
+    // platform-wide password reset — only the explicit sentinel does that.
+    const second = await mkCentre({ orgId: org.id, name: "Third Centre" });
+    await mkUser({ role: "COACH", centreId: second.id, email: "b1@club.in" });
+    await signIn(hq);
+
+    const res = await call({ centreId: "" });
+    if (res.status === 200) {
+      const body = await res.json();
+      expect(body.scope).not.toContain("all-centres");
+    } else {
+      // Or it refuses outright for want of a centre — either is safe, silently
+      // hitting every centre is not.
+      expect(res.status).toBeGreaterThanOrEqual(400);
+    }
+  });
+
   it("refuses a non-HQ caller", async () => {
     const mgr = await mkUser({ role: "CENTRE_MANAGER", centreId: centre.id, email: "m@club.in" });
     await signIn({ id: mgr.id, role: "CENTRE_MANAGER", centreId: centre.id, orgId: org.id });
