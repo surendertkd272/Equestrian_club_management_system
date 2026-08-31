@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { parseCsv } from "@/lib/csv-parse";
+import { parseXlsx } from "@/lib/xlsx-parse";
 import { isRealYMD } from "@/lib/utils";
 import { indianMobile } from "@/lib/schemas/phone";
 
@@ -72,6 +73,10 @@ const payloadSchema = z.object({
   // Either supply a CSV string OR a structured rows array. CSV path is the
   // primary flow; rows[] is for programmatic clients.
   csv: z.string().optional(),
+  // The template we hand out, uploaded as-is. Avoids the "Save As → CSV" step
+  // that silently rewrites every date to the machine's locale format and fails
+  // the whole upload on DOB validation.
+  xlsxBase64: z.string().max(20_000_000).optional(),
   rows: z.array(z.record(z.string())).optional(),
   // If true, the response includes what WOULD have been created but does
   // not write anything — used by the preview button before confirm.
@@ -154,14 +159,28 @@ export async function POST(req: NextRequest) {
   // Parse input → rows array.
   let rawRows: Record<string, string>[] = [];
   let parseErrors: { line: number; reason: string }[] = [];
-  if (parsed.data.csv) {
+  if (parsed.data.xlsxBase64) {
+    try {
+      const r = await parseXlsx(Buffer.from(parsed.data.xlsxBase64, "base64"));
+      rawRows = r.rows;
+      parseErrors = r.errors;
+    } catch {
+      return NextResponse.json(
+        {
+          error: "BAD_XLSX",
+          message: "That file couldn't be read as an Excel workbook. Re-save it as .xlsx, or export it to CSV and upload that.",
+        },
+        { status: 400 },
+      );
+    }
+  } else if (parsed.data.csv) {
     const r = parseCsv(parsed.data.csv);
     rawRows = r.rows;
     parseErrors = r.errors;
   } else if (parsed.data.rows) {
     rawRows = parsed.data.rows;
   } else {
-    return NextResponse.json({ error: "NO_INPUT", message: "Provide csv or rows." }, { status: 400 });
+    return NextResponse.json({ error: "NO_INPUT", message: "Provide an .xlsx file, csv, or rows." }, { status: 400 });
   }
 
   // Pre-load existing mobiles + emails for the target centre so dedup is a
@@ -222,12 +241,39 @@ export async function POST(req: NextRequest) {
     valid.push({ row: r.data, line });
   });
 
+  const batchNames = [...new Set(valid.map((v) => v.row.batch).filter(Boolean) as string[])];
+  let unknownBatches: string[] = [];
+  const batchByName = new Map<string, string>();
+  if (batchNames.length > 0) {
+    const found = await prisma.batch.findMany({
+      where: { centreId: targetCentreId },
+      select: { id: true, name: true },
+    });
+    for (const b of found) batchByName.set(b.name.trim().toLowerCase(), b.id);
+    unknownBatches = batchNames.filter((n) => !batchByName.has(n.trim().toLowerCase()));
+  }
+
+  // An unmatched batch name used to reject the ENTIRE upload — one typo in row
+  // 40 and all ninety riders were refused, with the club left to find the
+  // offending cell by eye. That is a wildly disproportionate response to a
+  // spelling mistake in an optional column.
+  //
+  // Now those riders import with no batch and the mismatched names are
+  // reported, so the fix is assigning a batch to a handful of people (which
+  // the Riders page does in bulk) instead of re-running the whole import.
+  // Deliberately NOT fuzzy-matched: quietly putting a child in a class nobody
+  // chose is worse than leaving them unassigned and saying so.
+
   if (parsed.data.dryRun) {
     return NextResponse.json({
       dryRun: true,
       wouldCreate: valid.length,
       duplicates: rowErrors.filter((e) => e.reason.startsWith("Duplicate") || e.reason.startsWith("Email")).length,
       errors: [...parseErrors, ...rowErrors],
+      // Reported at PREVIEW time, which is the whole point of a preview —
+      // finding out after the write that ninety riders have no batch is the
+      // situation this is meant to prevent.
+      unknownBatches,
       preview: valid.slice(0, 10).map(({ row, line }) => ({ line, ...row })),
     });
   }
@@ -236,27 +282,6 @@ export async function POST(req: NextRequest) {
   // the name is typed into a spreadsheet by hand; an unmatched name is reported
   // as a row error rather than silently importing the rider with no batch,
   // which is the failure this column exists to prevent.
-  const batchNames = [...new Set(valid.map((v) => v.row.batch).filter(Boolean) as string[])];
-  const batchByName = new Map<string, string>();
-  if (batchNames.length > 0) {
-    const found = await prisma.batch.findMany({
-      where: { centreId: targetCentreId },
-      select: { id: true, name: true },
-    });
-    for (const b of found) batchByName.set(b.name.trim().toLowerCase(), b.id);
-    const unknown = batchNames.filter((n) => !batchByName.has(n.trim().toLowerCase()));
-    if (unknown.length > 0) {
-      return NextResponse.json(
-        {
-          error: "UNKNOWN_BATCH",
-          message: `No batch at this centre named: ${unknown.join(", ")}. Create it first, or leave the column blank.`,
-          details: unknown,
-        },
-        { status: 400 },
-      );
-    }
-  }
-
   // Create in a single transaction so a mid-batch failure rolls everything
   // back. Schedule a per-rider exam if both `level` and a target examiner
   // are supplied.
@@ -326,5 +351,6 @@ export async function POST(req: NextRequest) {
     created: result.created,
     examsScheduled: result.examsScheduled,
     errors: [...parseErrors, ...rowErrors],
+    unknownBatches,
   });
 }

@@ -13,6 +13,7 @@ type Preview = {
   wouldCreate: number;
   duplicates: number;
   errors: { line: number; reason: string }[];
+  unknownBatches?: string[];
   preview: Record<string, string>[];
 };
 
@@ -20,6 +21,7 @@ type ImportResult = {
   created: number;
   examsScheduled: number;
   errors: { line: number; reason: string }[];
+  unknownBatches?: string[];
 };
 
 export function ImportForm({
@@ -33,18 +35,41 @@ export function ImportForm({
   const [preview, setPreview] = useState<Preview | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [busy, setBusy] = useState<null | "preview" | "import">(null);
+  // Set when an .xlsx was uploaded. Kept separate from the CSV textarea so
+  // the paste-CSV path is unaffected and the two never fight over the source.
+  const [xlsx, setXlsx] = useState<{ name: string; base64: string } | null>(null);
 
   async function readFile(file: File | null) {
     if (!file) return;
-    const text = await file.text();
-    setCsv(text);
     setPreview(null);
     setResult(null);
+
+    // Read the workbook as-is. Telling people to "Save As → CSV" first was not
+    // just an extra step: Excel rewrites dates on CSV export to the machine's
+    // locale, so 2014-08-23 came back as 23/08/2014 and every row failed DOB
+    // validation.
+    if (/\.xlsx?$/i.test(file.name)) {
+      const buf = await file.arrayBuffer();
+      let binary = "";
+      const bytes = new Uint8Array(buf);
+      // Chunked — String.fromCharCode(...bytes) blows the argument limit on a
+      // workbook of any size.
+      for (let i = 0; i < bytes.length; i += 8192) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+      }
+      setXlsx({ name: file.name, base64: btoa(binary) });
+      setCsv("");
+      return;
+    }
+
+    const text = await file.text();
+    setCsv(text);
+    setXlsx(null);
   }
 
   async function call(dryRun: boolean) {
-    if (!csv.trim()) {
-      toast.error("Paste CSV or upload a file first.");
+    if (!csv.trim() && !xlsx) {
+      toast.error("Upload the filled-in template, or paste CSV.");
       return;
     }
     setBusy(dryRun ? "preview" : "import");
@@ -53,7 +78,7 @@ export function ImportForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          csv,
+          ...(xlsx ? { xlsxBase64: xlsx.base64 } : { csv }),
           dryRun,
           examinerId: examinerId || undefined,
         }),
@@ -81,10 +106,10 @@ export function ImportForm({
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <Label>CSV File</Label>
+          <Label>Filled-in template (.xlsx or .csv)</Label>
           <input
             type="file"
-            accept=".csv,.txt,text/csv"
+            accept=".xlsx,.csv,.txt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             onChange={(e) => readFile(e.target.files?.[0] ?? null)}
             className="mt-1 block w-full text-sm"
           />
@@ -95,15 +120,17 @@ export function ImportForm({
               Excel will otherwise re-emit 2014-08-23 as 23-08-2014 on CSV
               export and fail every row. */}
           <p className="mt-1.5 text-xs text-muted-foreground">
-            Not sure of the format?{" "}
+            Upload the Excel file directly — no need to convert it.{" "}
             <a
               href="/templates/equiwings-rider-import-template.xlsx"
               className="text-primary underline"
               download
             >
               Download the Excel template
-            </a>{" "}
-            — fill it in, then save as CSV.
+            </a>
+            {xlsx && (
+              <span className="ml-1 font-medium text-foreground">· {xlsx.name} loaded</span>
+            )}
           </p>
         </div>
         <div>
@@ -162,6 +189,16 @@ export function ImportForm({
               <Badge variant="destructive">{preview.errors.length} error(s)</Badge>
             )}
           </div>
+          {preview.unknownBatches && preview.unknownBatches.length > 0 && (
+            // No longer fatal — these riders import, just without a batch. Said
+            // plainly so it is a small follow-up rather than a surprise.
+            <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs dark:border-amber-900 dark:bg-amber-950/40">
+              No batch at this centre matches:{" "}
+              <strong>{preview.unknownBatches.join(", ")}</strong>. Those riders will still be
+              imported, with no batch — check the spelling against the
+              &ldquo;Batch names&rdquo; sheet, or assign them afterwards from the Riders page.
+            </p>
+          )}
           {preview.preview.length > 0 && (
             <div>
               <div className="mt-2 text-xs font-semibold uppercase text-muted-foreground">First {preview.preview.length} rows</div>

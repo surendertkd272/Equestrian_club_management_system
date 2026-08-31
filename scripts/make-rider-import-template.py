@@ -20,7 +20,6 @@ import subprocess
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.worksheet.datavalidation import DataValidation
-from openpyxl.comments import Comment
 from openpyxl.utils import get_column_letter
 
 OUT = "public/templates/equiwings-rider-import-template.xlsx"
@@ -71,7 +70,10 @@ for i, (name, required, width, help_text) in enumerate(COLUMNS, start=1):
     c.fill = HEAD_REQ if required else HEAD_OPT
     c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
     c.border = THIN
-    c.comment = Comment(("REQUIRED\n\n" if required else "Optional\n\n") + help_text, "Equiwings")
+    # NO cell comments. openpyxl writes them in a form ExcelJS cannot read, and
+    # the importer now parses this workbook directly — a template our own
+    # importer chokes on is worse than one without hover help. The same text
+    # lives on the Instructions sheet, which everyone actually reads.
     ws.column_dimensions[letter].width = width
     # Text format down the sheet — see the module docstring.
     for r in range(2, 1002):
