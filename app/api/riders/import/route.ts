@@ -35,6 +35,17 @@ const rowSchema = z.object({
       return undefined;
     }),
   school: z.string().max(120).optional().transform((v) => v || undefined),
+  school_class: z.string().max(40).optional().transform((v) => v || undefined),
+  school_section: z.string().max(20).optional().transform((v) => v || undefined),
+  // A PARENT's address, and for a club of minors the one that matters.
+  //
+  // 96 riders in 100 have no email of their own, which is unsurprising when
+  // two thirds of them are children — so every email feature (consent links,
+  // report cards, portal logins) had nobody to write to. The rider's own
+  // address stays optional; this is the column that actually gets filled.
+  parent_email: z.string().email().optional().or(z.literal("")).transform((v) => v || undefined),
+  parent_name: z.string().max(120).optional().transform((v) => v || undefined),
+  parent_phone: z.string().max(20).optional().transform((v) => v || undefined),
   joining_date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -263,6 +274,16 @@ export async function POST(req: NextRequest) {
           dob: new Date(row.dob),
           gender: row.gender ?? null,
           school: row.school ?? null,
+          schoolClass: row.school_class ?? null,
+          schoolSection: row.school_section ?? null,
+          fatherName: row.parent_name ?? null,
+          fatherPhone: row.parent_phone ?? null,
+          // Parked in the consent blob, which is where consentRecipient() and
+          // consentPhone() already look — so an imported parent address is
+          // immediately usable for the signing link without a second migration.
+          parentalConsentJson: row.parent_email || row.parent_phone || row.parent_name
+            ? { parentName: row.parent_name ?? null, parentEmail: row.parent_email ?? null, parentPhone: row.parent_phone ?? null, source: "bulk_import" }
+            : undefined,
           joiningDate: row.joining_date ? new Date(row.joining_date) : new Date(),
           batchId: row.batch ? batchByName.get(row.batch.trim().toLowerCase()) ?? null : null,
           status: "active",

@@ -34,9 +34,18 @@ COLUMNS = [
                                 "Used for SMS/WhatsApp, so a wrong number means the family hears nothing."),
     ("dob",          True,  14, "Date of birth, exactly YYYY-MM-DD (e.g. 2014-08-23). Required.\n"
                                 "Type it as text. Do NOT let Excel reformat it."),
-    ("email",        False, 26, "Optional. Parent's email, if you have it."),
+    ("email",        False, 26, "The RIDER's own email, if they have one. Usually blank for children."),
+    ("parent_email", False, 26, "STRONGLY RECOMMENDED — a parent's email address.\n"
+                                "This is where the indemnity signing link, the signed copy, monthly\n"
+                                "progress reports and portal login details are sent. Without it the\n"
+                                "family cannot be contacted by the system at all, and consent has to\n"
+                                "be collected on paper instead."),
+    ("parent_name",  False, 22, "Optional. Parent / guardian name."),
+    ("parent_phone", False, 16, "Optional. Parent's number, if different from the mobile column."),
     ("gender",       False, 12, "Optional. male / female / other (m, f, o also accepted)."),
     ("school",       False, 24, "Optional. School name."),
+    ("school_class", False, 12, "Optional. Class / grade — 5, V, Grade 5, XI-Science. Free text."),
+    ("school_section", False, 10, "Optional. Section — A, B, etc."),
     ("joining_date", False, 14, "Optional. YYYY-MM-DD. Defaults to the upload date if blank."),
     ("batch",        False, 22, "Optional but recommended — this is what makes attendance work.\n"
                                 "Must EXACTLY match a batch name at the centre you're uploading to.\n"

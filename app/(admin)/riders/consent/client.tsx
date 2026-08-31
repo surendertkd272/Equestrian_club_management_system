@@ -28,6 +28,56 @@ export function ConsentRequestPanel({
   // Everyone with an address who hasn't already got a live link out.
   const toSend = rows.filter((r) => r.email && !r.pendingSince).length;
 
+  async function invitePortal() {
+    setBusy(true);
+    const pre = await fetch("/api/riders/portal-access/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ centreId, dryRun: true }),
+    });
+    setBusy(false);
+    if (!pre.ok) {
+      toast.error("Couldn't check who can be invited");
+      return;
+    }
+    const { wouldCreate, noEmail } = await pre.json();
+    if (wouldCreate === 0) {
+      toast.info(
+        `Nobody can be given a login yet — ${noEmail.length} rider${noEmail.length === 1 ? " has" : "s have"} no email address on file.`,
+      );
+      return;
+    }
+    // Names the count AND what it costs, because this creates real accounts.
+    if (
+      !confirm(
+        `Create portal logins for ${wouldCreate} rider${wouldCreate === 1 ? "" : "s"}?\n\n` +
+          `${noEmail.length} will be skipped for having no email address.\n\n` +
+          `Each gets a temporary password they must change at first sign-in. ` +
+          `You can read the passwords afterwards on the Credential Sheet.`,
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    const res = await fetch("/api/riders/portal-access/bulk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ centreId }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      toast.error(e.message ?? e.error ?? "Couldn't create logins");
+      return;
+    }
+    const data = await res.json();
+    const bits = [`${data.created.length} login${data.created.length === 1 ? "" : "s"} created`];
+    if (data.noEmail?.length) bits.push(`${data.noEmail.length} without an email`);
+    if (data.emailTaken?.length) bits.push(`${data.emailTaken.length} sharing an address already in use`);
+    toast.success(bits.join(" · "));
+    router.refresh();
+  }
+
   async function send() {
     if (
       !confirm(
@@ -76,6 +126,9 @@ export function ConsentRequestPanel({
           </div>
           <Button onClick={send} disabled={busy || !canSend || toSend === 0}>
             {busy ? "Sending…" : `Email signing link to ${toSend}`}
+          </Button>
+          <Button variant="outline" onClick={invitePortal} disabled={busy}>
+            Create portal logins
           </Button>
         </div>
       </CardHeader>

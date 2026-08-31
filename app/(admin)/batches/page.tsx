@@ -97,6 +97,13 @@ export default async function BatchesPage() {
   const canManage = can(session.role, "batch.manage");
   const canCreate = !!centreId && canManage;
 
+  // Attendance needs BOTH a coach and riders. Missing either produces the same
+  // symptom — a coach opens the register and sees nothing — and the club
+  // concludes the module is broken rather than unconfigured. Stating the
+  // prerequisite is the cheapest fix for the most common support question.
+  const noCoach = batches.filter((b) => !b.coachId).length;
+  const noRiders = batches.filter((b) => b._count.riders === 0).length;
+
   return (
     <div className="space-y-6">
       <div className="flex items-end justify-between">
@@ -104,6 +111,31 @@ export default async function BatchesPage() {
           <h1 className="text-2xl font-bold">Batches</h1>
         </div>
       </div>
+
+      {(noCoach > 0 || noRiders > 0) && (
+        <Card className="border-amber-300 dark:border-amber-900">
+          <CardContent className="pt-6 text-sm">
+            <p className="font-medium">Attendance can&apos;t be marked for some batches yet</p>
+            <ul className="mt-1 list-inside list-disc text-muted-foreground">
+              {noCoach > 0 && (
+                <li>
+                  <strong>{noCoach}</strong> of {batches.length} have no coach — nobody can open
+                  their register.
+                </li>
+              )}
+              {noRiders > 0 && (
+                <li>
+                  <strong>{noRiders}</strong> have no riders — the register would be empty.
+                </li>
+              )}
+            </ul>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Assign a coach with Edit on the row, and riders from Manage riders or the Riders
+              page. A batch needs both before attendance works.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className={canManage ? "lg:col-span-2" : "lg:col-span-3"}>
@@ -128,7 +160,13 @@ export default async function BatchesPage() {
                     className: "py-2 text-xs",
                     cell: (b) =>
                       (b.coachId && coachNames.get(b.coachId)) ?? (
-                        <span className="text-muted-foreground">Unassigned</span>
+                        // Was muted grey "Unassigned", which reads as an empty
+                        // field rather than a blocker. A batch with no coach
+                        // cannot have attendance marked at all, so it is a
+                        // fault in the setup, not a missing nicety.
+                        <Badge variant="destructive" className="text-[10px]">
+                          No coach
+                        </Badge>
                       ),
                   },
                   { key: "riders", header: "Riders", cell: (b) => b._count.riders },
