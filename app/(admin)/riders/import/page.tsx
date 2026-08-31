@@ -94,7 +94,7 @@ export default async function RidersImportPage() {
           <CardTitle>Bulk upload riders</CardTitle>
           <CardDescription>
             Create rider profiles from the Excel template. Preview first — it catches
-            duplicates, bad rows and unmatched batch names before anything is written.
+            duplicates and bad rows before anything is written.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -207,8 +207,9 @@ Aarav,Patel,9876501234,aarav@example.in,2010-11-03,M,Bishop Cotton,2
                 <div>
                   <span className="font-medium">2 · Put riders in a batch</span>
                   <p className="text-xs text-muted-foreground">
-                    Attendance is built from batch membership. A rider with no batch can never be
-                    marked present. Fill the <code>batch</code> column next time to skip this.
+                    Attendance is built from batch membership — a rider with no batch can never
+                    be marked present. The spreadsheet deliberately doesn&apos;t carry batches:
+                    select several riders on the Riders page and assign them in one action.
                   </p>
                 </div>
                 <span className="flex items-center gap-2">

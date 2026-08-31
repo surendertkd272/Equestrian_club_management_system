@@ -115,8 +115,8 @@ export function ImportForm({
           />
           {/* Nothing on this page previously said what the columns were, so a
               club's first attempt was a guess. The workbook carries the exact
-              headers, per-column notes, and the batch names that exist at each
-              centre. It also pre-formats the date and mobile columns as text —
+              headers and per-column notes. It also pre-formats the date and mobile
+              columns as text —
               Excel will otherwise re-emit 2014-08-23 as 23-08-2014 on CSV
               export and fail every row. */}
           <p className="mt-1.5 text-xs text-muted-foreground">
@@ -193,10 +193,10 @@ export function ImportForm({
             // No longer fatal — these riders import, just without a batch. Said
             // plainly so it is a small follow-up rather than a surprise.
             <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs dark:border-amber-900 dark:bg-amber-950/40">
-              No batch at this centre matches:{" "}
+              This sheet has a <code>batch</code> column, which the current template no longer
+              uses. No batch here matches:{" "}
               <strong>{preview.unknownBatches.join(", ")}</strong>. Those riders will still be
-              imported, with no batch — check the spelling against the
-              &ldquo;Batch names&rdquo; sheet, or assign them afterwards from the Riders page.
+              imported — assign them a batch afterwards from the Riders page.
             </p>
           )}
           {preview.preview.length > 0 && (

@@ -46,9 +46,6 @@ COLUMNS = [
     ("school_class", False, 12, "Optional. Class / grade — 5, V, Grade 5, XI-Science. Free text."),
     ("school_section", False, 10, "Optional. Section — A, B, etc."),
     ("joining_date", False, 14, "Optional. YYYY-MM-DD. Defaults to the upload date if blank."),
-    ("batch",        False, 22, "Optional but recommended — this is what makes attendance work.\n"
-                                "Must EXACTLY match a batch name at the centre you're uploading to.\n"
-                                "See the 'Batch names' sheet. An unknown name fails the whole upload."),
     ("level",        False, 10, "Optional. 1-50. Only set this if the rider should be scheduled\n"
                                 "for a promotion exam at that level. Leave blank otherwise."),
 ]
@@ -120,14 +117,20 @@ LINES = [
     ("p", "The same mobile appearing twice inside the file is reported as an error."),
     ("", ""),
     ("b", "Example rows (do not paste these in — they are here so the sheet stays clean)"),
-    ("m", "first_name  last_name  mobile      dob         email              gender  school       joining_date  batch          level"),
-    ("m", "Aarav       Sharma     9876543210  2014-08-23  aarav@family.in    male    DPS Noida    2026-04-01    MWF Morning"),
-    ("m", "Diya        Kapoor     9812345678  2016-01-09                     female               2026-04-01    TTS Evening    2"),
+    ("m", "first_name  last_name  mobile      dob         parent_email        gender  school       joining_date  level"),
+    ("m", "Aarav       Sharma     9876543210  2014-08-23  priya@family.in     male    DPS Noida    2026-04-01"),
+    ("m", "Diya        Kapoor     9812345678  2016-01-09  raj@family.in       female               2026-04-01    2"),
     ("", ""),
-    ("b", "Why 'batch' matters more than it looks"),
-    ("p", "Attendance registers are built from batch membership. A rider with no batch cannot be"),
-    ("p", "marked present, and a coach only sees batches they are assigned to. Filling this column"),
-    ("p", "now saves assigning every rider by hand afterwards."),
+    ("b", "Batches are NOT in this sheet"),
+    ("p", "Assign riders to a batch after uploading, from the Riders page — select several and"),
+    ("p", "assign in one action. A class name typed here had to match ours character for"),
+    ("p", "character, which made it the most error-prone cell in the file."),
+    ("", ""),
+    ("b", "What happens after you upload"),
+    ("p", "Riders are created but HELD — they cannot be put on a register until the indemnity"),
+    ("p", "and injury NOC are signed. Send the signing link from Riders > Consent Collection;"),
+    ("p", "each rider goes active automatically once their parent signs. That link needs an"),
+    ("p", "email address, which is why parent_email is the most important optional column."),
 ]
 r = 2
 for kind, text in LINES:
@@ -143,38 +146,11 @@ for kind, text in LINES:
         cell.font = Font(size=11)
     r += 1
 
-# ── Sheet 3: valid batch names, pulled live so they can be typed exactly ─────
-batches = wb.create_sheet("Batch names")
-batches.column_dimensions["A"].width = 34
-batches.column_dimensions["B"].width = 46
-for i, h in enumerate(["Centre (upload while signed in here)", "Batch names — copy EXACTLY"], start=1):
-    c = batches.cell(row=1, column=i, value=h)
-    c.font = Font(bold=True, color="FFFFFF")
-    c.fill = HEAD_REQ
-    c.alignment = Alignment(vertical="center", wrap_text=True)
-batches.row_dimensions[1].height = 28
-batches.freeze_panes = "A2"
-
-rows = subprocess.run(
-    ["psql", subprocess.run(["bash", "-lc", 'set -a; source .env >/dev/null 2>&1; set +a; echo "$DIRECT_URL"'],
-                            capture_output=True, text=True).stdout.strip(),
-     "-At", "-c",
-     'SELECT c.name || \'|\' || coalesce(string_agg(b.name, \'~~\' ORDER BY b.name), \'(no batches yet)\') '
-     'FROM "Centre" c LEFT JOIN "Batch" b ON b."centreId"=c.id GROUP BY c.name ORDER BY c.name;'],
-    capture_output=True, text=True).stdout.strip().split("\n")
-
-r = 2
-for line in rows:
-    if "|" not in line:
-        continue
-    centre, names = line.split("|", 1)
-    batches.cell(row=r, column=1, value=centre).alignment = Alignment(vertical="top")
-    cell = batches.cell(row=r, column=2, value=names.replace("~~", "\n"))
-    cell.alignment = Alignment(vertical="top", wrap_text=True)
-    batches.row_dimensions[r].height = max(16, 14 * (names.count("~~") + 1))
-    r += 1
-batches.cell(row=r + 1, column=1,
-             value="Batch names change — regenerate this file if a club adds one.").font = Font(italic=True, size=9)
+# Sheet 3 ("Batch names") deliberately removed along with the batch column.
+# Batches are assigned AFTER onboarding, from the Riders page in bulk — asking
+# a club to type a class name that must match ours character-for-character was
+# the most error-prone cell in the sheet, and the list it needed goes stale the
+# moment a batch is renamed.
 
 wb.save(OUT)
 print(f"wrote {OUT}")
