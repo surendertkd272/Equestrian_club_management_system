@@ -82,7 +82,7 @@ export default async function RidersPage({
           <ExportCsvButton entity="riders" />
           {["SUPER_ADMIN", "CENTRE_MANAGER"].includes(session.role) && (
             <Button asChild variant="outline">
-              <Link href="/riders/import">Import CSV</Link>
+              <Link href="/riders/import">Bulk upload riders</Link>
             </Button>
           )}
           {/* SCHOOL_ADMINISTRATOR is read-only — they see riders but
