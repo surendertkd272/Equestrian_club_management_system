@@ -7,6 +7,7 @@ import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { ImportForm } from "./import-form";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,41 @@ export default async function RidersImportPage() {
         select: { name: true },
       })
     : null;
+
+  // Live state for the "what happens next" checklist below.
+  //
+  // Importing creates riders as ACTIVE with no approval step and no signature —
+  // a spreadsheet cannot carry one. So the roster is usable the moment it
+  // lands, which is exactly why the outstanding work has to be visible here
+  // rather than explained once and forgotten. Real counts, not prose: "12
+  // riders have no consent on file" gets acted on; "remember to collect
+  // consent" does not.
+  const [noConsent, noBatchCount, batchesNoCoach, noLogin] = centreId
+    ? await Promise.all([
+        prisma.rider.count({
+          where: {
+            centreId,
+            indemnitySignedAt: null,
+            status: { notIn: ["withdrawn", "rejected", "cancelled"] },
+          },
+        }),
+        prisma.rider.count({
+          where: {
+            centreId,
+            batchId: null,
+            status: { notIn: ["withdrawn", "rejected", "cancelled"] },
+          },
+        }),
+        prisma.batch.count({ where: { centreId, coachId: null } }),
+        prisma.rider.count({
+          where: {
+            centreId,
+            userId: null,
+            status: { notIn: ["withdrawn", "rejected", "cancelled"] },
+          },
+        }),
+      ])
+    : [0, 0, 0, 0];
 
   // Examiners are surfaced as a dropdown so the import can optionally
   // schedule exams in the same shot (any row that has a `level` column
@@ -55,10 +91,10 @@ export default async function RidersImportPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Import Riders (CSV)</CardTitle>
+          <CardTitle>Bulk upload riders</CardTitle>
           <CardDescription>
-            Bulk-create rider profiles from a spreadsheet. Run a dry preview first to catch
-            duplicates and bad rows before anything is written.
+            Create rider profiles from the Excel template. Preview first — it catches
+            duplicates, bad rows and unmatched batch names before anything is written.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -134,6 +170,98 @@ Aarav,Patel,9876501234,aarav@example.in,2010-11-03,M,Bishop Cotton,2
           </details>
         </CardContent>
       </Card>
+
+      {targetCentre && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">After the upload — what still needs doing</CardTitle>
+            <CardDescription>
+              Imported riders are created <strong>active straight away</strong>: no approval step,
+              and no signature, because a spreadsheet can&apos;t carry one. These are the things a
+              roster can&apos;t do for itself.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ol className="space-y-3 text-sm">
+              <li className="flex flex-wrap items-baseline justify-between gap-2 border-b pb-3">
+                <div>
+                  <span className="font-medium">1 · Collect the indemnity and injury NOC</span>
+                  <p className="text-xs text-muted-foreground">
+                    Until this is signed, a rider is active and could be put on a horse with
+                    nothing on file. Riders with no email are listed by name for a paper form.
+                  </p>
+                </div>
+                <span className="flex items-center gap-2">
+                  {noConsent > 0 ? (
+                    <Badge variant="destructive">{noConsent} unsigned</Badge>
+                  ) : (
+                    <Badge variant="success">All signed</Badge>
+                  )}
+                  <Link href="/riders/consent" className="text-xs text-primary underline">
+                    Open
+                  </Link>
+                </span>
+              </li>
+
+              <li className="flex flex-wrap items-baseline justify-between gap-2 border-b pb-3">
+                <div>
+                  <span className="font-medium">2 · Put riders in a batch</span>
+                  <p className="text-xs text-muted-foreground">
+                    Attendance is built from batch membership. A rider with no batch can never be
+                    marked present. Fill the <code>batch</code> column next time to skip this.
+                  </p>
+                </div>
+                <span className="flex items-center gap-2">
+                  {noBatchCount > 0 ? (
+                    <Badge variant="warning">{noBatchCount} unassigned</Badge>
+                  ) : (
+                    <Badge variant="success">All assigned</Badge>
+                  )}
+                  <Link href="/riders" className="text-xs text-primary underline">
+                    Open
+                  </Link>
+                </span>
+              </li>
+
+              <li className="flex flex-wrap items-baseline justify-between gap-2 border-b pb-3">
+                <div>
+                  <span className="font-medium">3 · Give every batch a coach</span>
+                  <p className="text-xs text-muted-foreground">
+                    Attendance needs a coach AND riders. Assigning riders to a batch with no coach
+                    still leaves a register nobody can open.
+                  </p>
+                </div>
+                <span className="flex items-center gap-2">
+                  {batchesNoCoach > 0 ? (
+                    <Badge variant="destructive">{batchesNoCoach} without a coach</Badge>
+                  ) : (
+                    <Badge variant="success">All covered</Badge>
+                  )}
+                  <Link href="/batches" className="text-xs text-primary underline">
+                    Open
+                  </Link>
+                </span>
+              </li>
+
+              <li className="flex flex-wrap items-baseline justify-between gap-2">
+                <div>
+                  <span className="font-medium">4 · Create portal logins (optional)</span>
+                  <p className="text-xs text-muted-foreground">
+                    Only possible for riders with an email — theirs or a parent&apos;s. Passwords
+                    land on the Credential Sheet so they can be handed over later.
+                  </p>
+                </div>
+                <span className="flex items-center gap-2">
+                  <Badge variant="outline">{noLogin} without a login</Badge>
+                  <Link href="/riders/consent" className="text-xs text-primary underline">
+                    Open
+                  </Link>
+                </span>
+              </li>
+            </ol>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
