@@ -122,6 +122,7 @@ function Field<T extends FieldValues>({
   placeholder,
   required,
   inputMode,
+  hint,
 }: {
   methods: UseFormReturn<T>;
   name: FieldPath<T>;
@@ -130,6 +131,8 @@ function Field<T extends FieldValues>({
   placeholder?: string;
   required?: boolean;
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  /** Why this field matters. Shown under the input, not as placeholder text. */
+  hint?: string;
 }) {
   const { register, formState } = methods;
   // rhf nests errors by path; for top-level keys (which is all we have) the
@@ -140,7 +143,12 @@ function Field<T extends FieldValues>({
   // for the inline error, so a screen reader announces the validation message.
   return (
     <FormField label={label} error={err} required={required}>
-      {(p) => <Input type={type} inputMode={inputMode} placeholder={placeholder} {...p} {...register(name)} />}
+      {(p) => (
+        <>
+          <Input type={type} inputMode={inputMode} placeholder={placeholder} {...p} {...register(name)} />
+          {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
+        </>
+      )}
     </FormField>
   );
 }
@@ -296,7 +304,20 @@ function PersonalStep({ initial, onNext }: { initial: WizardData; onNext: (d: Pe
           </Select>
         </div>
         <Field methods={methods} name="mobile" label="Mobile" required placeholder="10-digit" inputMode="tel" />
-        <Field methods={methods} name="email" label="Email" type="email" />
+        {/* Kept optional — a family without email must still be able to
+            register — but the label now says what it is FOR. Ninety-six of a
+            hundred riders left this blank, which quietly made every
+            email-based feature (consent links, report cards, portal invites)
+            unreachable for them. People fill in a field when they know why it
+            matters. */}
+        <Field
+          methods={methods}
+          name="email"
+          label="Email"
+          type="email"
+          placeholder="parent@example.com"
+          hint="Where we send the signed indemnity copy, monthly progress reports, and login details. Strongly recommended."
+        />
         <Field methods={methods} name="aadhaarNo" label="Aadhaar (12 Digits)" placeholder="123412341234" inputMode="numeric" />
         <Field methods={methods} name="placeOfBirth" label="Place of Birth" />
         <Field methods={methods} name="nationality" label="Nationality" placeholder="Indian" />

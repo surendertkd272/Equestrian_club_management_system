@@ -27,6 +27,7 @@ import { sweepAccreditationExpiry } from "./accreditation-expiry";
 import { sweepBinPurge } from "./bin-purge";
 import { sweepCoachUpdateReminder } from "./coach-update-reminder";
 import { sweepOnboardingDocsOverdue } from "./onboarding-docs-overdue";
+import { sweepEnrolmentStale } from "./enrolment-stale";
 import { sweepOnboardingLinkPurge } from "./onboarding-link-purge";
 import { sweepTaskEscalation } from "./task-escalation";
 import { sweepRecurringTasks } from "./recurring-tasks";
@@ -53,6 +54,7 @@ export {
   sweepBinPurge,
   sweepCoachUpdateReminder,
   sweepOnboardingDocsOverdue,
+  sweepEnrolmentStale,
   sweepOnboardingLinkPurge,
   sweepTaskEscalation,
   sweepRecurringTasks,
@@ -99,6 +101,7 @@ export const SWEEP_JOBS: Record<string, (opts?: SweepOpts) => Promise<SweepResul
   bin_purge: () => sweepBinPurge(),
   coach_update_reminder: () => sweepCoachUpdateReminder(),
   onboarding_docs_overdue: () => sweepOnboardingDocsOverdue(),
+  enrolment_stale: () => sweepEnrolmentStale(),
   onboarding_link_purge: () => sweepOnboardingLinkPurge(),
   task_escalation: () => sweepTaskEscalation(),
   recurring_tasks: () => sweepRecurringTasks(),

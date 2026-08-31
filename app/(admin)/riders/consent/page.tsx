@@ -56,6 +56,11 @@ export default async function RiderConsentPage() {
         lastName: true,
         email: true,
         status: true,
+        mobile: true,
+        fatherPhone: true,
+        motherPhone: true,
+        // Feeds consentRecipient's parent-email fallback and consentPhone.
+        parentalConsentJson: true,
         parentLinks: { select: { parent: { select: { email: true } } } },
         consentRequests: {
           where: { signedAt: null, expiresAt: { gt: new Date() } },

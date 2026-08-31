@@ -41,14 +41,85 @@ function hashToken(raw: string): string {
  */
 export function consentRecipient(rider: {
   email?: string | null;
-  fatherPhone?: string | null;
   parentLinks?: { parent: { email: string | null } }[];
+  parentalConsentJson?: unknown;
 }): string | null {
   if (isValidEmail(rider.email)) return rider.email!.trim();
   for (const link of rider.parentLinks ?? []) {
     if (isValidEmail(link.parent.email)) return link.parent.email!.trim();
   }
+  // The DPDPA parental-consent block captured at registration can carry a
+  // parent's email, and this ignored it — so a rider whose parent DID give an
+  // address was still counted as unreachable. On the live data only one rider
+  // is recovered by this, but the bug was in the resolution order rather than
+  // the data: for any club that collects parent emails properly it would have
+  // silently excluded most of the roster.
+  const pc = rider.parentalConsentJson as { parentEmail?: unknown } | null | undefined;
+  if (pc && typeof pc.parentEmail === "string" && isValidEmail(pc.parentEmail)) {
+    return pc.parentEmail.trim();
+  }
   return null;
+}
+
+/**
+ * A phone number to reach the rider's family on, for the cases email cannot
+ * cover — which, on real data, is most of them.
+ *
+ * Prefers a parent's number over the rider's own: the signer for a minor is
+ * the parent, and a child's handset is the wrong place to send a legal
+ * agreement even when it is the number on file.
+ */
+export function consentPhone(rider: {
+  mobile?: string | null;
+  fatherPhone?: string | null;
+  motherPhone?: string | null;
+  parentalConsentJson?: unknown;
+}): string | null {
+  const pc = rider.parentalConsentJson as { parentPhone?: unknown } | null | undefined;
+  if (pc && typeof pc.parentPhone === "string" && pc.parentPhone.trim()) return pc.parentPhone.trim();
+  if (rider.fatherPhone?.trim()) return rider.fatherPhone.trim();
+  if (rider.motherPhone?.trim()) return rider.motherPhone.trim();
+  return rider.mobile?.trim() || null;
+}
+
+/**
+ * Issue a link WITHOUT emailing it, for hand-delivery.
+ *
+ * On the live roster 96 riders in 100 have no email address, and neither
+ * WhatsApp nor SMS has a provider configured — so an email-only feature
+ * reaches about 4% of the people it is meant for. Staff do have WhatsApp on
+ * their own phones and every rider has a mobile on file, so the shortest path
+ * to consent is a link a human can paste into a chat.
+ *
+ * Same token, same expiry, same hashing as the emailed one. The only
+ * difference is who carries it.
+ */
+export async function issueShareableLink(opts: {
+  riderId: string;
+  centreId: string;
+  createdById: string | null;
+}): Promise<{ url: string; alreadySigned?: boolean } | null> {
+  const rider = await prisma.rider.findFirst({
+    // Centre-fenced on the query, as everywhere else here.
+    where: { id: opts.riderId, centreId: opts.centreId },
+    select: { id: true, indemnitySignedAt: true },
+  });
+  if (!rider) return null;
+  if (rider.indemnitySignedAt) return { url: "", alreadySigned: true };
+
+  const raw = crypto.randomBytes(TOKEN_BYTES).toString("base64url");
+  await prisma.riderConsentRequest.create({
+    data: {
+      riderId: rider.id,
+      centreId: opts.centreId,
+      // No address was used; record that plainly rather than inventing one.
+      email: "",
+      tokenHash: hashToken(raw),
+      expiresAt: new Date(Date.now() + TTL_DAYS * 86400_000),
+      createdById: opts.createdById,
+    },
+  });
+  return { url: absoluteUrl(`/consent/${raw}`) };
 }
 
 export type IssueResult = {
@@ -94,6 +165,9 @@ export async function issueConsentRequests(opts: {
       lastName: true,
       email: true,
       indemnitySignedAt: true,
+      // Needed by consentRecipient — without it the parent-email fallback
+      // silently never fires.
+      parentalConsentJson: true,
       parentLinks: { select: { parent: { select: { email: true } } } },
       consentRequests: {
         where: { signedAt: null, expiresAt: { gt: new Date() } },
