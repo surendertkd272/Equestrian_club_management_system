@@ -9,6 +9,7 @@ import { parseCsv } from "@/lib/csv-parse";
 import { parseXlsx } from "@/lib/xlsx-parse";
 import { isRealYMD } from "@/lib/utils";
 import { indianMobile } from "@/lib/schemas/phone";
+import { RIDER_STATUS } from "@/lib/rider-status";
 
 // Schema for a single row in the import payload. Accepts a generous set
 // of column aliases so CSV authors don't have to use exact field names.
@@ -311,7 +312,12 @@ export async function POST(req: NextRequest) {
             : undefined,
           joiningDate: row.joining_date ? new Date(row.joining_date) : new Date(),
           batchId: row.batch ? batchByName.get(row.batch.trim().toLowerCase()) ?? null : null,
-          status: "active",
+          // Held until consent exists. A spreadsheet cannot carry a
+          // signature, so an imported rider has no indemnity and no injury
+          // NOC — and "active" would have put them straight onto a coach's
+          // register with nothing on file. Flips to active automatically when
+          // the consent link is signed.
+          status: RIDER_STATUS.PENDING_CONSENT,
         },
       });
       existingMobile.add(row.mobile);

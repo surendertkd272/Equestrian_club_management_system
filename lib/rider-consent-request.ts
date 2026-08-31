@@ -248,7 +248,7 @@ export async function findLiveRequest(rawToken: string) {
     where: { tokenHash: hashToken(rawToken) },
     include: {
       rider: {
-        select: { id: true, firstName: true, lastName: true, dob: true, indemnitySignedAt: true },
+        select: { id: true, firstName: true, lastName: true, dob: true, indemnitySignedAt: true, status: true },
       },
       // timezone: the receipt states when they signed, and the server runs UTC.
       centre: { select: { id: true, name: true, orgId: true, timezone: true } },

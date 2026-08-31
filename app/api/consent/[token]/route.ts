@@ -5,6 +5,7 @@ import { bindRlsBypass } from "@/lib/tenant-context";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 import { audit } from "@/lib/audit";
 import { findLiveRequest, sendConsentReceipt } from "@/lib/rider-consent-request";
+import { RIDER_STATUS } from "@/lib/rider-status";
 import {
   INDEMNITY_VERSION,
   INDEMNITY_TEXT,
@@ -106,6 +107,17 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
         // rider's paperwork before this existed, not this signature.
         verifiedAt: null,
         verifiedByUserId: null,
+        // Release the hold the moment consent exists.
+        //
+        // Automatic on purpose: the gate is there to stop a child riding with
+        // nothing on file, and that reason disappears the instant the parent
+        // signs. Waiting for an administrator to click Confirm as well would
+        // leave a signed-up child standing at the gate on a Saturday morning
+        // because nobody was at a desk. Staff confirmation is still recorded —
+        // it is the audit of the document, not the permission to ride.
+        ...(request.rider.status === RIDER_STATUS.PENDING_CONSENT
+          ? { status: RIDER_STATUS.ACTIVE }
+          : {}),
       },
     });
     await tx.riderConsentRequest.update({

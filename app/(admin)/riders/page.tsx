@@ -21,7 +21,18 @@ import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
 const statusVariant = (s: string) =>
-  s === "active" ? "success" : s === "pending_payment" ? "warning" : s === "suspended" ? "destructive" : "outline";
+  s === "active"
+    ? "success"
+    : s === "pending_payment"
+      ? "warning"
+      // Held for want of a signature. Destructive rather than muted:
+      // this rider cannot be put on a register, and that should read as
+      // a blocked state, not a shade of "pending".
+      : s === "pending_consent"
+        ? "destructive"
+        : s === "suspended"
+          ? "destructive"
+          : "outline";
 
 
 export default async function RidersPage({
