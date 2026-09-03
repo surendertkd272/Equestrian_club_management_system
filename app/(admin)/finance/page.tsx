@@ -15,6 +15,7 @@ import { StatTile } from "@/components/ui/stat-tile";
 import { Plus, TrendingUp, TrendingDown, IndianRupee, Receipt } from "lucide-react";
 import { can } from "@/lib/permissions";
 import { BulkMarkPaid } from "./bulk-mark-paid";
+import { BulkVoidInvoices } from "./bulk-void";
 import { RecordPaymentButton } from "@/components/finance/record-payment-button";
 import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
@@ -255,6 +256,11 @@ export default async function FinancePage() {
       {feesOn && can(session.role, "finance.write") && bulkRows.length > 0 && (
         <BulkMarkPaid dueInvoices={bulkRows} />
       )}
+
+      {/* Deliberately NOT behind feesOn. Switching rider billing off is exactly
+          when the invoices it wrongly raised need writing off, and gating the
+          cleanup on the setting that caused the mess is a catch-22. */}
+      {can(session.role, "finance.write") && <BulkVoidInvoices centreId={centreId} />}
 
       {/* The rider-invoice ledger itself. A club with fees off has none, and
           an empty ledger invites staff to wonder what they've configured wrong. */}

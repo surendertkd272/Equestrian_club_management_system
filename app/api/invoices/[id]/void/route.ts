@@ -15,15 +15,23 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
-import { blockIfFeatureOff, getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
+import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 
 const schema = z.object({ reason: z.string().min(3).max(300) });
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  const featureBlock = await blockIfFeatureOff(session, "fee-collection");
-  if (featureBlock) return featureBlock;
+  // NOT gated on fee-collection, deliberately.
+  //
+  // It was, and that created a catch-22: switching the feature off is exactly
+  // when a club needs to void the invoices it raised while the setting was
+  // wrong — and doing so locked the only tool for cleaning them up. It also
+  // contradicted the feature's own description, which promises staff
+  // bookkeeping stays available when rider billing is off.
+  //
+  // Voiding removes a charge; it can never create one. The permission check
+  // and the org fence below are the controls that matter here.
   if (!can(session.role, "finance.write")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
