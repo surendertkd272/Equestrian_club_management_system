@@ -12,14 +12,23 @@
 import crypto from "node:crypto";
 
 // The challenge must outlive the FORM it sits on, not the moment of typing.
-// It was 5 minutes, and on the rider onboarding wizard it is rendered on the
-// indemnity step — a scrollable wall of legal text, a NOC, a typed signature
-// and two tick-boxes. A parent reading that properly takes longer than five
-// minutes, so the token expired while they read and the submit was rejected
-// with "that answer wasn't right" — blaming their arithmetic for our clock.
-// The anti-bot value comes from requiring a solved challenge at all, not from
-// a tight window; a script solves this in milliseconds either way.
-const TTL_MS = 30 * 60 * 1000;
+//
+// This has now been wrong twice. It was 5 minutes, which a parent reading the
+// indemnity blew straight through; raised to 30, and a real applicant still
+// hit it on his second attempt. Both numbers were guesses at how long a form
+// "should" take, which is the wrong question — people open a tab, get
+// interrupted, and come back an hour later. There is no number that is both
+// tight and correct.
+//
+// So: long enough that a human session cannot outlive it. The anti-bot value
+// was never in the window — a script solves this in milliseconds whether it
+// has five minutes or a day — it is in requiring a solved challenge at all,
+// and the real volume control is the per-IP rate limit on the endpoint.
+//
+// The client also swaps in a fresh question while the page sits idle (see
+// components/captcha-field.tsx), so in practice a submitted answer is minutes
+// old regardless of how long the tab was open.
+const TTL_MS = 12 * 60 * 60 * 1000;
 
 function secret(): string {
   // Reuse JWT_SECRET — captcha is short-lived and using a separate

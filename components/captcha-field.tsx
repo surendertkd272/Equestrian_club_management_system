@@ -40,6 +40,8 @@ export function CaptchaField({
   const [failed, setFailed] = useState(false);
   // Local nudge for the retry link, added to refreshKey.
   const [retry, setRetry] = useState(0);
+  // When the currently displayed challenge was fetched.
+  const [issuedAt, setIssuedAt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,6 +54,7 @@ export function CaptchaField({
         const data = (await res.json()) as { question: string; token: string };
         if (cancelled) return;
         setQuestion(data.question);
+        setIssuedAt(Date.now());
         onChange({ captchaToken: data.token, captchaAnswer: "" });
       } catch {
         if (cancelled) return;
@@ -65,6 +68,29 @@ export function CaptchaField({
     // new challenge on every keystroke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey, retry]);
+
+  // Keep the challenge fresh while the page sits open.
+  //
+  // The token is issued when this field mounts, which on the onboarding wizard
+  // is the moment someone reaches a long legal step. If they read carefully,
+  // get interrupted, and come back, the answer they finally type belongs to a
+  // question issued an hour ago. Raising the server TTL alone just moves that
+  // cliff further out; swapping in a fresh question while they are NOT looking
+  // removes it.
+  //
+  // Deliberately only when the box is EMPTY. Replacing a question someone has
+  // already answered would silently invalidate their answer — the exact
+  // failure this is meant to prevent, arriving from the other direction.
+  useEffect(() => {
+    if (!question || !issuedAt) return;
+    const STALE_AFTER = 10 * 60_000;
+    const id = setInterval(() => {
+      if (value.captchaAnswer.trim() !== "") return;
+      if (Date.now() - issuedAt < STALE_AFTER) return;
+      setRetry((n) => n + 1);
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [question, issuedAt, value.captchaAnswer]);
 
   if (failed) {
     return (

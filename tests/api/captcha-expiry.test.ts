@@ -29,11 +29,23 @@ describe("challenge lifetime", () => {
     expect(verifyChallengeDetailed(token, answer).ok).toBe(true);
   });
 
+  it("outlives a parent who leaves the tab open and comes back", () => {
+    // The case that actually happened, twice. 5 minutes was blown through by
+    // someone reading the indemnity; 30 minutes was still hit by a real
+    // applicant on his second attempt. Both were guesses at how long a form
+    // "should" take, which is the wrong question — people get interrupted.
+    const { token } = issueChallenge();
+    const answer = solve(token);
+    vi.useFakeTimers();
+    vi.advanceTimersByTime(6 * 60 * 60_000);
+    expect(verifyChallengeDetailed(token, answer).ok).toBe(true);
+  });
+
   it("still expires eventually", () => {
     const { token } = issueChallenge();
     const answer = solve(token);
     vi.useFakeTimers();
-    vi.advanceTimersByTime(31 * 60_000);
+    vi.advanceTimersByTime(13 * 60 * 60_000);
     const r = verifyChallengeDetailed(token, answer);
     expect(r).toEqual({ ok: false, reason: "expired" });
   });
@@ -48,7 +60,7 @@ describe("failures are distinguishable", () => {
     expect(wrong).toEqual({ ok: false, reason: "wrong" });
 
     vi.useFakeTimers();
-    vi.advanceTimersByTime(31 * 60_000);
+    vi.advanceTimersByTime(13 * 60 * 60_000);
     expect(verifyChallengeDetailed(token, answer)).toEqual({ ok: false, reason: "expired" });
   });
 
