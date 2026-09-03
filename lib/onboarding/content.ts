@@ -87,6 +87,7 @@ export const FEATURE_GUIDES: Record<string, FeatureGuide> = {
   // ── Money & Records
   "/expenses/submit": { title: "Submit invoice", blurb: "Drop in bills you paid for the club.", help: "Upload a receipt and amount for something you bought on the club's behalf, for reimbursement." },
   "/reports": { title: "Reports", blurb: "Monthly parent report cards and exports.", help: "Generate report cards and analytical exports." },
+  "/finance/dues": { title: "Outstanding Dues", blurb: "What riders owe, aged by how overdue it is.", help: "Raise a due by hand — a coaching month, an exam fee — and see the total aged into buckets. Where parent-facing payments are switched off, this is your record only: families are never shown or told about these." },
   "/reports/procurement": { title: "Procurement report", blurb: "Club-wise spend snapshot.", help: "See farrier, fodder, hay, and medicine spend at a glance." },
   "/certificates": { title: "Certificates", blurb: "Issue QR-verified certificates.", help: "Issue a certificate for a promotion or event; each carries a QR code anyone can verify.", emptyState: { title: "No certificates issued yet", body: "Certificates are awarded for level promotions and events. Once a rider passes an exam, issue one here — each gets a QR code that anyone can verify online." } },
   "/accreditations": { title: "Accreditations", blurb: "Track riders' federation memberships (EFI/BHS/FEI).", help: "Record external federation credentials and watch their expiry." },
