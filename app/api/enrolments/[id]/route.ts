@@ -15,6 +15,7 @@ import { sendSms } from "@/lib/sms";
 import { sendWhatsApp } from "@/lib/whatsapp";
 import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 import { z } from "zod";
+import { centreTracksDues, centreCanContactAboutMoney } from "@/lib/money-contact";
 
 const APPROVER_ROLES = new Set(["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "SCHOOL_ADMINISTRATOR"]);
 
@@ -131,7 +132,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   //         (the historical flow; parent gets paylink email/SMS/WA).
   //   OFF → skip invoice, set registrationPaid=true + status=active
   //         (no paylink notification, just a simple approval confirmation).
-  const feesOn = await isFeatureEnabledForCentre(rider.centreId, "fee-collection");
+  // Whether a DUE is raised — not whether the family is told about it. A club
+  // tracking dues internally still gets an invoice on the ledger; the parent
+  // simply never sees or hears about it (lib/money-contact.ts).
+  const feesOn = await centreTracksDues(rider.centreId);
 
   const centre = await prisma.centre.findUnique({
     where: { id: rider.centreId },
@@ -236,6 +240,29 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
   const payUrl = `${baseUrl}/pay/${invoice.id}`;
   const amountLabel = `₹${regAmount.toLocaleString("en-IN")}`;
+
+  // THE SILENCE GATE.
+  //
+  // A club can track what riders owe purely for its own books, with the family
+  // never told. An invoice exists above; this decides whether anyone hears
+  // about it. Without this, switching dues tracking on would have texted every
+  // approved rider's parent a payment link for a bill the club never intended
+  // to send — the precise thing the internal mode promises not to do.
+  //
+  // Asked as "may we contact this family about money", not "is billing on",
+  // so the next person adding a channel here answers a question about the
+  // parent rather than remembering which flag governs their code.
+  const mayContact = await centreCanContactAboutMoney(rider.centreId);
+  if (!mayContact) {
+    await audit({
+      userId: session.userId,
+      action: "enrolment.approve_silent",
+      tableName: "rider",
+      rowId: rider.id,
+      after: { invoiceId: invoice.id, regAmount, notified: false, reason: "dues tracked internally" },
+    });
+    return NextResponse.json({ ok: true, status: "pending_payment", invoiceId: invoice.id, notified: false });
+  }
 
   if (parentPhone) {
     await sendSms({

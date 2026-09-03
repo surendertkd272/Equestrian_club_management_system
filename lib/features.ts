@@ -34,6 +34,7 @@ export type FeatureKey =
   | "facility-bookings"
   // Finance
   | "fee-collection"
+  | "dues-tracking"
   | "expenses"
   // Productivity
   | "tasks"
@@ -99,7 +100,8 @@ export const FEATURES: readonly FeatureDef[] = [
   { key: "facility-bookings",      label: "Facility Bookings",      description: "Book arenas / wash bays / classroom slots.",                     group: "facility",     enforcement: "wired", selfToggle: true },
 
   // ── Finance
-  { key: "fee-collection",         label: "Parent / Rider Payments", description: "Switch for parent + rider-facing payment surfaces. When OFF: no invoices created on enrolment / event entry, /pay page 404s, Razorpay endpoints return 503, fee-due reminders skipped, approved riders go straight to active, parent invoice tiles hide. Staff bookkeeping (the /finance dashboard, manual cash recording, exports, invoice print) is unaffected so the team can still log offline payments. Existing invoices preserved as audit history.", group: "finance", enforcement: "wired" },
+  { key: "fee-collection",         label: "Parent / Rider Payments", description: "PARENT-FACING payment surfaces only. When OFF: /pay 404s, Razorpay returns 503, parent + student invoice tiles hide, and no fee reminder is ever sent. This is the switch that decides whether a family is ever contacted about money. Staff bookkeeping is unaffected — see Internal Dues Tracking for whether dues exist at all.", group: "finance", enforcement: "wired" },
+  { key: "dues-tracking",          label: "Internal Dues Tracking", description: "Whether the club tracks what riders OWE, for its own records. When ON: invoices are raised on enrolment and event entry, staff see the ledger, outstanding balances and aged dues. Independent of Parent / Rider Payments — with this ON and that OFF, the club knows who owes what and the family is never told, chased, or shown a bill. Turning it OFF stops new dues being raised; existing ones stay as history.", group: "finance", enforcement: "wired" },
   { key: "expenses",               label: "Expenses & P&L",         description: "Book outgoings against chart-of-accounts; expense P&L.",         group: "finance",      enforcement: "wired" },
 
   // ── Productivity

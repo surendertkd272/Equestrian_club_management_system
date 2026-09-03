@@ -18,6 +18,7 @@ import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { blockIfFeatureOff, getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { notifyRiderAndParents } from "@/lib/notify";
 import { creditPosition, writeCreditNote, lockAndLoadInvoice } from "@/lib/credit-note";
+import { tracksDues } from "@/lib/money-contact";
 
 const schema = z.object({
   // Omit to cancel what is still OWED — the common case, a family withdrawing
@@ -32,8 +33,19 @@ const schema = z.object({
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  const featureBlock = await blockIfFeatureOff(session, "fee-collection");
-  if (featureBlock) return featureBlock;
+  // Not gated on parent-facing billing: correcting a due the club recorded for
+  // its own books must stay possible whether or not the family is ever shown
+  // it. Same reasoning as void.
+  //
+  // tracksDues() rather than a bare dues-tracking check, because a club that
+  // has been billing for a year has never set the new flag — keying on it
+  // alone would silently remove credit notes from every existing customer.
+  if (!(await tracksDues(await getOrgIdForSession(session)))) {
+    return NextResponse.json(
+      { error: "FEATURE_OFF", message: "This club does not track dues." },
+      { status: 403 },
+    );
+  }
   if (!can(session.role, "finance.write")) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }

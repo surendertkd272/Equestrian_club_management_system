@@ -14,6 +14,7 @@ import { formatDate } from "@/lib/utils";
 import { RecordPaymentButton } from "@/components/finance/record-payment-button";
 import { InvoiceReversalActions, ReversePaymentButton } from "@/components/finance/reversal-actions";
 import { formatEnum } from "@/lib/labels";
+import { tracksDues } from "@/lib/money-contact";
 export const dynamic = "force-dynamic";
 
 // Per-rider statement of account. Aggregates every invoice + payment for
@@ -32,7 +33,11 @@ export default async function RiderStatement({ params }: { params: { riderId: st
   const centreId = scopeCentre(session);
   // A per-rider fee ledger for a club that doesn't bill riders is an empty
   // page implying missing data. Send them to the finance overview instead.
-  if (!(await getFeaturesForSession(session)).has("fee-collection")) redirect("/finance");
+  // Staff ledger — gated on whether the club tracks dues at all, not on
+  // whether it bills families. A club tracking internally needs this MORE
+  // than one that bills, since it is the only place the balance appears.
+  const orgIdForDues = await getOrgIdForSession(session);
+  if (!(await tracksDues(orgIdForDues))) redirect("/finance");
   const orgId = await getOrgIdForSession(session);
   if (!orgId) notFound();
 

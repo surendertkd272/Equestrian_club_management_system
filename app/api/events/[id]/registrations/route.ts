@@ -7,6 +7,7 @@ import { createRegistrationSchema } from "@/lib/schemas/event";
 import { audit } from "@/lib/audit";
 import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { centreTracksDues } from "@/lib/money-contact";
 
 // POST — register a rider for an event. Auto-creates an invoice when
 // Event.fee > 0 so the finance module picks up event income alongside
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // Fee-collection master switch. When OFF, registration is recorded as
   // paid + no invoice is created. Event.fee stays untouched so toggling
   // fees back ON later resumes billing.
-  const feesOn = await isFeatureEnabledForCentre(ev.centreId, "fee-collection");
+  const feesOn = await centreTracksDues(ev.centreId);
   const billable = feesOn && ev.fee > 0;
 
   try {
