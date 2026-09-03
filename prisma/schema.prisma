@@ -652,6 +652,7 @@ model Centre {
   injuryLogs           InjuryLog[]
   teams                Team[]
   consentRequests      RiderConsentRequest[]
+  payments             Payment[]
 }
 
 // Role is a string union enforced at the app layer (see lib/roles.ts).
@@ -986,6 +987,7 @@ model Rider {
   exams              Exam[]
   parentLinks        ParentLink[]
   consentRequests    RiderConsentRequest[]
+  paymentsReceived   Payment[]
   eventRegistrations EventRegistration[]
   accreditations     Accreditation[]
   batchShiftRequests BatchShiftRequest[]
@@ -1975,7 +1977,27 @@ model Invoice {
 
 model Payment {
   id        String    @id @default(cuid())
-  invoiceId String
+  // Optional, because not every payment settles an invoice.
+  //
+  // A club that does not bill riders through the platform still takes money —
+  // ₹1,000 from one family, ₹2 lakh from another — and still needs to see what
+  // came in this month. With this required and invoices only created by the
+  // billing flow, such a club could record NOTHING and its revenue read zero
+  // forever, while the feature description claimed bookkeeping was unaffected.
+  //
+  // A row with no invoiceId is a receipt: money received, recorded against a
+  // rider, settling nothing. Same table on purpose — reversals, exports and
+  // every sum(amount) keep working across both kinds.
+  invoiceId String?
+  // The payment's OWN centre, rather than inferring it through the invoice.
+  //
+  // Revenue was scoped as `where: { invoice: { centreId } }`, so a receipt with
+  // no invoice would have been silently excluded — the same zero-revenue bug in
+  // a new place. Backfilled from the invoice for every existing row.
+  centreId  String
+  // Who paid, for a receipt. Invoice-settling rows resolve the rider through
+  // the invoice as before.
+  riderId   String?
   amount    Float
   method    String // razorpay | cash | cheque | upi
   // Gateway/transaction reference. UNIQUE so a re-delivered webhook (or the
@@ -1995,7 +2017,9 @@ model Payment {
   reversals    Payment[] @relation("PaymentReversal")
   reason       String?
 
-  invoice Invoice @relation(fields: [invoiceId], references: [id])
+  invoice Invoice? @relation(fields: [invoiceId], references: [id])
+  centre  Centre   @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  rider   Rider?   @relation(fields: [riderId], references: [id], onDelete: SetNull)
 
   @@index([invoiceId, paidAt])
   @@index([paidAt])

@@ -231,6 +231,10 @@ export async function GET(req: Request, { params }: { params: { entity: string }
           invoice: {
             include: { rider: { select: { firstName: true, lastName: true } }, centre: { select: { name: true } } },
           },
+          // A receipt settles no invoice, so its rider and centre come from
+          // the payment itself.
+          rider: { select: { firstName: true, lastName: true } },
+          centre: { select: { name: true } },
         },
         orderBy: { paidAt: "desc" },
         take: ROW_CAP,
@@ -240,14 +244,16 @@ export async function GET(req: Request, { params }: { params: { entity: string }
       ["Receipt", "Invoice", "Rider", "Amount", "Method", "Reference", "Paid on", "Cleared on", "Centre"],
       rows.map((p) => [
         p.id.slice(0, 8),
-        p.invoiceId.slice(0, 8),
-        `${p.invoice.rider?.firstName ?? ""} ${p.invoice.rider?.lastName ?? ""}`.trim(),
+        // Blank rather than "—": a spreadsheet column reading "—" sorts and
+        // filters as text, which is worse than an empty cell.
+        p.invoiceId ? p.invoiceId.slice(0, 8) : "",
+        `${p.invoice?.rider?.firstName ?? p.rider?.firstName ?? ""} ${p.invoice?.rider?.lastName ?? p.rider?.lastName ?? ""}`.trim(),
         p.amount,
         p.method,
         p.txnRef ?? "",
         p.paidAt.toISOString().slice(0, 10),
         p.clearedAt ? p.clearedAt.toISOString().slice(0, 10) : "",
-        p.invoice.centre?.name ?? "",
+        p.invoice?.centre?.name ?? p.centre?.name ?? "",
       ]),
     );
     return csvResponse(`payments-${ts}.csv`, csv, { total, returned: rows.length, truncated: total > rows.length });

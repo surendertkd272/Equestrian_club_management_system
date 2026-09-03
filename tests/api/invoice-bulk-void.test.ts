@@ -91,7 +91,7 @@ describe("bulk void", () => {
   it("NEVER touches an invoice a family has paid", async () => {
     const paid = await invoiceFor(centre.id);
     await prisma.payment.create({
-      data: { invoiceId: paid.id, amount: 3000, method: "cash", paidAt: new Date() },
+      data: { invoiceId: paid.id, centreId: paid.centreId, riderId: paid.riderId, amount: 3000, method: "cash", paidAt: new Date() },
     });
     await invoiceFor(centre.id); // unpaid, should go
     await signIn(hq);

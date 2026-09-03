@@ -108,8 +108,24 @@ export async function GET(req: NextRequest) {
       // one half of a pair. (An invoice voided AFTER an earlier export is the
       // exception; the reversal is reported in the response so the operator
       // can post it by hand.)
-      where: { paidAt: { gte: from, lte: to }, invoice: { ...where, voidedAt: null } },
-      include: { invoice: { include: { rider: { select: { firstName: true, lastName: true } } } } },
+      // Scoped on the PAYMENT's own centre, not through the invoice.
+      //
+      // Scoping through the invoice silently dropped every receipt — money a
+      // club took without raising a bill — so the accounting export would have
+      // under-reported income for exactly the clubs that do not invoice
+      // riders. `where` is shaped for Invoice, so the same filter is applied
+      // to the payment's own columns here.
+      where: {
+        paidAt: { gte: from, lte: to },
+        ...where,
+        // Keep excluding payments against a voided invoice; receipts have no
+        // invoice to be voided.
+        OR: [{ invoiceId: null }, { invoice: { voidedAt: null } }],
+      },
+      include: {
+        invoice: { include: { rider: { select: { firstName: true, lastName: true } } } },
+        rider: { select: { firstName: true, lastName: true } },
+      },
       orderBy: { paidAt: "asc" },
       take: 5000,
     }),
@@ -223,7 +239,10 @@ export async function GET(req: NextRequest) {
   // Receipt Vouchers — one per Payment. Bank/cash ledger debited, party
   // ledger credited.
   for (const p of payments) {
-    const partyLedger = `${p.invoice.rider.firstName} ${p.invoice.rider.lastName}`;
+    // A receipt settles no invoice; its rider and centre live on the payment.
+    const payer = p.invoice?.rider ?? p.rider;
+    const partyLedger = payer ? `${payer.firstName} ${payer.lastName}` : "Sundry Debtors";
+    const centreForTz = p.invoice?.centreId ?? p.centreId;
     const bankLedger = ledgerForMethod(p.method);
     // A reversal is a negative Payment row (bounced cheque, refund, receipt
     // entered against the wrong rider). Emitted as a Receipt it produced
@@ -234,11 +253,11 @@ export async function GET(req: NextRequest) {
     const vchType = isReversal ? "Payment" : "Receipt";
     vouchers.push(
       `<VOUCHER VCHTYPE="${vchType}" ACTION="Create">
-  <DATE>${ddmmyyyy(p.paidAt, tzFor(p.invoice.centreId))}</DATE>
+  <DATE>${ddmmyyyy(p.paidAt, tzFor(centreForTz))}</DATE>
   <NARRATION>${escapeXml(
     isReversal
-      ? `Reversal of payment on invoice #${p.invoiceId.slice(-8)} · ${p.reason ?? "reversed"}`
-      : `Payment for invoice #${p.invoiceId.slice(-8)} · ref ${p.txnRef ?? "—"}`,
+      ? `Reversal of ${p.invoiceId ? `payment on invoice #${p.invoiceId.slice(-8)}` : "receipt"} · ${p.reason ?? "reversed"}`
+      : `${p.invoiceId ? `Payment for invoice #${p.invoiceId.slice(-8)}` : "Fee receipt"} · ref ${p.txnRef ?? "—"}`,
   )}</NARRATION>
   <VOUCHERTYPENAME>${vchType}</VOUCHERTYPENAME>
   <VOUCHERNUMBER>${escapeXml(p.id.slice(-12).toUpperCase())}</VOUCHERNUMBER>

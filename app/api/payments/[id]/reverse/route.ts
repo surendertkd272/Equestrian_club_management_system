@@ -54,7 +54,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // row — one ₹11,800 receipt reversed three times leaves the invoice at
   // −₹23,600 collected. Everything now re-reads under the lock.
   type Fail = { ok: false; status: number; body: Record<string, unknown> };
-  type Done = { ok: true; reversalId: string; status: string; totalPaid: number; target: number; original: { id: string; amount: number; method: string; txnRef: string | null; invoiceStatusWas: string } };
+  type Done = { ok: true; reversalId: string; status: string; totalPaid: number; target: number; original: { id: string; amount: number; method: string; txnRef: string | null; invoiceStatusWas: string | null } };
   const fail = (status: number, body: Record<string, unknown>): Fail => ({ ok: false, status, body });
 
   // Resolve the org fence BEFORE opening the transaction. getOrgIdForSession /
@@ -63,7 +63,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // deadlocks the pool under load.
   const head0 = await prisma.payment.findUnique({
     where: { id: params.id },
-    select: { invoice: { select: { centreId: true } } },
+    // The payment's own centre, so a receipt (which has no invoice) is fenced
+    // the same way an invoice-settling payment is.
+    select: { centreId: true },
   });
   let fenceError: string | null = null;
   if (head0) {
@@ -71,10 +73,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (isHQ) {
       const [callerOrg, rowOrg] = await Promise.all([
         getOrgIdForSession(session),
-        getOrgIdForCentre(head0.invoice.centreId),
+        getOrgIdForCentre(head0.centreId),
       ]);
       if (!callerOrg || callerOrg !== rowOrg) fenceError = "FORBIDDEN_CROSS_ORG";
-    } else if (head0.invoice.centreId !== session.centreId) {
+    } else if (head0.centreId !== session.centreId) {
       fenceError = "FORBIDDEN_CROSS_CENTRE";
     }
   }
@@ -111,14 +113,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       where: { creditNoteForId: original.invoiceId },
       _sum: { amount: true, gstAmount: true },
     });
-    const target =
-      original.invoice.amount +
-      original.invoice.gstAmount +
-      (credits._sum.amount ?? 0) +
-      (credits._sum.gstAmount ?? 0);
+    // A receipt settles no invoice, so there is no billed total to compare
+    // against — reversing one simply removes the money.
+    const target = original.invoice
+      ? original.invoice.amount +
+        original.invoice.gstAmount +
+        (credits._sum.amount ?? 0) +
+        (credits._sum.gstAmount ?? 0)
+      : 0;
     const r = await tx.payment.create({
       data: {
         invoiceId: original.invoiceId,
+        centreId: original.centreId,
+        riderId: original.riderId,
         amount: -original.amount,
         method: original.method,
         paidAt: new Date(),
@@ -133,12 +140,24 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     // A voided invoice keeps its status. The gateway paths deliberately record a
     // payment against an invoice voided after the order was minted without
     // resurrecting it; reversing that payment must not resurrect it either.
-    const voided = !!(await tx.invoice.findUnique({
-      where: { id: original.invoiceId },
-      select: { voidedAt: true },
-    }))?.voidedAt;
-    const next = voided ? "void" : paid >= target - 0.001 ? "paid" : "due";
-    if (!voided) {
+    // A receipt has no invoice whose status could change; reversing one only
+    // removes the money.
+    const voided = original.invoiceId
+      ? !!(
+          await tx.invoice.findUnique({
+            where: { id: original.invoiceId },
+            select: { voidedAt: true },
+          })
+        )?.voidedAt
+      : false;
+    const next = !original.invoiceId
+      ? "receipt"
+      : voided
+        ? "void"
+        : paid >= target - 0.001
+          ? "paid"
+          : "due";
+    if (original.invoiceId && !voided) {
       await tx.invoice.update({ where: { id: original.invoiceId }, data: { status: next } });
     }
     return {
@@ -152,7 +171,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         amount: original.amount,
         method: original.method,
         txnRef: original.txnRef,
-        invoiceStatusWas: original.invoice.status,
+        invoiceStatusWas: original.invoice?.status ?? null,
       },
     };
   });

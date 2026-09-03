@@ -51,7 +51,7 @@ describe("razorpay /verify — partial payment is not double-counted", () => {
   it("records only the remaining balance and marks the invoice paid", async () => {
     const { invoice } = await seed(10_000);
     // Prior cash payment of 4,000 recorded manually; invoice still "due".
-    await prisma.payment.create({ data: { invoiceId: invoice.id, amount: 4_000, method: "cash", clearedAt: new Date() } });
+    await prisma.payment.create({ data: { invoiceId: invoice.id, centreId: invoice.centreId, riderId: invoice.riderId, amount: 4_000, method: "cash", clearedAt: new Date() } });
 
     const res = await verify(verifyReq(invoice.id, "order_abc", "pay_abc"));
     expect(res.status).toBe(200);

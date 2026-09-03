@@ -105,6 +105,8 @@ export async function POST(req: NextRequest) {
       prisma.payment.create({
         data: {
           invoiceId: invoice.id,
+          centreId: invoice.centreId,
+          riderId: invoice.riderId,
           amount: remaining,
           method: "razorpay",
           txnRef: d.razorpay_payment_id,

@@ -123,7 +123,9 @@ export async function POST(req: NextRequest) {
     prisma.certificate.findMany({ where: centreFilter ?? { centre: { orgId } }, take: TAKE }),
     prisma.accreditation.findMany({ where: centreFilter ? { rider: centreFilter } : { rider: { centre: { orgId } } }, take: TAKE }),
     prisma.invoice.findMany({ where: centreFilter ?? { centre: { orgId } }, take: TAKE }),
-    prisma.payment.findMany({ where: centreFilter ? { invoice: centreFilter } : { invoice: { centre: { orgId } } }, take: TAKE }),
+    // On the payment's own centre — a receipt has no invoice to scope through,
+    // and omitting it would make a subject-access export incomplete.
+    prisma.payment.findMany({ where: centreFilter ?? { centre: { orgId } }, take: TAKE }),
     prisma.expense.findMany({ where: centreFilter ?? { centre: { orgId } }, take: TAKE }),
     prisma.vendor.findMany({ where: centreFilter ?? { centre: { orgId } }, take: TAKE }),
     prisma.medicine.findMany({ where: centreFilter ?? { centre: { orgId } }, take: TAKE }),

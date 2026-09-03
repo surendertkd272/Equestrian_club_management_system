@@ -16,6 +16,7 @@ import { Plus, TrendingUp, TrendingDown, IndianRupee, Receipt } from "lucide-rea
 import { can } from "@/lib/permissions";
 import { BulkMarkPaid } from "./bulk-mark-paid";
 import { BulkVoidInvoices } from "./bulk-void";
+import { RecordReceipt } from "./record-receipt";
 import { RecordPaymentButton } from "@/components/finance/record-payment-button";
 import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
@@ -55,6 +56,7 @@ export default async function FinancePage() {
   // as a system that is broken or unconfigured. The expense/P&L half is
   // governed by its own `expenses` flag and stays regardless.
   const feesOn = (await getFeaturesForSession(session)).has("fee-collection");
+
   const centreId = scopeCentre(session);
   // HQ users (SUPER_ADMIN/ADMIN) have centreId=null → "all centres". Bind to
   // their org so the "all" filter stays org-scoped instead of leaking every
@@ -62,6 +64,14 @@ export default async function FinancePage() {
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/no-organisation");
   const where = tenantWhere(centreId, orgId);
+  // Riders for the receipt picker. Enrolled only — recording money against a
+  // withdrawn rider is almost always a mis-click.
+  const receiptRiders = await prisma.rider.findMany({
+    where: { ...where, status: { notIn: ["withdrawn", "rejected", "cancelled"] } },
+    select: { id: true, firstName: true, lastName: true },
+    orderBy: [{ firstName: "asc" }],
+    take: 1000,
+  });
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -82,12 +92,18 @@ export default async function FinancePage() {
     expenseByCategory,
     upcomingDue,
   ] = await Promise.all([
+    // Scoped on the PAYMENT's own centre, not through the invoice.
+    //
+    // Through the invoice, a receipt — money taken without raising a bill —
+    // counted for nothing, so a club that collects privately saw ₹0 revenue
+    // no matter how much it banked. `where` is shaped for both models, since
+    // Payment now carries centreId itself.
     prisma.payment.aggregate({
-      where: { invoice: { ...where }, paidAt: { gte: monthStart } },
+      where: { ...where, paidAt: { gte: monthStart } },
       _sum: { amount: true },
     }),
     prisma.payment.aggregate({
-      where: { invoice: { ...where }, paidAt: { gte: yearStart } },
+      where: { ...where, paidAt: { gte: yearStart } },
       _sum: { amount: true },
     }),
     prisma.expense.aggregate({
@@ -255,6 +271,15 @@ export default async function FinancePage() {
 
       {feesOn && can(session.role, "finance.write") && bulkRows.length > 0 && (
         <BulkMarkPaid dueInvoices={bulkRows} />
+      )}
+
+      {/* The answer to "how do I see this month's revenue if I don't invoice?"
+          Always available: a club that collects privately needs it MORE than
+          one that bills through the platform, not less. */}
+      {can(session.role, "finance.write") && (
+        <RecordReceipt
+          riders={receiptRiders.map((r) => ({ id: r.id, name: `${r.firstName} ${r.lastName}` }))}
+        />
       )}
 
       {/* Deliberately NOT behind feesOn. Switching rider billing off is exactly

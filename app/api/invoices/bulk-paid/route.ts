@@ -81,6 +81,10 @@ export async function POST(req: NextRequest) {
       await tx.payment.create({
         data: {
           invoiceId: inv.id,
+          // Denormalised from the invoice so finance queries can scope on the
+          // payment itself — receipts have no invoice to scope through.
+          centreId: inv.centreId,
+          riderId: inv.riderId,
           amount: remaining,
           method: parsed.data.method,
           paidAt: new Date(),

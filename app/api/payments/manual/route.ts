@@ -98,6 +98,8 @@ export async function POST(req: NextRequest) {
       const p = await tx.payment.create({
         data: {
           invoiceId: inv.id,
+          centreId: inv.centreId,
+          riderId: inv.riderId,
           amount: parsed.data.amount,
           method: parsed.data.method,
           txnRef: parsed.data.txnRef,

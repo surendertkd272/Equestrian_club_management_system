@@ -53,7 +53,9 @@ export default async function RiderStatement({ params }: { params: { riderId: st
       orderBy: { createdAt: "desc" },
     }),
     prisma.payment.findMany({
-      where: { invoice: { riderId: rider.id } },
+      // Both kinds: payments settling this rider's invoices, and receipts
+      // recorded directly against them.
+      where: { OR: [{ invoice: { riderId: rider.id } }, { riderId: rider.id }] },
       orderBy: { paidAt: "desc" },
     }),
   ]);
@@ -72,6 +74,9 @@ export default async function RiderStatement({ params }: { params: { riderId: st
   }
   const paymentsByInvoice = new Map<string, { amount: number }[]>();
   for (const p of payments) {
+    // Receipts settle no invoice, so they have nothing to group under. They
+    // still count as money received — see the receipts list below.
+    if (!p.invoiceId) continue;
     const list = paymentsByInvoice.get(p.invoiceId) ?? [];
     list.push({ amount: p.amount });
     paymentsByInvoice.set(p.invoiceId, list);
