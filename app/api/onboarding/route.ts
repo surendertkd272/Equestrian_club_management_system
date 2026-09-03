@@ -197,6 +197,16 @@ export async function POST(req: NextRequest) {
         nocVersion: INJURY_NOC_VERSION,
         nocAgreed: d.injuryNocAgreed,
         agreedAt: new Date().toISOString(),
+        // The WORDING, not just the version.
+        //
+        // This stored a version string and nothing else, so the one document a
+        // club would actually have to produce — the indemnity a parent signed
+        // — could not be read back. The parental-consent block had kept its
+        // text since day one for exactly this reason; the indemnity and NOC
+        // were the omission. A version number only identifies wording while
+        // someone still has the version it points at.
+        indemnityText: INDEMNITY_TEXT,
+        nocText: INJURY_NOC_TEXT,
       } satisfies Prisma.InputJsonValue,
       // jsonb column — pass the object straight in. `undefined` skips the
       // field (column stays NULL) for adult riders who don't need consent.

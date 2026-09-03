@@ -1,5 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  INDEMNITY_TEXT,
+  INDEMNITY_VERSION,
+  INJURY_NOC_TEXT,
+  INJURY_NOC_VERSION,
+} from "@/lib/schemas/rider-onboarding";
 
 // The signed-consent record for a rider, as captured at registration.
 //
@@ -21,6 +27,11 @@ type ConsentJson = {
   nocVersion?: string;
   nocAgreed?: boolean;
   agreedAt?: string;
+  // Stored from the day the consent-request flow shipped, and from
+  // registration only after this was fixed — older registrations kept the
+  // version and threw the wording away.
+  indemnityText?: string;
+  nocText?: string;
 };
 
 type ParentalConsentJson = {
@@ -55,6 +66,56 @@ function stamp(d: Date | string | null | undefined, timeZone: string): string {
     minute: "2-digit",
     timeZone,
   });
+}
+
+/**
+ * The wording someone actually agreed to.
+ *
+ * Falls back to the current text for the pinned version when the record only
+ * kept a version string — accurate as long as the version still matches, and
+ * labelled so nobody mistakes a reconstruction for the stored original. A
+ * version number identifies wording only while someone still holds the
+ * version it points at; that is why the text is now stored per rider.
+ */
+function AgreedWording({
+  stored,
+  version,
+  currentText,
+  currentVersion,
+  label,
+}: {
+  stored?: string;
+  version?: string | null;
+  currentText: string;
+  currentVersion: string;
+  label: string;
+}) {
+  const reconstructed = !stored && version === currentVersion;
+  const text = stored ?? (reconstructed ? currentText : null);
+  if (!text) {
+    return (
+      <p className="mt-2 text-xs text-muted-foreground">
+        The wording for version {version ?? "—"} is not on this record and no longer matches the
+        current text, so it cannot be shown. Newer signatures store their own copy.
+      </p>
+    );
+  }
+  return (
+    <details className="mt-2">
+      <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+        Show the exact wording that was agreed — {label}
+      </summary>
+      <blockquote className="mt-2 whitespace-pre-wrap rounded-md border bg-muted p-3 text-xs leading-relaxed">
+        {text}
+      </blockquote>
+      {reconstructed && (
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Reproduced from the current {version} text — this record predates storing the wording
+          per rider, and the version has not changed since.
+        </p>
+      )}
+    </details>
+  );
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -126,6 +187,13 @@ export function ConsentRecord({
                   </span>
                 </Row>
               </dl>
+              <AgreedWording
+                stored={consent?.indemnityText}
+                version={rider.indemnityVersion ?? consent?.indemnityVersion}
+                currentText={INDEMNITY_TEXT}
+                currentVersion={INDEMNITY_VERSION}
+                label="indemnity"
+              />
             </section>
 
             <section>
@@ -149,6 +217,13 @@ export function ConsentRecord({
                 </Row>
                 <Row label="Agreed at">{stamp(consent?.agreedAt, timeZone)}</Row>
               </dl>
+              <AgreedWording
+                stored={consent?.nocText}
+                version={consent?.nocVersion}
+                currentText={INJURY_NOC_TEXT}
+                currentVersion={INJURY_NOC_VERSION}
+                label="injury NOC"
+              />
             </section>
 
             <section>

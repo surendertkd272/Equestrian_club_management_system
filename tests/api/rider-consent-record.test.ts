@@ -113,6 +113,35 @@ describe("what registration captures", () => {
   });
 });
 
+describe("what the record can produce", () => {
+  it("keeps the indemnity and NOC WORDING, not just a version number", async () => {
+    // This stored a version string and nothing else, so the one document a
+    // club would actually have to produce — the indemnity a parent signed —
+    // could not be read back. A version identifies wording only while someone
+    // still holds the version it points at.
+    await submit(application());
+    const rider = await prisma.rider.findFirstOrThrow({ where: { firstName: "Aarav" } });
+    const c = rider.indemnityConsentJson as Record<string, unknown>;
+
+    expect(String(c.indemnityText ?? "")).toMatch(/risk|injur/i);
+    expect(String(c.nocText ?? "")).toMatch(/No-Objection/i);
+    // Version still present — the text is additional, not a replacement.
+    expect(c.indemnityVersion).toBeTruthy();
+    expect(c.nocVersion).toBeTruthy();
+  });
+
+  it("stores wording on the emailed-link path too, so both agree", async () => {
+    const { INDEMNITY_TEXT, INJURY_NOC_TEXT } = await import("@/lib/schemas/rider-onboarding");
+    await submit(application({ firstName: "Both", mobile: "9000000002", email: "b@club.in" }));
+    const rider = await prisma.rider.findFirstOrThrow({ where: { firstName: "Both" } });
+    const c = rider.indemnityConsentJson as Record<string, unknown>;
+    // Two ways of collecting the same legal artefact must record the same
+    // thing, or a club ends up with two tiers of evidence.
+    expect(c.indemnityText).toBe(INDEMNITY_TEXT);
+    expect(c.nocText).toBe(INJURY_NOC_TEXT);
+  });
+});
+
 describe("the signer's own copy", () => {
   it("a parent who signs AT REGISTRATION gets a receipt too", async () => {
     // This only went out on the emailed-link path, which left two tiers of
