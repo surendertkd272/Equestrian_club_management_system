@@ -172,6 +172,17 @@ export default async function RiderProfile({ params }: { params: { id: string } 
           <Badge variant={rider.status === "active" ? "success" : rider.status === "withdrawn" ? "outline" : "warning"}>
             {formatEnum(rider.status)}
           </Badge>
+          {/* Consent status in the header, beside the name.
+              "Is this child cleared to ride?" is the question someone opens a
+              rider profile to answer before a lesson, and the full record sat
+              six cards down between portal access and attendance — findable
+              only if you already knew it existed. The badge answers it at a
+              glance and links to the evidence. */}
+          <a href="#consent-record" className="no-underline">
+            <Badge variant={rider.indemnitySignedAt ? "success" : "destructive"}>
+              {rider.indemnitySignedAt ? "Indemnity signed" : "No indemnity"}
+            </Badge>
+          </a>
         </div>
       </div>
 
@@ -384,7 +395,9 @@ export default async function RiderProfile({ params }: { params: { id: string } 
       </div>
 
       {isHqViewer && (
-        <ConsentRecord rider={rider} timeZone={rider.centre?.timezone ?? PLATFORM_TZ} />
+        <div id="consent-record" className="scroll-mt-20">
+          <ConsentRecord rider={rider} timeZone={rider.centre?.timezone ?? PLATFORM_TZ} />
+        </div>
       )}
 
       <Card>
