@@ -20,7 +20,6 @@ import { useState, useEffect } from "react";
 import { useForm, type UseFormReturn, type FieldValues, type FieldPath } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { CaptchaField, EMPTY_CAPTCHA, type CaptchaValue } from "@/components/captcha-field";
 import { z } from "zod";
 import { compressForKind } from "@/lib/image-compress";
 import {
@@ -546,19 +545,11 @@ function IndemnityStep({
   onSubmit,
   onBack,
   submitting,
-  captcha,
-  onCaptchaChange,
-  captchaKey,
-  captchaError,
 }: {
   initial: WizardData;
   onSubmit: (d: IndemnityInput) => void | Promise<void>;
   onBack: () => void;
   submitting: boolean;
-  captcha: CaptchaValue;
-  onCaptchaChange: (v: CaptchaValue) => void;
-  captchaKey: number;
-  captchaError: string | null;
 }) {
   const methods = useForm<IndemnityInput>({
     resolver: zodResolver(indemnitySchema),
@@ -623,32 +614,8 @@ function IndemnityStep({
           </span>
         </label>
         {agreedError && <p id="agreed-err" role="alert" className="text-xs text-destructive">{agreedError}</p>}
-
-        <CaptchaField
-          value={captcha}
-          onChange={onCaptchaChange}
-          disabled={submitting}
-          refreshKey={captchaKey}
-          error={captchaError}
-        />
       </div>
-      {/* The verification box is the last thing on the longest step and is easy
-          to scroll past. Disabling the button until it is answered turns a
-          server rejection — which wipes the answer and reloads the question —
-          into something the parent can see and fix before they submit. */}
-      <StepFooter
-        canBack
-        onBack={onBack}
-        submitting={submitting}
-        submitLabel="Submit Application"
-        blocked={
-          !captcha.captchaToken
-            ? "Waiting for the verification question to load"
-            : !captcha.captchaAnswer.trim()
-              ? "Answer the quick check above to submit"
-              : null
-        }
-      />
+      <StepFooter canBack onBack={onBack} submitting={submitting} submitLabel="Submit Application" />
     </form>
   );
 }
@@ -773,14 +740,9 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
   // reference number the applicant can quote in follow-ups.
   const [result, setResult] = useState<{ riderId: string; status: string; feesOn?: boolean } | null>(null);
   const [restored, setRestored] = useState(false);
-  // Anti-spam challenge on this public endpoint. captchaKey is bumped after a
-  // CAPTCHA rejection specifically, so the user gets a fresh question: the
-  // token may have expired, and retrying an expired one always fails. It is
-  // NOT bumped for other errors — doing that wiped a correct answer and made
-  // the next attempt fail for a second, unrelated reason.
-  const [captcha, setCaptcha] = useState<CaptchaValue>(EMPTY_CAPTCHA);
-  const [captchaKey, setCaptchaKey] = useState(0);
-  const [captchaError, setCaptchaError] = useState<string | null>(null);
+  // No anti-spam challenge on this form. It blocked a real applicant twice and
+  // caught no bots; the per-IP rate limit and the human approval queue are the
+  // defences that actually apply here. See /api/onboarding for the reasoning.
 
   // Restore in an effect (not useState init) so SSR and client agree on
   // the first render — Next would warn about hydration mismatch otherwise.
@@ -830,14 +792,13 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
 
   async function submitAll(indemnity: IndemnityInput) {
     const payload = { ...data, ...indemnity };
-    setCaptchaError(null);
     setSubmitting(true);
     let res: Response;
     try {
       res = await fetch("/api/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...payload, ...captcha }),
+        body: JSON.stringify(payload),
       });
     } catch {
       // Network drop (barn wifi) — fetch rejects. Without this the button
@@ -849,18 +810,7 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
     setSubmitting(false);
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      const msg = err.message ?? err.error ?? "Submission failed";
-      if (err.error === "CAPTCHA_FAILED") {
-        // Only a captcha rejection should cost them the question. Reloading it
-        // on every failure meant an unrelated error (a duplicate rider, say)
-        // also silently cleared the answer, so their next attempt failed too.
-        setCaptchaKey((n) => n + 1);
-        setCaptchaError(msg);
-        // Everything else they typed survives — say so, because the field
-        // going blank looks like the form reset itself.
-        document.getElementById("captcha-answer")?.scrollIntoView({ block: "center" });
-      }
-      toast.error(msg);
+      toast.error(err.message ?? err.error ?? "Submission failed");
       return;
     }
     const body = await res.json();
@@ -947,13 +897,6 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
             onSubmit={submitAll}
             onBack={back}
             submitting={submitting}
-            captcha={captcha}
-            onCaptchaChange={(v) => {
-              setCaptchaError(null);
-              setCaptcha(v);
-            }}
-            captchaKey={captchaKey}
-            captchaError={captchaError}
           />
         )}
         {currentStep === "submitted" && (

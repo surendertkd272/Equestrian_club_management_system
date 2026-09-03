@@ -18,7 +18,6 @@ import { notifyCentreManager } from "@/lib/notify";
 import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 import { bindRlsBypass } from "@/lib/tenant-context";
-import { verifyChallengeDetailed, captchaMessage } from "@/lib/captcha";
 import { sendConsentReceipt } from "@/lib/rider-consent-request";
 
 export const runtime = "nodejs";
@@ -32,22 +31,18 @@ export async function POST(req: NextRequest) {
   }
   const d = parsed.data;
 
-  // CAPTCHA gate. This is a public, unauthenticated endpoint that creates a
-  // record a human then has to review, so the cost of junk lands on the club's
-  // approval queue. Production only — dev/UAT stays frictionless — and it runs
-  // AFTER validation for the same reason the rate limit does: a parent fixing a
-  // mistyped phone number shouldn't be punished for it.
-  if (process.env.NODE_ENV === "production") {
-    const cap = !d.captchaToken || !d.captchaAnswer
-      ? ({ ok: false, reason: "malformed" } as const)
-      : verifyChallengeDetailed(d.captchaToken, d.captchaAnswer);
-    if (!cap.ok) {
-      return NextResponse.json(
-        { error: "CAPTCHA_FAILED", reason: cap.reason, message: captchaMessage(cap.reason) },
-        { status: 400 },
-      );
-    }
-  }
+  // No CAPTCHA here, deliberately.
+  //
+  // It blocked a real applicant twice — a parent reading the indemnity
+  // carefully outlived the challenge — and caught no bots we could point to.
+  // This endpoint is not undefended without it: submissions are rate-limited
+  // to 10/hour per IP (below), and nothing becomes a rider until a human
+  // approves it, so junk costs a click rather than a record.
+  //
+  // Signup and password reset KEEP theirs: one mints an organisation and a
+  // super-admin from a stranger's request with no human in the loop, the other
+  // can be pointed at anyone's inbox. Those earn the friction; a parent
+  // registering their child does not.
 
   // Public self-enrolment endpoint — no auth gate. Rate-limit per IP to
   // keep an attacker (or a buggy script) from filling the approval queue

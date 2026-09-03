@@ -155,11 +155,9 @@ export const onboardingSchema = personalSchema
   .merge(parentalConsentSchema)
   .extend({
     centreSlug: z.string().min(1),
-    // Anti-spam challenge (lib/captcha.ts). Optional in the schema because
-    // dev/UAT submits without one; /api/onboarding enforces presence and
-    // correctness in production.
-    captchaToken: z.string().optional(),
-    captchaAnswer: z.string().optional(),
+    // No captcha fields — the rider form does not use one. Kept optional-free
+    // rather than optional-and-ignored so nothing sends a value that quietly
+    // goes nowhere. See the note in /api/onboarding for why.
   });
 
 export type OnboardingInput = z.infer<typeof onboardingSchema>;
