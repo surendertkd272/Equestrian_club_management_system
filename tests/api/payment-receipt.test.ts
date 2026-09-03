@@ -134,6 +134,37 @@ describe("recording a receipt", () => {
     expect((await call({ riderId: rider.id, amount: -5000, method: "cash" })).status).toBe(400);
   });
 
+  it("attaches proof of the money arriving", async () => {
+    await signIn(hq);
+    const res = await call({
+      riderId: rider.id, amount: 150000, method: "upi",
+      proofUrl: "/uploads/upi-screenshot-abc123.png",
+    });
+    expect(res.status).toBe(200);
+    const row = await prisma.payment.findFirstOrThrow();
+    // For a club collecting privately this is the ONLY evidence the payment
+    // happened — there is no gateway record behind the figure.
+    expect(row.proofUrl).toBe("/uploads/upi-screenshot-abc123.png");
+  });
+
+  it("refuses an external link as proof", async () => {
+    await signIn(hq);
+    // Pointing the club's own records at a host somebody else controls means
+    // the evidence can be swapped or removed after the fact.
+    const res = await call({
+      riderId: rider.id, amount: 1000, method: "upi",
+      proofUrl: "https://evil.example.com/fake-receipt.png",
+    });
+    expect(res.status).toBe(400);
+    expect(await prisma.payment.count()).toBe(0);
+  });
+
+  it("records fine with no proof — it is optional", async () => {
+    await signIn(hq);
+    expect((await call({ riderId: rider.id, amount: 1000, method: "cash" })).status).toBe(200);
+    expect((await prisma.payment.findFirstOrThrow()).proofUrl).toBeNull();
+  });
+
   it("works with fee-collection switched OFF", async () => {
     // The clubs this exists for are exactly the ones with billing off.
     await prisma.orgFeature.updateMany({

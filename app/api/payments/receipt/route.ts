@@ -31,6 +31,14 @@ const schema = z.object({
   paidAt: z.string().optional(),
   txnRef: z.string().max(120).optional(),
   note: z.string().max(300).optional(),
+  // Screenshot / slip proving the money arrived. Same /uploads whitelist the
+  // rest of the app uses — an external URL here would let someone point the
+  // club's own records at a host they control.
+  proofUrl: z
+    .string()
+    .regex(/^\/uploads\/[a-z0-9._-]+$/i, "Upload the proof rather than pasting a link")
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
 });
 
 export async function POST(req: NextRequest) {
@@ -85,6 +93,7 @@ export async function POST(req: NextRequest) {
       // a bounced cheque quietly overstates a month.
       clearedAt: d.method === "cheque" ? null : paidAt,
       reason: d.note ?? null,
+      proofUrl: d.proofUrl ?? null,
       txnRef: d.txnRef || null,
     },
   });
@@ -99,6 +108,7 @@ export async function POST(req: NextRequest) {
       amount: d.amount,
       method: d.method,
       note: d.note ?? null,
+      hasProof: Boolean(d.proofUrl),
     },
     ip: req.headers.get("x-forwarded-for"),
     userAgent: req.headers.get("user-agent"),

@@ -66,7 +66,10 @@ export default async function AnalyticsPage() {
       months.map((m) =>
         prisma.payment.aggregate({
           where: {
-            invoice: tenantWhere(centreId, orgId),
+            // Scoped on the payment's own centre. Through the invoice, a
+            // receipt — fees taken without raising a bill — counted for
+            // nothing, so a club that collects privately saw a flat zero line.
+            ...tenantWhere(centreId, orgId),
             paidAt: { gte: m.start, lte: m.end },
           },
           _sum: { amount: true },

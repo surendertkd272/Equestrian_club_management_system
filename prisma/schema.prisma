@@ -2007,6 +2007,11 @@ model Payment {
   txnRef    String?   @unique
   paidAt    DateTime  @default(now())
   clearedAt DateTime?
+  // Proof of the money arriving — a UPI screenshot, a bank slip, a scanned
+  // cash receipt. For a club collecting privately this IS the evidence the
+  // payment happened; there is no gateway record behind it, so a bare figure
+  // typed by staff is otherwise unverifiable months later.
+  proofUrl  String?
 
   // A reversal is a NEW row with a negative amount pointing at the original —
   // a bounced cheque, a receipt entered against the wrong rider, a refund. It

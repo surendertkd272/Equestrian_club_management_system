@@ -115,7 +115,9 @@ export default async function DashboardPage() {
       prisma.invoice.count({ where: { ...where, status: "due" } }),
       prisma.payment.aggregate({
         where: {
-          invoice: tenantWhere(centreId, orgId),
+          // Own centre, not through the invoice — otherwise a club that takes
+          // fees without invoicing shows ₹0 revenue on its own dashboard.
+          ...tenantWhere(centreId, orgId),
           paidAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
         },
         _sum: { amount: true },
@@ -123,7 +125,7 @@ export default async function DashboardPage() {
       // Last month's revenue — for an honest month-over-month delta on the tile.
       prisma.payment.aggregate({
         where: {
-          invoice: tenantWhere(centreId, orgId),
+          ...tenantWhere(centreId, orgId),
           paidAt: {
             gte: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
             lt: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -194,7 +196,7 @@ export default async function DashboardPage() {
     Promise.all(
       months.map((m) =>
         prisma.payment.aggregate({
-          where: { invoice: tenantWhere(centreId, orgId), paidAt: { gte: m.start, lt: m.end } },
+          where: { ...tenantWhere(centreId, orgId), paidAt: { gte: m.start, lt: m.end } },
           _sum: { amount: true },
         }),
       ),

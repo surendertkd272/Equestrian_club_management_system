@@ -29,6 +29,30 @@ export function RecordReceipt({
   const [paidAt, setPaidAt] = useState(() => new Date().toISOString().slice(0, 10));
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  // Proof of the money arriving. For a club collecting privately this is the
+  // only evidence the payment happened — there is no gateway record behind it.
+  const [proofUrl, setProofUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  async function uploadProof(file: File | null) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("kind", "payment_proof");
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) {
+        toast.error(data.message ?? data.error ?? "Couldn't upload that file");
+        return;
+      }
+      setProofUrl(data.url);
+      toast.success("Proof attached");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   const value = Number(amount);
   const valid = riderId !== "" && Number.isFinite(value) && value > 0;
@@ -45,6 +69,7 @@ export function RecordReceipt({
           method,
           paidAt: new Date(paidAt).toISOString(),
           note: note.trim() || undefined,
+          proofUrl: proofUrl || undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -55,6 +80,7 @@ export function RecordReceipt({
       toast.success(`Recorded ₹${value.toLocaleString("en-IN")}`);
       setAmount("");
       setNote("");
+      setProofUrl("");
       router.refresh();
     } finally {
       setBusy(false);
@@ -120,8 +146,29 @@ export function RecordReceipt({
             maxLength={300}
           />
         </div>
+        <div className="space-y-1 sm:col-span-2 lg:col-span-4">
+          <label htmlFor="rcpt-proof" className="text-xs text-muted-foreground">
+            Proof (optional) — UPI screenshot, bank slip or scanned receipt
+          </label>
+          <input
+            id="rcpt-proof"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,application/pdf"
+            onChange={(e) => uploadProof(e.target.files?.[0] ?? null)}
+            disabled={uploading}
+            className="block w-full text-sm"
+          />
+          {uploading && <p className="text-xs text-muted-foreground">Uploading…</p>}
+          {proofUrl && (
+            <p className="text-xs">
+              <a href={proofUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                Proof attached — view
+              </a>
+            </p>
+          )}
+        </div>
         <div className="flex items-end">
-          <Button onClick={submit} disabled={busy || !valid} className="w-full">
+          <Button onClick={submit} disabled={busy || uploading || !valid} className="w-full">
             {busy ? "Saving…" : "Record"}
           </Button>
         </div>

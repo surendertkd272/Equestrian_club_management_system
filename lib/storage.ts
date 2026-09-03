@@ -32,6 +32,10 @@ export type UploadKind =
   | "staff_aadhaar"
   | "staff_police_verification"
   | "expense_invoice"
+  // Proof of a fee received — a UPI screenshot, a bank slip, a scanned cash
+  // receipt. Session-only: never in ANON_KINDS, because unlike a registration
+  // document nobody uploads this before they have an account.
+  | "payment_proof"
   // Employee self-registration docs (Aadhaar, PAN, bank proof, certificates,
   // photo). Public — uploaded from the tokenised onboarding link.
   | "onboarding_doc"
@@ -47,6 +51,7 @@ const POLICY: Record<UploadKind, { mimes: string[]; maxBytes: number }> = {
   user_photo:                { mimes: ["image/jpeg", "image/png", "image/webp"], maxBytes: 2 * 1024 * 1024 },
   staff_aadhaar:             { mimes: ["image/jpeg", "image/png", "application/pdf"], maxBytes: 5 * 1024 * 1024 },
   staff_police_verification: { mimes: ["image/jpeg", "image/png", "application/pdf"], maxBytes: 5 * 1024 * 1024 },
+  payment_proof:             { mimes: ["image/jpeg", "image/png", "image/webp", "application/pdf"], maxBytes: 5 * 1024 * 1024 },
   expense_invoice:           { mimes: ["image/jpeg", "image/png", "application/pdf"], maxBytes: 10 * 1024 * 1024 },
   onboarding_doc:            { mimes: ["image/jpeg", "image/png", "image/webp", "application/pdf"], maxBytes: 5 * 1024 * 1024 },
   generic:                   { mimes: ["image/jpeg", "image/png", "image/webp", "application/pdf"], maxBytes: 5 * 1024 * 1024 },
