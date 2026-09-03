@@ -28,7 +28,22 @@ export function HqCentreSwitcher({
         body: JSON.stringify({ centreId: value }),
       });
       if (!res.ok) {
-        toast.error("Couldn't save filter");
+        // A 401 here means the session ended while the tab sat open — the page
+        // still LOOKS signed in, so "Couldn't save filter" sent people hunting
+        // for a bug in the centre picker when the real answer was "sign in
+        // again". Every other failure shows what the server actually said
+        // rather than a single catch-all sentence.
+        if (res.status === 401) {
+          toast.error("Your session has ended. Signing you in again…");
+          router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+          return;
+        }
+        const data = await res.json().catch(() => ({}));
+        toast.error(
+          data.error === "FORBIDDEN_CROSS_ORG"
+            ? "That centre isn't part of your organisation."
+            : (data.message ?? "Couldn't save the centre filter. Please try again."),
+        );
         return;
       }
       router.refresh();
