@@ -14,7 +14,24 @@ export default async function OnboardingPage({
 }) {
   bindRlsBypass(); // public-by-unguessable-id flow (no session to bind an org from)
   const slug = searchParams.centre;
-  const centre = slug ? await prisma.centre.findUnique({ where: { slug } }) : null;
+  // Current slug first, then any this centre used to answer to.
+  //
+  // A registration link is printed on noticeboards and forwarded through
+  // school WhatsApp groups, so a renamed slug would silently kill every copy
+  // already out there — and the failure is invisible: the page just stops
+  // naming a centre, and a parent concludes the club has closed rather than
+  // asking for a new link.
+  const centre = slug
+    ? ((await prisma.centre.findUnique({ where: { slug } })) ??
+      (await prisma.centre.findFirst({ where: { previousSlugs: { has: slug } } })))
+    : null;
+
+  // Land them on the current URL. The old link keeps working, but every share
+  // from here on carries the right one, so the stale slug dies out instead of
+  // being copied forward forever.
+  if (centre && slug && centre.slug !== slug) {
+    redirect(`/onboarding?centre=${centre.slug}`);
+  }
 
   if (!centre) {
     // A signed-in staff member who reached this page WITHOUT a slug (e.g. via a

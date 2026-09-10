@@ -606,6 +606,17 @@ model Centre {
   // "today" windows). Server runs in UTC; without this, day-bucketing is off
   // by the local offset (IST = +05:30). Defaults to India.
   timezone              String   @default("Asia/Kolkata")
+  // Slugs this centre used to answer to.
+  //
+  // The public registration URL is ?centre=<slug>, and those links get printed
+  // on noticeboards, pasted into school WhatsApp groups and forwarded on. So
+  // renaming a slug silently kills every copy already in circulation, with no
+  // error anyone sees — the page just stops naming a centre and a parent
+  // assumes the club is closed.
+  //
+  // Keeping the old ones means a rename costs nothing. Populated by hand when
+  // a slug changes; there is no rename endpoint, slugs are edited directly.
+  previousSlugs         String[] @default([])
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
