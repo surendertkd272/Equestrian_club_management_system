@@ -8,7 +8,7 @@ import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { parseCsv } from "@/lib/csv-parse";
 import { parseXlsx } from "@/lib/xlsx-parse";
 import { isRealYMD } from "@/lib/utils";
-import { indianMobile } from "@/lib/schemas/phone";
+import { indianMobile, indianPhone } from "@/lib/schemas/phone";
 import { RIDER_STATUS } from "@/lib/rider-status";
 
 // Schema for a single row in the import payload. Accepts a generous set
@@ -36,6 +36,27 @@ const rowSchema = z.object({
       if (t === "o" || t === "other") return "other";
       return undefined;
     }),
+  // REQUIRED, and the reason is not paperwork.
+  //
+  // The public registration form has always demanded an emergency contact,
+  // and the importer did not even ask for one — so a bulk-imported child was
+  // put on a horse with nobody to call. That is the single most
+  // safety-critical field on the sheet and it was the one missing.
+  //
+  // Hard-required rather than "recommended": a club that cannot name who to
+  // ring should not be mounting that rider, and a soft warning on a 90-row
+  // upload is a warning nobody reads.
+  emergency_name: z.string().min(1, "Emergency contact name is required").max(120),
+  emergency_phone: indianPhone("Emergency contact needs a reachable phone number"),
+  // Optional here though required at registration: a school supplying a roster
+  // often has the parent's phone but not every home address, and refusing the
+  // whole upload over a postcode would push clubs back to paper.
+  address: z.string().max(300).optional().transform((v) => v || undefined),
+  pincode: z
+    .string()
+    .regex(/^\d{6}$/, "PIN must be 6 digits")
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
   school: z.string().max(120).optional().transform((v) => v || undefined),
   school_class: z.string().max(40).optional().transform((v) => v || undefined),
   school_section: z.string().max(20).optional().transform((v) => v || undefined),
@@ -299,6 +320,10 @@ export async function POST(req: NextRequest) {
           email: row.email ?? null,
           dob: new Date(row.dob),
           gender: row.gender ?? null,
+          emergencyName: row.emergency_name,
+          emergencyPhone: row.emergency_phone,
+          addressPresent: row.address ?? null,
+          pincode: row.pincode ?? null,
           school: row.school ?? null,
           schoolClass: row.school_class ?? null,
           schoolSection: row.school_section ?? null,

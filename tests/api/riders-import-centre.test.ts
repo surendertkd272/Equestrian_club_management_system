@@ -26,6 +26,12 @@ vi.mock("next/headers", () => ({
 const { POST: importRiders } = await import("@/app/api/riders/import/route");
 
 const CSV = [
+  "first_name,last_name,mobile,dob,emergency_name,emergency_phone",
+  "Aarav,Sharma,9876543210,2014-08-23,Priya Sharma,9876543211",
+].join("\n");
+
+// The same rider with no emergency contact — rejected, not imported.
+const CSV_NO_EMERGENCY = [
   "first_name,last_name,mobile,dob",
   "Aarav,Sharma,9876543210,2014-08-23",
 ].join("\n");
@@ -100,5 +106,27 @@ describe("rider import — which centre do rows land in?", () => {
     expect(r.status).toBe(403);
     expect(await r.json()).toMatchObject({ error: "FORBIDDEN_CROSS_ORG" });
     expect(await prisma.rider.count({ where: { centreId: foreign.id } })).toBe(0);
+  });
+
+  it("refuses a rider with no emergency contact", async () => {
+    // The public registration form has always demanded one; the importer did
+    // not even ask, so a bulk-imported child could be put on a horse with
+    // nobody to call. That is the most safety-critical field on the sheet and
+    // it was the one missing.
+    const org = await mkOrg();
+    const centre = await mkCentre({ orgId: org.id });
+    const admin = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id });
+    await signIn(admin.id, "SUPER_ADMIN", null, centre.id);
+    const res = await importRiders(
+      mockReq("http://localhost/api/riders/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csv: CSV_NO_EMERGENCY, dryRun: false }),
+      }),
+    );
+    const body = await res.json();
+    expect(body.created).toBe(0);
+    expect(JSON.stringify(body.errors)).toMatch(/emergency/i);
+    expect(await prisma.rider.count()).toBe(0);
   });
 });

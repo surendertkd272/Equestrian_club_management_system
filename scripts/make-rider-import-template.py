@@ -42,6 +42,14 @@ COLUMNS = [
     ("parent_name",  False, 22, "Optional. Parent / guardian name."),
     ("parent_phone", False, 16, "Optional. Parent's number, if different from the mobile column."),
     ("gender",       False, 12, "Optional. male / female / other (m, f, o also accepted)."),
+    ("emergency_name", True, 22, "REQUIRED — who to call if this rider is hurt.\n"
+                                "The public registration form has always demanded this; the upload\n"
+                                "sheet did not, so imported riders were mounting with nobody to ring.\n"
+                                "A row without it is rejected."),
+    ("emergency_phone", True, 16, "REQUIRED — a reachable number for the person above.\n"
+                                "Landline or mobile. This is the number someone dials from the arena."),
+    ("address",      False, 30, "Optional. Present address."),
+    ("pincode",      False, 10, "Optional. 6-digit PIN."),
     ("school",       False, 24, "Optional. School name."),
     ("school_class", False, 12, "Optional. Class / grade — 5, V, Grade 5, XI-Science. Free text."),
     ("school_section", False, 10, "Optional. Section — A, B, etc."),
