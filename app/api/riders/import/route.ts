@@ -10,6 +10,7 @@ import { parseXlsx } from "@/lib/xlsx-parse";
 import { isRealYMD } from "@/lib/utils";
 import { indianMobile, indianPhone } from "@/lib/schemas/phone";
 import { RIDER_STATUS } from "@/lib/rider-status";
+import { calcBmi } from "@/lib/utils";
 
 // Schema for a single row in the import payload. Accepts a generous set
 // of column aliases so CSV authors don't have to use exact field names.
@@ -57,6 +58,16 @@ const rowSchema = z.object({
     .regex(/^\d{6}$/, "PIN must be 6 digits")
     .optional()
     .or(z.literal("").transform(() => undefined)),
+  // Anthropometrics + medical. Collected at registration and absent here, so
+  // an imported rider had no height, no weight, no BMI and — more to the point
+  // at a stable — no record of asthma, a prior fracture or a hay allergy.
+  //
+  // NO bmi column: it is derived from the two below (calcBmi), and a column
+  // someone can type into is a column that can contradict its own inputs.
+  height_cm: z.coerce.number().positive().max(250).optional().or(z.literal("").transform(() => undefined)),
+  weight_kg: z.coerce.number().positive().max(300).optional().or(z.literal("").transform(() => undefined)),
+  medical_notes: z.string().max(1000).optional().transform((v) => v || undefined),
+  allergies: z.string().max(500).optional().transform((v) => v || undefined),
   school: z.string().max(120).optional().transform((v) => v || undefined),
   school_class: z.string().max(40).optional().transform((v) => v || undefined),
   school_section: z.string().max(20).optional().transform((v) => v || undefined),
@@ -320,6 +331,14 @@ export async function POST(req: NextRequest) {
           email: row.email ?? null,
           dob: new Date(row.dob),
           gender: row.gender ?? null,
+          heightCm: row.height_cm ?? null,
+          weightKg: row.weight_kg ?? null,
+          // Derived exactly as registration derives it, so a rider's BMI does
+          // not depend on how they were entered.
+          bmi: calcBmi(row.height_cm ?? null, row.weight_kg ?? null),
+          bmiMeasuredAt: row.height_cm && row.weight_kg ? new Date() : null,
+          medicalNotes: row.medical_notes ?? null,
+          allergies: row.allergies ?? null,
           emergencyName: row.emergency_name,
           emergencyPhone: row.emergency_phone,
           addressPresent: row.address ?? null,

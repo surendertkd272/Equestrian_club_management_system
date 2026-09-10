@@ -50,6 +50,16 @@ COLUMNS = [
                                 "Landline or mobile. This is the number someone dials from the arena."),
     ("address",      False, 30, "Optional. Present address."),
     ("pincode",      False, 10, "Optional. 6-digit PIN."),
+    ("height_cm",    False, 11, "Optional but useful. Height in centimetres — 140. Numbers only.\n"
+                                "Used with weight to work out BMI, which the club uses when matching\n"
+                                "a rider to a horse. Do NOT add a BMI column — it is calculated."),
+    ("weight_kg",    False, 11, "Optional but useful. Weight in kilograms — 35. Numbers only.\n"
+                                "A pony has a rider weight limit, so this is a safety figure as much\n"
+                                "as a health one."),
+    ("medical_notes", False, 34, "Optional. Asthma, prior fractures, anything a coach should know\n"
+                                "BEFORE the rider mounts. Free text."),
+    ("allergies",    False, 28, "Optional. Drugs, food, dust, HAY. Hay and dust matter more at a\n"
+                                "stable than almost anywhere else — please fill this in if known."),
     ("school",       False, 24, "Optional. School name."),
     ("school_class", False, 12, "Optional. Class / grade — 5, V, Grade 5, XI-Science. Free text."),
     ("school_section", False, 10, "Optional. Section — A, B, etc."),

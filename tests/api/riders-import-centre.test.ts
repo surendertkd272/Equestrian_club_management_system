@@ -129,4 +129,60 @@ describe("rider import — which centre do rows land in?", () => {
     expect(JSON.stringify(body.errors)).toMatch(/emergency/i);
     expect(await prisma.rider.count()).toBe(0);
   });
+
+  it("captures height, weight and derives BMI the same way registration does", async () => {
+    // Asked for on the wizard and never added here, so an imported rider had
+    // no BMI — the figure the club uses when matching a rider to a horse. A
+    // pony has a weight limit; this is a safety number, not a health metric.
+    const org = await mkOrg();
+    const centre = await mkCentre({ orgId: org.id });
+    const admin = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id });
+    await signIn(admin.id, "SUPER_ADMIN", null, centre.id);
+
+    const csv = [
+      "first_name,last_name,mobile,dob,emergency_name,emergency_phone,height_cm,weight_kg,allergies",
+      "Aarav,Sharma,9876543210,2014-08-23,Priya Sharma,9876543211,140,35,Hay and dust",
+    ].join("\n");
+    await importRiders(
+      mockReq("http://localhost/api/riders/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csv, dryRun: false }),
+      }),
+    );
+
+    const rider = await prisma.rider.findFirstOrThrow({ where: { firstName: "Aarav" } });
+    expect(rider.heightCm).toBe(140);
+    expect(rider.weightKg).toBe(35);
+    // 35 / 1.4^2 = 17.9 — identical to what the wizard would store.
+    expect(rider.bmi).toBe(17.9);
+    expect(rider.bmiMeasuredAt).not.toBeNull();
+    // The one a stable cares about most.
+    expect(rider.allergies).toBe("Hay and dust");
+  });
+
+  it("leaves BMI null when either measurement is missing", async () => {
+    // Half a measurement is not a BMI, and inventing one would put a number
+    // on a rider profile that nobody measured.
+    const org = await mkOrg();
+    const centre = await mkCentre({ orgId: org.id });
+    const admin = await mkUser({ role: "SUPER_ADMIN", centreId: null, orgId: org.id });
+    await signIn(admin.id, "SUPER_ADMIN", null, centre.id);
+
+    const csv = [
+      "first_name,last_name,mobile,dob,emergency_name,emergency_phone,height_cm",
+      "Solo,Height,9876543212,2014-08-23,EC,9876543213,140",
+    ].join("\n");
+    await importRiders(
+      mockReq("http://localhost/api/riders/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ csv, dryRun: false }),
+      }),
+    );
+    const rider = await prisma.rider.findFirstOrThrow({ where: { firstName: "Solo" } });
+    expect(rider.heightCm).toBe(140);
+    expect(rider.bmi).toBeNull();
+    expect(rider.bmiMeasuredAt).toBeNull();
+  });
 });
