@@ -302,7 +302,17 @@ function PersonalStep({ initial, onNext }: { initial: WizardData; onNext: (d: Pe
             <option value="other">Other</option>
           </Select>
         </div>
-        <Field methods={methods} name="mobile" label="Mobile" required placeholder="10-digit" inputMode="tel" />
+        {/* Optional — most riders are minors, and the number that actually
+            matters is a parent's, asked for on the next step. Requiring the
+            child's own handset blocked a family with none for their kid. */}
+        <Field
+          methods={methods}
+          name="mobile"
+          label="Mobile"
+          placeholder="10-digit"
+          inputMode="tel"
+          hint="The rider's own number, if they have one. A parent's number is asked for separately."
+        />
         {/* Kept optional — a family without email must still be able to
             register — but the label now says what it is FOR. Ninety-six of a
             hundred riders left this blank, which quietly made every
@@ -320,12 +330,14 @@ function PersonalStep({ initial, onNext }: { initial: WizardData; onNext: (d: Pe
         <Field methods={methods} name="aadhaarNo" label="Aadhaar (12 Digits)" placeholder="123412341234" inputMode="numeric" />
         <Field methods={methods} name="placeOfBirth" label="Place of Birth" />
         <Field methods={methods} name="nationality" label="Nationality" placeholder="Indian" />
-        <Field methods={methods} name="maritalStatus" label="Marital Status" />
-        <Field methods={methods} name="school" label="School" placeholder="School / college name" />
-        <Field methods={methods} name="schoolClass" label="Class" placeholder="e.g. 7, VII, Grade 7" />
-        <Field methods={methods} name="schoolSection" label="Section" placeholder="e.g. A" />
-        <Field methods={methods} name="education" label="Education" />
-        <Field methods={methods} name="occupation" label="Occupation" />
+        {/* School identity is required, not optional — a school administrator's
+            entire view of their pupils is fenced by this (lib/school-scope.ts).
+            A rider with no school on file is invisible to the school that sent
+            them, which is exactly what happened to most of one live centre's
+            roster before this became mandatory. */}
+        <Field methods={methods} name="school" label="School" required placeholder="School / college name" />
+        <Field methods={methods} name="schoolClass" label="Class" required placeholder="e.g. 7, VII, Grade 7" />
+        <Field methods={methods} name="schoolSection" label="Section" required placeholder="e.g. A" />
 
         <div className="md:col-span-2 grid gap-3 md:grid-cols-2 rounded-md border bg-muted/30 p-3">
           <UploadField
@@ -412,8 +424,11 @@ function ParentsStep({
         <Field methods={methods} name="fatherPhone" label="Father's Phone" inputMode="tel" />
         <Field methods={methods} name="motherName" label="Mother's Name" />
         <Field methods={methods} name="motherPhone" label="Mother's Phone" inputMode="tel" />
-        <Field methods={methods} name="emergencyName" label="Emergency Contact Name" required />
-        <Field methods={methods} name="emergencyPhone" label="Emergency Contact Phone" required inputMode="tel" />
+        {/* No longer required to submit — a club can register a rider before
+            an emergency contact is known and add it to the profile later.
+            Still asked for up front, since most families do have one to hand. */}
+        <Field methods={methods} name="emergencyName" label="Emergency Contact Name" />
+        <Field methods={methods} name="emergencyPhone" label="Emergency Contact Phone" inputMode="tel" />
       </div>
       <StepFooter canBack onBack={onBack} submitting={false} submitLabel="Next" />
     </form>

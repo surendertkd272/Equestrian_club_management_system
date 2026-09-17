@@ -18,14 +18,15 @@ import { resolveSchoolId } from "@/lib/school-scope";
 const rowSchema = z.object({
   first_name: z.string().min(1).max(80),
   last_name: z.string().min(1).max(80),
-  // Same rule as the public signup form. This was a length-only check, so a
-  // spreadsheet cell reading "nine-eight-one" imported as a contact number and
-  // every SMS / WhatsApp to that family then failed silently at dispatch —
-  // bulk import being the one path where nobody eyeballs each value. Also
-  // normalises "+91 98123 45671" and "098123…" to bare digits, which makes the
-  // duplicate check below compare like with like instead of treating the same
-  // number in two formats as two people.
-  mobile: indianMobile("Not a valid Indian mobile number"),
+  // Optional, matching the public registration form: most riders are minors,
+  // and a school-supplied roster often has a class list with no phone per
+  // pupil at all. When given, still validated against the same rule as the
+  // signup form — a spreadsheet cell reading "nine-eight-one" imported as a
+  // contact number and every SMS/WhatsApp to that family then failed silently
+  // at dispatch, and bulk import is the one path where nobody eyeballs each
+  // value. Also normalises "+91 98123 45671" and "098123…" to bare digits, so
+  // the duplicate check below compares like with like.
+  mobile: indianMobile("Not a valid Indian mobile number").optional().or(z.literal("").transform(() => undefined)),
   email: z.string().email().optional().or(z.literal("")).transform((v) => v || undefined),
   dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "DOB must be YYYY-MM-DD").refine(isRealYMD, "DOB isn't a real calendar date"),
   gender: z
@@ -38,18 +39,14 @@ const rowSchema = z.object({
       if (t === "o" || t === "other") return "other";
       return undefined;
     }),
-  // REQUIRED, and the reason is not paperwork.
-  //
-  // The public registration form has always demanded an emergency contact,
-  // and the importer did not even ask for one — so a bulk-imported child was
-  // put on a horse with nobody to call. That is the single most
-  // safety-critical field on the sheet and it was the one missing.
-  //
-  // Hard-required rather than "recommended": a club that cannot name who to
-  // ring should not be mounting that rider, and a soft warning on a 90-row
-  // upload is a warning nobody reads.
-  emergency_name: z.string().min(1, "Emergency contact name is required").max(120),
-  emergency_phone: indianPhone("Emergency contact needs a reachable phone number"),
+  // Optional, matching the public registration form: a club can bring a
+  // roster in before every emergency contact is confirmed and fill it in on
+  // each rider's profile afterwards. Still validated against the same rule as
+  // every other phone column when a value is given.
+  emergency_name: z.string().max(120).optional().transform((v) => v || undefined),
+  emergency_phone: indianPhone("Emergency contact needs a reachable phone number")
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
   // Optional here though required at registration: a school supplying a roster
   // often has the parent's phone but not every home address, and refusing the
   // whole upload over a postcode would push clubs back to paper.
@@ -69,9 +66,16 @@ const rowSchema = z.object({
   weight_kg: z.coerce.number().positive().max(300).optional().or(z.literal("").transform(() => undefined)),
   medical_notes: z.string().max(1000).optional().transform((v) => v || undefined),
   allergies: z.string().max(500).optional().transform((v) => v || undefined),
-  school: z.string().max(120).optional().transform((v) => v || undefined),
-  school_class: z.string().max(40).optional().transform((v) => v || undefined),
-  school_section: z.string().max(20).optional().transform((v) => v || undefined),
+  // REQUIRED. This is the fence a school administrator's whole view is
+  // scoped by (lib/school-scope.ts) — a rider with no school on file is
+  // invisible to the school that sent them, which was already the case for
+  // most of one live centre's roster before this became mandatory. A row
+  // typing a non-answer like "Nil" still passes this check (it's non-blank)
+  // but resolveSchoolId() below still treats it as no school — that gap is
+  // unchanged by making the column required; this only catches a BLANK cell.
+  school: z.string().min(1, "School is required").max(120),
+  school_class: z.string().min(1, "Class is required").max(40),
+  school_section: z.string().min(1, "Section is required").max(20),
   // A PARENT's address, and for a club of minors the one that matters.
   //
   // 96 riders in 100 have no email of their own, which is unsurprising when
@@ -227,14 +231,19 @@ export async function POST(req: NextRequest) {
   // indianMobile() (separators stripped, +91/0 dropped) while this set was
   // built from the raw column, so a stored "98123 45671" never matched an
   // incoming "9812345671" and real duplicates walked straight through.
-  const normMobile = (m: string) => m.replace(/[\s()\-.]/g, "").replace(/^(?:\+?91|0)/, "");
+  //
+  // Mobile is optional now, so this also has to tolerate one, or both sides,
+  // being blank — `?? ""` folds a missing number to the same empty string on
+  // both sides, so two mobile-less rows still collide correctly on name+dob
+  // instead of comparing "null" against "undefined".
+  const normMobile = (m: string | null | undefined) => (m ?? "").replace(/[\s()\-.]/g, "").replace(/^(?:\+?91|0)/, "");
   const existingMobile = new Set(existing.map((e) => normMobile(e.mobile)));
   const existingEmail = new Set(existing.filter((e) => e.email).map((e) => e.email!.toLowerCase()));
   // Identity of a PERSON, not of a phone. One household shares one number, so
   // claiming the bare mobile rejected the second sibling in the same sheet —
   // exactly the family a club is most likely to be importing. Matches the
   // public onboarding guard, which keys on centre + name + dob + mobile.
-  const identity = (m: string, first: string, last: string, dob: string) =>
+  const identity = (m: string | null | undefined, first: string, last: string, dob: string) =>
     `${normMobile(m)}|${first.trim().toLowerCase()}|${last.trim().toLowerCase()}|${dob}`;
   const existingIdentity = new Set(
     existing.map((e) => identity(e.mobile, e.firstName, e.lastName, e.dob.toISOString().slice(0, 10))),
@@ -255,7 +264,7 @@ export async function POST(req: NextRequest) {
     if (existingIdentity.has(key)) {
       rowErrors.push({
         line,
-        reason: `Duplicate of an existing rider: ${r.data.first_name} ${r.data.last_name} (${r.data.mobile})`,
+        reason: `Duplicate of an existing rider: ${r.data.first_name} ${r.data.last_name} (${r.data.mobile || "no mobile on file"})`,
       });
       return;
     }
@@ -336,7 +345,7 @@ export async function POST(req: NextRequest) {
           schoolId: schoolIdByName.get(key) ?? null,
           firstName: row.first_name,
           lastName: row.last_name,
-          mobile: row.mobile,
+          mobile: row.mobile ?? null,
           email: row.email ?? null,
           dob: new Date(row.dob),
           gender: row.gender ?? null,
@@ -348,13 +357,14 @@ export async function POST(req: NextRequest) {
           bmiMeasuredAt: row.height_cm && row.weight_kg ? new Date() : null,
           medicalNotes: row.medical_notes ?? null,
           allergies: row.allergies ?? null,
-          emergencyName: row.emergency_name,
-          emergencyPhone: row.emergency_phone,
+          emergencyName: row.emergency_name ?? null,
+          emergencyPhone: row.emergency_phone ?? null,
           addressPresent: row.address ?? null,
           pincode: row.pincode ?? null,
-          school: row.school ?? null,
-          schoolClass: row.school_class ?? null,
-          schoolSection: row.school_section ?? null,
+          // Guaranteed non-empty by rowSchema now — required, not optional.
+          school: row.school,
+          schoolClass: row.school_class,
+          schoolSection: row.school_section,
           fatherName: row.parent_name ?? null,
           fatherPhone: row.parent_phone ?? null,
           // Parked in the consent blob, which is where consentRecipient() and
@@ -373,7 +383,7 @@ export async function POST(req: NextRequest) {
           status: RIDER_STATUS.PENDING_CONSENT,
         },
       });
-      existingMobile.add(row.mobile);
+      if (row.mobile) existingMobile.add(row.mobile);
       if (row.email) existingEmail.add(row.email);
       created++;
 

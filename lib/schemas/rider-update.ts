@@ -39,8 +39,15 @@ export const updateRiderSchema = z.object({
     .or(z.literal("").transform(() => null)),
   aadhaarDocUrl: uploadedUrl,
   aadhaarBackDocUrl: uploadedUrl,
-  // Contact
-  mobile: z.string().min(7).max(20),
+  // Contact — nullable now: registration and bulk import stopped requiring
+  // the rider's own number, so an admin editing that rider must be able to
+  // leave it blank (or clear it) rather than being forced to invent one.
+  mobile: z
+    .string()
+    .min(7)
+    .max(20)
+    .nullable()
+    .or(z.literal("").transform(() => null)),
   email: z
     .string()
     .email()

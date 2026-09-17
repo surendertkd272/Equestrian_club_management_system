@@ -35,6 +35,9 @@ function application(over: Record<string, unknown> = {}) {
     gender: "male",
     mobile: "9876543210",
     email: "parent@club.in",
+    school: "DPS Ghaziabad",
+    schoolClass: "7",
+    schoolSection: "A",
     addressPresent: "1 Main St",
     pincode: "201301",
     emergencyName: "Priya Sharma",
@@ -203,5 +206,114 @@ describe("rendering the record", () => {
   it("centres carry a timezone to render against", async () => {
     const c = await prisma.centre.findUniqueOrThrow({ where: { id: centre.id } });
     expect(c.timezone).toBeTruthy();
+  });
+});
+
+describe("what registration no longer demands", () => {
+  // Most riders are minors; the number that matters for contact is a
+  // parent's (captured separately). Requiring the child's own handset, or an
+  // emergency contact before the club has even met the family, blocked
+  // registrations for no safety benefit the parent fields didn't already
+  // cover.
+  it("registers with no mobile, no email and no emergency contact at all", async () => {
+    const res = await submit(
+      application({
+        firstName: "Bare",
+        mobile: "",
+        email: "",
+        emergencyName: "",
+        emergencyPhone: "",
+      }),
+    );
+    expect(res.status).toBe(200);
+    const rider = await prisma.rider.findFirstOrThrow({ where: { firstName: "Bare" } });
+    expect(rider.mobile).toBeNull();
+    expect(rider.emergencyName).toBeNull();
+    expect(rider.emergencyPhone).toBeNull();
+    // The signature and consent are unaffected by any of this.
+    expect(rider.indemnitySignedAt).not.toBeNull();
+  });
+
+  it("does not store maritalStatus, education or occupation even if sent", async () => {
+    // Removed from the form entirely; the API ignores them if a client sends
+    // them anyway rather than erroring, since Zod strips unknown keys.
+    const res = await submit(
+      application({
+        firstName: "NoExtra",
+        mobile: "9000000010",
+        maritalStatus: "single",
+        education: "B.Sc",
+        occupation: "Student",
+      }),
+    );
+    expect(res.status).toBe(200);
+    const rider = await prisma.rider.findFirstOrThrow({ where: { firstName: "NoExtra" } });
+    expect(rider.maritalStatus).toBeNull();
+    expect(rider.education).toBeNull();
+    expect(rider.occupation).toBeNull();
+  });
+});
+
+describe("what registration now demands instead", () => {
+  // School identity is the fence a school administrator's dashboard is
+  // scoped by (lib/school-scope.ts) — a rider with no school on file is
+  // invisible to the school that sent them.
+  it("refuses registration with no school", async () => {
+    const res = await submit(application({ firstName: "NoSchool", mobile: "9000000011", school: "" }));
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(JSON.stringify(body)).toMatch(/school/i);
+    expect(await prisma.rider.count({ where: { firstName: "NoSchool" } })).toBe(0);
+  });
+
+  it("refuses registration with no class", async () => {
+    const res = await submit(application({ firstName: "NoClass", mobile: "9000000012", schoolClass: "" }));
+    expect(res.status).toBe(400);
+    expect(await prisma.rider.count({ where: { firstName: "NoClass" } })).toBe(0);
+  });
+
+  it("refuses registration with no section", async () => {
+    const res = await submit(application({ firstName: "NoSection", mobile: "9000000013", schoolSection: "" }));
+    expect(res.status).toBe(400);
+    expect(await prisma.rider.count({ where: { firstName: "NoSection" } })).toBe(0);
+  });
+
+  it("stores school, class and section when given", async () => {
+    const res = await submit(application({ firstName: "WithSchool", mobile: "9000000014" }));
+    expect(res.status).toBe(200);
+    const rider = await prisma.rider.findFirstOrThrow({ where: { firstName: "WithSchool" } });
+    expect(rider.school).toBe("DPS Ghaziabad");
+    expect(rider.schoolClass).toBe("7");
+    expect(rider.schoolSection).toBe("A");
+  });
+});
+
+describe("the duplicate guard without a mobile number", () => {
+  // Filtering the duplicate check on `mobile: ""` would match nothing (a
+  // stored value is never the empty string), so a resubmitting family with no
+  // mobile would silently stop being deduplicated — exactly the group most
+  // likely to leave it blank. Name + DOB + centre + the short window must
+  // still catch it.
+  it("still catches a same-day resubmission with no mobile on either side", async () => {
+    const first = await submit(
+      application({ firstName: "Repeat", lastName: "Kid", mobile: "", dob: "2013-01-01" }),
+    );
+    expect(first.status).toBe(200);
+    const second = await submit(
+      application({ firstName: "Repeat", lastName: "Kid", mobile: "", dob: "2013-01-01" }),
+    );
+    expect(second.status).toBe(200);
+    const body = await second.json();
+    expect(body.duplicate).toBe(true);
+    expect(await prisma.rider.count({ where: { firstName: "Repeat", lastName: "Kid" } })).toBe(1);
+  });
+
+  it("does not confuse two DIFFERENT mobile-less children born the same day", async () => {
+    await submit(application({ firstName: "Twin", lastName: "One", mobile: "", dob: "2013-02-02" }));
+    const res = await submit(application({ firstName: "Twin", lastName: "Two", mobile: "", dob: "2013-02-02" }));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.duplicate).toBeFalsy();
+    expect(await prisma.rider.count({ where: { firstName: "Twin" } })).toBe(2);
   });
 });

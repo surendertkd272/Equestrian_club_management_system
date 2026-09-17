@@ -137,7 +137,9 @@ export default async function RidersImportPage() {
               <code className="rounded bg-muted px-1">last_name</code> (lastname / surname) — required
             </li>
             <li>
-              <code className="rounded bg-muted px-1">mobile</code> (phone / contact) — required, used for dedup
+              <code className="rounded bg-muted px-1">mobile</code> (phone / contact) — optional, used for dedup
+              when given. Most riders are minors; <code>parent_phone</code> is the number that matters for
+              contact.
             </li>
             <li>
               <code className="rounded bg-muted px-1">email</code> — optional, used for dedup
@@ -149,7 +151,18 @@ export default async function RidersImportPage() {
               <code className="rounded bg-muted px-1">gender</code> (sex) — optional, M / F / O
             </li>
             <li>
-              <code className="rounded bg-muted px-1">school</code> — optional
+              <code className="rounded bg-muted px-1">school</code> — required. This is what lets the school&apos;s
+              own administrator see this rider on their dashboard.
+            </li>
+            <li>
+              <code className="rounded bg-muted px-1">school_class</code> — required, e.g. 5, V, Grade 5
+            </li>
+            <li>
+              <code className="rounded bg-muted px-1">school_section</code> — required, e.g. A, B
+            </li>
+            <li>
+              <code className="rounded bg-muted px-1">emergency_name</code> / <code className="rounded bg-muted px-1">emergency_phone</code> — recommended, not required. Add
+              to the rider&apos;s profile once known if left blank here.
             </li>
             <li>
               <code className="rounded bg-muted px-1">joining_date</code> — optional, format <code>YYYY-MM-DD</code>
@@ -162,9 +175,9 @@ export default async function RidersImportPage() {
           <details className="rounded-md border bg-muted/30 p-3 text-xs">
             <summary className="cursor-pointer font-medium">Example CSV</summary>
             <pre className="mt-2 overflow-x-auto whitespace-pre">
-{`first_name,last_name,mobile,email,dob,gender,school,level
-Riya,Sharma,9876543210,riya@example.in,2012-04-12,F,DPS Bangalore,1
-Aarav,Patel,9876501234,aarav@example.in,2010-11-03,M,Bishop Cotton,2
+{`first_name,last_name,dob,gender,school,school_class,school_section,level
+Riya,Sharma,2012-04-12,F,DPS Bangalore,7,A,1
+Aarav,Patel,2010-11-03,M,Bishop Cotton,5,B,2
 `}
             </pre>
           </details>

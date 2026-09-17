@@ -880,7 +880,14 @@ model Rider {
   aadhaarDocUrl          String? // Aadhaar front side scan
   aadhaarBackDocUrl      String? // Aadhaar back side scan
   // Contact
-  mobile                 String
+  // Nullable since the registration link and bulk import stopped requiring a
+  // rider's own number — most riders are minors, and the number that matters
+  // for contact is a parent's (fatherPhone/motherPhone, or parentPhone in the
+  // DPDPA consent block for minors, which stays mandatory). consentPhone()
+  // and every SMS-sending sweep already fall back through those before
+  // reaching this column, so a blank one degrades gracefully rather than
+  // silently going to the wrong number.
+  mobile                 String?
   email                  String?
   // Preferred language for parent communications (SMS / WhatsApp / email).
   // Two-letter ISO 639-1 code; lib/sms.ts looks up the matching template

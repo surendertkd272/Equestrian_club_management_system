@@ -24,7 +24,9 @@ type Rider = {
   firstName: string;
   lastName: string;
   dob: string | Date;
-  mobile: string;
+  // Optional now — the registration link and bulk import no longer require
+  // the rider's own number.
+  mobile: string | null;
   email: string | null;
   school: string | null;
   schoolClass: string | null;

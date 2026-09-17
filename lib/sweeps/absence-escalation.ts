@@ -61,30 +61,38 @@ export async function sweepAbsenceEscalation(): Promise<SweepResult> {
       skipped += 1;
       continue;
     }
+    // Rider's own mobile is optional now (registration/import no longer
+    // require it), so this can genuinely be null when neither parent number
+    // is on file either — not just when a value hasn't been typed yet.
     const parentPhone = rider.fatherPhone ?? rider.motherPhone ?? rider.mobile;
     await notify({
       userId: mgrId,
       centreId: rider.centreId,
       type: "rider.absence_streak",
       title: `${rider.firstName} ${rider.lastName}: 3+ absences in last 5 sessions`,
-      body: `Call parent at ${parentPhone} to check in. Per club policy, prolonged un-notified absence may risk membership.`,
+      body: parentPhone
+        ? `Call parent at ${parentPhone} to check in. Per club policy, prolonged un-notified absence may risk membership.`
+        : `No phone number on file for this rider or their parents — the club can't call ahead. Per club policy, prolonged un-notified absence may risk membership.`,
       link: `/riders/${rider.id}`,
       payload: { riderId: rider.id },
     });
-    // Parent SMS — escalation is high-priority.
-    await sendSms({
-      to: parentPhone,
-      body: `Equiwings: ${rider.firstName} has been absent for 3+ recent sessions. Please contact the centre. Continued absences may risk membership.`,
-      ref: { type: "rider.absence_streak", rowId: rider.id },
-    });
-    // Parent WhatsApp — pre-approved template `ew_absence_streak`.
-    await sendWhatsApp({
-      to: parentPhone,
-      centreId: rider.centreId,
-      template: { name: "ew_absence_streak", bodyParams: [`${rider.firstName} ${rider.lastName}`] },
-      previewBody: `${rider.firstName} absent 3+ recent sessions — please contact centre`,
-      ref: { type: "rider.absence_streak", rowId: rider.id },
-    });
+    // Parent SMS/WhatsApp — only when there's a number to send them to.
+    if (parentPhone) {
+      // Escalation is high-priority.
+      await sendSms({
+        to: parentPhone,
+        body: `Equiwings: ${rider.firstName} has been absent for 3+ recent sessions. Please contact the centre. Continued absences may risk membership.`,
+        ref: { type: "rider.absence_streak", rowId: rider.id },
+      });
+      // Pre-approved template `ew_absence_streak`.
+      await sendWhatsApp({
+        to: parentPhone,
+        centreId: rider.centreId,
+        template: { name: "ew_absence_streak", bodyParams: [`${rider.firstName} ${rider.lastName}`] },
+        previewBody: `${rider.firstName} absent 3+ recent sessions — please contact centre`,
+        ref: { type: "rider.absence_streak", rowId: rider.id },
+      });
+    }
     // Parent email — same content, longer-form, gives them the membership-cancellation context.
     if (rider.email) {
       await sendEmail({

@@ -1,0 +1,11 @@
+-- The rider registration link and bulk-upload sheet stopped requiring the
+-- rider's own mobile number and email. Most riders are minors; the number
+-- that matters for contact is a parent's, which every notification path
+-- already falls back to (consentPhone(), the fee/absence/birthday sweeps).
+-- Requiring the child's own number was friction with no safety purpose the
+-- parent's number doesn't already serve, and it blocked school-supplied
+-- rosters that only carry a class list, not a phone per pupil.
+--
+-- No backfill needed: every existing row already has a mobile value, so
+-- relaxing the constraint changes nothing for data already on file.
+ALTER TABLE "Rider" ALTER COLUMN "mobile" DROP NOT NULL;

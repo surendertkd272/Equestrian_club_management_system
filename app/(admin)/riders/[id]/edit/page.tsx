@@ -42,7 +42,7 @@ export default async function EditRiderPage({ params }: { params: { id: string }
     aadhaarNo: decryptPIISafe(rider.aadhaarNo) ?? "", // decrypt for editing; re-encrypted on save
     aadhaarDocUrl: rider.aadhaarDocUrl ?? "",
     aadhaarBackDocUrl: rider.aadhaarBackDocUrl ?? "",
-    mobile: rider.mobile,
+    mobile: rider.mobile ?? "",
     email: rider.email ?? "",
     preferredLanguage: rider.preferredLanguage ?? "",
     school: rider.school ?? "",

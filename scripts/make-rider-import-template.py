@@ -28,9 +28,10 @@ OUT = "public/templates/equiwings-rider-import-template.xlsx"
 COLUMNS = [
     ("first_name",   True,  18, "Rider's first name. Required."),
     ("last_name",    True,  18, "Rider's surname. Required."),
-    ("mobile",       True,  16, "10-digit Indian mobile of the parent/rider. Required.\n"
+    ("mobile",       False, 16, "Optional. 10-digit Indian mobile of the rider, if they have one.\n"
                                 "Digits only — 9876543210. +91, spaces and 0-prefix are accepted and cleaned.\n"
-                                "Used for SMS/WhatsApp, so a wrong number means the family hears nothing."),
+                                "Most riders are minors — parent_phone below is the number that actually\n"
+                                "matters for contact."),
     ("dob",          True,  14, "Date of birth, exactly YYYY-MM-DD (e.g. 2014-08-23). Required.\n"
                                 "Type it as text. Do NOT let Excel reformat it."),
     ("email",        False, 26, "The RIDER's own email, if they have one. Usually blank for children."),
@@ -40,13 +41,13 @@ COLUMNS = [
                                 "family cannot be contacted by the system at all, and consent has to\n"
                                 "be collected on paper instead."),
     ("parent_name",  False, 22, "Optional. Parent / guardian name."),
-    ("parent_phone", False, 16, "Optional. Parent's number, if different from the mobile column."),
+    ("parent_phone", False, 16, "RECOMMENDED. Parent's number — the one actually used to reach the\n"
+                                "family for consent, fee and attendance messages when mobile is blank."),
     ("gender",       False, 12, "Optional. male / female / other (m, f, o also accepted)."),
-    ("emergency_name", True, 22, "REQUIRED — who to call if this rider is hurt.\n"
-                                "The public registration form has always demanded this; the upload\n"
-                                "sheet did not, so imported riders were mounting with nobody to ring.\n"
-                                "A row without it is rejected."),
-    ("emergency_phone", True, 16, "REQUIRED — a reachable number for the person above.\n"
+    ("emergency_name", False, 22, "RECOMMENDED — who to call if this rider is hurt.\n"
+                                "Not required to import, but add it to the rider's profile as soon\n"
+                                "as it's known — a stable is not the place to be missing this."),
+    ("emergency_phone", False, 16, "RECOMMENDED — a reachable number for the person above.\n"
                                 "Landline or mobile. This is the number someone dials from the arena."),
     ("address",      False, 30, "Optional. Present address."),
     ("pincode",      False, 10, "Optional. 6-digit PIN."),
@@ -60,9 +61,12 @@ COLUMNS = [
                                 "BEFORE the rider mounts. Free text."),
     ("allergies",    False, 28, "Optional. Drugs, food, dust, HAY. Hay and dust matter more at a\n"
                                 "stable than almost anywhere else — please fill this in if known."),
-    ("school",       False, 24, "Optional. School name."),
-    ("school_class", False, 12, "Optional. Class / grade — 5, V, Grade 5, XI-Science. Free text."),
-    ("school_section", False, 10, "Optional. Section — A, B, etc."),
+    ("school",       True,  24, "REQUIRED — school name.\n"
+                                "This is what lets the school's own administrator see this rider on\n"
+                                "their dashboard. A blank cell here means this child is invisible to\n"
+                                "their own school in the system."),
+    ("school_class", True,  12, "REQUIRED — class / grade, e.g. 5, V, Grade 5, XI-Science. Free text."),
+    ("school_section", True, 10, "REQUIRED — section, e.g. A, B."),
     ("joining_date", False, 14, "Optional. YYYY-MM-DD. Defaults to the upload date if blank."),
     ("level",        False, 10, "Optional. 1-50. Only set this if the rider should be scheduled\n"
                                 "for a promotion exam at that level. Leave blank otherwise."),
@@ -133,13 +137,15 @@ LINES = [
     ("p", "from elsewhere, use Paste Special → Values."),
     ("", ""),
     ("b", "Duplicates"),
-    ("p", "A rider already on the system with the same mobile number is skipped, not duplicated."),
-    ("p", "The same mobile appearing twice inside the file is reported as an error."),
+    ("p", "A rider already on the system with the same name, date of birth and mobile is skipped,"),
+    ("p", "not duplicated. Mobile is optional — when it's blank, name + date of birth alone is used."),
     ("", ""),
     ("b", "Example rows (do not paste these in — they are here so the sheet stays clean)"),
-    ("m", "first_name  last_name  mobile      dob         parent_email        gender  school       joining_date  level"),
-    ("m", "Aarav       Sharma     9876543210  2014-08-23  priya@family.in     male    DPS Noida    2026-04-01"),
-    ("m", "Diya        Kapoor     9812345678  2016-01-09  raj@family.in       female               2026-04-01    2"),
+    ("m", "first_name  last_name  mobile      dob         parent_email        gender  school       school_class  school_section"),
+    ("m", "Aarav       Sharma     9876543210  2014-08-23  priya@family.in     male    DPS Noida    7             A"),
+    ("m", "Diya        Kapoor                2016-01-09  raj@family.in       female  DPS Noida    5             B"),
+    ("p", "Diya has no mobile of her own — that's fine now. school / school_class / school_section are the"),
+    ("p", "three that must always be filled in."),
     ("", ""),
     ("b", "Batches are NOT in this sheet"),
     ("p", "Assign riders to a batch after uploading, from the Riders page — select several and"),

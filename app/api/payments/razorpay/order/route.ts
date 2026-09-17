@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
     prefill: {
       name: `${invoice.rider.firstName} ${invoice.rider.lastName}`,
       email: invoice.rider.email ?? "",
-      contact: invoice.rider.mobile,
+      contact: invoice.rider.mobile ?? "",
     },
   });
 }

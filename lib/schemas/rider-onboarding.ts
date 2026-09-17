@@ -35,19 +35,26 @@ export const personalSchema = z.object({
   placeOfBirth: z.string().optional(),
   nationality: z.string().optional(),
   gender: z.enum(["male", "female", "other"]),
-  maritalStatus: z.string().optional(),
-  mobile: indianMobile(),
+  // Most riders are minors, so the number that actually matters is a
+  // parent's — captured separately below (fatherPhone/motherPhone, and
+  // parentPhone in the DPDPA block, which stays mandatory for a minor).
+  // Requiring the CHILD's own handset was friction a family without one
+  // for their kid had no way past, for a number the club rarely calls.
+  mobile: indianMobile().optional().or(z.literal("")),
   email: z.string().email().optional().or(z.literal("")),
   aadhaarNo: z.string().regex(/^\d{12}$/, "12 digits").optional().or(z.literal("")),
   aadhaarDocUrl: uploadedUrl,
   aadhaarBackDocUrl: uploadedUrl,
   photoUrl: uploadedUrl,
-  school: z.string().max(150).optional(),
+  // School identity is now REQUIRED, not optional — it is the fence a school
+  // administrator's whole view is scoped by (lib/school-scope.ts). A rider
+  // with no school on file is invisible to the school that sent them, which
+  // was already true for the majority of one live centre's roster before
+  // this became mandatory.
+  school: z.string().min(1, "Required").max(150),
   // Free text, not a dropdown — see the schema note on Rider.schoolClass.
-  schoolClass: z.string().max(40).optional(),
-  schoolSection: z.string().max(20).optional(),
-  education: z.string().optional(),
-  occupation: z.string().optional(),
+  schoolClass: z.string().min(1, "Required").max(40),
+  schoolSection: z.string().min(1, "Required").max(20),
 });
 
 export const addressSchema = z.object({
@@ -61,8 +68,12 @@ export const parentsSchema = z.object({
   fatherPhone: indianMobile().optional().or(z.literal("")),
   motherName: z.string().optional(),
   motherPhone: indianMobile().optional().or(z.literal("")),
-  emergencyName: z.string().min(1, "Required"),
-  emergencyPhone: indianPhone("Enter a reachable emergency number"),
+  // No longer required. A club can still register a rider without knowing
+  // yet who to call in an emergency; staff can add it to the profile once
+  // it's collected. Recorded when given — nothing here stops a form from
+  // asking for it, only from refusing to submit without it.
+  emergencyName: z.string().optional(),
+  emergencyPhone: indianPhone("Enter a reachable emergency number").optional().or(z.literal("")),
 });
 
 // Height/weight are OPTIONAL at registration (field feedback: medical data

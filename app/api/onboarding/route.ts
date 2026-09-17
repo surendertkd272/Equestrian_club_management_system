@@ -127,7 +127,13 @@ export async function POST(req: NextRequest) {
   const existing = await prisma.rider.findFirst({
     where: {
       centreId: centre.id,
-      mobile: d.mobile,
+      // Mobile is optional now. Filtering on `mobile: ""` for a blank
+      // submission would match nothing (a stored value is `d.mobile || null`,
+      // never ""), so the guard would silently stop catching a mobile-less
+      // family's resubmission — exactly the group most likely to leave it
+      // blank. Name + DOB + centre + the short window is still a tight
+      // enough key; only tighten further when a mobile was actually given.
+      ...(d.mobile ? { mobile: d.mobile } : {}),
       dob: new Date(d.dob),
       firstName: { equals: d.firstName, mode: "insensitive" },
       lastName: { equals: d.lastName, mode: "insensitive" },
@@ -161,19 +167,21 @@ export async function POST(req: NextRequest) {
       placeOfBirth: d.placeOfBirth || null,
       nationality: d.nationality || null,
       gender: d.gender,
-      maritalStatus: d.maritalStatus || null,
-      mobile: d.mobile,
+      // No longer collected here — mobile is optional too, so a rider can
+      // register with neither a number nor an email; only the parent's own
+      // contact fields (below) and consentPhone()'s fallback chain then
+      // stand between the club and total silence for that family.
+      mobile: d.mobile || null,
       email: d.email || null,
       aadhaarNo: encryptPII(d.aadhaarNo || null),
       aadhaarLast4: last4(d.aadhaarNo || null),
       aadhaarDocUrl: d.aadhaarDocUrl || null,
       aadhaarBackDocUrl: d.aadhaarBackDocUrl || null,
       photoUrl: d.photoUrl || null,
-      school: d.school || null,
-      schoolClass: d.schoolClass || null,
-      schoolSection: d.schoolSection || null,
-      education: d.education || null,
-      occupation: d.occupation || null,
+      // Required by the schema now (min(1)), so these are never blank here.
+      school: d.school,
+      schoolClass: d.schoolClass,
+      schoolSection: d.schoolSection,
       addressPresent: d.addressPresent,
       addressPermanent: d.addressPermanent || d.addressPresent,
       pincode: d.pincode,
@@ -181,8 +189,10 @@ export async function POST(req: NextRequest) {
       fatherPhone: d.fatherPhone || null,
       motherName: d.motherName || null,
       motherPhone: d.motherPhone || null,
-      emergencyName: d.emergencyName,
-      emergencyPhone: d.emergencyPhone,
+      // No longer required — a club can register a rider before an
+      // emergency contact is known and add it to the profile later.
+      emergencyName: d.emergencyName || null,
+      emergencyPhone: d.emergencyPhone || null,
       heightCm: d.heightCm,
       weightKg: d.weightKg,
       bmi: calcBmi(d.heightCm, d.weightKg),
@@ -239,7 +249,7 @@ export async function POST(req: NextRequest) {
   await notifyCentreManager(centre.id, {
     type: "rider.self_enrolled",
     title: "New self-enrolment — approval needed",
-    body: `${rider.firstName} ${rider.lastName} (${rider.mobile}) signed up via the public link. Review and approve to start registration.`,
+    body: `${rider.firstName} ${rider.lastName} (${rider.mobile ?? "no phone on file"}) signed up via the public link. Review and approve to start registration.`,
     link: `/enrolments`,
     payload: { riderId: rider.id },
   });

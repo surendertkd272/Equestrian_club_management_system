@@ -56,21 +56,25 @@ export async function sweepBirthdays(): Promise<SweepResult> {
       link: `/riders/${r.id}`,
       payload: { riderId: r.id, age },
     });
-    // Parent SMS — best-of-engagement nudge.
+    // Parent SMS/WhatsApp — best-of-engagement nudge, only when there's a
+    // number on file. Rider's own mobile is optional now, so this can be
+    // null even when neither parent number is filled in either.
     const parentPhone = r.fatherPhone ?? r.motherPhone ?? r.mobile;
-    await sendSms({
-      to: parentPhone,
-      body: `Happy Birthday ${r.firstName}! 🎂 Wishing you a wonderful ${age}th year — see you at the stables. — Team Equiwings`,
-      ref: { type: "rider.birthday", rowId: r.id, payload: { age } },
-    });
-    // Parent WhatsApp — pre-approved template `ew_birthday`.
-    await sendWhatsApp({
-      to: parentPhone,
-      centreId: r.centreId,
-      template: { name: "ew_birthday", bodyParams: [r.firstName, String(age)] },
-      previewBody: `Happy Birthday ${r.firstName} — ${age} 🎂`,
-      ref: { type: "rider.birthday", rowId: r.id, payload: { age } },
-    });
+    if (parentPhone) {
+      await sendSms({
+        to: parentPhone,
+        body: `Happy Birthday ${r.firstName}! 🎂 Wishing you a wonderful ${age}th year — see you at the stables. — Team Equiwings`,
+        ref: { type: "rider.birthday", rowId: r.id, payload: { age } },
+      });
+      // Pre-approved template `ew_birthday`.
+      await sendWhatsApp({
+        to: parentPhone,
+        centreId: r.centreId,
+        template: { name: "ew_birthday", bodyParams: [r.firstName, String(age)] },
+        previewBody: `Happy Birthday ${r.firstName} — ${age} 🎂`,
+        ref: { type: "rider.birthday", rowId: r.id, payload: { age } },
+      });
+    }
     // Parent email — warmer engagement piece.
     if (r.email) {
       await sendEmail({

@@ -177,7 +177,7 @@ export async function GET(req: NextRequest) {
       id: r.id,
       href: `/riders/${r.id}`,
       primary: `${r.firstName} ${r.lastName}`,
-      secondary: r.mobile,
+      secondary: r.mobile ?? undefined,
     })),
     ...horses.map((h) => ({
       kind: "horse" as const,

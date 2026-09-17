@@ -88,8 +88,9 @@ export function consentPhone(rider: {
  * On the live roster 96 riders in 100 have no email address, and neither
  * WhatsApp nor SMS has a provider configured — so an email-only feature
  * reaches about 4% of the people it is meant for. Staff do have WhatsApp on
- * their own phones and every rider has a mobile on file, so the shortest path
- * to consent is a link a human can paste into a chat.
+ * their own phones and consentPhone() almost always finds SOME number — a
+ * parent's if not the rider's own, which is optional now — so the shortest
+ * path to consent is a link a human can paste into a chat.
  *
  * Same token, same expiry, same hashing as the emailed one. The only
  * difference is who carries it.

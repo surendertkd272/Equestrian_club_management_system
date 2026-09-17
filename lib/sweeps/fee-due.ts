@@ -86,37 +86,44 @@ export async function sweepFeeDue(): Promise<SweepResult> {
       continue;
     }
     const days = Math.ceil((inv.dueDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+    // Rider's own mobile is optional now, so this can be null even when
+    // neither parent number is filled in either — not just unset yet.
     const parentPhone = inv.rider.fatherPhone ?? inv.rider.motherPhone ?? inv.rider.mobile;
     await notify({
       userId: mgrId,
       centreId: inv.centreId,
       type: "invoice.due_soon",
       title: `Fee due in ${days}d · ${inv.rider.firstName} ${inv.rider.lastName}`,
-      body: `₹${owedText} · ${inv.kind.replace("_", " ")} · contact parent at ${parentPhone}`,
+      body: parentPhone
+        ? `₹${owedText} · ${inv.kind.replace("_", " ")} · contact parent at ${parentPhone}`
+        : `₹${owedText} · ${inv.kind.replace("_", " ")} · no parent phone on file to contact`,
       link: `/riders/${inv.riderId}`,
       payload: { invoiceId: inv.id, riderId: inv.riderId, days },
     });
-    // Parent SMS — non-blocking; never throws.
-    await sendSms({
-      to: parentPhone,
-      body: `Equiwings: ₹${owedText} fee for ${inv.rider.firstName} is due in ${days} day${days === 1 ? "" : "s"}. Pay via the link sent earlier or visit the centre.`,
-      ref: { type: "invoice.due_soon", rowId: inv.id, payload: { riderId: inv.riderId } },
-    });
-    // Parent WhatsApp — uses pre-approved template `ew_invoice_due_soon`.
-    await sendWhatsApp({
-      to: parentPhone,
-      centreId: inv.centreId,
-      template: {
-        name: "ew_invoice_due_soon",
-        bodyParams: [
-          `${inv.rider.firstName} ${inv.rider.lastName}`,
-          String(days),
-          `₹${owedText}`,
-        ],
-      },
-      previewBody: `Fee reminder for ${inv.rider.firstName}: ₹${owedText} due in ${days}d`,
-      ref: { type: "invoice.due_soon", rowId: inv.id, payload: { riderId: inv.riderId } },
-    });
+    // Parent SMS/WhatsApp — non-blocking, only when there's a number to send
+    // them to.
+    if (parentPhone) {
+      await sendSms({
+        to: parentPhone,
+        body: `Equiwings: ₹${owedText} fee for ${inv.rider.firstName} is due in ${days} day${days === 1 ? "" : "s"}. Pay via the link sent earlier or visit the centre.`,
+        ref: { type: "invoice.due_soon", rowId: inv.id, payload: { riderId: inv.riderId } },
+      });
+      // Pre-approved template `ew_invoice_due_soon`.
+      await sendWhatsApp({
+        to: parentPhone,
+        centreId: inv.centreId,
+        template: {
+          name: "ew_invoice_due_soon",
+          bodyParams: [
+            `${inv.rider.firstName} ${inv.rider.lastName}`,
+            String(days),
+            `₹${owedText}`,
+          ],
+        },
+        previewBody: `Fee reminder for ${inv.rider.firstName}: ₹${owedText} due in ${days}d`,
+        ref: { type: "invoice.due_soon", rowId: inv.id, payload: { riderId: inv.riderId } },
+      });
+    }
     // Parent email — richer than SMS, includes the breakdown.
     if (inv.rider.email) {
       await sendEmail({

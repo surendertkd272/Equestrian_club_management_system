@@ -13,15 +13,17 @@ import { useUnsavedChanges } from "@/lib/use-unsaved-changes";
 
 // Every value is a string on the form (Input gives us strings; numbers
 // get coerced on the server). Empty string means "clear this field" for
-// nullable columns; for required columns (firstName, lastName, dob,
-// mobile) the form refuses to submit if they're empty.
+// nullable columns; for required columns (firstName, lastName, dob) the
+// form refuses to submit if they're empty. Mobile is NOT in that list —
+// registration and bulk import stopped requiring it, so a rider who came
+// in through either without one must still be editable here.
 type FormState = Record<string, string>;
 
 // Keys that map to nullable DB columns — empty string is sent as
 // explicit null, so a previously-set value gets cleared.
 const NULLABLE_KEYS = new Set([
   "photoUrl", "placeOfBirth", "nationality", "gender", "maritalStatus",
-  "aadhaarNo", "aadhaarDocUrl", "aadhaarBackDocUrl", "email", "preferredLanguage",
+  "aadhaarNo", "aadhaarDocUrl", "aadhaarBackDocUrl", "mobile", "email", "preferredLanguage",
   "school", "education", "occupation",
   "addressPresent", "addressPermanent", "pincode",
   "fatherName", "fatherPhone", "motherName", "motherPhone",
@@ -56,7 +58,6 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
     if (!state.firstName.trim()) return toast.error("First name is required");
     if (!state.lastName.trim()) return toast.error("Last name is required");
     if (!state.dob) return toast.error("Date of birth is required");
-    if (!state.mobile.trim()) return toast.error("Mobile is required");
 
     // Build payload — only changed keys. Nullable empty strings become null.
     const payload: Record<string, unknown> = {};
@@ -187,7 +188,7 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
       </Section>
 
       <Section title="Contact">
-        <Field label="Mobile" required>
+        <Field label="Mobile">
           <Input value={state.mobile} onChange={(e) => update("mobile", e.target.value)} />
         </Field>
         <Field label="Email">
