@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { UploadField } from "@/components/upload-field";
 import { useUnsavedChanges } from "@/lib/use-unsaved-changes";
 
 // Every value is a string on the form (Input gives us strings; numbers
@@ -136,11 +137,14 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
         <Field label="Marital Status">
           <Input value={state.maritalStatus} onChange={(e) => update("maritalStatus", e.target.value)} />
         </Field>
-        <Field label="Photo URL">
-          <Input
+        <Field label="Photo">
+          <UploadField
             value={state.photoUrl}
-            onChange={(e) => update("photoUrl", e.target.value)}
-            placeholder="/uploads/<file>"
+            onChange={(url) => update("photoUrl", url)}
+            kind="rider_photo"
+            accept="image/jpeg,image/png,image/webp"
+            disabled={busy}
+            hint="JPEG/PNG/WebP. Resized in your browser before upload."
           />
         </Field>
       </Section>
@@ -154,18 +158,24 @@ export function EditRiderForm({ id, initial }: { id: string; initial: FormState 
             maxLength={12}
           />
         </Field>
-        <Field label="Aadhaar Document URL (Front)">
-          <Input
+        <Field label="Aadhaar Document (Front)">
+          <UploadField
             value={state.aadhaarDocUrl}
-            onChange={(e) => update("aadhaarDocUrl", e.target.value)}
-            placeholder="/uploads/<file>"
+            onChange={(url) => update("aadhaarDocUrl", url)}
+            kind="rider_aadhaar"
+            accept="image/jpeg,image/png,application/pdf"
+            disabled={busy}
+            hint="JPEG/PNG/PDF. Kept legible — lightly compressed only."
           />
         </Field>
-        <Field label="Aadhaar Document URL (Back)">
-          <Input
+        <Field label="Aadhaar Document (Back)">
+          <UploadField
             value={state.aadhaarBackDocUrl}
-            onChange={(e) => update("aadhaarBackDocUrl", e.target.value)}
-            placeholder="/uploads/<file>"
+            onChange={(url) => update("aadhaarBackDocUrl", url)}
+            kind="rider_aadhaar"
+            accept="image/jpeg,image/png,application/pdf"
+            disabled={busy}
+            hint="JPEG/PNG/PDF. Kept legible — lightly compressed only."
           />
         </Field>
         <Field label="State Rider ID">

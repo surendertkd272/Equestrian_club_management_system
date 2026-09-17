@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { compressForKind } from "@/lib/image-compress";
 import { ONBOARDING_AGREEMENT_HI, ONBOARDING_DECLARATION_HI } from "@/lib/schemas/onboarding-staff";
 
 type DocField =
@@ -87,9 +88,26 @@ export function OnboardingForm({
   async function upload(field: DocField, file: File) {
     setUploading(field);
     try {
+      // Shrink in the browser before it ever leaves the phone.
+      //
+      // Every other upload path in the app already did this; self-onboarding —
+      // the one filled in on a handset, on mobile data, with eight documents in
+      // a row — was the single path that still posted raw 5–10MB camera files,
+      // so the later ones timed out and the employee had no way to tell why.
+      //
+      // The COMPRESSION preset is picked per field while the upload KIND stays
+      // "onboarding_doc" for all of them. The two are deliberately decoupled:
+      // the kind is the storage policy (5MB cap, PDFs allowed), and switching
+      // the portrait to the user_photo kind would have imposed that policy's
+      // 2MB cap — turning a failed compression into a rejected upload on a
+      // public form. Both presets emit a mime onboarding_doc already accepts.
+      const compressed = await compressForKind(
+        file,
+        field === "photoUrl" ? "user_photo" : "onboarding_doc",
+      );
       const fd = new FormData();
       fd.append("kind", "onboarding_doc");
-      fd.append("file", file);
+      fd.append("file", compressed);
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {

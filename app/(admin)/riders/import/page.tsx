@@ -176,9 +176,10 @@ Aarav,Patel,9876501234,aarav@example.in,2010-11-03,M,Bishop Cotton,2
           <CardHeader>
             <CardTitle className="text-base">After the upload — what still needs doing</CardTitle>
             <CardDescription>
-              Imported riders are created <strong>active straight away</strong>: no approval step,
-              and no signature, because a spreadsheet can&apos;t carry one. These are the things a
-              roster can&apos;t do for itself.
+              Imported riders are <strong>held until consent is signed</strong> — a spreadsheet
+              can&apos;t carry a signature, so they can&apos;t be put on a register yet. Each one
+              goes active by itself the moment their parent signs. These are the things a roster
+              can&apos;t do for itself.
             </CardDescription>
           </CardHeader>
           <CardContent>

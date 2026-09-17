@@ -18,6 +18,9 @@ export type ParsedSheet = {
   errors: { line: number; reason: string }[];
 };
 
+/** Sheets that exist to be read by a person, never parsed as data. */
+const NON_DATA_SHEET = /^(instructions?|notes?|readme|help|guide|batch names)$/i;
+
 /** Excel serial → ISO date. Cells typed as dates come back as Date already. */
 function cellToString(value: ExcelJS.CellValue): string {
   if (value === null || value === undefined) return "";
@@ -42,11 +45,21 @@ export async function parseXlsx(buffer: Buffer, sheetName?: string): Promise<Par
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.load(buffer as unknown as ArrayBuffer);
 
-  // Prefer the named sheet, else the first with content. Our template's first
-  // sheet is "Riders"; Instructions and Batch names must never be read as data.
+  // Prefer the sheet the CALLER named, then the first sheet that isn't prose.
+  //
+  // This used to fall back to a hardcoded "Riders", which was invisible while
+  // riders were the only importer and wrong the moment a second one existed —
+  // a staff workbook that happened to carry a Riders sheet would have been read
+  // off that sheet instead of its own.
+  //
+  // But "first sheet" alone is not a safe replacement either: people reorder
+  // tabs, and a workbook whose Instructions tab has been dragged to the front
+  // would then import its prose as rows. So the fallback skips the sheets that
+  // exist to be read rather than parsed. Belt and braces — every caller in this
+  // codebase names its sheet.
   const ws =
     (sheetName && wb.getWorksheet(sheetName)) ||
-    wb.getWorksheet("Riders") ||
+    wb.worksheets.find((s) => !NON_DATA_SHEET.test(s.name.trim())) ||
     wb.worksheets[0];
   if (!ws) return { rows: [], errors: [{ line: 0, reason: "The workbook has no sheets." }] };
 

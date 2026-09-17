@@ -4,39 +4,38 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { roleLabel } from "@/lib/labels";
+
+type PreviewRow = {
+  line: number;
+  name: string;
+  email: string;
+  role: string;
+  phone: string;
+  salary_band: string;
+  joining_date: string;
+};
+
 type Preview = {
   dryRun: true;
   wouldCreate: number;
   duplicates: number;
   errors: { line: number; reason: string }[];
-  unknownBatches?: string[];
-  preview: Record<string, string>[];
+  preview: PreviewRow[];
 };
 
 type ImportResult = {
   created: number;
-  examsScheduled: number;
   errors: { line: number; reason: string }[];
-  unknownBatches?: string[];
 };
 
-export function ImportForm({
-  examiners,
-}: {
-  examiners: { id: string; name: string; role: string }[];
-}) {
+export function StaffImportForm() {
   const router = useRouter();
   const [csv, setCsv] = useState("");
-  const [examinerId, setExaminerId] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [busy, setBusy] = useState<null | "preview" | "import">(null);
-  // Set when an .xlsx was uploaded. Kept separate from the CSV textarea so
-  // the paste-CSV path is unaffected and the two never fight over the source.
   const [xlsx, setXlsx] = useState<{ name: string; base64: string } | null>(null);
 
   async function readFile(file: File | null) {
@@ -44,10 +43,6 @@ export function ImportForm({
     setPreview(null);
     setResult(null);
 
-    // Read the workbook as-is. Telling people to "Save As → CSV" first was not
-    // just an extra step: Excel rewrites dates on CSV export to the machine's
-    // locale, so 2014-08-23 came back as 23/08/2014 and every row failed DOB
-    // validation.
     if (/\.xlsx?$/i.test(file.name)) {
       const buf = await file.arrayBuffer();
       let binary = "";
@@ -74,13 +69,12 @@ export function ImportForm({
     }
     setBusy(dryRun ? "preview" : "import");
     try {
-      const res = await fetch("/api/riders/import", {
+      const res = await fetch("/api/staff/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...(xlsx ? { xlsxBase64: xlsx.base64 } : { csv }),
           dryRun,
-          examinerId: examinerId || undefined,
         }),
       });
       const data = await res.json();
@@ -94,7 +88,7 @@ export function ImportForm({
       } else {
         setResult(data);
         setPreview(null);
-        toast.success(`Imported ${data.created} riders${data.examsScheduled ? ` · ${data.examsScheduled} exams scheduled` : ""}`);
+        toast.success(`Created ${data.created} staff account${data.created === 1 ? "" : "s"}`);
         router.refresh();
       }
     } finally {
@@ -104,49 +98,25 @@ export function ImportForm({
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <Label>Filled-in template (.xlsx or .csv)</Label>
-          <input
-            type="file"
-            accept=".xlsx,.csv,.txt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            onChange={(e) => readFile(e.target.files?.[0] ?? null)}
-            className="mt-1 block w-full text-sm"
-          />
-          {/* Nothing on this page previously said what the columns were, so a
-              club's first attempt was a guess. The workbook carries the exact
-              headers and per-column notes. It also pre-formats the date and mobile
-              columns as text —
-              Excel will otherwise re-emit 2014-08-23 as 23-08-2014 on CSV
-              export and fail every row. */}
-          <p className="mt-1.5 text-xs text-muted-foreground">
-            Upload the Excel file directly — no need to convert it.{" "}
-            <a
-              href="/templates/equiwings-rider-import-template.xlsx"
-              className="text-primary underline"
-              download
-            >
-              Download the Excel template
-            </a>
-            {xlsx && (
-              <span className="ml-1 font-medium text-foreground">· {xlsx.name} loaded</span>
-            )}
-          </p>
-        </div>
-        <div>
-          <Label>Schedule Exam at Level (optional)</Label>
-          <Select aria-label="Schedule exam at level (optional)" value={examinerId} onChange={(e) => setExaminerId(e.target.value)}>
-            <option value="">— Don&apos;t schedule exams —</option>
-            {examiners.map((u) => (
-              <option key={u.id} value={u.id}>
-                Examiner: {u.name} · {roleLabel(u.role)}
-              </option>
-            ))}
-          </Select>
-          <p className="mt-1 text-[11px] text-muted-foreground">
-            When set, rows with a <code>level</code> column also get a scheduled exam.
-          </p>
-        </div>
+      <div>
+        <Label>Filled-in template (.xlsx or .csv)</Label>
+        <input
+          type="file"
+          accept=".xlsx,.csv,.txt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          onChange={(e) => readFile(e.target.files?.[0] ?? null)}
+          className="mt-1 block w-full text-sm"
+        />
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          Upload the Excel file directly — no need to convert it.{" "}
+          <a
+            href="/templates/equiwings-staff-import-template.xlsx"
+            className="text-primary underline"
+            download
+          >
+            Download the Excel template
+          </a>
+          {xlsx && <span className="ml-1 font-medium text-foreground">· {xlsx.name} loaded</span>}
+        </p>
       </div>
 
       <div>
@@ -158,9 +128,11 @@ export function ImportForm({
             setPreview(null);
             setResult(null);
           }}
-          rows={8}
+          rows={7}
           spellCheck={false}
-          placeholder={"first_name,last_name,mobile,email,dob,gender,school,level\nRiya,Sharma,9876543210,riya@example.in,2012-04-12,F,DPS Bangalore,1"}
+          placeholder={
+            "name,email,role,phone,salary_band,joining_date\nRavi Kumar,ravi@club.in,COACH,9876543210,C2,2026-04-01"
+          }
           className="mt-1 block w-full rounded-md border bg-card p-2 font-mono text-xs"
         />
       </div>
@@ -174,7 +146,7 @@ export function ImportForm({
           onClick={() => call(false)}
           disabled={busy !== null || !preview || preview.wouldCreate === 0}
         >
-          {busy === "import" ? "Importing…" : `Import${preview ? ` ${preview.wouldCreate}` : ""}`}
+          {busy === "import" ? "Creating…" : `Create${preview ? ` ${preview.wouldCreate}` : ""}`}
         </Button>
       </div>
 
@@ -183,29 +155,21 @@ export function ImportForm({
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="success">{preview.wouldCreate} ready to create</Badge>
             {preview.duplicates > 0 && (
-              <Badge variant="warning">{preview.duplicates} duplicate(s)</Badge>
+              <Badge variant="warning">{preview.duplicates} email(s) already in use</Badge>
             )}
             {preview.errors.length > 0 && (
               <Badge variant="destructive">{preview.errors.length} error(s)</Badge>
             )}
           </div>
-          {preview.unknownBatches && preview.unknownBatches.length > 0 && (
-            // No longer fatal — these riders import, just without a batch. Said
-            // plainly so it is a small follow-up rather than a surprise.
-            <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs dark:border-amber-900 dark:bg-amber-950/40">
-              This sheet has a <code>batch</code> column, which the current template no longer
-              uses. No batch here matches:{" "}
-              <strong>{preview.unknownBatches.join(", ")}</strong>. Those riders will still be
-              imported — assign them a batch afterwards from the Riders page.
-            </p>
-          )}
           {preview.preview.length > 0 && (
             <div>
-              <div className="mt-2 text-xs font-semibold uppercase text-muted-foreground">First {preview.preview.length} rows</div>
+              <div className="mt-2 text-xs font-semibold uppercase text-muted-foreground">
+                First {preview.preview.length} rows
+              </div>
               <ul className="mt-1 space-y-0.5 text-xs">
-                {preview.preview.map((r, i) => (
-                  <li key={i} className="font-mono">
-                    {(r as any).first_name} {(r as any).last_name} · {(r as any).mobile}
+                {preview.preview.map((r) => (
+                  <li key={r.line} className="font-mono">
+                    {r.name} · {r.email} · {r.role}
                   </li>
                 ))}
               </ul>
@@ -234,22 +198,19 @@ export function ImportForm({
       {result && (
         <div className="rounded-md border border-success/30 bg-success-soft p-3 text-sm text-success-foreground">
           <div className="font-semibold">
-            Imported {result.created} rider{result.created === 1 ? "" : "s"}.
-            {result.examsScheduled > 0 && ` Scheduled ${result.examsScheduled} exam(s).`}
+            Created {result.created} staff account{result.created === 1 ? "" : "s"}.
           </div>
           {result.created > 0 && (
-            // Imported riders have NO indemnity — the spreadsheet cannot carry
-            // a signature. Saying so here, at the moment the roster lands, is
-            // the difference between a club noticing and a club discovering it
-            // after an incident.
+            // The sheet carries no password, so the only place those logins
+            // exist is the Credential Sheet. Saying it here, at the moment the
+            // accounts land, is what stops "so how do they log in?" an hour later.
             <p className="mt-2">
-              These riders are <strong>held</strong> until the indemnity and injury NOC are
-              signed — a spreadsheet can&apos;t carry a signature. Each goes active
-              automatically once signed.{" "}
-              <a href="/riders/consent" className="font-medium underline">
-                Email them a signing link
-              </a>
-              .
+              Each account got its own generated password — nothing was read from the
+              spreadsheet.{" "}
+              <a href="/users/credentials" className="font-medium underline">
+                Open the Credential Sheet
+              </a>{" "}
+              to print or hand them over.
             </p>
           )}
           {result.errors.length > 0 && (
@@ -259,7 +220,9 @@ export function ImportForm({
               </summary>
               <ul className="mt-1 space-y-0.5 text-xs">
                 {result.errors.slice(0, 50).map((e, i) => (
-                  <li key={i}>Line {e.line}: {e.reason}</li>
+                  <li key={i}>
+                    Line {e.line}: {e.reason}
+                  </li>
                 ))}
               </ul>
             </details>

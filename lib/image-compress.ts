@@ -24,6 +24,11 @@ const PRESETS: Record<string, Preset> = {
   staff_aadhaar: { maxEdge: 2200, quality: 0.9, mime: "image/jpeg" },
   staff_police_verification: { maxEdge: 2200, quality: 0.9, mime: "image/jpeg" },
   expense_invoice: { maxEdge: 2200, quality: 0.9, mime: "image/jpeg" },
+  // Staff self-onboarding attaches EIGHT documents in one sitting, on a phone,
+  // over Indian mobile data. Uncompressed that is 40–80MB of camera JPEGs and
+  // the later uploads simply time out — the one flow where the person filling
+  // it in has no admin to ring when it stalls.
+  onboarding_doc: { maxEdge: 2200, quality: 0.9, mime: "image/jpeg" },
   generic: { maxEdge: 1600, quality: 0.85, mime: "image/jpeg" },
 };
 

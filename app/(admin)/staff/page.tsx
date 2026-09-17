@@ -8,7 +8,7 @@ import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Link2 } from "lucide-react";
+import { Plus, Link2, Upload } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { Pagination } from "@/components/ui/pagination";
 import { parsePaging } from "@/lib/paging";
@@ -73,6 +73,11 @@ export default async function StaffPage({
               </Link>
             </Button>
           )}
+          <Button asChild variant="outline">
+            <Link href="/staff/import">
+              <Upload className="h-4 w-4" /> Bulk upload
+            </Link>
+          </Button>
           <Button asChild>
             <Link href="/staff/new">
               <Plus className="h-4 w-4" /> Add staff

@@ -194,7 +194,7 @@ export async function POST(req: NextRequest) {
   let parseErrors: { line: number; reason: string }[] = [];
   if (parsed.data.xlsxBase64) {
     try {
-      const r = await parseXlsx(Buffer.from(parsed.data.xlsxBase64, "base64"));
+      const r = await parseXlsx(Buffer.from(parsed.data.xlsxBase64, "base64"), "Riders");
       rawRows = r.rows;
       parseErrors = r.errors;
     } catch {
