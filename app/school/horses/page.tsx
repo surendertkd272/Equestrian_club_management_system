@@ -92,10 +92,10 @@ export default async function SchoolHorsesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Horse workload</h1>
+        <h1 className="text-2xl font-bold">Horse Workload</h1>
         <p className="text-sm text-muted-foreground">
-          Last 30 days at {ctx.centreName} · your riders logged {totalMyHours.toFixed(1)} hours in
-          the saddle
+          Last 30 Days at {ctx.centreName} · Your Riders Logged {totalMyHours.toFixed(1)} Hours in
+          the Saddle
         </p>
       </div>
 
@@ -103,7 +103,7 @@ export default async function SchoolHorsesPage() {
         <Card className="border-l-4 border-l-amber-500">
           <CardHeader>
             <CardTitle className="text-base">
-              {busy.length} horse{busy.length === 1 ? "" : "s"} in heavy work
+              {busy.length} Horse{busy.length === 1 ? "" : "s"} in Heavy Work
             </CardTitle>
             <CardDescription>
               Averaging more than {BUSY_HOURS_PER_WEEK} hours a week over the last 30 days:{" "}
@@ -117,7 +117,7 @@ export default async function SchoolHorsesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Every horse at the club ({rows.length})</CardTitle>
+          <CardTitle className="text-base">Every Horse at the Club ({rows.length})</CardTitle>
           <CardDescription>
             Busiest first. &ldquo;Your riders&rdquo; is the share of that work done by students
             from {ctx.title}.
@@ -137,9 +137,9 @@ export default async function SchoolHorsesPage() {
                     <th className="pb-2 pr-3">Breed</th>
                     <th className="pb-2 pr-3 text-right">Sessions</th>
                     <th className="pb-2 pr-3 text-right">Hours</th>
-                    <th className="pb-2 pr-3 text-right">Hrs / week</th>
-                    <th className="pb-2 pr-3 text-right">Your riders</th>
-                    <th className="pb-2 text-right">Last worked</th>
+                    <th className="pb-2 pr-3 text-right">Hrs / Week</th>
+                    <th className="pb-2 pr-3 text-right">Your Riders</th>
+                    <th className="pb-2 text-right">Last Worked</th>
                   </tr>
                 </thead>
                 <tbody>

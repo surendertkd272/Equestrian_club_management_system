@@ -55,7 +55,7 @@ export default async function SchoolTasksPage() {
       <div>
         <h1 className="text-2xl font-bold">Tasks</h1>
         <p className="text-sm text-muted-foreground">
-          Between {ctx.title} and {ctx.centreName} head office
+          Between {ctx.title} and {ctx.centreName} Head Office
         </p>
       </div>
       <TasksClient tasks={rows} />

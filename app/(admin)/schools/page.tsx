@@ -89,7 +89,7 @@ export default async function SchoolsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              {unassigned} rider{unassigned === 1 ? "" : "s"} with no school
+              {unassigned} Rider{unassigned === 1 ? "" : "s"} With No School
             </CardTitle>
             <CardDescription>
               Their school field is blank or was a non-answer, so they belong to no school row.

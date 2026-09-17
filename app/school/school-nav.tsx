@@ -11,8 +11,8 @@ import { usePathname } from "next/navigation";
 const TABS = [
   { href: "/school", label: "Overview" },
   { href: "/school/riders", label: "Riders" },
-  { href: "/school/horses", label: "Horse workload" },
-  { href: "/school/exams", label: "Exams & leaderboard" },
+  { href: "/school/horses", label: "Horse Workload" },
+  { href: "/school/exams", label: "Exams & Leaderboard" },
   { href: "/school/tasks", label: "Tasks" },
 ];
 

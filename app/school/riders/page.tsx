@@ -99,7 +99,7 @@ export default async function SchoolRidersPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Student roll</CardTitle>
+          <CardTitle className="text-base">Student Roll</CardTitle>
           <CardDescription>
             Class and measurements are what your school supplied; level, batch and attendance
             come from the club. Attendance is this month, counted as turned-up / sessions

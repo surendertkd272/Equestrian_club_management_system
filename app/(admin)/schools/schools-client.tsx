@@ -66,7 +66,7 @@ export function SchoolsClient({ schools, admins }: { schools: School[]; admins: 
   return (
     <div className="space-y-6">
       <div>
-        <Label>Add a school</Label>
+        <Label>Add a School</Label>
         <div className="mt-1 flex gap-2">
           <Input
             value={name}
@@ -87,7 +87,7 @@ export function SchoolsClient({ schools, admins }: { schools: School[]; admins: 
 
       <div>
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Schools at this centre ({schools.length})
+          Schools at This Centre ({schools.length})
         </h2>
         {schools.length === 0 ? (
           <p className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
@@ -110,7 +110,7 @@ export function SchoolsClient({ schools, admins }: { schools: School[]; admins: 
 
       <div>
         <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          School administrators ({admins.length})
+          School Administrators ({admins.length})
         </h2>
         <p className="mb-2 text-xs text-muted-foreground">
           An administrator set to <strong>All riders at this centre</strong> sees every child at

@@ -7,7 +7,7 @@ export function NoCentreCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>No club assigned</CardTitle>
+        <CardTitle>No Club Assigned</CardTitle>
         <CardDescription>
           Your account isn&apos;t linked to a club yet. Ask the centre admin to assign you to a
           centre, and this portal will fill in.

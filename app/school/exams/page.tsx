@@ -108,7 +108,7 @@ export default async function SchoolExamsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Exams &amp; leaderboard</h1>
+        <h1 className="text-2xl font-bold">Exams &amp; Leaderboard</h1>
         <p className="text-sm text-muted-foreground">
           {mine.length} result{mine.length === 1 ? "" : "s"} · {passed} passed · {ctx.title}
         </p>
@@ -117,7 +117,7 @@ export default async function SchoolExamsPage() {
       {upcoming.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Coming up ({upcoming.length})</CardTitle>
+            <CardTitle className="text-base">Coming Up ({upcoming.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-1">
@@ -146,7 +146,7 @@ export default async function SchoolExamsPage() {
       {levels.length === 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">No results yet</CardTitle>
+            <CardTitle className="text-base">No Results Yet</CardTitle>
             <CardDescription>
               Leaderboards appear here once your students have sat and been scored on an exam.
             </CardDescription>
@@ -179,7 +179,7 @@ export default async function SchoolExamsPage() {
                         <th className="pb-2 pr-3 w-10">#</th>
                         <th className="pb-2 pr-3">Rider</th>
                         <th className="pb-2 pr-3 text-right">Score</th>
-                        <th className="pb-2 pr-3 text-right">Club rank</th>
+                        <th className="pb-2 pr-3 text-right">Club Rank</th>
                         <th className="pb-2 pr-3">Attempt</th>
                         <th className="pb-2 pr-3">Date</th>
                         <th className="pb-2 text-right">Result</th>

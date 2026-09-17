@@ -145,19 +145,19 @@ export default async function SchoolDashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">
-          {scope.schoolName ?? centre?.name ?? "Club"} — school view
+          {scope.schoolName ?? centre?.name ?? "Club"} — School View
         </h1>
         <p className="text-sm text-muted-foreground">
           {scope.schoolName
-            ? `Your pupils at ${centre?.name ?? "the club"}.`
-            : `Every rider at ${centre?.name ?? "the club"}.`}
+            ? `Your Pupils at ${centre?.name ?? "the club"}.`
+            : `Every Rider at ${centre?.name ?? "the club"}.`}
         </p>
       </div>
 
       {pendingEnrolments.length > 0 && (
         <Card className="border-l-4 border-l-amber-500">
           <CardHeader>
-            <CardTitle>Self-enrolments awaiting your approval ({pendingEnrolments.length})</CardTitle>
+            <CardTitle>Self-Enrolments Awaiting Your Approval ({pendingEnrolments.length})</CardTitle>
             <CardDescription>
               Riders who signed up via the public link. The club checks their documents first;
               Approve becomes available once that is done.
@@ -198,7 +198,7 @@ export default async function SchoolDashboardPage() {
         <Card className="border-l-4 border-l-rose-500">
           <CardHeader>
             <CardTitle>
-              Cannot ride yet — consent not signed ({heldForConsent.length})
+              Cannot Ride Yet — Consent Not Signed ({heldForConsent.length})
             </CardTitle>
             <CardDescription>
               These students were added from a spreadsheet, which can&apos;t carry a signature.
@@ -247,7 +247,7 @@ export default async function SchoolDashboardPage() {
                     <th className="pb-2">School</th>
                     <th className="pb-2">Level</th>
                     <th className="pb-2">Joined</th>
-                    <th className="pb-2 text-right">Attended / sessions (this month)</th>
+                    <th className="pb-2 text-right">Attended / Sessions (This Month)</th>
                   </tr>
                 </thead>
                 <tbody>

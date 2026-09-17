@@ -77,10 +77,10 @@ export function TasksClient({ tasks }: { tasks: SchoolTask[] }) {
   return (
     <div className="space-y-6">
       <div className="rounded-lg border bg-card p-4">
-        <h2 className="mb-3 text-sm font-semibold">Raise something with the club</h2>
+        <h2 className="mb-3 text-sm font-semibold">Raise Something With the Club</h2>
         <div className="space-y-3">
           <div>
-            <Label>What do you need?</Label>
+            <Label>What Do You Need?</Label>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -88,7 +88,7 @@ export function TasksClient({ tasks }: { tasks: SchoolTask[] }) {
             />
           </div>
           <div>
-            <Label>Detail (optional)</Label>
+            <Label>Detail (Optional)</Label>
             <Textarea
               rows={3}
               value={description}
@@ -98,7 +98,7 @@ export function TasksClient({ tasks }: { tasks: SchoolTask[] }) {
           </div>
           <div className="flex flex-wrap items-end gap-3">
             <div>
-              <Label>Needed by (optional)</Label>
+              <Label>Needed By (Optional)</Label>
               <Input type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
             </div>
             <Button onClick={raise} disabled={busy !== null}>
