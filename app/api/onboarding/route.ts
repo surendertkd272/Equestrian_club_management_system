@@ -19,6 +19,7 @@ import { checkRate, clientFingerprint } from "@/lib/rate-limit";
 import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 import { bindRlsBypass } from "@/lib/tenant-context";
 import { sendConsentReceipt } from "@/lib/rider-consent-request";
+import { resolveSchoolId } from "@/lib/school-scope";
 
 export const runtime = "nodejs";
 
@@ -144,9 +145,16 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // Resolve the typed school name to its canonical row so this child is
+  // immediately visible to their own school's administrator. Without it the
+  // School table would only ever hold what the migration backfilled, and every
+  // new registration would be invisible to the school it belongs to.
+  const schoolId = await resolveSchoolId(prisma, centre.id, d.school);
+
   const rider = await prisma.rider.create({
     data: {
       centreId: centre.id,
+      schoolId,
       firstName: d.firstName,
       lastName: d.lastName,
       dob: new Date(d.dob),

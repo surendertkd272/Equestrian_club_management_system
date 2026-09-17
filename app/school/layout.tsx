@@ -6,6 +6,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { LogoutButton } from "./logout-button";
+import { SchoolNav } from "./school-nav";
 
 export default async function SchoolLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -28,6 +29,9 @@ export default async function SchoolLayout({ children }: { children: React.React
             </div>
           </div>
           <LogoutButton />
+        </div>
+        <div className="mx-auto max-w-6xl px-4">
+          <SchoolNav />
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>

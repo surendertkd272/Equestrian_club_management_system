@@ -1,15 +1,19 @@
 // School Administrator dashboard. Read-only roll-up of attendance, exam
-// levels, and skill progress for riders attached to this school. The
-// "school" linkage today comes from rider.school (free-text field). When
-// a more formal School entity lands we'll switch to an FK; for now we
-// match by string. The school admin sees only riders whose `school`
-// field matches their own (stored on User.name as a convention, or
-// passed via a future School table).
+// levels, and skill progress for one school's pupils.
 //
-// Until the formal mapping ships, every SCHOOL_ADMINISTRATOR is centre-
-// scoped — they see all riders at their assigned centre. The centre is
-// set on their User row at create-time.
+// SCOPE. The account is pinned to a centre (User.centreId) and, optionally, to
+// a School within it (User.schoolId). A school set means this administrator
+// sees only that school's children; NULL means the whole centre, which is what
+// every account had before schools existed and stays right while a centre
+// serves one school.
+//
+// EVERY query on this page that touches children goes through riderScopeWhere,
+// including the ones that reach riders indirectly — attendance is filtered by
+// its rider, not by its batch's centre, because a batch is shared across
+// schools and filtering on it would have shown one school another's register.
+// A second hand-rolled `where` here is how the leak comes back.
 
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { getOrgIdForSession } from "@/lib/features-gate";
@@ -18,6 +22,8 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { EnrolmentActions } from "@/app/(admin)/enrolments/enrolment-actions";
 import { formatEnum } from "@/lib/labels";
+import { ENROLLED_RIDER_STATUSES, RIDER_STATUS } from "@/lib/rider-status";
+import { schoolScopeFor, riderScopeWhere } from "@/lib/school-scope";
 export const dynamic = "force-dynamic";
 
 export default async function SchoolDashboardPage() {
@@ -42,13 +48,25 @@ export default async function SchoolDashboardPage() {
   // admin is centre-scoped, so this resolves org via their centre).
   await getOrgIdForSession(session);
 
+  // The fence. NULL school = the whole centre, which is what every account had
+  // before schools existed; set one and this administrator sees only their own
+  // pupils. Resolved once and spread into every rider query below, so the two
+  // can never disagree.
+  const scope = await schoolScopeFor(session.userId);
+  const riderWhere = riderScopeWhere(centreId, scope);
+
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [centre, riders, attendanceSummary, recentExams, recentSkills, pendingEnrolments] = await Promise.all([
+  const [centre, riders, attendanceSummary, recentExams, recentSkills, heldForConsent, pendingEnrolments] =
+    await Promise.all([
     prisma.centre.findUnique({ where: { id: centreId }, select: { name: true } }),
     prisma.rider.findMany({
-      where: { centreId, status: { in: ["active", "pending_payment"] } },
+      // ENROLLED_RIDER_STATUSES rather than a hand-written list. The two
+      // happened to agree, which is exactly how this kind of copy goes stale
+      // unnoticed — pending_consent was added to the lifecycle without this
+      // page knowing, and the next status will be too.
+      where: { ...riderWhere, status: { in: [...ENROLLED_RIDER_STATUSES] } },
       select: {
         id: true,
         firstName: true,
@@ -60,24 +78,35 @@ export default async function SchoolDashboardPage() {
       orderBy: { firstName: "asc" },
       take: 200,
     }),
+    // Attendance is a RATIO, and the two halves must be counted separately.
+    //
+    // This counted every attendance row for the month and printed it under
+    // "Attended This Month" — so a child marked absent six times out of eight
+    // showed as 8. The one number a school actually reads off this page was
+    // reporting the opposite of the truth for the children it matters most for.
     prisma.attendance.groupBy({
-      by: ["riderId"],
-      where: {
-        date: { gte: monthStart },
-        batch: { centreId },
-      },
+      by: ["riderId", "status"],
+      // Through the rider. Batches are shared — a school's pupils sit in the
+      // same 6am batch as everyone else's — so filtering on batch.centreId
+      // returned every child at the club.
+      where: { date: { gte: monthStart }, rider: riderWhere },
       _count: { _all: true },
     }),
     prisma.exam.findMany({
       where: {
-        centreId,
+        rider: riderWhere,
         date: { gte: new Date(Date.now() - 60 * 86400000) },
       },
       orderBy: { date: "desc" },
       take: 30,
+      // Name the rider on the exam itself. This used to look the rider up in
+      // the `riders` array above, which is capped at 200 and excludes anyone
+      // not currently enrolled — so a withdrawn or 201st rider's exam rendered
+      // as a raw cuid on a partner school's dashboard.
+      include: { rider: { select: { firstName: true, lastName: true } } },
     }),
     prisma.riderSkillStatus.findMany({
-      where: { rider: { centreId } },
+      where: { rider: riderWhere },
       include: {
         rider: { select: { firstName: true, lastName: true } },
         skill: { select: { name: true, discipline: true } },
@@ -85,20 +114,44 @@ export default async function SchoolDashboardPage() {
       orderBy: { updatedAt: "desc" },
       take: 20,
     }),
+    // Students the club cannot put on a horse yet. A school chasing consent
+    // forms is the only party who can actually move these along, so the number
+    // belongs on their screen rather than only on the club's.
     prisma.rider.findMany({
-      where: { centreId, status: "pending_approval", selfEnrolled: true },
+      where: { ...riderWhere, status: RIDER_STATUS.PENDING_CONSENT },
+      orderBy: { firstName: "asc" },
+      select: { id: true, firstName: true, lastName: true, school: true },
+    }),
+    prisma.rider.findMany({
+      where: { ...riderWhere, status: "pending_approval", selfEnrolled: true },
       orderBy: { createdAt: "asc" },
-      select: { id: true, firstName: true, lastName: true, mobile: true, school: true, createdAt: true },
+      select: { id: true, firstName: true, lastName: true, mobile: true, school: true, createdAt: true, verifiedAt: true },
     }),
   ]);
 
-  // Index attendance counts by rider id for fast lookup in the table below.
-  const attendanceByRider = new Map(attendanceSummary.map((a) => [a.riderId, a._count._all]));
+  // Present + late is "turned up"; absent and excused are not. Excused counts
+  // toward sessions offered but not toward attendance — a school asking "how
+  // much riding has this child actually had" wants the honest denominator.
+  const ATTENDED = new Set(["present", "late"]);
+  const attendanceByRider = new Map<string, { attended: number; total: number }>();
+  for (const a of attendanceSummary) {
+    const row = attendanceByRider.get(a.riderId) ?? { attended: 0, total: 0 };
+    row.total += a._count._all;
+    if (ATTENDED.has(a.status)) row.attended += a._count._all;
+    attendanceByRider.set(a.riderId, row);
+  }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">{centre?.name ?? "Club"} — school view</h1>
+        <h1 className="text-2xl font-bold">
+          {scope.schoolName ?? centre?.name ?? "Club"} — school view
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {scope.schoolName
+            ? `Your pupils at ${centre?.name ?? "the club"}.`
+            : `Every rider at ${centre?.name ?? "the club"}.`}
+        </p>
       </div>
 
       {pendingEnrolments.length > 0 && (
@@ -106,7 +159,8 @@ export default async function SchoolDashboardPage() {
           <CardHeader>
             <CardTitle>Self-enrolments awaiting your approval ({pendingEnrolments.length})</CardTitle>
             <CardDescription>
-              Riders who signed up via the public link. Approve to start their registration, or reject.
+              Riders who signed up via the public link. The club checks their documents first;
+              Approve becomes available once that is done.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -129,7 +183,7 @@ export default async function SchoolDashboardPage() {
                       <td className="py-2 text-xs text-muted-foreground">{r.school ?? "—"}</td>
                       <td className="py-2 text-xs text-muted-foreground">{formatDate(r.createdAt)}</td>
                       <td className="py-2 text-right">
-                        <EnrolmentActions riderId={r.id} />
+                        <EnrolmentActions riderId={r.id} verified={Boolean(r.verifiedAt)} />
                       </td>
                     </tr>
                   ))}
@@ -140,10 +194,46 @@ export default async function SchoolDashboardPage() {
         </Card>
       )}
 
+      {heldForConsent.length > 0 && (
+        <Card className="border-l-4 border-l-rose-500">
+          <CardHeader>
+            <CardTitle>
+              Cannot ride yet — consent not signed ({heldForConsent.length})
+            </CardTitle>
+            <CardDescription>
+              These students were added from a spreadsheet, which can&apos;t carry a signature.
+              Until a parent signs the indemnity and injury NOC they can&apos;t be put on a
+              register. Each one goes active automatically the moment it&apos;s signed — the club
+              emails parents a signing link, and a nudge from the school usually moves it faster.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="flex flex-wrap gap-2">
+              {heldForConsent.map((r) => (
+                <li key={r.id} className="rounded-md border bg-muted/40 px-2 py-1 text-xs">
+                  {r.firstName} {r.lastName}
+                  {r.school ? (
+                    <span className="ml-1 text-muted-foreground">· {r.school}</span>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
-          <CardTitle>Riders ({riders.length})</CardTitle>
-          <CardDescription>Attendance this month + current level.</CardDescription>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <CardTitle>Riders ({riders.length})</CardTitle>
+            <Link href="/school/riders" className="text-xs text-primary underline">
+              Full roll with class, measurements and attendance →
+            </Link>
+          </div>
+          <CardDescription>
+            Attendance this month, counted as turned-up / sessions offered. Students held for
+            consent are listed separately above and are not counted here.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {riders.length === 0 ? (
@@ -157,7 +247,7 @@ export default async function SchoolDashboardPage() {
                     <th className="pb-2">School</th>
                     <th className="pb-2">Level</th>
                     <th className="pb-2">Joined</th>
-                    <th className="pb-2 text-right">Attended This Month</th>
+                    <th className="pb-2 text-right">Attended / sessions (this month)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -169,7 +259,19 @@ export default async function SchoolDashboardPage() {
                         {r.currentLevel ? <Badge variant="outline">{r.currentLevel}</Badge> : <span className="text-muted-foreground">—</span>}
                       </td>
                       <td className="py-2 text-xs text-muted-foreground">{formatDate(r.joiningDate)}</td>
-                      <td className="py-2 text-right font-mono">{attendanceByRider.get(r.id) ?? 0}</td>
+                      <td className="py-2 text-right font-mono">
+                        {(() => {
+                          const a = attendanceByRider.get(r.id);
+                          if (!a || a.total === 0)
+                            return <span className="text-muted-foreground">—</span>;
+                          return (
+                            <>
+                              {a.attended}
+                              <span className="text-muted-foreground">/{a.total}</span>
+                            </>
+                          );
+                        })()}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -189,11 +291,10 @@ export default async function SchoolDashboardPage() {
           ) : (
             <ol className="space-y-1">
               {recentExams.map((e) => {
-                const rider = riders.find((r) => r.id === e.riderId);
                 return (
                   <li key={e.id} className="flex items-center justify-between border-b py-1.5 text-sm last:border-0">
                     <div>
-                      <span className="font-medium">{rider ? `${rider.firstName} ${rider.lastName}` : e.riderId}</span>
+                      <span className="font-medium">{`${e.rider.firstName} ${e.rider.lastName}`}</span>
                       <span className="ml-2 text-xs text-muted-foreground">Level {e.level}</span>
                     </div>
                     <div className="flex items-center gap-2 text-xs">

@@ -664,6 +664,7 @@ model Centre {
   teams                Team[]
   consentRequests      RiderConsentRequest[]
   payments             Payment[]
+  schools              School[]
 }
 
 // Role is a string union enforced at the app layer (see lib/roles.ts).
@@ -679,6 +680,14 @@ model User {
   // block, owner impersonation belongs-check) prefer it when present and
   // fall back to centre.orgId when absent.
   orgId                 String?
+  // Which partner school this SCHOOL_ADMINISTRATOR represents.
+  //
+  // NULL means "the whole centre", which is the behaviour every existing
+  // school account has and stays correct while a centre serves one school.
+  // Set it and the account can only see that school's children — the fence
+  // that lets one centre host two schools without either seeing the other's.
+  // Meaningless on any other role.
+  schoolId              String?
   role                  String // Role (lib/roles.ts)
   name                  String
   email                 String    @unique
@@ -773,6 +782,7 @@ model User {
   coachDailyUpdates      CoachDailyUpdate[]      @relation("CoachDailyUpdateCoach")
   auditRuns              AuditRun[]              @relation("AuditRunInspector")
   batchShiftDecisions    BatchShiftRequest[]     @relation("BatchShiftDecidedBy")
+  school                 School?                 @relation(fields: [schoolId], references: [id], onDelete: SetNull)
 
   // Admin /users and /approvals filter by (centreId, status) — pending
   // approvals list, centre staff roster. Without this it's a scan-and-filter.
@@ -877,6 +887,11 @@ model Rider {
   // body in lib/i18n-sms.ts. Defaults to "en" when null.
   preferredLanguage      String? // en | hi | ta | te | bn | mr | gu | kn | ml | pa
   school                 String? // PRD §4 Module 1 — name of the rider's school
+  // The canonical school, once one exists. `school` above stays as the text a
+  // parent actually typed (and is what an import sheet carries); this is the
+  // row a school administrator's access is fenced against. Nullable because
+  // most riders are not attached to a partner school at all.
+  schoolId               String?
   // Class and section at that school. Free text rather than an enum: boards
   // in India label these very differently (5 / V / Grade 5 / UKG / XI-Science),
   // and a dropdown that doesn't list a club's local convention just gets
@@ -986,9 +1001,9 @@ model Rider {
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
 
-  centre             Centre              @relation(fields: [centreId], references: [id])
-  user               User?               @relation(fields: [userId], references: [id])
-  batch              Batch?              @relation(fields: [batchId], references: [id])
+  centre             Centre                @relation(fields: [centreId], references: [id])
+  user               User?                 @relation(fields: [userId], references: [id])
+  batch              Batch?                @relation(fields: [batchId], references: [id])
   attendances        Attendance[]
   invoices           Invoice[]
   skillStatus        RiderSkillStatus[]
@@ -1002,10 +1017,13 @@ model Rider {
   eventRegistrations EventRegistration[]
   accreditations     Accreditation[]
   batchShiftRequests BatchShiftRequest[]
+  schoolRef          School?               @relation(fields: [schoolId], references: [id], onDelete: SetNull)
 
   @@index([centreId])
   @@index([batchId])
   @@index([status])
+  // A school administrator's dashboard filters on exactly this pair.
+  @@index([schoolId])
   // Composite for the common centre+status combo — admin rider lists, sweeps
   // ("active riders in this centre"), birthday roll-ups. Covers the two
   // singletons above when the query uses both columns, so they could be
@@ -3071,12 +3089,12 @@ model AuditRun {
 }
 
 model AuditItem {
-  id      String  @id @default(cuid())
-  runId   String
-  area    String // e.g. "Tack room", "Vet cabinet", "Feed store"
-  label   String
-  result  String  @default("pending") // pass | fail | na | pending
-  remarks String?
+  id       String  @id @default(cuid())
+  runId    String
+  area     String // e.g. "Tack room", "Vet cabinet", "Feed store"
+  label    String
+  result   String  @default("pending") // pass | fail | na | pending
+  remarks  String?
   // Count-against-register, for inventory scopes.
   //
   // The checklist used to be six generic prompts ("Saddles present &
@@ -3253,11 +3271,11 @@ model RevokedSession {
 // whoever holds it can sign in that rider's name — so a database leak must not
 // hand over a working set of them. Same reasoning as PasswordResetToken.
 model RiderConsentRequest {
-  id       String @id @default(cuid())
-  riderId  String
+  id          String    @id @default(cuid())
+  riderId     String
   // Denormalised from the rider so the RLS policy has a column to fence on
   // without a join, matching every other centre-scoped table here.
-  centreId String
+  centreId    String
   // Snapshot of where it was actually sent, in case the rider's address is
   // later corrected — "who did we ask" has to stay answerable.
   email       String
@@ -3277,4 +3295,34 @@ model RiderConsentRequest {
   // both the reminder sweep and the chase-up list.
   @@index([centreId, signedAt])
   @@index([riderId, signedAt])
+}
+
+// A partner school whose pupils train at one centre.
+//
+// The school administrator role existed long before this table did, and was
+// fenced to a CENTRE: an administrator saw every rider at their club whatever
+// school the child attended. That is correct while a centre serves one school
+// — which is how all five are set up — and quietly wrong the moment one does
+// not. GHRC already carries riders from four different schools, so handing any
+// one of them a login would have shown them the others' children.
+//
+// The linkage used to be Rider.school, a free-text box. That cannot be a fence:
+// "Prakriti" and "Prakriti " are two different strings and one child ends up
+// outside their own school's view. This gives the name one canonical row per
+// centre to point at; Rider.school stays as the text a parent typed.
+model School {
+  id        String   @id @default(cuid())
+  centreId  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  centre Centre  @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  riders Rider[]
+  admins User[]
+
+  // One row per name per centre. The same school can legitimately partner with
+  // two different centres, so this is not globally unique.
+  @@unique([centreId, name])
+  @@index([centreId])
 }

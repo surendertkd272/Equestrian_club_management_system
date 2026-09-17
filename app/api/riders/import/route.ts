@@ -11,6 +11,7 @@ import { isRealYMD } from "@/lib/utils";
 import { indianMobile, indianPhone } from "@/lib/schemas/phone";
 import { RIDER_STATUS } from "@/lib/rider-status";
 import { calcBmi } from "@/lib/utils";
+import { resolveSchoolId } from "@/lib/school-scope";
 
 // Schema for a single row in the import payload. Accepts a generous set
 // of column aliases so CSV authors don't have to use exact field names.
@@ -321,10 +322,18 @@ export async function POST(req: NextRequest) {
   const result = await prisma.$transaction(async (tx) => {
     let created = 0;
     let examsScheduled = 0;
+    // Resolve each distinct school name ONCE for the whole sheet. A ninety-row
+    // intake from one school would otherwise upsert the same row ninety times.
+    const schoolIdByName = new Map<string, string | null>();
     for (const { row } of valid) {
+      const key = (row.school ?? "").trim().toLowerCase();
+      if (!schoolIdByName.has(key)) {
+        schoolIdByName.set(key, await resolveSchoolId(tx, targetCentreId, row.school));
+      }
       const rider = await tx.rider.create({
         data: {
           centreId: targetCentreId,
+          schoolId: schoolIdByName.get(key) ?? null,
           firstName: row.first_name,
           lastName: row.last_name,
           mobile: row.mobile,

@@ -16,7 +16,17 @@ export async function resetDb(): Promise<void> {
     SELECT tablename FROM pg_tables
     WHERE schemaname = 'public' AND tablename NOT LIKE '\\_prisma%'`;
   if (rows.length === 0) return;
+
   const list = rows.map((r) => `"${r.tablename}"`).join(", ");
   // RESTART IDENTITY resets any sequences; CASCADE handles every FK order.
+  //
+  // Naming every table explicitly rather than truncating only the non-empty
+  // ones. That was tried, on the theory that TRUNCATE cost scales with table
+  // count — but truncating the few tables that hold rows CASCADEs to almost
+  // every other one anyway (everything hangs off Organisation and Centre), and
+  // benchmarking the two put them within noise of each other at ~0.3s. The
+  // 30s+ reset that prompted the idea was machine load, not table count, so
+  // the fix belongs in hookTimeout (see vitest.config.ts) and this stays the
+  // simpler statement.
   await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE`);
 }

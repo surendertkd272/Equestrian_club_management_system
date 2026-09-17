@@ -6,7 +6,24 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { openConfirm } from "@/components/ui/confirm-dialog";
 
-export function EnrolmentActions({ riderId }: { riderId: string }) {
+/**
+ * Approve / reject one pending enrolment.
+ *
+ * `verified` gates Approve because the API does: approval 409s until a rider's
+ * documents have been attested, and attesting is restricted to HQ and the
+ * centre manager. This component is rendered on the SCHOOL portal, whose users
+ * are deliberately not verifiers — so an un-gated Approve button was an action
+ * a school administrator could never once complete, failing with a message
+ * telling them to do something they have no screen for. Saying so up front is
+ * the difference between a queue and a dead end.
+ */
+export function EnrolmentActions({
+  riderId,
+  verified = true,
+}: {
+  riderId: string;
+  verified?: boolean;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
 
@@ -40,13 +57,29 @@ export function EnrolmentActions({ riderId }: { riderId: string }) {
   }
 
   return (
-    <div className="flex justify-end gap-2">
-      <Button size="sm" variant="outline" onClick={() => act("reject")} disabled={busy !== null}>
-        {busy === "reject" ? "…" : "Reject"}
-      </Button>
-      <Button size="sm" onClick={() => act("approve")} disabled={busy !== null}>
-        {busy === "approve" ? "…" : "Approve"}
-      </Button>
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex justify-end gap-2">
+        <Button size="sm" variant="outline" onClick={() => act("reject")} disabled={busy !== null}>
+          {busy === "reject" ? "…" : "Reject"}
+        </Button>
+        <Button
+          size="sm"
+          onClick={() => act("approve")}
+          disabled={busy !== null || !verified}
+          title={
+            verified
+              ? undefined
+              : "The club has to check this rider's documents before anyone can approve them."
+          }
+        >
+          {busy === "approve" ? "…" : "Approve"}
+        </Button>
+      </div>
+      {!verified && (
+        <span className="text-[11px] text-muted-foreground">
+          Waiting on the club to check documents
+        </span>
+      )}
     </div>
   );
 }

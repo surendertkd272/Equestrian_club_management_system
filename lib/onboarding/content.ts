@@ -50,6 +50,8 @@ export const FEATURE_GUIDES: Record<string, FeatureGuide> = {
 
   // ── Staff & Operations
   "/staff": { title: "Staff", blurb: "The staff directory.", help: "Create staff accounts with a role, KYC, and salary band; edit existing staff." },
+  "/staff/import": { title: "Bulk Upload Staff", blurb: "Create staff accounts from a spreadsheet.", help: "Download the Excel template, fill it in, and upload the .xlsx as-is. Preview first — it reports duplicate emails and job titles it doesn't recognise before anything is written. There is no password column on purpose: each account gets its own generated password, kept encrypted and reprintable from the Credential Sheet. KYC documents can't travel in a spreadsheet, so send new hires the self-onboarding link afterwards." },
+  "/schools": { title: "Schools", blurb: "Partner schools, and which administrator sees which children.", help: "A school administrator set to \u201cAll riders at this centre\u201d sees every child at the club, whichever school they attend — right while the centre serves one school. Pick a school for them and they can only ever see those pupils. Schools appear here automatically as riders are registered or bulk-uploaded with a school name." },
   "/staff/onboarding": { title: "Employee Onboarding", blurb: "Self-registration links for new hires.", help: "Send a new joiner a link to submit their details, then approve to create their account." },
   "/staff-attendance": { title: "Staff Attendance", blurb: "Daily staff check-in.", help: "Record who's on duty each day." },
   "/gate": { title: "Gate Log", blurb: "In/out gate entries kiosk.", help: "Log people and visitors in and out, MyGate-style." },

@@ -28,7 +28,14 @@ export default defineConfig({
     // alone. A generous ceiling costs nothing when tests are fast; it only
     // stops a slow machine reporting a red suite that isn't broken.
     testTimeout: 30_000,
-    hookTimeout: 30_000,
+    // Deliberately higher than testTimeout. Nearly every beforeEach in this
+    // suite calls resetDb(), which TRUNCATEs ~100 tables — normally ~0.3s, but
+    // TRUNCATE is fsync-bound and a laptop already running the suite's own
+    // forks has been measured past 30s on it. That surfaced as "Hook timed
+    // out" against whichever two files happened to be unlucky, which reads as
+    // a broken test suite when nothing is broken. The ceiling costs nothing
+    // when the machine is idle; it only stops a loaded one reporting red.
+    hookTimeout: 90_000,
     env: {
       // Tests use whichever DATABASE_URL the runner provides:
       //   • CI: a Postgres service container (see .github/workflows/ci.yml).

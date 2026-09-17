@@ -79,6 +79,9 @@ export const NAV: NavGroup[] = [
     items: [
       { href: "/staff", label: "Staff", iconName: "Users2", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
       { href: "/staff/import", label: "Bulk Upload Staff", iconName: "Upload", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
+      // Partner schools + which administrator sees which children. The fence is
+      // invisible anywhere else, and a setting with no screen is one nobody checks.
+      { href: "/schools", label: "Schools", iconName: "School", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
       { href: "/staff/onboarding", label: "Employee Onboarding", iconName: "UserCheck", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
       { href: "/staff-attendance", label: "Staff Attendance", iconName: "UserCheck", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER"], feature: "staff-attendance" },
       // Gate-log kiosk (MyGate-style In/Out). Same permission as attendance —

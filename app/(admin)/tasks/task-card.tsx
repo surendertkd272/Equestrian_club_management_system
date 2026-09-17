@@ -14,6 +14,7 @@ type TaskWithMeta = {
   title: string;
   description: string | null;
   status: string;
+  kind: string | null;
   dueAt: Date | null;
   recurrence: string | null;
   overdue: boolean;
@@ -75,6 +76,10 @@ export function TaskCard({
             <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{task.description}</div>
           )}
         </div>
+        {/* A partner school is waiting on the other side of this one, and it
+            arrives unassigned — without a marker it reads as one more internal
+            to-do and sits in the open column. */}
+        {task.kind === "school_request" && <Badge variant="secondary">school</Badge>}
         {task.escalated && (
           <Badge variant="destructive" className="gap-1">
             <AlertTriangle className="h-3 w-3" /> escalated
