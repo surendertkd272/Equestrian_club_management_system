@@ -1,0 +1,102 @@
+name: Uptime
+
+# Is the club's system actually serving?
+#
+# On 17 Sep the Vercel project was paused. Every request — the admin panel, the
+# public registration links printed on school noticeboards, the consent-signing
+# links already sitting in parents' inboxes — returned "This deployment is
+# temporarily paused" for hours. Nothing was broken: the last deployment was
+# Ready, the build was green, the database was fine. The project was simply
+# switched off at the platform, and the only reason anyone found out was that
+# somebody happened to open the site.
+#
+# A push during that window is worse still. Git accepted it, Vercel built
+# nothing, and the code sat undeployed with no failure anywhere to notice.
+#
+# So this asks the one question no other check answers: does the live URL
+# respond. It is deliberately dumb — no auth, no database, no application
+# logic — because the failure it exists to catch is the platform refusing to
+# serve at all.
+
+on:
+  schedule:
+    # Hourly. A pause is a hard outage for a club whose parents register and
+    # sign consent through this URL, so a day's lag is not useful; an hour is
+    # short enough to act on and cheap enough to run forever.
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: uptime
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe the live site
+        env:
+          BASE_URL: ${{ vars.APP_BASE_URL || 'https://cms.bharatsportsventure.com' }}
+        run: |
+          set -uo pipefail
+
+          fail=0
+
+          # /login is the right probe: unauthenticated, server-rendered, and the
+          # page every actual user starts from. A static asset would still be
+          # served from the edge cache while the app itself was down.
+          #
+          # Retried, because one dropped connection from a GitHub runner is not
+          # an outage and waking someone for it teaches them to ignore this.
+          for attempt in 1 2 3; do
+            code=$(curl -s -o /tmp/body.html -w "%{http_code}" --max-time 25 "${BASE_URL}/login" || echo "000")
+            err=$(curl -s -D - -o /dev/null --max-time 25 "${BASE_URL}/login" 2>/dev/null | tr -d '\r' | grep -i '^x-vercel-error:' || true)
+
+            if [ "$code" = "200" ]; then
+              echo "OK  ${BASE_URL}/login -> 200 (attempt $attempt)"
+              fail=0
+              break
+            fi
+
+            fail=1
+            echo "attempt $attempt: HTTP $code ${err:+· $err}"
+            [ "$attempt" -lt 3 ] && sleep 15
+          done
+
+          if [ "$fail" = "1" ]; then
+            # 402 / DEPLOYMENT_DISABLED is the paused-project signature, and it
+            # is worth naming explicitly: the fix is not a redeploy, it is
+            # un-pausing the project, and someone reading this at speed should
+            # not have to work that out.
+            if [ "$code" = "402" ]; then
+              echo "::error::The Vercel project is PAUSED (HTTP 402, DEPLOYMENT_DISABLED). Nothing is broken in the code — resume the project in Vercel → Project → Settings, then redeploy the latest commit, because any push made while paused did not build."
+            else
+              echo "::error::${BASE_URL}/login returned HTTP ${code} on three attempts. ${err}"
+            fi
+            echo "--- first 400 bytes of the response ---"
+            head -c 400 /tmp/body.html || true
+            exit 1
+          fi
+
+      - name: Probe a public registration link
+        env:
+          BASE_URL: ${{ vars.APP_BASE_URL || 'https://cms.bharatsportsventure.com' }}
+        run: |
+          set -uo pipefail
+          # These URLs are on noticeboards and in school WhatsApp groups. They
+          # can break independently of /login — a centre renamed, a slug alias
+          # dropped — and nobody would know until a parent gave up.
+          code=$(curl -s -o /tmp/onb.html -w "%{http_code}" --max-time 25 \
+                 "${BASE_URL}/onboarding?centre=hyderabad" || echo "000")
+          if [ "$code" != "200" ]; then
+            echo "::error::Public registration link for Hyderabad returned HTTP ${code}."
+            exit 1
+          fi
+          # 200 with no centre resolved means the page rendered an empty shell —
+          # which is what a wrong or retired slug looks like to a parent.
+          if ! grep -qi "hyderabad\|equiwings" /tmp/onb.html; then
+            echo "::error::Registration page loaded but named no centre — the slug may have been renamed."
+            exit 1
+          fi
+          echo "OK  public registration link resolves"
