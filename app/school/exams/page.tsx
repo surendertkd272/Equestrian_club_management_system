@@ -113,6 +113,14 @@ export default async function SchoolExamsPage() {
         <p className="text-sm text-muted-foreground">
           {mine.length} result{mine.length === 1 ? "" : "s"} · {passed} passed · {ctx.title}
         </p>
+        {/* Said once. This paragraph used to repeat verbatim inside every level
+            card, so a club running five levels printed it five times. */}
+        {levels.length > 0 && (
+          <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+            Highest score first. Club rank counts every rider who sat that level at{" "}
+            {ctx.centreName}, so the placing is real even though only your own students are named.
+          </p>
+        )}
       </div>
 
       {upcoming.length > 0 && (
@@ -166,11 +174,6 @@ export default async function SchoolExamsPage() {
                     {rows.length} of yours · ranked against {cohortSize} sat at the club
                   </span>
                 </div>
-                <CardDescription>
-                  Highest score first. Club rank counts every rider who sat this level at{" "}
-                  {ctx.centreName}, so the placing is real even though only your own students are
-                  named.
-                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveTable

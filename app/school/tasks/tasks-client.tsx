@@ -27,6 +27,7 @@ export function TasksClient({ tasks }: { tasks: SchoolTask[] }) {
   const [description, setDescription] = useState("");
   const [dueAt, setDueAt] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [composing, setComposing] = useState(false);
 
   async function raise() {
     if (title.trim().length < 3) return toast.error("Say what you need in a few words");
@@ -45,6 +46,7 @@ export function TasksClient({ tasks }: { tasks: SchoolTask[] }) {
       setTitle("");
       setDescription("");
       setDueAt("");
+      setComposing(false);
       toast.success("Sent to the club's head office");
       router.refresh();
     } finally {
@@ -76,9 +78,17 @@ export function TasksClient({ tasks }: { tasks: SchoolTask[] }) {
 
   return (
     <div className="space-y-6">
+      {/* Collapsed by default. This page is opened far more often to see whether
+          anything came back than to send something, and an always-open compose
+          form pushed the replies below the fold. */}
       <div className="rounded-lg border bg-card p-4">
-        <h2 className="mb-3 text-sm font-semibold">Raise Something With the Club</h2>
-        <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">Raise Something With the Club</h2>
+          <Button variant={composing ? "outline" : "default"} size="sm" onClick={() => setComposing((v) => !v)}>
+            {composing ? "Cancel" : "New request"}
+          </Button>
+        </div>
+        <div className={composing ? "mt-3 space-y-3" : "hidden"}>
           <div>
             <Label>What Do You Need?</Label>
             <Input

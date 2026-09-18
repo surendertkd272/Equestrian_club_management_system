@@ -104,7 +104,9 @@ export default async function SchoolDashboardPage() {
     prisma.exam.findMany({
       where: {
         rider: riderWhere,
-        date: { gte: new Date(Date.now() - 60 * 86400000) },
+        // Bounded at BOTH ends. With only a lower bound, an exam scheduled for
+        // next week sorted to the top of a card headed "Last 60 Days".
+        date: { gte: new Date(Date.now() - 60 * 86400000), lte: new Date() },
       },
       orderBy: { date: "desc" },
       take: 30,
@@ -121,7 +123,9 @@ export default async function SchoolDashboardPage() {
         skill: { select: { name: true, discipline: true } },
       },
       orderBy: { updatedAt: "desc" },
-      take: 20,
+      // Eight, not twenty. This is the least actionable card on the page and it
+      // was the longest — most of a phone screen's scrolling was this list.
+      take: 8,
     }),
     // Students the club cannot put on a horse yet. A school chasing consent
     // forms is the only party who can actually move these along, so the number
@@ -195,11 +199,17 @@ export default async function SchoolDashboardPage() {
                   cell: (r) => <span className="font-medium">{r.firstName} {r.lastName}</span>,
                 },
                 { key: "mobile", header: "Mobile", cell: (r) => r.mobile },
-                {
-                  key: "school",
-                  header: "School",
-                  cell: (r) => <span className="text-xs text-muted-foreground">{r.school ?? "—"}</span>,
-                },
+                ...(scope.schoolId
+                  ? []
+                  : [
+                      {
+                        key: "school",
+                        header: "School",
+                        cell: (r: (typeof pendingEnrolments)[number]) => (
+                          <span className="text-xs text-muted-foreground">{r.school ?? "—"}</span>
+                        ),
+                      },
+                    ]),
                 {
                   key: "signedUp",
                   header: "Signed Up",
@@ -237,7 +247,9 @@ export default async function SchoolDashboardPage() {
               {heldForConsent.map((r) => (
                 <li key={r.id} className="rounded-md border bg-muted/40 px-2 py-1 text-xs">
                   {r.firstName} {r.lastName}
-                  {r.school ? (
+                  {/* Same reason as the roll's School column: when this account
+                      is fenced to one school, naming it on every chip is noise. */}
+                  {!scope.schoolId && r.school ? (
                     <span className="ml-1 text-muted-foreground">· {r.school}</span>
                   ) : null}
                 </li>
@@ -285,7 +297,10 @@ export default async function SchoolDashboardPage() {
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <CardTitle>Riders ({riders.length})</CardTitle>
+            {/* Named for what it counts. "Riders (6)" here against "7 students"
+                on the Riders tab looked like one of them was wrong; they count
+                different things, so they now say so. */}
+            <CardTitle>Riders Cleared to Ride ({riders.length})</CardTitle>
             <Link href="/school/riders" className="text-xs text-primary underline">
               Full roll with class, measurements and attendance →
             </Link>
@@ -305,13 +320,26 @@ export default async function SchoolDashboardPage() {
                 key: "name",
                 header: "Name",
                 primary: true,
-                cell: (r) => <span className="font-medium">{r.firstName} {r.lastName}</span>,
+                cell: (r) => (
+                  <Link href={`/school/riders/${r.id}`} className="font-medium hover:underline">
+                    {r.firstName} {r.lastName}
+                  </Link>
+                ),
               },
-              {
-                key: "school",
-                header: "School",
-                cell: (r) => <span className="text-xs text-muted-foreground">{r.school ?? "—"}</span>,
-              },
+              // Only worth a column when this account can see more than one
+              // school. Fenced to one, it repeated the same name down every row
+              // — and wrapped to three lines on every card on a phone.
+              ...(scope.schoolId
+                ? []
+                : [
+                    {
+                      key: "school",
+                      header: "School",
+                      cell: (r: (typeof riders)[number]) => (
+                        <span className="text-xs text-muted-foreground">{r.school ?? "—"}</span>
+                      ),
+                    },
+                  ]),
               {
                 key: "level",
                 header: "Level",
@@ -395,11 +423,16 @@ export default async function SchoolDashboardPage() {
           ) : (
             <ol className="space-y-1">
               {recentSkills.map((s) => (
-                <li key={`${s.riderId}-${s.skillId}`} className="flex items-center justify-between border-b py-1.5 text-sm last:border-0">
-                  <div>
+                <li key={`${s.riderId}-${s.skillId}`} className="flex items-center justify-between gap-3 border-b py-1.5 text-sm last:border-0">
+                  <div className="min-w-0">
                     <span className="font-medium">{s.rider.firstName} {s.rider.lastName}</span>
                     <span className="ml-2 text-xs text-muted-foreground">{s.skill.discipline} · {s.skill.name}</span>
                   </div>
+                  {/* The date is what makes "Latest Updates" checkable — without
+                      it the card asserted recency and showed no evidence. */}
+                  <span className="ml-auto whitespace-nowrap text-[11px] text-muted-foreground">
+                    {formatDate(s.updatedAt)}
+                  </span>
                   <Badge
                     variant={
                       s.status === "mastered" ? "success" :

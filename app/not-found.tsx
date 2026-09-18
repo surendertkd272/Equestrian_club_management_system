@@ -26,8 +26,12 @@ export default function NotFound() {
             since been deleted. Nothing is wrong with your account.
           </p>
           <div className="flex flex-wrap gap-2">
+            {/* "/" and not "/dashboard": the index sends each role to its own
+                landing page, whereas /dashboard is denied to every portal role
+                (school administrator, parent, rider), who reached it only to be
+                bounced somewhere else. Still reads no session. */}
             <Button asChild>
-              <Link href="/dashboard">Go to dashboard</Link>
+              <Link href="/">Go home</Link>
             </Button>
             <Button asChild variant="outline">
               <Link href="/login">Sign in</Link>

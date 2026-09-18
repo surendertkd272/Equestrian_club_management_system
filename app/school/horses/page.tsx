@@ -120,8 +120,8 @@ export default async function SchoolHorsesPage() {
         <CardHeader>
           <CardTitle className="text-base">Every Horse at the Club ({rows.length})</CardTitle>
           <CardDescription>
-            Busiest first. &ldquo;Your riders&rdquo; is the share of that work done by students
-            from {ctx.title}.
+            Busiest first. &ldquo;Your riders&rsquo; share&rdquo; is how much of each horse&apos;s
+            work was done by students from {ctx.title}.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -159,15 +159,23 @@ export default async function SchoolHorsesPage() {
                 },
               },
               {
+                // "Your Riders: 10 (15.0h)" left the reader to find the total
+                // four columns away and divide. The question this column exists
+                // to answer is what share of the horse's work was ours, so it
+                // answers it.
                 key: "mine",
-                header: "Your Riders",
+                header: "Your Riders' Share",
                 numeric: true,
                 cell: ({ s }) =>
                   s.mySessions > 0 ? (
-                    <>
-                      {s.mySessions}
-                      <span className="text-muted-foreground"> ({s.myHours.toFixed(1)}h)</span>
-                    </>
+                    <div className="leading-tight">
+                      <div className="font-medium">
+                        {Math.round((s.mySessions / s.sessions) * 100)}%
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">
+                        {s.mySessions} of {s.sessions} · {s.myHours.toFixed(1)}h
+                      </div>
+                    </div>
                   ) : (
                     <span className="text-muted-foreground">—</span>
                   ),

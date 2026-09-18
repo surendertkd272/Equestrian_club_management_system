@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,16 +28,50 @@ function ageOn(dob: Date): number {
   return age;
 }
 
-export default async function SchoolRidersPage() {
+export default async function SchoolRidersPage({
+  searchParams,
+}: {
+  searchParams: { q?: string };
+}) {
   const ctx = await schoolContext();
   if (!ctx) return <NoCentreCard />;
 
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  // Seven pupils need no search; eighty do, and a partner school can easily
+  // send eighty. Name or class, because those are what a school is holding when
+  // it comes looking — "Kabir in 5-A".
+  const q = (searchParams.q ?? "").trim();
+  // "5-A" is how a school writes a class, and it is two columns here — so a
+  // search for it is split before it is matched, or the obvious query finds
+  // nothing and the roll looks empty.
+  const classAndSection = q.match(/^(.+?)[-\s]\s*([A-Za-z])$/);
+  const like = (v: string) => ({ contains: v, mode: "insensitive" as const });
+  const search = q
+    ? {
+        OR: [
+          { firstName: like(q) },
+          { lastName: like(q) },
+          { schoolClass: like(q) },
+          { schoolSection: like(q) },
+          ...(classAndSection
+            ? [
+                {
+                  AND: [
+                    { schoolClass: like(classAndSection[1]) },
+                    { schoolSection: like(classAndSection[2]) },
+                  ],
+                },
+              ]
+            : []),
+        ],
+      }
+    : {};
 
   const [riders, attendance] = await Promise.all([
     prisma.rider.findMany({
       where: {
         ...ctx.riderWhere,
+        ...search,
         status: { in: [...ENROLLED_RIDER_STATUSES, RIDER_STATUS.PENDING_CONSENT] },
       },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
@@ -93,8 +128,18 @@ export default async function SchoolRidersPage() {
       <div>
         <h1 className="text-2xl font-bold">Riders</h1>
         <p className="text-sm text-muted-foreground">
-          {riders.length} student{riders.length === 1 ? "" : "s"} · {ctx.title}
-          {held > 0 && ` · ${held} waiting on consent`}
+          {/* While a search is on, this counts the MATCHES — saying "7 students"
+              over a filtered list of two would be a lie about the roll. */}
+          {q ? (
+            <>
+              {riders.length} matching &ldquo;{q}&rdquo; · {ctx.title}
+            </>
+          ) : (
+            <>
+              {riders.length} student{riders.length === 1 ? "" : "s"} · {ctx.title}
+              {held > 0 && ` · ${held} waiting on consent`}
+            </>
+          )}
         </p>
       </div>
 
@@ -106,21 +151,42 @@ export default async function SchoolRidersPage() {
             come from the club. Attendance is this month, counted as turned-up / sessions
             offered.
           </CardDescription>
+          <form className="mt-3 flex gap-2" method="get">
+            <input
+              type="search"
+              name="q"
+              defaultValue={q}
+              aria-label="Search students by name or class"
+              placeholder="Search name or class"
+              className="h-9 w-full max-w-xs rounded-md border border-input bg-background px-3 text-sm"
+            />
+            <button className="h-9 rounded-md border bg-card px-3 text-sm hover:bg-muted">
+              Search
+            </button>
+            {q && (
+              <Link
+                href="/school/riders"
+                className="flex h-9 items-center px-2 text-sm text-muted-foreground hover:text-foreground"
+              >
+                Clear
+              </Link>
+            )}
+          </form>
         </CardHeader>
         <CardContent>
           <ResponsiveTable
             rows={riders}
             getRowKey={(r) => r.id}
-            emptyMessage="No students yet."
+            emptyMessage={q ? `No student matches "${q}".` : "No students yet."}
             columns={[
               {
                 key: "name",
                 header: "Name",
                 primary: true,
                 cell: (r) => (
-                  <span className="font-medium">
+                  <Link href={`/school/riders/${r.id}`} className="font-medium hover:underline">
                     {r.firstName} {r.lastName}
-                  </span>
+                  </Link>
                 ),
               },
               {
