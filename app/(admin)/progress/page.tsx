@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
-import { schoolFenceFor } from "@/lib/school-scope";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,8 +19,7 @@ export default async function ProgressPage({
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/no-organisation");
 
-  const fence = await schoolFenceFor(session);
-  const riderWhere: any = { ...tenantWhere(centreId, orgId), ...fence, status: "active" };
+  const riderWhere: any = { ...tenantWhere(centreId, orgId), status: "active" };
   if (searchParams.batch) riderWhere.batchId = searchParams.batch;
   // Level filter — narrows the rider list to those currently at the
   // picked level. Drives the mastery heatmap which gets harder to
@@ -57,7 +55,7 @@ export default async function ProgressPage({
       select: { id: true, discipline: true, levelId: true },
     }),
     prisma.riderSkillStatus.findMany({
-      where: { rider: { ...tenantWhere(centreId, orgId), ...fence } },
+      where: { rider: tenantWhere(centreId, orgId) },
       select: { riderId: true, skillId: true, status: true },
     }),
   ]);

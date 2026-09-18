@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
-import { schoolFenceFor } from "@/lib/school-scope";
 import { getOrgIdForSession, getFeaturesForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,10 +31,7 @@ export default async function EnrolmentsPage() {
   const centreId = scopeCentre(session);
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/no-organisation");
-  // A school administrator vets sign-ups for their OWN school. Without the
-  // fence this queue offered them another school's child — full documents,
-  // Aadhaar number and medical notes — and a button to act on it.
-  const where = { ...tenantWhere(centreId, orgId), ...(await schoolFenceFor(session)) };
+  const where = tenantWhere(centreId, orgId);
   // Drives the approval copy below — see the note at the top of this file.
   const feesOn = (await getFeaturesForSession(session)).has("fee-collection");
 

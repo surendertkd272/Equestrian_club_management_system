@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
-import { schoolFenceFor } from "@/lib/school-scope";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { can } from "@/lib/permissions";
 import { FeatureEmptyState } from "@/components/onboarding/empty-state";
@@ -39,9 +38,6 @@ export default async function CertificatesPage({
   const canBulk = can(session.role, "certificate.bulk");
 
   const where: any = { ...tenantWhere(centreId, orgId) };
-  // A certificate names a child, so it belongs to that child's school.
-  const fence = await schoolFenceFor(session);
-  if (fence.schoolId) where.rider = fence;
   if (searchParams.type) where.type = searchParams.type;
   if (searchParams.batch) where.batchTag = searchParams.batch;
   if (searchParams.revoked === "yes") where.revokedAt = { not: null };

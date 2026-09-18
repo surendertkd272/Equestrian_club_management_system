@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
-import { schoolFenceFor } from "@/lib/school-scope";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,7 +36,7 @@ export default async function ReportsPage() {
 
   const [riders, recentDispatches] = await Promise.all([
     prisma.rider.findMany({
-      where: { ...tenantWhere(centreId, orgId), ...(await schoolFenceFor(session)), status: "active" },
+      where: { ...tenantWhere(centreId, orgId), status: "active" },
       select: { id: true, firstName: true, lastName: true, currentLevel: true, batch: { select: { name: true } } },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),

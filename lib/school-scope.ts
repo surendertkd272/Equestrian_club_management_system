@@ -60,12 +60,11 @@ export function riderScopeWhere(
  * enrolment decision API (this role's one write, which would have let one
  * school accept or reject another school's child).
  *
- * The staff PAGES also apply it. Today they redirect this role to /school at
- * the admin layout, so the fence there is a second line rather than the fix —
- * but the nav table does list SCHOOL_ADMINISTRATOR against /riders,
- * /attendance, /exams and the rest, so the two disagree, and the safe side of
- * that disagreement is the one that does not show a partner school another
- * school's children.
+ * The staff pages do NOT apply it and do not need to: SCHOOL_ADMINISTRATOR is
+ * a portal role that middleware and the admin layout both send to /school, and
+ * it is in no nav perm array. If that ever changes — if this role is given a
+ * real staff page — every rider query on it needs this fence, because
+ * tenantWhere() is a centre rule and a centre can serve four schools.
  *
  * Returns the fragment to spread into a Rider `where`; empty for every other
  * role and for an unfenced administrator (schoolId NULL means the whole
@@ -82,11 +81,12 @@ export async function schoolFenceFor(session: SessionPayload): Promise<{ schoolI
 }
 
 /**
- * The fence for a page reached by id, where the row is already loaded and the
- * `where` fragment is no use. A rider list can be filtered; a rider PROFILE is
- * fetched by the id in the URL, so without this an administrator fenced to one
- * school still reads another school's child — medical notes and all — by
- * pasting the link.
+ * The fence for a handler that acts on ONE rider named in the URL, where the
+ * row is already loaded and a `where` fragment is no use.
+ *
+ * Used by the enrolment decision API: a queue can be filtered, but approve and
+ * reject take a rider id, so without this one school could accept or reject
+ * another school's child by posting the id.
  */
 export async function isOutsideSchoolFence(
   session: SessionPayload,

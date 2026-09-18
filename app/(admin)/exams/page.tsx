@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
-import { schoolFenceFor } from "@/lib/school-scope";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,9 +31,6 @@ export default async function ExamsPage({
   if (!orgId) redirect("/no-organisation");
 
   const where: any = { ...tenantWhere(centreId, orgId) };
-  // An exam carries no school of its own; it belongs to one through its rider.
-  const fence = await schoolFenceFor(session);
-  if (fence.schoolId) where.rider = fence;
   if (searchParams.status) where.status = searchParams.status;
   if (searchParams.level) where.level = Number(searchParams.level);
   if (session.role === "EXAMINER") {

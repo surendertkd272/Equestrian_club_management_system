@@ -179,9 +179,9 @@ describe("the same fence outside the portal", () => {
     expect(await schoolFenceFor(sessionFor(mgr.id, "CENTRE_MANAGER"))).toEqual({});
   });
 
-  it("keeps another school's child off a page reached by id", async () => {
-    // A list can be filtered; a profile is fetched by the id in the URL. This
-    // is the guard behind /riders/[id], /reports/[riderId] and the rest.
+  it("recognises another school's child when one is named by id", async () => {
+    // A queue can be filtered; approve/reject takes a rider id. This is the
+    // guard behind the enrolment decision below.
     const fenced = await fencedAdmin();
     const session = sessionFor(fenced.id, "SCHOOL_ADMINISTRATOR");
     expect(await isOutsideSchoolFence(session, dps.id)).toBe(false);
