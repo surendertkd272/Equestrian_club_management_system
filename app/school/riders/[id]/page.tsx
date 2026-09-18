@@ -32,8 +32,8 @@ export const dynamic = "force-dynamic";
 // notFound() below can no longer set the status and a link to a pupil this
 // account may not see answers 200 instead of 404. /school had one, which is
 // exactly what it did; it was removed once these pages measured 11-22ms and
-// the skeleton was buying almost nothing. tests/portal-404.test.ts fails if it
-// comes back.
+// the skeleton was buying almost nothing. tests/not-found-status.test.ts fails
+// if it comes back — here or above any other page that calls notFound().
 
 function ageOn(dob: Date): number {
   const now = new Date();
