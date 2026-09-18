@@ -44,28 +44,40 @@ export function NotificationsDropdown({ initialUnread }: { initialUnread: number
       .finally(() => setLoading(false));
   }, [open, reloadKey]);
 
-  // Subscribe to SSE for live unread counts; fall back to 60s polling if the
-  // EventSource API isn't available or the connection drops.
+  // Poll the unread count.
+  //
+  // This was a Server-Sent Events stream, and that is what paused the Vercel
+  // project twice. SSE holds a serverless function open for as long as a staff
+  // member has the app open — the function is billed for that whole time, so
+  // one person with one tab cost about 1.7 GB-hours per hour, and a single
+  // working week of one user exhausted the plan's entire monthly function
+  // budget. A backgrounded tab kept paying, too, because the stream had no
+  // visibility check.
+  //
+  // A 60s poll of one indexed COUNT costs on the order of a thousandth of that
+  // and the bell is no less useful: an unread badge does not need to be live to
+  // the second. Do not reintroduce a long-lived connection here without moving
+  // the app off per-second function billing first.
   useEffect(() => {
-    if (typeof window === "undefined" || !("EventSource" in window)) {
-      const id = setInterval(async () => {
-        if (document.hidden) return;
-        try {
-          const res = await fetch("/api/notifications/unread-count");
-          const d = await res.json();
-          if (typeof d.count === "number") setUnread(d.count);
-        } catch {}
-      }, 60_000);
-      return () => clearInterval(id);
-    }
-    const es = new EventSource("/api/notifications/stream");
-    es.addEventListener("unread", (e) => {
+    let cancelled = false;
+    async function refresh() {
+      if (document.hidden) return;
       try {
-        const data = JSON.parse((e as MessageEvent).data);
-        if (typeof data.count === "number") setUnread(data.count);
+        const res = await fetch("/api/notifications/unread-count");
+        if (!res.ok) return;
+        const d = await res.json();
+        if (!cancelled && typeof d.count === "number") setUnread(d.count);
       } catch {}
-    });
-    return () => es.close();
+    }
+    const id = setInterval(refresh, 60_000);
+    // A hidden tab skips its polls, so catch up the moment it comes back
+    // rather than showing a stale badge for up to a minute.
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, []);
 
   async function markOne(id: string) {
