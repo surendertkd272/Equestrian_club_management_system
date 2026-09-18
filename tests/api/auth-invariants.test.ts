@@ -8,7 +8,7 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { navPermForPath, canReachPath } from "@/components/shell/sidebar-nav";
+import { navPermForPath, canReachPath, landingPathFor } from "@/components/shell/sidebar-nav";
 
 function routeFiles(dir: string): string[] {
   if (!fs.existsSync(dir)) return [];
@@ -99,6 +99,22 @@ describe("admin pages are protected by at least one layer", () => {
     expect(canReachPath("ADMIN", "/salary")).toBe(true);
     // A groom has no business on the payroll page.
     expect(canReachPath("GROOM", "/salary")).toBe(false);
+  });
+
+  it("portal roles are denied the staff pages and land on their own portal", () => {
+    // The nav table listed SCHOOL_ADMINISTRATOR against these for months while
+    // app/(admin)/layout.tsx redirected the role away from every one of them —
+    // a table that described access the role did not have. Reading it as the
+    // source of truth points at leaks the layout already stops.
+    for (const p of ["/riders", "/attendance", "/progress", "/exams", "/enrolments", "/certificates"]) {
+      expect(canReachPath("SCHOOL_ADMINISTRATOR", p), p).toBe(false);
+    }
+    // Every landing path must be one its role can actually open, or the
+    // middleware redirect loops (this bit users once already).
+    for (const role of ["SCHOOL_ADMINISTRATOR", "RIDER", "PARENT", "GROOM", "ACCOUNTANT"] as const) {
+      expect(canReachPath(role, landingPathFor(role)), role).toBe(true);
+    }
+    expect(landingPathFor("SCHOOL_ADMINISTRATOR")).toBe("/school");
   });
 });
 

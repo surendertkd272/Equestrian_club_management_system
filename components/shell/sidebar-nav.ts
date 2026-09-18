@@ -56,22 +56,23 @@ export const NAV: NavGroup[] = [
   {
     group: "Riders & Training",
     items: [
-      { href: "/riders", label: "Riders", iconName: "Users", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER", "SCHOOL_ADMINISTRATOR"] },
+      { href: "/riders", label: "Riders", iconName: "Users", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER"] },
       { href: "/riders/import", label: "Bulk Upload Riders", iconName: "Upload", perm: ["SUPER_ADMIN", "CENTRE_MANAGER"] },
-      // Self-enrolment approval queue — School Admin / Centre Manager vet
-      // public sign-ups before they become billable registrations.
-      { href: "/enrolments", label: "Enrolment Approvals", iconName: "UserCheck", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "SCHOOL_ADMINISTRATOR"] },
+      // Self-enrolment approval queue — the centre vets public sign-ups before
+      // they become billable registrations. A school administrator approves
+      // their own school's from the /school portal, not this page.
+      { href: "/enrolments", label: "Enrolment Approvals", iconName: "UserCheck", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
       { href: "/riders/consent", label: "Consent Collection", iconName: "FileSignature", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
       { href: "/batches", label: "Batches", iconName: "CalendarClock", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"] },
       { href: "/lessons", label: "Lessons", iconName: "CalendarDays", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"] },
-      { href: "/attendance", label: "Attendance", iconName: "CalendarCheck2", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "SCHOOL_ADMINISTRATOR"], feature: "attendance" },
-      { href: "/progress", label: "Progress", iconName: "TrendingUp", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "SCHOOL_ADMINISTRATOR"], feature: "skill-tracking" },
+      { href: "/attendance", label: "Attendance", iconName: "CalendarCheck2", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"], feature: "attendance" },
+      { href: "/progress", label: "Progress", iconName: "TrendingUp", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"], feature: "skill-tracking" },
       // Club Catalog — manage fee plans, progress levels, and skills per club.
       { href: "/catalog", label: "Club Catalog", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"], feature: "club-catalog" },
       // Sprint 4: month-by-month skill ratings curated per centre. Distinct from
       // /progress (which is the catalog of canonical skills per discipline).
-      { href: "/monthly-skills", label: "Monthly Skills", iconName: "TrendingUp", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "SCHOOL_ADMINISTRATOR"] },
-      { href: "/exams", label: "Exams", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "EXAMINER", "SCHOOL_ADMINISTRATOR"], feature: "external-exams" },
+      { href: "/monthly-skills", label: "Monthly Skills", iconName: "TrendingUp", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"] },
+      { href: "/exams", label: "Exams", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "EXAMINER"], feature: "external-exams" },
     ],
   },
   {
@@ -156,10 +157,10 @@ export const NAV: NavGroup[] = [
       // visible to coaches/grooms/vet/etc so they can drop in bills for things
       // they purchased on behalf of the club.
       { href: "/expenses/submit", label: "Submit Invoice", iconName: "Receipt", perm: ["HEAD_COACH", "COACH", "STABLE_MANAGER", "INVENTORY_MANAGER", "GROOM", "FARRIER", "VET"] },
-      { href: "/reports", label: "Reports", iconName: "FileText", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER", "SCHOOL_ADMINISTRATOR"], feature: "reports" },
+      { href: "/reports", label: "Reports", iconName: "FileText", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER"], feature: "reports" },
       // Club-wise procurement snapshot (Farrier/Fodder/Hay/Vet medicines).
       { href: "/reports/procurement", label: "Procurement Report", iconName: "FileText", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "ACCOUNTANT"], feature: "expenses" },
-      { href: "/certificates", label: "Certificates", iconName: "Award", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "EXAMINER", "SCHOOL_ADMINISTRATOR"], feature: "certificates" },
+      { href: "/certificates", label: "Certificates", iconName: "Award", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "EXAMINER"], feature: "certificates" },
       { href: "/accreditations", label: "Accreditations", iconName: "Shield", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH"], feature: "accreditations" },
       { href: "/notifications", label: "Notifications", iconName: "Bell", perm: ALL_STAFF },
       { href: "/audit", label: "Audit Log", iconName: "Shield", perm: ["SUPER_ADMIN"] },
@@ -211,6 +212,13 @@ export function navPermForPath(pathname: string): Role[] | null {
 // Central route gate used by middleware. HQ roles (SUPER_ADMIN, ADMIN) are
 // oversight peers and may reach any page — only non-HQ (centre-scoped) roles are
 // held to the nav perm. Fail-open when the route isn't in NAV.
+//
+// SCHOOL_ADMINISTRATOR appears in no perm array above, deliberately. It is a
+// PORTAL role: app/(admin)/layout.tsx has redirected it to /school since the
+// role existed, so listing it against /riders, /attendance, /exams and the rest
+// only described access it never had — and reading that table as the source of
+// truth is how you conclude a leak exists where the layout already stops it.
+// Adding it back here does not grant a usable page; it grants a redirect.
 export function canReachPath(role: Role, pathname: string): boolean {
   if (role === "SUPER_ADMIN" || role === "ADMIN") return true;
   const perm = navPermForPath(pathname);
@@ -233,6 +241,7 @@ export function canReachPath(role: Role, pathname: string): boolean {
 export function landingPathFor(role: Role): string {
   if (role === "RIDER") return "/student";
   if (role === "PARENT") return "/parent";
+  if (role === "SCHOOL_ADMINISTRATOR") return "/school";
   if (canReachPath(role, "/dashboard")) return "/dashboard";
   // Otherwise the first nav entry this role can actually open.
   for (const group of NAV) {
@@ -279,9 +288,8 @@ const ROLE_PINS: Partial<Record<Role, string[]>> = {
   ACCOUNTANT: ["/approvals", "/salary", "/advances"],
   // Inventory manager: stock-centric.
   INVENTORY_MANAGER: ["/equipment", "/requisitions", "/consumables", "/medicines"],
-  // School administrator: read-only club-wide view of student data.
-  // No write perms (left out of every can() check); they observe.
-  SCHOOL_ADMINISTRATOR: ["/riders", "/attendance", "/progress", "/exams"],
+  // No SCHOOL_ADMINISTRATOR: they never see this sidebar — the admin layout
+  // sends them to their own /school portal, which has its own navigation.
   // Examiner runs exam days.
   EXAMINER: ["/exams", "/certificates", "/riders"],
   // Inspection officer's whole job is the inspections + audit pair.
