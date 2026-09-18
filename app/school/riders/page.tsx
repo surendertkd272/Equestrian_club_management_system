@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { ENROLLED_RIDER_STATUSES, RIDER_STATUS } from "@/lib/rider-status";
 import { schoolContext } from "@/lib/school-portal";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { NoCentreCard } from "../no-centre";
 
 export const dynamic = "force-dynamic";
@@ -107,94 +108,106 @@ export default async function SchoolRidersPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {riders.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">No students yet.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs text-muted-foreground">
-                  <tr className="border-b">
-                    <th className="pb-2 pr-3">Name</th>
-                    <th className="pb-2 pr-3">Class</th>
-                    <th className="pb-2 pr-3">Age</th>
-                    <th className="pb-2 pr-3">Level</th>
-                    <th className="pb-2 pr-3">Batch</th>
-                    <th className="pb-2 pr-3">Coach</th>
-                    <th className="pb-2 pr-3">Ht / Wt / BMI</th>
-                    <th className="pb-2 pr-3">Allergies</th>
-                    <th className="pb-2 pr-3">Joined</th>
-                    <th className="pb-2 pr-3 text-right">Attendance</th>
-                    <th className="pb-2 text-right">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {riders.map((r) => {
-                    const a = att.get(r.id);
-                    const cls = [r.schoolClass, r.schoolSection].filter(Boolean).join("-");
-                    return (
-                      <tr key={r.id} className="border-b last:border-0">
-                        <td className="py-2 pr-3 font-medium">
-                          {r.firstName} {r.lastName}
-                        </td>
-                        <td className="py-2 pr-3">{cls || <Dash />}</td>
-                        <td className="py-2 pr-3">{ageOn(r.dob)}</td>
-                        <td className="py-2 pr-3">
-                          {r.currentLevel ? (
-                            <Badge variant="outline">{r.currentLevel}</Badge>
-                          ) : (
-                            <Dash />
-                          )}
-                        </td>
-                        <td className="py-2 pr-3">{r.batch?.name ?? <Dash />}</td>
-                        <td className="py-2 pr-3 text-xs">
-                          {(r.batch?.coachId && coachName.get(r.batch.coachId)) || <Dash />}
-                        </td>
-                        <td className="py-2 pr-3 font-mono text-xs">
-                          {r.heightCm || r.weightKg ? (
-                            <>
-                              {r.heightCm ?? "–"}cm / {r.weightKg ?? "–"}kg
-                              {r.bmi ? ` / ${r.bmi.toFixed(1)}` : ""}
-                            </>
-                          ) : (
-                            <Dash />
-                          )}
-                        </td>
-                        <td className="py-2 pr-3 text-xs">
-                          {r.allergies ? (
-                            <span className="text-amber-700 dark:text-amber-400">
-                              {r.allergies}
-                            </span>
-                          ) : (
-                            <Dash />
-                          )}
-                        </td>
-                        <td className="py-2 pr-3 text-xs text-muted-foreground">
-                          {formatDate(r.joiningDate)}
-                        </td>
-                        <td className="py-2 pr-3 text-right font-mono">
-                          {a && a.total > 0 ? (
-                            <>
-                              {a.attended}
-                              <span className="text-muted-foreground">/{a.total}</span>
-                            </>
-                          ) : (
-                            <Dash />
-                          )}
-                        </td>
-                        <td className="py-2 text-right">
-                          {r.status === RIDER_STATUS.PENDING_CONSENT ? (
-                            <Badge variant="destructive">Consent</Badge>
-                          ) : (
-                            <Badge variant="success">Active</Badge>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <ResponsiveTable
+            rows={riders}
+            getRowKey={(r) => r.id}
+            emptyMessage="No students yet."
+            columns={[
+              {
+                key: "name",
+                header: "Name",
+                primary: true,
+                cell: (r) => (
+                  <span className="font-medium">
+                    {r.firstName} {r.lastName}
+                  </span>
+                ),
+              },
+              {
+                key: "class",
+                header: "Class",
+                cell: (r) => [r.schoolClass, r.schoolSection].filter(Boolean).join("-") || <Dash />,
+              },
+              { key: "age", header: "Age", cell: (r) => ageOn(r.dob) },
+              {
+                key: "level",
+                header: "Level",
+                cell: (r) =>
+                  r.currentLevel ? <Badge variant="outline">{r.currentLevel}</Badge> : <Dash />,
+              },
+              { key: "batch", header: "Batch", cell: (r) => r.batch?.name ?? <Dash /> },
+              {
+                key: "coach",
+                header: "Coach",
+                cell: (r) => (
+                  <span className="text-xs">
+                    {(r.batch?.coachId && coachName.get(r.batch.coachId)) || <Dash />}
+                  </span>
+                ),
+              },
+              {
+                key: "measurements",
+                header: "Ht / Wt / BMI",
+                // Low priority on a phone: useful in a review, not what a
+                // school opens the roll to check.
+                hideOnMobile: true,
+                cell: (r) =>
+                  r.heightCm || r.weightKg ? (
+                    <span className="font-mono text-xs">
+                      {r.heightCm ?? "–"}cm / {r.weightKg ?? "–"}kg
+                      {r.bmi ? ` / ${r.bmi.toFixed(1)}` : ""}
+                    </span>
+                  ) : (
+                    <Dash />
+                  ),
+              },
+              {
+                key: "allergies",
+                header: "Allergies",
+                cell: (r) =>
+                  r.allergies ? (
+                    <span className="text-xs text-amber-700 dark:text-amber-400">{r.allergies}</span>
+                  ) : (
+                    <Dash />
+                  ),
+              },
+              {
+                key: "joined",
+                header: "Joined",
+                hideOnMobile: true,
+                cell: (r) => (
+                  <span className="text-xs text-muted-foreground">{formatDate(r.joiningDate)}</span>
+                ),
+              },
+              {
+                key: "attendance",
+                header: "Attendance",
+                numeric: true,
+                cell: (r) => {
+                  const a = att.get(r.id);
+                  return a && a.total > 0 ? (
+                    <>
+                      {a.attended}
+                      <span className="text-muted-foreground">/{a.total}</span>
+                    </>
+                  ) : (
+                    <Dash />
+                  );
+                },
+              },
+              {
+                key: "status",
+                header: "Status",
+                headerClassName: "text-right",
+                cell: (r) =>
+                  r.status === RIDER_STATUS.PENDING_CONSENT ? (
+                    <Badge variant="destructive">Consent</Badge>
+                  ) : (
+                    <Badge variant="success">Active</Badge>
+                  ),
+              },
+            ]}
+          />
         </CardContent>
       </Card>
     </div>

@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { EnrolmentActions } from "@/app/(admin)/enrolments/enrolment-actions";
 import { formatEnum } from "@/lib/labels";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { ENROLLED_RIDER_STATUSES, RIDER_STATUS } from "@/lib/rider-status";
 import { schoolScopeFor, riderScopeWhere } from "@/lib/school-scope";
 export const dynamic = "force-dynamic";
@@ -58,8 +59,16 @@ export default async function SchoolDashboardPage() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [centre, riders, attendanceSummary, recentExams, recentSkills, heldForConsent, pendingEnrolments] =
-    await Promise.all([
+  const [
+    centre,
+    riders,
+    attendanceSummary,
+    recentExams,
+    recentSkills,
+    heldForConsent,
+    pendingEnrolments,
+    news,
+  ] = await Promise.all([
     prisma.centre.findUnique({ where: { id: centreId }, select: { name: true } }),
     prisma.rider.findMany({
       // ENROLLED_RIDER_STATUSES rather than a hand-written list. The two
@@ -127,6 +136,17 @@ export default async function SchoolDashboardPage() {
       orderBy: { createdAt: "asc" },
       select: { id: true, firstName: true, lastName: true, mobile: true, school: true, createdAt: true, verifiedAt: true },
     }),
+    // Anything the club has notified this account about. Assigning a task to a
+    // school administrator writes one of these, and until this card existed
+    // there was nowhere in the portal to read it — the row was written and seen
+    // by nobody, because /notifications belongs to the staff shell this role is
+    // deliberately kept out of.
+    prisma.notification.findMany({
+      where: { userId: session.userId },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      select: { id: true, title: true, body: true, createdAt: true, readAt: true },
+    }),
   ]);
 
   // Present + late is "turned up"; absent and excused are not. Excused counts
@@ -164,32 +184,37 @@ export default async function SchoolDashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-[10px] tracking-wide text-muted-foreground">
-                  <tr>
-                    <th className="pb-2">Name</th>
-                    <th className="pb-2">Mobile</th>
-                    <th className="pb-2">School</th>
-                    <th className="pb-2">Signed Up</th>
-                    <th className="pb-2 text-right">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pendingEnrolments.map((r) => (
-                    <tr key={r.id} className="border-t">
-                      <td className="py-2 font-medium">{r.firstName} {r.lastName}</td>
-                      <td className="py-2">{r.mobile}</td>
-                      <td className="py-2 text-xs text-muted-foreground">{r.school ?? "—"}</td>
-                      <td className="py-2 text-xs text-muted-foreground">{formatDate(r.createdAt)}</td>
-                      <td className="py-2 text-right">
-                        <EnrolmentActions riderId={r.id} verified={Boolean(r.verifiedAt)} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <ResponsiveTable
+              rows={pendingEnrolments}
+              getRowKey={(r) => r.id}
+              columns={[
+                {
+                  key: "name",
+                  header: "Name",
+                  primary: true,
+                  cell: (r) => <span className="font-medium">{r.firstName} {r.lastName}</span>,
+                },
+                { key: "mobile", header: "Mobile", cell: (r) => r.mobile },
+                {
+                  key: "school",
+                  header: "School",
+                  cell: (r) => <span className="text-xs text-muted-foreground">{r.school ?? "—"}</span>,
+                },
+                {
+                  key: "signedUp",
+                  header: "Signed Up",
+                  cell: (r) => (
+                    <span className="text-xs text-muted-foreground">{formatDate(r.createdAt)}</span>
+                  ),
+                },
+                {
+                  key: "action",
+                  header: "Action",
+                  headerClassName: "text-right",
+                  cell: (r) => <EnrolmentActions riderId={r.id} verified={Boolean(r.verifiedAt)} />,
+                },
+              ]}
+            />
           </CardContent>
         </Card>
       )}
@@ -222,6 +247,41 @@ export default async function SchoolDashboardPage() {
         </Card>
       )}
 
+      {news.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>What&apos;s New</CardTitle>
+            <CardDescription>
+              Messages from the club. Anything needing a reply from you is on the Tasks tab.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-1">
+              {news.map((n) => (
+                <li
+                  key={n.id}
+                  className="flex items-start justify-between gap-3 border-b py-2 text-sm last:border-0"
+                >
+                  <div className="min-w-0">
+                    <div className={n.readAt ? "font-medium" : "font-semibold"}>{n.title}</div>
+                    {n.body && (
+                      <div className="text-xs text-muted-foreground">{n.body}</div>
+                    )}
+                  </div>
+                  {/* No link, deliberately: a notification's `link` points into
+                      the staff workspace (/tasks and friends), which this role
+                      is redirected out of — so following one would bounce them
+                      back here looking broken. */}
+                  <span className="whitespace-nowrap text-[11px] text-muted-foreground">
+                    {formatDate(n.createdAt)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -236,48 +296,56 @@ export default async function SchoolDashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {riders.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">No riders yet.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs text-muted-foreground">
-                  <tr>
-                    <th className="pb-2">Name</th>
-                    <th className="pb-2">School</th>
-                    <th className="pb-2">Level</th>
-                    <th className="pb-2">Joined</th>
-                    <th className="pb-2 text-right">Attended / Sessions (This Month)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {riders.map((r) => (
-                    <tr key={r.id} className="border-t">
-                      <td className="py-2 font-medium">{r.firstName} {r.lastName}</td>
-                      <td className="py-2 text-xs text-muted-foreground">{r.school ?? "—"}</td>
-                      <td className="py-2">
-                        {r.currentLevel ? <Badge variant="outline">{r.currentLevel}</Badge> : <span className="text-muted-foreground">—</span>}
-                      </td>
-                      <td className="py-2 text-xs text-muted-foreground">{formatDate(r.joiningDate)}</td>
-                      <td className="py-2 text-right font-mono">
-                        {(() => {
-                          const a = attendanceByRider.get(r.id);
-                          if (!a || a.total === 0)
-                            return <span className="text-muted-foreground">—</span>;
-                          return (
-                            <>
-                              {a.attended}
-                              <span className="text-muted-foreground">/{a.total}</span>
-                            </>
-                          );
-                        })()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <ResponsiveTable
+            rows={riders}
+            getRowKey={(r) => r.id}
+            emptyMessage="No riders yet."
+            columns={[
+              {
+                key: "name",
+                header: "Name",
+                primary: true,
+                cell: (r) => <span className="font-medium">{r.firstName} {r.lastName}</span>,
+              },
+              {
+                key: "school",
+                header: "School",
+                cell: (r) => <span className="text-xs text-muted-foreground">{r.school ?? "—"}</span>,
+              },
+              {
+                key: "level",
+                header: "Level",
+                cell: (r) =>
+                  r.currentLevel ? (
+                    <Badge variant="outline">{r.currentLevel}</Badge>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  ),
+              },
+              {
+                key: "joined",
+                header: "Joined",
+                cell: (r) => (
+                  <span className="text-xs text-muted-foreground">{formatDate(r.joiningDate)}</span>
+                ),
+              },
+              {
+                key: "attendance",
+                header: "Attended / Sessions (This Month)",
+                numeric: true,
+                cell: (r) => {
+                  const a = attendanceByRider.get(r.id);
+                  if (!a || a.total === 0) return <span className="text-muted-foreground">—</span>;
+                  return (
+                    <>
+                      {a.attended}
+                      <span className="text-muted-foreground">/{a.total}</span>
+                    </>
+                  );
+                },
+              },
+            ]}
+          />
         </CardContent>
       </Card>
 

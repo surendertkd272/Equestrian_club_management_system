@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { schoolContext } from "@/lib/school-portal";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { NoCentreCard } from "../no-centre";
 
 export const dynamic = "force-dynamic";
@@ -124,65 +125,63 @@ export default async function SchoolHorsesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {rows.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              No horses recorded at this club.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs text-muted-foreground">
-                  <tr className="border-b">
-                    <th className="pb-2 pr-3">Horse</th>
-                    <th className="pb-2 pr-3">Breed</th>
-                    <th className="pb-2 pr-3 text-right">Sessions</th>
-                    <th className="pb-2 pr-3 text-right">Hours</th>
-                    <th className="pb-2 pr-3 text-right">Hrs / Week</th>
-                    <th className="pb-2 pr-3 text-right">Your Riders</th>
-                    <th className="pb-2 text-right">Last Worked</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map(({ horse, s }) => {
-                    const perWeek = s.hours / (30 / 7);
-                    return (
-                      <tr key={horse.id} className="border-b last:border-0">
-                        <td className="py-2 pr-3 font-medium">{horse.name}</td>
-                        <td className="py-2 pr-3 text-xs text-muted-foreground">
-                          {horse.breed ?? "—"}
-                        </td>
-                        <td className="py-2 pr-3 text-right font-mono">{s.sessions}</td>
-                        <td className="py-2 pr-3 text-right font-mono">{s.hours.toFixed(1)}</td>
-                        <td className="py-2 pr-3 text-right">
-                          {perWeek > BUSY_HOURS_PER_WEEK ? (
-                            <Badge variant="warning">{perWeek.toFixed(1)}</Badge>
-                          ) : (
-                            <span className="font-mono">{perWeek.toFixed(1)}</span>
-                          )}
-                        </td>
-                        <td className="py-2 pr-3 text-right font-mono">
-                          {s.mySessions > 0 ? (
-                            <>
-                              {s.mySessions}
-                              <span className="text-muted-foreground">
-                                {" "}
-                                ({s.myHours.toFixed(1)}h)
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </td>
-                        <td className="py-2 text-right text-xs text-muted-foreground">
-                          {fmtDate(s.lastWorked)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <ResponsiveTable
+            rows={rows}
+            getRowKey={({ horse }) => horse.id}
+            emptyMessage="No horses recorded at this club."
+            columns={[
+              {
+                key: "horse",
+                header: "Horse",
+                primary: true,
+                cell: ({ horse }) => <span className="font-medium">{horse.name}</span>,
+              },
+              {
+                key: "breed",
+                header: "Breed",
+                cell: ({ horse }) => (
+                  <span className="text-xs text-muted-foreground">{horse.breed ?? "—"}</span>
+                ),
+              },
+              { key: "sessions", header: "Sessions", numeric: true, cell: ({ s }) => s.sessions },
+              { key: "hours", header: "Hours", numeric: true, cell: ({ s }) => s.hours.toFixed(1) },
+              {
+                key: "perWeek",
+                header: "Hrs / Week",
+                numeric: true,
+                cell: ({ s }) => {
+                  const perWeek = s.hours / (30 / 7);
+                  return perWeek > BUSY_HOURS_PER_WEEK ? (
+                    <Badge variant="warning">{perWeek.toFixed(1)}</Badge>
+                  ) : (
+                    <span>{perWeek.toFixed(1)}</span>
+                  );
+                },
+              },
+              {
+                key: "mine",
+                header: "Your Riders",
+                numeric: true,
+                cell: ({ s }) =>
+                  s.mySessions > 0 ? (
+                    <>
+                      {s.mySessions}
+                      <span className="text-muted-foreground"> ({s.myHours.toFixed(1)}h)</span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  ),
+              },
+              {
+                key: "lastWorked",
+                header: "Last Worked",
+                hideOnMobile: true,
+                cell: ({ s }) => (
+                  <span className="text-xs text-muted-foreground">{fmtDate(s.lastWorked)}</span>
+                ),
+              },
+            ]}
+          />
           <p className="mt-3 text-xs text-muted-foreground">
             Workload is counted from booked allocations — lessons, exams and competitions. Hacking
             out or turnout that nobody booked does not appear here, so treat these as a floor

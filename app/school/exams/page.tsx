@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { formatEnum } from "@/lib/labels";
 import { schoolContext } from "@/lib/school-portal";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { NoCentreCard } from "../no-centre";
 
 export const dynamic = "force-dynamic";
@@ -172,64 +173,72 @@ export default async function SchoolExamsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="text-left text-xs text-muted-foreground">
-                      <tr className="border-b">
-                        <th className="pb-2 pr-3 w-10">#</th>
-                        <th className="pb-2 pr-3">Rider</th>
-                        <th className="pb-2 pr-3 text-right">Score</th>
-                        <th className="pb-2 pr-3 text-right">Club Rank</th>
-                        <th className="pb-2 pr-3">Attempt</th>
-                        <th className="pb-2 pr-3">Date</th>
-                        <th className="pb-2 text-right">Result</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((e, i) => {
+                <ResponsiveTable
+                  rows={rows}
+                  getRowKey={(e) => e.id}
+                  columns={[
+                    {
+                      key: "rider",
+                      header: "Rider",
+                      primary: true,
+                      cell: (e) => (
+                        <span className="font-medium">
+                          {e.rider.firstName} {e.rider.lastName}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "score",
+                      header: "Score",
+                      numeric: true,
+                      cell: (e) => <span className="font-medium">{e.totalScore!.toFixed(1)}</span>,
+                    },
+                    {
+                      key: "rank",
+                      header: "Club Rank",
+                      numeric: true,
+                      cell: (e) => {
                         const { rank, outOf } = rankOf(e.level, e.totalScore!);
-                        const top = rank <= 3;
-                        return (
-                          <tr key={e.id} className="border-b last:border-0">
-                            <td className="py-2 pr-3 font-mono text-muted-foreground">{i + 1}</td>
-                            <td className="py-2 pr-3 font-medium">
-                              {e.rider.firstName} {e.rider.lastName}
-                            </td>
-                            <td className="py-2 pr-3 text-right font-mono font-medium">
-                              {e.totalScore!.toFixed(1)}
-                            </td>
-                            <td className="py-2 pr-3 text-right">
-                              {top ? (
-                                <Badge variant="success">
-                                  {ordinal(rank)} of {outOf}
-                                </Badge>
-                              ) : (
-                                <span className="font-mono text-xs text-muted-foreground">
-                                  {ordinal(rank)} of {outOf}
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-2 pr-3 text-xs text-muted-foreground">
-                              {e.attemptNumber > 1 ? `Attempt ${e.attemptNumber}` : "First"}
-                            </td>
-                            <td className="py-2 pr-3 text-xs text-muted-foreground">
-                              {formatDate(e.date)}
-                            </td>
-                            <td className="py-2 text-right">
-                              {e.passed === true ? (
-                                <Badge variant="success">Passed</Badge>
-                              ) : e.passed === false ? (
-                                <Badge variant="destructive">Not yet</Badge>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
-                              )}
-                            </td>
-                          </tr>
+                        const label = `${ordinal(rank)} of ${outOf}`;
+                        return rank <= 3 ? (
+                          <Badge variant="success">{label}</Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">{label}</span>
                         );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                      },
+                    },
+                    {
+                      key: "attempt",
+                      header: "Attempt",
+                      hideOnMobile: true,
+                      cell: (e) => (
+                        <span className="text-xs text-muted-foreground">
+                          {e.attemptNumber > 1 ? `Attempt ${e.attemptNumber}` : "First"}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "date",
+                      header: "Date",
+                      cell: (e) => (
+                        <span className="text-xs text-muted-foreground">{formatDate(e.date)}</span>
+                      ),
+                    },
+                    {
+                      key: "result",
+                      header: "Result",
+                      headerClassName: "text-right",
+                      cell: (e) =>
+                        e.passed === true ? (
+                          <Badge variant="success">Passed</Badge>
+                        ) : e.passed === false ? (
+                          <Badge variant="destructive">Not yet</Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        ),
+                    },
+                  ]}
+                />
               </CardContent>
             </Card>
           );
