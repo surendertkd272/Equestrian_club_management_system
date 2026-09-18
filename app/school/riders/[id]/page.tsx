@@ -26,6 +26,14 @@ export const dynamic = "force-dynamic";
 //
 // Withheld here exactly as on the roll: no Aadhaar, no fees or invoices, no
 // medical notes beyond allergies. A partner school is not the child's guardian.
+//
+// DO NOT add a loading.tsx above this route. A loading file makes the segment
+// stream, which flushes the response headers before this component runs — so
+// notFound() below can no longer set the status and a link to a pupil this
+// account may not see answers 200 instead of 404. /school had one, which is
+// exactly what it did; it was removed once these pages measured 11-22ms and
+// the skeleton was buying almost nothing. tests/portal-404.test.ts fails if it
+// comes back.
 
 function ageOn(dob: Date): number {
   const now = new Date();
