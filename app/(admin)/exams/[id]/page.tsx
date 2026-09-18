@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { isReadOnly } from "@/lib/roles";
 import { scopeCentre } from "@/lib/tenancy";
+import { isOutsideSchoolFence } from "@/lib/school-scope";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { parseRubric } from "@/lib/schemas/exam";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,6 +38,7 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
           lastName: true,
           currentLevel: true,
           dob: true,
+          schoolId: true,
         },
       },
       judges: { orderBy: { position: "asc" } },
@@ -46,6 +48,7 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
   });
   if (!exam) notFound();
   if (centreId && exam.centreId !== centreId) notFound();
+  if (await isOutsideSchoolFence(session, exam.rider.schoolId)) notFound();
   // HQ users (SUPER_ADMIN/ADMIN) have centreId=null, so the centre check above
   // is skipped — bound them to their own org so they can't open another org's
   // exam by id.

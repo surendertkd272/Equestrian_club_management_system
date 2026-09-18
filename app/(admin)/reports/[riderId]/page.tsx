@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { isOutsideSchoolFence } from "@/lib/school-scope";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +44,7 @@ export default async function ReportCard({
   });
   if (!rider) notFound();
   if (centreId && rider.centreId !== centreId) notFound();
+  if (await isOutsideSchoolFence(session, rider.schoolId)) notFound();
   // HQ-tier users (centreId=null) bypass the centre check above — bind them to
   // their own org so they can't open another org's rider report by id.
   const orgId = await getOrgIdForSession(session);

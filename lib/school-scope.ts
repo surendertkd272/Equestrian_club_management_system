@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { SessionPayload } from "@/lib/auth";
 
 // What a school administrator is allowed to see.
 //
@@ -47,6 +48,52 @@ export function riderScopeWhere(
   scope: SchoolScope,
 ): { centreId: string; schoolId?: string } {
   return scope.schoolId ? { centreId, schoolId: scope.schoolId } : { centreId };
+}
+
+/**
+ * The same fence, for the centre-scoped surfaces OUTSIDE /school/*.
+ *
+ * The portal's fence stopped at /school/*, and two surfaces a school
+ * administrator can genuinely reach were centre-scoped and knew nothing about
+ * schools: the CSV export (gated on rider.read, which this role holds, so one
+ * click returned every other school's roster with mobiles and emails) and the
+ * enrolment decision API (this role's one write, which would have let one
+ * school accept or reject another school's child).
+ *
+ * The staff PAGES also apply it. Today they redirect this role to /school at
+ * the admin layout, so the fence there is a second line rather than the fix —
+ * but the nav table does list SCHOOL_ADMINISTRATOR against /riders,
+ * /attendance, /exams and the rest, so the two disagree, and the safe side of
+ * that disagreement is the one that does not show a partner school another
+ * school's children.
+ *
+ * Returns the fragment to spread into a Rider `where`; empty for every other
+ * role and for an unfenced administrator (schoolId NULL means the whole
+ * centre), so nobody else's view changes.
+ *
+ * For a model that only reaches a rider through a relation, nest it:
+ *
+ *     if (fence.schoolId) where.rider = fence;
+ */
+export async function schoolFenceFor(session: SessionPayload): Promise<{ schoolId?: string }> {
+  if (session.role !== "SCHOOL_ADMINISTRATOR") return {};
+  const { schoolId } = await schoolScopeFor(session.userId);
+  return schoolId ? { schoolId } : {};
+}
+
+/**
+ * The fence for a page reached by id, where the row is already loaded and the
+ * `where` fragment is no use. A rider list can be filtered; a rider PROFILE is
+ * fetched by the id in the URL, so without this an administrator fenced to one
+ * school still reads another school's child — medical notes and all — by
+ * pasting the link.
+ */
+export async function isOutsideSchoolFence(
+  session: SessionPayload,
+  riderSchoolId: string | null | undefined,
+): Promise<boolean> {
+  const fence = await schoolFenceFor(session);
+  return Boolean(fence.schoolId) && riderSchoolId !== fence.schoolId;
 }
 
 /**

@@ -4,6 +4,7 @@ import { requireSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { isReadOnly } from "@/lib/roles";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { schoolFenceFor } from "@/lib/school-scope";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MonthlySkillsClient } from "./monthly-skills-client";
@@ -54,18 +55,23 @@ export default async function MonthlySkillsPage({
     ? searchParams.month!
     : currentYearMonth();
 
+  const fence = await schoolFenceFor(session);
+
   const [skills, riders, marks] = await Promise.all([
     prisma.monthlySkillCatalog.findMany({
       where: { ...tenantWhere(centreId, orgId), yearMonth },
       orderBy: { orderIndex: "asc" },
     }),
     prisma.rider.findMany({
-      where: { ...tenantWhere(centreId, orgId), status: "active" },
+      where: { ...tenantWhere(centreId, orgId), ...fence, status: "active" },
       select: { id: true, firstName: true, lastName: true },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
     prisma.monthlySkillMark.findMany({
-      where: { catalog: { ...tenantWhere(centreId, orgId), yearMonth } },
+      where: {
+        catalog: { ...tenantWhere(centreId, orgId), yearMonth },
+        ...(fence.schoolId ? { rider: fence } : {}),
+      },
       select: { catalogId: true, riderId: true, rating: true, coachNotes: true },
     }),
   ]);

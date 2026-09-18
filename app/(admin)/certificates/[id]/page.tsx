@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { isOutsideSchoolFence } from "@/lib/school-scope";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { qrSvg, verifyUrl } from "@/lib/cert";
 import { Button } from "@/components/ui/button";
@@ -29,12 +30,13 @@ export default async function CertificateView({ params }: { params: { id: string
   const cert = await prisma.certificate.findUnique({
     where: { id: params.id },
     include: {
-      rider: { select: { firstName: true, lastName: true, email: true } },
+      rider: { select: { firstName: true, lastName: true, email: true, schoolId: true } },
       centre: { select: { name: true, address: true } },
     },
   });
   if (!cert) notFound();
   if (centreId && cert.centreId !== centreId) notFound();
+  if (await isOutsideSchoolFence(session, cert.rider.schoolId)) notFound();
   // HQ users (centreId=null) skip the centre guard above, so bound them by org:
   // an HQ user must not open another org's certificate by id.
   const orgId = await getOrgIdForSession(session);

@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { centreFence } from "@/lib/authz-centre";
+import { isOutsideSchoolFence } from "@/lib/school-scope";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
@@ -56,6 +57,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const fence = await centreFence(session, rider.centreId);
   if (fence) {
     return NextResponse.json({ error: fence }, { status: 403 });
+  }
+  // The centre fence is not enough for a school administrator: a club serving
+  // four schools would have let any one of them decide another school's
+  // sign-up. The queue page filters the list; this is the rule behind it.
+  if (await isOutsideSchoolFence(session, rider.schoolId)) {
+    return NextResponse.json({ error: "FORBIDDEN_OTHER_SCHOOL" }, { status: 403 });
   }
   // Only approve/reject need a pending enrolment. Verification does NOT:
   // riders added by bulk import are created active and never sit in

@@ -15,8 +15,15 @@ import { mkOrg, mkCentre, mkUser, mkRider, mkBatch } from "../helpers/fixtures";
 import { prisma } from "@/lib/prisma";
 import { signSession, COOKIE_NAME } from "@/lib/auth";
 import { mockReq } from "../helpers/request";
-import { schoolScopeFor, riderScopeWhere, resolveSchoolId } from "@/lib/school-scope";
+import {
+  schoolScopeFor,
+  riderScopeWhere,
+  resolveSchoolId,
+  schoolFenceFor,
+  isOutsideSchoolFence,
+} from "@/lib/school-scope";
 import type { Role } from "@/lib/roles";
+import type { SessionPayload } from "@/lib/auth";
 
 const cookieJar = new Map<string, { value: string }>();
 vi.mock("next/headers", () => ({
@@ -28,6 +35,8 @@ vi.mock("next/headers", () => ({
 }));
 
 const { POST: createSchool, PATCH: assignAdmin } = await import("@/app/api/schools/route");
+const { GET: exportCsv } = await import("@/app/api/export/[entity]/route");
+const { PATCH: decideEnrolment } = await import("@/app/api/enrolments/[id]/route");
 
 let org: Awaited<ReturnType<typeof mkOrg>>;
 let centre: Awaited<ReturnType<typeof mkCentre>>;
@@ -134,6 +143,146 @@ describe("the fence itself", () => {
     const scope = { schoolId: dps.id, schoolName: "DPS Ghaziabad" };
     const rows = await prisma.exam.findMany({ where: { rider: riderScopeWhere(centre.id, scope) } });
     expect(rows).toHaveLength(0);
+  });
+});
+
+describe("the same fence outside the portal", () => {
+  // The fence stopped at /school/*. The staff PAGES bounce this role back to
+  // /school at the admin layout, but two surfaces outside the portal do not:
+  // the CSV export (gated on rider.read, which this role holds) and the
+  // enrolment decision API (its one write). Both were centre-scoped only.
+
+  async function fencedAdmin(email = "fenced@club.in") {
+    const admin = await mkUser({ email, role: "SCHOOL_ADMINISTRATOR", centreId: centre.id });
+    await prisma.user.update({ where: { id: admin.id }, data: { schoolId: dps.id } });
+    return admin;
+  }
+
+  const sessionFor = (userId: string, role: Role): SessionPayload =>
+    ({ userId, role, centreId: centre.id, name: "T" }) as SessionPayload;
+
+  it("narrows a fenced administrator and nobody else", async () => {
+    const fenced = await fencedAdmin();
+    const open = await mkUser({
+      email: "open@club.in",
+      role: "SCHOOL_ADMINISTRATOR",
+      centreId: centre.id,
+    });
+    const mgr = await mkUser({ email: "mgr@club.in", role: "CENTRE_MANAGER", centreId: centre.id });
+
+    expect(await schoolFenceFor(sessionFor(fenced.id, "SCHOOL_ADMINISTRATOR"))).toEqual({
+      schoolId: dps.id,
+    });
+    // Unfenced administrator: the whole centre, as on migration day.
+    expect(await schoolFenceFor(sessionFor(open.id, "SCHOOL_ADMINISTRATOR"))).toEqual({});
+    // A centre manager runs the club and must keep seeing all of it.
+    expect(await schoolFenceFor(sessionFor(mgr.id, "CENTRE_MANAGER"))).toEqual({});
+  });
+
+  it("keeps another school's child off a page reached by id", async () => {
+    // A list can be filtered; a profile is fetched by the id in the URL. This
+    // is the guard behind /riders/[id], /reports/[riderId] and the rest.
+    const fenced = await fencedAdmin();
+    const session = sessionFor(fenced.id, "SCHOOL_ADMINISTRATOR");
+    expect(await isOutsideSchoolFence(session, dps.id)).toBe(false);
+    expect(await isOutsideSchoolFence(session, prakriti.id)).toBe(true);
+    // A child with no school at all is not one of theirs either.
+    expect(await isOutsideSchoolFence(session, null)).toBe(true);
+
+    const mgr = await mkUser({ email: "mgr2@club.in", role: "CENTRE_MANAGER", centreId: centre.id });
+    expect(await isOutsideSchoolFence(sessionFor(mgr.id, "CENTRE_MANAGER"), prakriti.id)).toBe(false);
+  });
+
+  it("does not export another school's roster", async () => {
+    // The widest surface: rider.read is what this export is gated on, and a
+    // school administrator holds it — for their own pupils. One click gave
+    // them every other family's name, mobile and email in a file.
+    const mine = await mkRider({ centreId: centre.id, firstName: "Mine", mobile: "9000000001" });
+    const theirs = await mkRider({ centreId: centre.id, firstName: "Theirs", mobile: "9000000002" });
+    await prisma.rider.update({ where: { id: mine.id }, data: { schoolId: dps.id } });
+    await prisma.rider.update({ where: { id: theirs.id }, data: { schoolId: prakriti.id } });
+
+    const admin = await fencedAdmin();
+    await signIn(admin.id, "SCHOOL_ADMINISTRATOR", centre.id);
+    const res = await exportCsv(mockReq("http://localhost/api/export/riders"), {
+      params: { entity: "riders" },
+    });
+    expect(res.status).toBe(200);
+    const csv = await res.text();
+    expect(csv).toContain("Mine");
+    expect(csv).not.toContain("Theirs");
+    expect(csv).not.toContain("9000000002");
+  });
+
+  it("does not export another school's register through a shared batch", async () => {
+    const batch = await mkBatch({ centreId: centre.id, name: "6am" });
+    const mine = await mkRider({ centreId: centre.id, firstName: "Mine" });
+    const theirs = await mkRider({ centreId: centre.id, firstName: "Theirs" });
+    await prisma.rider.update({ where: { id: mine.id }, data: { schoolId: dps.id } });
+    await prisma.rider.update({ where: { id: theirs.id }, data: { schoolId: prakriti.id } });
+    for (const r of [mine, theirs]) {
+      await prisma.attendance.create({
+        data: { riderId: r.id, batchId: batch.id, date: new Date(), status: "present" },
+      });
+    }
+
+    const admin = await fencedAdmin();
+    await signIn(admin.id, "SCHOOL_ADMINISTRATOR", centre.id);
+    const res = await exportCsv(mockReq("http://localhost/api/export/attendance"), {
+      params: { entity: "attendance" },
+    });
+    expect(res.status).toBe(200);
+    const csv = await res.text();
+    expect(csv).toContain("Mine");
+    expect(csv).not.toContain("Theirs");
+  });
+
+  it("refuses a decision on another school's sign-up", async () => {
+    // Not a read: approving or rejecting is the one write this role has, and
+    // a club serving four schools would have let any one of them decide
+    // another school's child.
+    const r = await mkRider({ centreId: centre.id, firstName: "Theirs" });
+    await prisma.rider.update({
+      where: { id: r.id },
+      data: { schoolId: prakriti.id, status: "pending_approval", selfEnrolled: true },
+    });
+
+    const admin = await fencedAdmin();
+    await signIn(admin.id, "SCHOOL_ADMINISTRATOR", centre.id);
+    const res = await decideEnrolment(
+      mockReq(`http://localhost/api/enrolments/${r.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reject", reason: "not ours" }),
+      }),
+      { params: { id: r.id } },
+    );
+    expect(res.status).toBe(403);
+    expect((await prisma.rider.findUniqueOrThrow({ where: { id: r.id } })).status).toBe(
+      "pending_approval",
+    );
+  });
+
+  it("still lets them decide their own school's sign-up", async () => {
+    // The fence has to hold without taking away the one action this role has.
+    const r = await mkRider({ centreId: centre.id, firstName: "Mine" });
+    await prisma.rider.update({
+      where: { id: r.id },
+      data: { schoolId: dps.id, status: "pending_approval", selfEnrolled: true },
+    });
+
+    const admin = await fencedAdmin();
+    await signIn(admin.id, "SCHOOL_ADMINISTRATOR", centre.id);
+    const res = await decideEnrolment(
+      mockReq(`http://localhost/api/enrolments/${r.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reject", reason: "duplicate" }),
+      }),
+      { params: { id: r.id } },
+    );
+    expect(res.status).toBe(200);
+    expect((await prisma.rider.findUniqueOrThrow({ where: { id: r.id } })).status).toBe("rejected");
   });
 });
 

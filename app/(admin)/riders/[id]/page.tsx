@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
 import { scopeCentre } from "@/lib/tenancy";
+import { isOutsideSchoolFence } from "@/lib/school-scope";
 import { getOrgIdForCentre, getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -76,6 +77,9 @@ export default async function RiderProfile({ params }: { params: { id: string } 
   });
   if (!rider) notFound();
   if (centreId && rider.centreId !== centreId) notFound();
+  // A school administrator fenced to one school must not open another school's
+  // child by pasting the link. This page is the whole file on a minor.
+  if (await isOutsideSchoolFence(session, rider.schoolId)) notFound();
   // Org-ownership guard: HQ users (centreId=null) skip the centre check above,
   // so without this an HQ user from one org could open another org's rider by
   // id. Bound them to their own organisation.

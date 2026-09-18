@@ -6,6 +6,7 @@ import { assertRoute } from "@/lib/route-guard";
 import { isReadOnly } from "@/lib/roles";
 import { can } from "@/lib/permissions";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
+import { schoolFenceFor } from "@/lib/school-scope";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +49,9 @@ export default async function RidersPage({
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
-  const where: any = { ...tenantWhere(centreId, orgId) };
+  // A school administrator pinned to one school sees only their own pupils here,
+  // exactly as on their portal. Empty for every other role.
+  const where: any = { ...tenantWhere(centreId, orgId), ...(await schoolFenceFor(session)) };
   // "All statuses" means all CURRENT riders — someone who left the club two
   // years ago shouldn't be padding out the roll every time you open the page.
   // They're one filter selection away, never gone.

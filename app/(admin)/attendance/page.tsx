@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { scopeCentre, tenantWhere } from "@/lib/tenancy";
+import { schoolFenceFor } from "@/lib/school-scope";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { parseDateOnly } from "@/lib/schemas/attendance";
 import { todayYmdForCentre } from "@/lib/centre-tz";
@@ -24,6 +25,10 @@ export default async function AttendancePage({
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/no-organisation");
   const where = tenantWhere(centreId, orgId);
+  // Batches are SHARED — one 6am batch carries children from every school — so
+  // the fence has to sit on the register, not on the batch list. Filtering the
+  // batch instead is the exact bug the portal already had.
+  const fence = await schoolFenceFor(session);
 
   // The centre's calendar date, not the server's. toDateOnly(new Date()) is
   // the UTC date, so for the first 5½ hours of every Indian day the register
@@ -51,12 +56,16 @@ export default async function AttendancePage({
     // (fee not yet collected online). A child attending class must be markable
     // regardless of fee status; only unapproved self-enrolments stay hidden.
     roster = await prisma.rider.findMany({
-      where: { batchId: selectedBatch.id, status: { in: [...ENROLLED_RIDER_STATUSES] } },
+      where: { batchId: selectedBatch.id, status: { in: [...ENROLLED_RIDER_STATUSES] }, ...fence },
       select: { id: true, firstName: true, lastName: true },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     });
     existing = await prisma.attendance.findMany({
-      where: { batchId: selectedBatch.id, date: parseDateOnly(date) },
+      where: {
+        batchId: selectedBatch.id,
+        date: parseDateOnly(date),
+        ...(fence.schoolId ? { rider: fence } : {}),
+      },
       select: { riderId: true, status: true, reason: true },
     });
   }

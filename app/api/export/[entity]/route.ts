@@ -4,6 +4,7 @@ import { auditScopeFor } from "@/lib/audit-scope";
 import { getSession } from "@/lib/auth";
 import { can, type Permission } from "@/lib/permissions";
 import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
+import { schoolFenceFor } from "@/lib/school-scope";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { toCsv, csvResponse } from "@/lib/csv";
 import { resolveCentreTz } from "@/lib/centre-tz";
@@ -89,13 +90,18 @@ export async function GET(req: Request, { params }: { params: { entity: string }
   if (scoped.error) return scoped.error;
   const centreId = scoped.centreId;
   const where = tenantWhere(centreId, orgId);
+  // A school administrator holds rider.read for their OWN pupils, so this
+  // endpoint handed a partner school every other school's roster — names,
+  // mobiles and emails — in one file. Same fence as their portal.
+  const schoolFence = await schoolFenceFor(session);
   const ts = new Date().toISOString().slice(0, 10);
 
   if (params.entity === "riders") {
+    const riderWhere = { ...where, ...schoolFence };
     const [total, rows] = await Promise.all([
-      prisma.rider.count({ where }),
+      prisma.rider.count({ where: riderWhere }),
       prisma.rider.findMany({
-        where,
+        where: riderWhere,
         include: { batch: { select: { name: true } }, centre: { select: { name: true } } },
         orderBy: { lastName: "asc" },
         take: ROW_CAP,
@@ -161,6 +167,9 @@ export async function GET(req: Request, { params }: { params: { entity: string }
       date: { gte: fromDate, lte: toDate },
       // Org-bind via the batch's centre; narrow to one centre when scoped.
       batch: { ...(centreId ? { centreId } : {}), centre: { orgId } },
+      // Through the RIDER, never the batch — batches are shared across schools,
+      // so a batch filter would have exported the whole club's register.
+      ...(schoolFence.schoolId ? { rider: schoolFence } : {}),
     };
     const [total, rows] = await Promise.all([
       prisma.attendance.count({ where: attWhere as any }),
