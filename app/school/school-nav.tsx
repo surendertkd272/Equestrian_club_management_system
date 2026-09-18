@@ -16,7 +16,7 @@ const TABS = [
   { href: "/school/tasks", label: "Tasks" },
 ];
 
-export function SchoolNav() {
+export function SchoolNav({ openTasks = 0 }: { openTasks?: number }) {
   const pathname = usePathname();
   return (
     <nav className="-mb-px flex gap-1 overflow-x-auto">
@@ -36,6 +36,14 @@ export function SchoolNav() {
             }
           >
             {t.label}
+            {t.href === "/school/tasks" && openTasks > 0 && (
+              <span
+                className="ml-1.5 inline-flex min-w-[1.25rem] justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold leading-none text-primary-foreground"
+                aria-label={`${openTasks} open ${openTasks === 1 ? "task" : "tasks"} for you`}
+              >
+                {openTasks}
+              </span>
+            )}
           </Link>
         );
       })}

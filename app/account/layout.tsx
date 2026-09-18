@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { landingPathFor } from "@/components/shell/sidebar-nav";
 
 export default async function AccountLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  // "Back" home is role-dependent. Each portal owns its own home.
-  const homeHref =
-    session.role === "PARENT" ? "/parent"
-    : session.role === "RIDER" ? "/student"
-    : "/dashboard";
+  // "Back" home is role-dependent, and this is the same question the middleware
+  // answers when it denies a page — so ask the same function rather than keep a
+  // third copy of the portal-role list. The hand-rolled version here knew about
+  // PARENT and RIDER and sent everyone else to /dashboard, which a school
+  // administrator and an inspection officer are both refused.
+  const homeHref = landingPathFor(session.role);
 
   return (
     <div className="min-h-screen bg-muted/30">
