@@ -37,6 +37,7 @@ vi.mock("next/headers", () => ({
 const { POST: createSchool, PATCH: assignAdmin } = await import("@/app/api/schools/route");
 const { GET: exportCsv } = await import("@/app/api/export/[entity]/route");
 const { PATCH: decideEnrolment } = await import("@/app/api/enrolments/[id]/route");
+const { PATCH: patchRider } = await import("@/app/api/riders/[id]/route");
 
 let org: Awaited<ReturnType<typeof mkOrg>>;
 let centre: Awaited<ReturnType<typeof mkCentre>>;
@@ -283,6 +284,85 @@ describe("the same fence outside the portal", () => {
     );
     expect(res.status).toBe(200);
     expect((await prisma.rider.findUniqueOrThrow({ where: { id: r.id } })).status).toBe("rejected");
+  });
+});
+
+describe("editing the school text keeps the fence key in sync", () => {
+  // school (free text) is what a parent typed or an import sheet carried, and
+  // is deliberately kept as history. schoolId is what the portal fences on.
+  // Registration and bulk import always resolved one from the other; the rider
+  // edit form did not, so fixing a typo — or moving a child to a different
+  // partner school — updated the text everywhere it is displayed while the
+  // fence quietly kept pointing at the old school, or nothing.
+
+  const patch = (riderId: string, body: unknown) =>
+    patchRider(
+      mockReq(`http://localhost/api/riders/${riderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+      { params: { id: riderId } },
+    );
+
+  it("re-fences a rider moved from one school to another by editing the text", async () => {
+    const r = await mkRider({ centreId: centre.id, firstName: "Moved" });
+    await prisma.rider.update({ where: { id: r.id }, data: { schoolId: dps.id, school: "DPS Ghaziabad" } });
+
+    const mgr = await mkUser({ email: "mgr@club.in", role: "CENTRE_MANAGER", centreId: centre.id });
+    await signIn(mgr.id, "CENTRE_MANAGER", centre.id);
+    const res = await patch(r.id, { school: "Prakriti" });
+    expect(res.status).toBe(200);
+
+    const after = await prisma.rider.findUniqueOrThrow({ where: { id: r.id } });
+    expect(after.schoolId).toBe(prakriti.id);
+
+    // The fence itself now agrees with the edit: Prakriti's administrator sees
+    // this child, DPS's no longer does.
+    const dpsView = await prisma.rider.findMany({
+      where: riderScopeWhere(centre.id, { schoolId: dps.id, schoolName: "DPS Ghaziabad" }),
+    });
+    expect(dpsView.map((x) => x.id)).not.toContain(r.id);
+    const prakritiView = await prisma.rider.findMany({
+      where: riderScopeWhere(centre.id, { schoolId: prakriti.id, schoolName: "Prakriti" }),
+    });
+    expect(prakritiView.map((x) => x.id)).toContain(r.id);
+  });
+
+  it("resolves a first-time school the same way as registration", async () => {
+    const r = await mkRider({ centreId: centre.id, firstName: "Fresh" });
+    expect((await prisma.rider.findUniqueOrThrow({ where: { id: r.id } })).schoolId).toBeNull();
+
+    const mgr = await mkUser({ email: "mgr2@club.in", role: "CENTRE_MANAGER", centreId: centre.id });
+    await signIn(mgr.id, "CENTRE_MANAGER", centre.id);
+    await patch(r.id, { school: "Prakriti" });
+
+    expect((await prisma.rider.findUniqueOrThrow({ where: { id: r.id } })).schoolId).toBe(prakriti.id);
+  });
+
+  it("clears the fence when the school is cleared", async () => {
+    const r = await mkRider({ centreId: centre.id, firstName: "Cleared" });
+    await prisma.rider.update({ where: { id: r.id }, data: { schoolId: dps.id, school: "DPS Ghaziabad" } });
+
+    const mgr = await mkUser({ email: "mgr3@club.in", role: "CENTRE_MANAGER", centreId: centre.id });
+    await signIn(mgr.id, "CENTRE_MANAGER", centre.id);
+    await patch(r.id, { school: null });
+
+    expect((await prisma.rider.findUniqueOrThrow({ where: { id: r.id } })).schoolId).toBeNull();
+  });
+
+  it("leaves schoolId alone when school is not part of the edit", async () => {
+    const r = await mkRider({ centreId: centre.id, firstName: "Untouched" });
+    await prisma.rider.update({ where: { id: r.id }, data: { schoolId: dps.id, school: "DPS Ghaziabad" } });
+
+    const mgr = await mkUser({ email: "mgr4@club.in", role: "CENTRE_MANAGER", centreId: centre.id });
+    await signIn(mgr.id, "CENTRE_MANAGER", centre.id);
+    const res = await patch(r.id, { firstName: "Untouched2" });
+    expect(res.status).toBe(200);
+
+    const after = await prisma.rider.findUniqueOrThrow({ where: { id: r.id } });
+    expect(after.schoolId).toBe(dps.id);
+    expect(after.firstName).toBe("Untouched2");
   });
 });
 

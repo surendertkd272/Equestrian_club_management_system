@@ -22,6 +22,7 @@ import { calcBmi } from "@/lib/utils";
 import { encryptPII, last4 } from "@/lib/pii";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { updateRiderSchema } from "@/lib/schemas/rider-update";
+import { resolveSchoolId } from "@/lib/school-scope";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -85,6 +86,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if ("aadhaarNo" in d) {
     data.aadhaarNo = encryptPII(d.aadhaarNo ?? null);
     data.aadhaarLast4 = last4(d.aadhaarNo ?? null);
+  }
+  // school is free text — what the parent typed, what an import sheet
+  // carries — but schoolId is the fence a SCHOOL_ADMINISTRATOR's whole view
+  // is scoped by (lib/school-scope.ts), and only two OTHER paths (public
+  // registration, bulk import) ever resolved one into it. Editing the text
+  // here left schoolId pointing at the rider's old school, or NULL, while
+  // every screen displayed the corrected name — a partner school's fence
+  // silently going stale in exactly the way resolveSchoolId() exists to
+  // prevent. Re-resolve it every time this field changes.
+  if ("school" in d) {
+    data.schoolId = await resolveSchoolId(prisma, rider.centreId, d.school);
   }
   // dob is a Date column, but we ship YYYY-MM-DD on the wire.
   if ("dob" in d && d.dob) data.dob = new Date(d.dob);
