@@ -135,13 +135,24 @@ export async function GET(req: Request, { params }: { params: { entity: string }
       }),
     ]);
     const csv = toCsv(
-      ["Name", "Breed", "Sex", "Age (yrs)", "Stable", "Ownership", "Status", "Centre"],
+      [
+        "Name",
+        "Breed",
+        "Sex",
+        "Age (yrs)",
+        "Stable",
+        "Identification Marks",
+        "Ownership",
+        "Status",
+        "Centre",
+      ],
       rows.map((h) => [
         h.name,
         h.breed ?? "",
         h.sex ?? "",
         h.ageYears ?? "",
         h.stableNo ?? "",
+        h.identificationMarks ?? "",
         h.ownership,
         h.status,
         h.centre?.name ?? "",

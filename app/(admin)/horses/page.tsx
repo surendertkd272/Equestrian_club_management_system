@@ -27,7 +27,14 @@ const STATUS_VARIANT: Record<string, "success" | "warning" | "outline"> = {
 export default async function HorsesPage({
   searchParams,
 }: {
-  searchParams: { q?: string; status?: string; ownership?: string; page?: string; pageSize?: string };
+  searchParams: {
+    q?: string;
+    status?: string;
+    ownership?: string;
+    missingMarks?: string;
+    page?: string;
+    pageSize?: string;
+  };
 }) {
   const session = await requireSession();
   const centreId = scopeCentre(session);
@@ -37,6 +44,19 @@ export default async function HorsesPage({
   const where: any = { ...tenantWhere(centreId, orgId) };
   if (searchParams.status) where.status = searchParams.status;
   if (searchParams.ownership) where.ownership = searchParams.ownership;
+  // Identification marks became required for NEW horses, which does nothing
+  // for the ones already on the roster. This is how that backlog gets found
+  // and worked through — without it the requirement is true on paper and
+  // blank in the stable.
+  //
+  // AND, not where.OR: the search below already owns OR, and assigning it
+  // twice would silently drop whichever filter was set first.
+  if (searchParams.missingMarks === "1") {
+    where.AND = [
+      ...(where.AND ?? []),
+      { OR: [{ identificationMarks: null }, { identificationMarks: "" }] },
+    ];
+  }
   if (searchParams.q) {
     where.OR = [
       { name: { contains: searchParams.q } },
@@ -47,9 +67,17 @@ export default async function HorsesPage({
   }
 
   const { page, pageSize, skip, take } = parsePaging(searchParams, { pageSize: 50 });
-  const [total, horses] = await Promise.all([
+  const [total, horses, missingMarksCount] = await Promise.all([
     prisma.horse.count({ where }),
     prisma.horse.findMany({ where, orderBy: { name: "asc" }, skip, take }),
+    // Counted across the whole roster, not the filtered page — this is a
+    // backlog figure, and it should not shrink just because someone searched.
+    prisma.horse.count({
+      where: {
+        ...tenantWhere(centreId, orgId),
+        OR: [{ identificationMarks: null }, { identificationMarks: "" }],
+      },
+    }),
   ]);
 
   // Today's workload per horse (in minutes used vs cap).
@@ -69,7 +97,10 @@ export default async function HorsesPage({
   }
 
   const canManage = ["SUPER_ADMIN", "CENTRE_MANAGER", "VET"].includes(session.role);
-  const hasFilters = Boolean(searchParams.status || searchParams.ownership || searchParams.q);
+  const showingMissingOnly = searchParams.missingMarks === "1";
+  const hasFilters = Boolean(
+    searchParams.status || searchParams.ownership || searchParams.q || showingMissingOnly,
+  );
 
   return (
     <div className="space-y-6">
@@ -92,6 +123,24 @@ export default async function HorsesPage({
         </div>
       </div>
 
+      {missingMarksCount > 0 && !showingMissingOnly && (
+        <Card className="border-l-4 border-l-amber-500">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
+            <span>
+              <strong>{missingMarksCount}</strong>{" "}
+              {missingMarksCount === 1 ? "horse has" : "horses have"} no identification marks on
+              record — they were added before the field existed.
+            </span>
+            <Link
+              href="/horses?missingMarks=1"
+              className="whitespace-nowrap text-sm text-primary underline"
+            >
+              Show them →
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
       {total === 0 && !hasFilters ? (
         <EmptyState
           icon={<Rabbit className="h-8 w-8" />}
@@ -103,7 +152,18 @@ export default async function HorsesPage({
 
       <Card>
         <CardHeader>
+          {showingMissingOnly && (
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
+              <span>Showing only horses with no identification marks.</span>
+              <Link href="/horses" className="text-sm text-primary underline">
+                Show all horses
+              </Link>
+            </div>
+          )}
           <form className="flex flex-wrap items-end gap-2 text-sm" method="get">
+            {/* Kept across a search/status change, so narrowing the backlog
+                doesn't silently drop you back into the full roster. */}
+            {showingMissingOnly && <input type="hidden" name="missingMarks" value="1" />}
             <div>
               <label className="mb-1 block text-xs text-muted-foreground">Search</label>
               <input
@@ -156,9 +216,19 @@ export default async function HorsesPage({
                 header: "Name",
                 primary: true,
                 cell: (h) => (
-                  <Link href={`/horses/${h.id}`} className="font-medium hover:underline">
-                    {h.name}
-                  </Link>
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <Link href={`/horses/${h.id}`} className="font-medium hover:underline">
+                      {h.name}
+                    </Link>
+                    {/* Marked on the row as well as counted above, so the gap
+                        is visible while you are looking at the horse rather
+                        than only when you go looking for it. */}
+                    {!h.identificationMarks && (
+                      <Badge variant="warning" title="No identification marks on record">
+                        No marks
+                      </Badge>
+                    )}
+                  </span>
                 ),
               },
               { key: "breed", header: "Breed", cell: (h) => h.breed ?? "—" },

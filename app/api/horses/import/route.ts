@@ -21,7 +21,7 @@ import { parseCsv } from "@/lib/csv-parse";
 //   height_in / heightIn (inches) — legacy height_hh / heightHh (hands) accepted + converted
 //   ownership — club | private
 //   microchip
-//   identification_marks / markings / distinguishing_marks
+//   identification_marks / markings / distinguishing_marks (required)
 //   insurer / insurance_policy_no / insurance_valid_from / insurance_valid_to / insurance_premium
 
 const rowSchema = z.object({
@@ -53,11 +53,18 @@ const rowSchema = z.object({
     return t === "private" ? "private" : "club";
   }),
   microchip: z.string().max(40).optional().transform((v) => v?.trim() || undefined),
-  // Optional HERE, unlike the single Add Horse form where it is required. A
-  // bulk sheet is usually a roster someone already holds; refusing the whole
-  // batch because one row's markings column is blank would cost more than the
-  // missing description is worth. Carried across when the column is present.
-  identification_marks: z.string().max(500).optional().transform((v) => v?.trim() || undefined),
+  // Required, same as the Add Horse form. A horse arriving by spreadsheet is
+  // no more identifiable than one typed in by hand, and the import is where
+  // most of a roster enters the system — leaving it optional here is how you
+  // end up with the field required in theory and blank in practice.
+  // The failure is per-row and reported back with the row number, so a sheet
+  // missing the column tells the operator exactly what to add.
+  identification_marks: z
+    .string({ required_error: "identification_marks is required" })
+    .min(1, "identification_marks is required")
+    .max(500)
+    .transform((v) => v.trim())
+    .refine((v) => v.length > 0, "identification_marks is required"),
   insurer: z.string().max(80).optional().transform((v) => v?.trim() || undefined),
   insurance_policy_no: z.string().max(60).optional().transform((v) => v?.trim() || undefined),
   insurance_premium: z.coerce.number().min(0).optional().or(z.literal("").transform(() => undefined)),
@@ -170,7 +177,7 @@ export async function POST(req: NextRequest) {
           heightIn: v.data.height_in ?? (v.data.height_hh != null ? handsToInches(v.data.height_hh) : null),
           ownership: v.data.ownership ?? "club",
           microchip: v.data.microchip ?? null,
-          identificationMarks: v.data.identification_marks ?? null,
+          identificationMarks: v.data.identification_marks,
           insurerName: v.data.insurer ?? null,
           insurancePolicyNo: v.data.insurance_policy_no ?? null,
           insurancePremium: v.data.insurance_premium ?? null,

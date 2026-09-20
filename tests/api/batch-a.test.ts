@@ -25,6 +25,7 @@ vi.mock("next/headers", () => ({
 const { PATCH: patchCentre } = await import("@/app/api/centres/[id]/route");
 const { POST: createHorse } = await import("@/app/api/horses/route");
 const { PATCH: patchHorse } = await import("@/app/api/horses/[id]/route");
+const { POST: importHorses } = await import("@/app/api/horses/import/route");
 
 async function loginSuper() {
   const sup = await mkUser({ role: "SUPER_ADMIN", centreId: null });
@@ -327,5 +328,63 @@ describe("Horse identification marks", () => {
     expect(r.status).toBe(200);
     const after = await prisma.horse.findUniqueOrThrow({ where: { id: legacy.id } });
     expect(after.identificationMarks).toBe("Star on forehead");
+  });
+});
+
+describe("Horse identification marks — bulk import", () => {
+  async function asManager(centreId: string) {
+    const mgr = await mkUser({ role: "CENTRE_MANAGER", centreId });
+    cookieJar.clear();
+    cookieJar.set("ew_session", {
+      value: await signSession({
+        userId: mgr.id,
+        role: "CENTRE_MANAGER",
+        centreId,
+        name: mgr.name,
+      }),
+    });
+  }
+
+  const post = (body: unknown) =>
+    importHorses(
+      mockReq("http://localhost", { method: "POST", body: JSON.stringify(body) }),
+    );
+
+  it("imports a row that carries markings", async () => {
+    const centre = await mkCentre();
+    await asManager(centre.id);
+
+    const r = await post({
+      rows: [{ name: "Bijli", identification_marks: "White blaze, near-hind sock" }],
+    });
+    expect(r.status).toBe(200);
+    const h = await prisma.horse.findFirstOrThrow({ where: { centreId: centre.id } });
+    expect(h.identificationMarks).toBe("White blaze, near-hind sock");
+  });
+
+  it("refuses a sheet whose markings column is missing, naming the row", async () => {
+    // The whole batch is refused rather than half-imported, and the failure
+    // carries the row so the operator knows which line to fix.
+    const centre = await mkCentre();
+    await asManager(centre.id);
+
+    const r = await post({ rows: [{ name: "Bijli" }, { name: "Champa" }] });
+    expect(r.status).toBe(400);
+    const body = await r.json();
+    expect(body.error).toBe("VALIDATION_ROWS");
+    expect(JSON.stringify(body.failures)).toContain("identification_marks");
+    expect(await prisma.horse.count({ where: { centreId: centre.id } })).toBe(0);
+  });
+
+  it("accepts the header a stable would actually write", async () => {
+    const centre = await mkCentre();
+    await asManager(centre.id);
+
+    const r = await post({
+      csv: "name,markings\nBijli,Star on forehead\n",
+    });
+    expect(r.status).toBe(200);
+    const h = await prisma.horse.findFirstOrThrow({ where: { centreId: centre.id } });
+    expect(h.identificationMarks).toBe("Star on forehead");
   });
 });

@@ -37,7 +37,15 @@ export default async function SchoolHorsesPage() {
     prisma.horse.findMany({
       where: { centreId: ctx.centreId },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, breed: true, sex: true, dob: true, ageYears: true },
+      select: {
+        id: true,
+        name: true,
+        breed: true,
+        sex: true,
+        dob: true,
+        ageYears: true,
+        identificationMarks: true,
+      },
     }),
     prisma.horseAllocation.findMany({
       where: { horse: { centreId: ctx.centreId }, startAt: { gte: since } },
@@ -141,6 +149,20 @@ export default async function SchoolHorsesPage() {
                 header: "Breed",
                 cell: ({ horse }) => (
                   <span className="text-xs text-muted-foreground">{horse.breed ?? "—"}</span>
+                ),
+              },
+              {
+                // A school's people meet these horses at the gate. "The bay
+                // with the white blaze" is how they will be talked about, so
+                // the description is worth more here than the club's own
+                // identifiers (microchip, EFI id), which stay withheld.
+                key: "marks",
+                header: "Markings",
+                hideOnMobile: true,
+                cell: ({ horse }) => (
+                  <span className="text-xs text-muted-foreground">
+                    {horse.identificationMarks ?? "—"}
+                  </span>
                 ),
               },
               { key: "sessions", header: "Sessions", numeric: true, cell: ({ s }) => s.sessions },
