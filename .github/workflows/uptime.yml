@@ -100,3 +100,62 @@ jobs:
             exit 1
           fi
           echo "OK  public registration link resolves"
+
+      - name: Warn before billing takes the site down
+        # Everything above notices the outage. This is the step that can notice
+        # it COMING, which is the difference between a maintenance window and a
+        # morning of parents hitting a dead link.
+        #
+        # The project has been switched off for an unpaid invoice four times in
+        # five days (17, 18, 20 Sep). The sequence is always the same and it is
+        # not instant: billing.status goes `overdue` while the site keeps
+        # serving, the retry fails, and only THEN does softBlock appear and
+        # every request start returning 402. That gap is the whole opportunity.
+        #
+        # Needs VERCEL_TOKEN (Settings → Secrets → Actions). Without it this
+        # step says so once and passes — a missing token must not start failing
+        # the uptime check, which answers a more important question.
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          TEAM_ID: ${{ vars.VERCEL_TEAM_ID || 'team_fBbPJw7MUtm2E5h3LCXhkt74' }}
+        run: |
+          set -uo pipefail
+
+          if [ -z "${VERCEL_TOKEN:-}" ]; then
+            echo "::notice::VERCEL_TOKEN is not set, so billing cannot be checked. Add it under Settings → Secrets and variables → Actions to get warned BEFORE an unpaid invoice takes the site down."
+            exit 0
+          fi
+
+          body=$(curl -s --max-time 25 -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+                 "https://api.vercel.com/v2/teams/${TEAM_ID}") || body=""
+
+          if printf '%s' "$body" | grep -q '"invalidToken"'; then
+            echo "::warning::VERCEL_TOKEN was rejected by the API — it has expired or been revoked. Mint a new one at vercel.com/account/tokens and update the secret; until then this check is blind."
+            exit 0
+          fi
+
+          bstatus=$(printf '%s' "$body" | python3 -c "import json,sys; print((json.load(sys.stdin).get('billing') or {}).get('status') or 'unknown')" 2>/dev/null || echo unknown)
+          bblock=$(printf '%s' "$body" | python3 -c "import json,sys; sb=json.load(sys.stdin).get('softBlock'); print((sb or {}).get('reason') or 'none')" 2>/dev/null || echo unknown)
+
+          echo "billing.status=${bstatus}  softBlock=${bblock}"
+
+          # Already blocked. The site is down right now and the probe above has
+          # said so; this names the cause so nobody goes looking in the code.
+          if [ "$bblock" != "none" ] && [ "$bblock" != "unknown" ]; then
+            echo "::error::Vercel has SOFT BLOCKED this team (${bblock}). The site is down and no push will deploy. Settle it at https://vercel.com/teams/surendertkd272s-projects/settings/billing, then redeploy the latest commit — Vercel does not go back and build what it skipped."
+            exit 1
+          fi
+
+          # The warning shot: still serving, payment already failed.
+          case "$bstatus" in
+            active|trial)
+              echo "OK  billing is ${bstatus}"
+              ;;
+            unknown)
+              echo "::warning::Could not read billing status from the API response."
+              ;;
+            *)
+              echo "::error::Vercel billing is '${bstatus}' — a payment has FAILED and the site is still up only until the retry runs out. This has ended in a 402 outage four times in five days. Fix it now at https://vercel.com/teams/surendertkd272s-projects/settings/billing (and add a backup card, so a single decline stops taking the club offline)."
+              exit 1
+              ;;
+          esac
