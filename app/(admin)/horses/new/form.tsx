@@ -20,6 +20,7 @@ export function NewHorseForm() {
     dob: "",
     heightIn: "",
     microchip: "",
+    identificationMarks: "",
     efiHorseId: "",
     homeClub: "",
     ownership: "club",
@@ -128,6 +129,15 @@ export function NewHorseForm() {
             placeholder="If different from this centre"
           />
         </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label>Identification Marks *</Label>
+        <Textarea aria-label="Identification marks"
+          required
+          value={form.identificationMarks}
+          onChange={(e) => set("identificationMarks", e.target.value)}
+          placeholder="White blaze on forehead, both hind socks, small whorl on left shoulder…"
+        />
       </div>
       <div className="space-y-1.5">
         <Label>Dietary Notes</Label>

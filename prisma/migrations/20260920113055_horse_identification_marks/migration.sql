@@ -1,0 +1,14 @@
+-- Horse identification marks — the distinguishing marks (whorls, blazes,
+-- socks, scars) an equine passport records to identify one horse from another.
+--
+-- NULLABLE on purpose, even though the Add Horse form requires it
+-- (lib/schemas/horse.ts). Horses already on file predate the field and have
+-- none recorded; a NOT NULL column would need a placeholder invented for every
+-- one of them, which is worse than an honest empty.
+--
+-- HAND-WRITTEN, not `prisma migrate dev` output. The generated version also
+-- dropped Centre_previousSlugs_idx, Payment_centreId_paidAt_idx,
+-- Payment_riderId_idx and User_schoolId_idx, and rewrote Payment_invoiceId_fkey
+-- — pre-existing drift between schema.prisma and the migration history that has
+-- nothing to do with this column and must not ride along with it.
+ALTER TABLE "Horse" ADD COLUMN "identificationMarks" TEXT;

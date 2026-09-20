@@ -69,6 +69,7 @@ export async function POST(req: NextRequest) {
       ageYears: parsed.data.ageYears ?? null,
       heightIn: parsed.data.heightIn ?? null,
       microchip: parsed.data.microchip || null,
+      identificationMarks: parsed.data.identificationMarks,
       // EFI id + home club were captured by the form but silently dropped
       // here — persist them.
       efiHorseId: parsed.data.efiHorseId || null,

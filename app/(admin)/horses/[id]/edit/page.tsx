@@ -34,6 +34,7 @@ export default async function EditHorsePage({ params }: { params: { id: string }
     dob: horse.dob ? horse.dob.toISOString().slice(0, 10) : "",
     heightIn: horse.heightIn != null ? String(horse.heightIn) : "",
     microchip: horse.microchip ?? "",
+    identificationMarks: horse.identificationMarks ?? "",
     ownership: horse.ownership ?? "club",
     stableNo: horse.stableNo ?? "",
     diet: horse.diet ?? "",

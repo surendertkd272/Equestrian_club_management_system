@@ -24,6 +24,7 @@ vi.mock("next/headers", () => ({
 
 const { PATCH: patchCentre } = await import("@/app/api/centres/[id]/route");
 const { POST: createHorse } = await import("@/app/api/horses/route");
+const { PATCH: patchHorse } = await import("@/app/api/horses/[id]/route");
 
 async function loginSuper() {
   const sup = await mkUser({ role: "SUPER_ADMIN", centreId: null });
@@ -139,6 +140,7 @@ describe("Batch A.4 — Horse insurance fields + sweep", () => {
         body: JSON.stringify({
           name: "Bijli",
           ownership: "club",
+          identificationMarks: "White blaze, near-hind sock",
           insurerName: "Bajaj Allianz",
           insurancePolicyNo: "POL-12345",
           insurancePremium: 18000,
@@ -214,5 +216,116 @@ describe("Batch A.4 — Horse insurance fields + sweep", () => {
     const second = await sweepHorseInsuranceExpiry();
     expect(second.notified).toBe(0);
     expect(second.skipped).toBe(1);
+  });
+});
+
+describe("Horse identification marks", () => {
+  // A horse is identified by its markings the way a person is by a photo —
+  // whorls, blazes, socks, scars are what an equine passport records, and
+  // what tells two bay geldings apart when one of them is injured. Required
+  // when onboarding a horse; NOT retroactively required, because horses
+  // already on file predate the field.
+
+  async function asManager(centreId: string) {
+    const mgr = await mkUser({ role: "CENTRE_MANAGER", centreId });
+    cookieJar.clear();
+    cookieJar.set("ew_session", {
+      value: await signSession({
+        userId: mgr.id,
+        role: "CENTRE_MANAGER",
+        centreId,
+        name: mgr.name,
+      }),
+    });
+    return mgr;
+  }
+
+  it("refuses a new horse with no identification marks", async () => {
+    const centre = await mkCentre();
+    await asManager(centre.id);
+
+    const r = await createHorse(
+      mockReq("http://localhost", {
+        method: "POST",
+        body: JSON.stringify({ name: "Bijli", ownership: "club" }),
+      }),
+    );
+    expect(r.status).toBe(400);
+    expect((await r.json()).error).toBe("VALIDATION");
+    expect(await prisma.horse.count({ where: { centreId: centre.id } })).toBe(0);
+  });
+
+  it("refuses whitespace dressed up as an answer", async () => {
+    const centre = await mkCentre();
+    await asManager(centre.id);
+
+    const r = await createHorse(
+      mockReq("http://localhost", {
+        method: "POST",
+        body: JSON.stringify({ name: "Bijli", identificationMarks: "" }),
+      }),
+    );
+    expect(r.status).toBe(400);
+  });
+
+  it("persists the marks on a new horse", async () => {
+    const centre = await mkCentre();
+    await asManager(centre.id);
+
+    const r = await createHorse(
+      mockReq("http://localhost", {
+        method: "POST",
+        body: JSON.stringify({
+          name: "Bijli",
+          identificationMarks: "White blaze; both hind socks; whorl left shoulder",
+        }),
+      }),
+    );
+    expect(r.status).toBe(200);
+
+    const horse = await prisma.horse.findFirstOrThrow({ where: { centreId: centre.id } });
+    expect(horse.identificationMarks).toBe("White blaze; both hind socks; whorl left shoulder");
+  });
+
+  it("lets a horse on file before the field was added keep being edited", async () => {
+    // The regression this guards: making the field required must not strand
+    // every existing horse behind a form they cannot save.
+    const centre = await mkCentre();
+    await asManager(centre.id);
+    const legacy = await prisma.horse.create({
+      data: { centreId: centre.id, name: "Champa", stableNo: "A1" },
+    });
+    expect(legacy.identificationMarks).toBeNull();
+
+    const r = await patchHorse(
+      mockReq("http://localhost", {
+        method: "PATCH",
+        body: JSON.stringify({ stableNo: "B2" }),
+      }),
+      { params: { id: legacy.id } },
+    );
+    expect(r.status).toBe(200);
+    const after = await prisma.horse.findUniqueOrThrow({ where: { id: legacy.id } });
+    expect(after.stableNo).toBe("B2");
+    expect(after.identificationMarks).toBeNull();
+  });
+
+  it("lets that horse have its marks filled in later", async () => {
+    const centre = await mkCentre();
+    await asManager(centre.id);
+    const legacy = await prisma.horse.create({
+      data: { centreId: centre.id, name: "Champa" },
+    });
+
+    const r = await patchHorse(
+      mockReq("http://localhost", {
+        method: "PATCH",
+        body: JSON.stringify({ identificationMarks: "Star on forehead" }),
+      }),
+      { params: { id: legacy.id } },
+    );
+    expect(r.status).toBe(200);
+    const after = await prisma.horse.findUniqueOrThrow({ where: { id: legacy.id } });
+    expect(after.identificationMarks).toBe("Star on forehead");
   });
 });

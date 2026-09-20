@@ -18,6 +18,7 @@ export type EditHorseInitial = {
   dob: string;
   heightIn: string;
   microchip: string;
+  identificationMarks: string;
   ownership: string;
   stableNo: string;
   diet: string;
@@ -51,6 +52,12 @@ export function EditHorseForm({ horseId, initial }: { horseId: string; initial: 
     for (const k of ["dob", "heightIn", "insurancePremium"]) {
       if (payload[k] === "") delete payload[k];
     }
+    // identificationMarks is required going forward, but a horse on file
+    // before this field existed loads with it blank — drop it here too, the
+    // same way, rather than send an empty string the schema's .min(1) would
+    // reject. Leaving a legacy horse's OTHER fields editable must not be
+    // blocked on backfilling this one.
+    if (payload.identificationMarks === "") delete payload.identificationMarks;
     const res = await patchJson(`/api/horses/${horseId}`, payload);
     setSaving(false);
     if (!res.ok) {
@@ -112,6 +119,14 @@ export function EditHorseForm({ horseId, initial }: { horseId: string; initial: 
           <Label>Microchip</Label>
           <Input aria-label="Microchip" value={form.microchip} onChange={(e) => set("microchip", e.target.value)} />
         </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label>Identification Marks</Label>
+        <Textarea aria-label="Identification marks"
+          value={form.identificationMarks}
+          onChange={(e) => set("identificationMarks", e.target.value)}
+          placeholder="White blaze on forehead, both hind socks, small whorl on left shoulder…"
+        />
       </div>
       <div className="space-y-1.5">
         <Label>Dietary Notes</Label>

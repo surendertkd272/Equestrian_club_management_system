@@ -20,6 +20,13 @@ export const createHorseSchema = z.object({
   // Height in inches (field teams measure in inches; 61 in = 15.1 hh).
   heightIn: z.coerce.number().min(30).max(90).optional(),
   microchip: z.string().max(40).optional(),
+  // Distinguishing marks (whorls, blazes, socks, scars) — required for a new
+  // horse, the same way an equine passport's identification page is never
+  // left blank. updateHorseSchema below makes it optional again via
+  // .partial(): a horse already on file before this field existed has none
+  // recorded, and editing some OTHER field of theirs must not be blocked on
+  // filling this in retroactively.
+  identificationMarks: z.string().min(1, "Identification marking is required").max(500),
   // EFI horse registration id (optional — only competing horses have one)
   efiHorseId: z.string().max(40).optional(),
   // Free-text label for the horse's home club when stabling temporarily

@@ -163,6 +163,8 @@ export default async function HorseProfile({ params }: { params: { id: string } 
               <dd className="col-span-2">{horse.stableNo ?? "—"}</dd>
               <dt className="text-muted-foreground">Microchip</dt>
               <dd className="col-span-2 font-mono text-xs">{horse.microchip ?? "—"}</dd>
+              <dt className="text-muted-foreground">Identification Marks</dt>
+              <dd className="col-span-2 whitespace-pre-wrap">{horse.identificationMarks ?? "—"}</dd>
               <dt className="text-muted-foreground">EFI ID</dt>
               <dd className="col-span-2 font-mono text-xs">{horse.efiHorseId ?? "—"}</dd>
               <dt className="text-muted-foreground">Home Club</dt>

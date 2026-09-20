@@ -47,6 +47,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(d.ageYears !== undefined ? { ageYears: d.ageYears ?? null } : {}),
       ...(d.heightIn !== undefined ? { heightIn: d.heightIn ?? null } : {}),
       ...(d.microchip !== undefined ? { microchip: d.microchip || null } : {}),
+      // No `|| null` fallback here: the schema's .min(1) already refuses an
+      // empty string, so the only way this key is present is a real value.
+      // Omitting it from the PATCH body (not sending it at all) is how an
+      // existing record without one stays untouched.
+      ...(d.identificationMarks !== undefined ? { identificationMarks: d.identificationMarks } : {}),
       ...(d.efiHorseId !== undefined ? { efiHorseId: d.efiHorseId || null } : {}),
       ...(d.homeClub !== undefined ? { homeClub: d.homeClub || null } : {}),
       ...(d.ownership !== undefined ? { ownership: d.ownership } : {}),

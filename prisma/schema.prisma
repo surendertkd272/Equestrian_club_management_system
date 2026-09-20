@@ -1288,6 +1288,12 @@ model Horse {
   ageYears           Int?
   heightIn           Float? // height in INCHES (pre-2026-07 this column held hands; migration converted)
   microchip          String?
+  // Distinguishing marks (whorls, blazes, socks, scars) — what an equine
+  // passport's identification page records. Required on the Add Horse form
+  // (lib/schemas/horse.ts) but the COLUMN stays nullable: horses on file
+  // before this field existed have none recorded, and a NOT NULL constraint
+  // would either invent data for them or break every existing row.
+  identificationMarks String?
   // Equestrian Federation of India horse ID. Optional — only horses
   // competing at national or above need one. Different from microchip
   // (which is the implanted RFID).
