@@ -665,6 +665,11 @@ model Centre {
   consentRequests      RiderConsentRequest[]
   payments             Payment[]
   schools              School[]
+
+  // GIN, because the lookup is "find the centre that used to answer to this
+  // slug" — a containment search over the array, not a prefix scan. Created by
+  // 20260910120000_centre_previous_slugs and never declared here.
+  @@index([previousSlugs], type: Gin)
 }
 
 // Role is a string union enforced at the app layer (see lib/roles.ts).
@@ -789,6 +794,9 @@ model User {
   @@index([centreId, status])
   // HQ rollups + getOrgIdForSession() lookups read User.orgId directly.
   @@index([orgId])
+  // Created by 20260917120000_school_scoping but never declared here, so every
+  // `prisma migrate dev` since has offered to drop it. Backs schoolScopeFor().
+  @@index([schoolId])
 }
 
 // Public forgot-password flow. We mint a SHA-256-hashed token on request;
@@ -1276,18 +1284,18 @@ model EmployeeOnboarding {
 // ──────────────────────────────────────────────────────────────────────────
 
 model Horse {
-  id                 String    @id @default(cuid())
-  centreId           String
-  name               String
-  breed              String?
-  sex                String?
+  id                  String    @id @default(cuid())
+  centreId            String
+  name                String
+  breed               String?
+  sex                 String?
   // Date of birth — the form collects this and age is derived from it for
   // display. `ageYears` is retained as a fallback for horses entered before
   // DOB capture (and for CSV imports that only carry an age).
-  dob                DateTime?
-  ageYears           Int?
-  heightIn           Float? // height in INCHES (pre-2026-07 this column held hands; migration converted)
-  microchip          String?
+  dob                 DateTime?
+  ageYears            Int?
+  heightIn            Float? // height in INCHES (pre-2026-07 this column held hands; migration converted)
+  microchip           String?
   // Distinguishing marks (whorls, blazes, socks, scars) — what an equine
   // passport's identification page records. Required on the Add Horse form
   // (lib/schemas/horse.ts) but the COLUMN stays nullable: horses on file
@@ -1297,25 +1305,25 @@ model Horse {
   // Equestrian Federation of India horse ID. Optional — only horses
   // competing at national or above need one. Different from microchip
   // (which is the implanted RFID).
-  efiHorseId         String?
+  efiHorseId          String?
   // Free-text "home club" — useful for visiting / privately-owned horses
   // that belong to another club but are stabled here temporarily. Distinct
   // from `centreId` which is the operational owner inside Equiwings.
-  homeClub           String?
-  ownership          String? // club | private
+  homeClub            String?
+  ownership           String? // club | private
   // PDF §4 "Insurance Records" — structured fields rather than just a URL.
   // Expiry is surfaced via lib/sweeps.ts so the manager gets a heads-up
   // before the policy lapses.
-  insuranceDocUrl    String?
-  insurerName        String?
-  insurancePolicyNo  String?
-  insurancePremium   Float? // INR
-  insuranceValidFrom DateTime?
-  insuranceValidTo   DateTime?
-  stableNo           String?
-  diet               String?
-  status             String    @default("active") // active | rest | retired
-  createdAt          DateTime  @default(now())
+  insuranceDocUrl     String?
+  insurerName         String?
+  insurancePolicyNo   String?
+  insurancePremium    Float? // INR
+  insuranceValidFrom  DateTime?
+  insuranceValidTo    DateTime?
+  stableNo            String?
+  diet                String?
+  status              String    @default("active") // active | rest | retired
+  createdAt           DateTime  @default(now())
 
   centre               Centre                @relation(fields: [centreId], references: [id])
   allocations          HorseAllocation[]
@@ -2064,12 +2072,30 @@ model Payment {
   reversals    Payment[] @relation("PaymentReversal")
   reason       String?
 
-  invoice Invoice? @relation(fields: [invoiceId], references: [id])
+  // onDelete: Restrict is SPELLED OUT because Prisma's default for an optional
+  // relation is SetNull, and the database has said Restrict since this column
+  // was required. 20260903170000_payment_receipts made invoiceId nullable
+  // without touching the constraint, so the two have disagreed ever since and
+  // every migration offered to "fix" the database to match.
+  //
+  // The database is right. Restrict refuses to delete an invoice that has
+  // payments against it; SetNull would delete it and quietly leave the money
+  // behind as a receipt settling nothing — a paid invoice vanishing from the
+  // ledger while the payment still counts toward revenue. Nothing in the app
+  // deletes an invoice anyway (they are voided — see lib/credit-note.ts), so
+  // this only governs what happens if someone reaches for SQL.
+  invoice Invoice? @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
   centre  Centre   @relation(fields: [centreId], references: [id], onDelete: Cascade)
   rider   Rider?   @relation(fields: [riderId], references: [id], onDelete: SetNull)
 
   @@index([invoiceId, paidAt])
   @@index([paidAt])
+  // Both created by 20260903170000_payment_receipts and never declared here.
+  // (centreId, paidAt) backs "what came in this month at this centre", which
+  // that migration called the headline finance query; riderId backs the
+  // receipt-to-rider lookup that the same migration introduced.
+  @@index([centreId, paidAt])
+  @@index([riderId])
 }
 
 // ──────────────────────────────────────────────────────────────────────────
