@@ -11,8 +11,12 @@ import { formatDate } from "@/lib/utils";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { ChecklistSubmissionForm } from "./checklist-form";
 import { SignOffButton } from "./sign-off-button";
+import { ChecklistCompliance } from "./compliance";
+import { wallPartsInTz } from "@/lib/tz";
 
 export const dynamic = "force-dynamic";
+
+const MANAGERS = new Set(["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "STABLE_MANAGER", "HEAD_COACH"]);
 
 const CAN_SUBMIT = new Set([
   "SUPER_ADMIN",
@@ -24,26 +28,41 @@ const CAN_SUBMIT = new Set([
   "GROOM",
 ]);
 
-export default async function ChecklistsPage() {
+export default async function ChecklistsPage({
+  searchParams,
+}: {
+  searchParams: { date?: string };
+}) {
   const session = await requireSession();
   if (!CAN_SUBMIT.has(session.role)) redirect("/dashboard");
 
+  const isManager = MANAGERS.has(session.role);
   const centreId = scopeCentre(session);
+  const orgId = await getOrgIdForSession(session);
+  if (!orgId) redirect("/no-organisation");
+
   if (!centreId) {
+    // HQ looking at "All centres". Submitting needs one centre, but the
+    // question HQ is here to ask — who has done their checks — does not, and
+    // this page used to answer it with nothing at all until a centre was
+    // picked.
+    const centres = await prisma.centre.findMany({
+      where: { orgId },
+      select: { id: true, name: true, timezone: true },
+      orderBy: { name: "asc" },
+    });
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         <h1 className="text-2xl font-bold">Daily Checklist</h1>
+        <ChecklistCompliance centres={centres} date={searchParams.date} />
         <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            Pick a centre from the top-bar filter to submit checklists.
+          <CardContent className="py-6 text-center text-sm text-muted-foreground">
+            Pick a centre from the top-bar filter to submit a checklist or sign one off.
           </CardContent>
         </Card>
       </div>
     );
   }
-
-  const orgId = await getOrgIdForSession(session);
-  if (!orgId) redirect("/no-organisation");
 
   const [templates, horses, recent] = await Promise.all([
     prisma.checklistTemplate.findMany({
@@ -75,7 +94,18 @@ export default async function ChecklistsPage() {
   const general = templates.find((t) => t.scope === "general") ?? null;
   const perHorse = templates.find((t) => t.scope === "per_horse") ?? null;
   const isHQ = session.role === "SUPER_ADMIN" || session.role === "ADMIN";
-  const isManager = new Set(["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "STABLE_MANAGER", "HEAD_COACH"]).has(session.role);
+
+  // submittedByUserId is recorded on every submission but has no relation, so
+  // resolve the names in one query rather than per row.
+  const submitterIds = [...new Set(recent.map((s) => s.submittedByUserId))];
+  const submitters = submitterIds.length
+    ? await prisma.user.findMany({ where: { id: { in: submitterIds } }, select: { id: true, name: true } })
+    : [];
+  const submitterName = new Map(submitters.map((u) => [u.id, u.name]));
+  const centre = isManager
+    ? await prisma.centre.findUnique({ where: { id: centreId }, select: { id: true, name: true, timezone: true } })
+    : null;
+  const tz = centre?.timezone ?? "Asia/Kolkata";
 
   return (
     <div className="space-y-6">
@@ -89,6 +119,9 @@ export default async function ChecklistsPage() {
           </Button>
         )}
       </div>
+
+      {/* Reviewers first: this is the question they open the page to ask. */}
+      {isManager && centre && <ChecklistCompliance centres={[centre]} date={searchParams.date} />}
 
       {general && general.items.length > 0 ? (
         <Card>
@@ -161,7 +194,21 @@ export default async function ChecklistsPage() {
                   key: "submitted",
                   header: "Submitted",
                   primary: true,
-                  cell: (s) => formatDate(s.submittedAt),
+                  cell: (s) => (
+                    <span>
+                      {formatDate(s.submittedAt)}{" "}
+                      <span className="text-xs text-muted-foreground">
+                        {wallPartsInTz(s.submittedAt, tz).time}
+                      </span>
+                    </span>
+                  ),
+                },
+                {
+                  // The column that was missing: without it the list could not
+                  // say which coach had done the round.
+                  key: "by",
+                  header: "By",
+                  cell: (s) => submitterName.get(s.submittedByUserId) ?? "—",
                 },
                 {
                   key: "type",
