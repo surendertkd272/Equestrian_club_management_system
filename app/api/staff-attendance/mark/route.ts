@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { blockIfFeatureOff } from "@/lib/features-gate";
-import { can } from "@/lib/permissions";
+import { staffAttendanceScope, mayMarkStaff } from "@/lib/staff-attendance-scope";
 import { markStaffAttendanceSchema, composeDateTime } from "@/lib/schemas/staff-attendance";
 import { parseDateOnly } from "@/lib/schemas/attendance";
 import { audit } from "@/lib/audit";
@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   const featureBlock = await blockIfFeatureOff(session, "staff-attendance");
   if (featureBlock) return featureBlock;
-  if (!can(session.role, "staff.attendance")) {
+  const scope = staffAttendanceScope(session.role);
+  if (!scope) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
   const readOnlyBlock = await blockIfReadOnly(session);
@@ -34,6 +35,12 @@ export async function POST(req: NextRequest) {
   if (staff.role === "RIDER") {
     // Riders use the batch-based attendance flow, not staff attendance.
     return NextResponse.json({ error: "NOT_A_STAFF_USER" }, { status: 400 });
+  }
+  if (!mayMarkStaff(scope, staff.role)) {
+    return NextResponse.json(
+      { error: "FORBIDDEN", message: "Coaches can mark attendance for grooms only." },
+      { status: 403 },
+    );
   }
   if (!staff.centreId) {
     return NextResponse.json({ error: "STAFF_HAS_NO_CENTRE" }, { status: 400 });

@@ -40,13 +40,38 @@ beforeEach(async () => {
 });
 
 describe("POST /api/staff-attendance/mark", () => {
-  it("403 when role lacks staff.attendance (e.g. COACH)", async () => {
+  it("a coach can mark a groom — the grooms work under them in the morning", async () => {
     const { centre } = await mkCentreWithManager();
     const coach = await mkUser({ role: "COACH", centreId: centre.id });
     await loginAs({ userId: coach.id, role: "COACH", centreId: centre.id, name: coach.name });
 
-    const target = await mkUser({ role: "GROOM", centreId: centre.id });
-    const r = await postMark({ userId: target.id, date: "2026-05-14", status: "present" });
+    const groom = await mkUser({ role: "GROOM", centreId: centre.id });
+    const r = await postMark({ userId: groom.id, date: "2026-05-14", status: "present" });
+    expect(r.status).toBe(200);
+    const row = await prisma.staffAttendance.findFirstOrThrow({ where: { userId: groom.id } });
+    expect(row.markedBy).toBe(coach.id);
+  });
+
+  it("but a coach cannot mark another coach, or a manager", async () => {
+    // A junior signing off a senior's register is not attendance, it's a
+    // loophole.
+    const { centre, manager } = await mkCentreWithManager();
+    const coach = await mkUser({ role: "COACH", centreId: centre.id });
+    await loginAs({ userId: coach.id, role: "COACH", centreId: centre.id, name: coach.name });
+
+    const otherCoach = await mkUser({ role: "COACH", centreId: centre.id });
+    expect((await postMark({ userId: otherCoach.id, date: "2026-05-14", status: "present" })).status).toBe(403);
+    expect((await postMark({ userId: manager.id, date: "2026-05-14", status: "present" })).status).toBe(403);
+    expect(await prisma.staffAttendance.count()).toBe(0);
+  });
+
+  it("403 when role has no attendance scope at all (e.g. ACCOUNTANT)", async () => {
+    const { centre } = await mkCentreWithManager();
+    const acct = await mkUser({ role: "ACCOUNTANT", centreId: centre.id });
+    await loginAs({ userId: acct.id, role: "ACCOUNTANT", centreId: centre.id, name: acct.name });
+
+    const groom = await mkUser({ role: "GROOM", centreId: centre.id });
+    const r = await postMark({ userId: groom.id, date: "2026-05-14", status: "present" });
     expect(r.status).toBe(403);
   });
 

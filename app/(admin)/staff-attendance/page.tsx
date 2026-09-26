@@ -2,7 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { tenantWhere, scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
-import { can } from "@/lib/permissions";
+import { staffAttendanceScope, GROUND_STAFF_ROLES } from "@/lib/staff-attendance-scope";
+import { todayYmdForCentre } from "@/lib/centre-tz";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -14,36 +15,49 @@ export const dynamic = "force-dynamic";
 
 export default async function StaffAttendancePage() {
   const session = await requireSession();
-  if (!can(session.role, "staff.attendance")) redirect("/dashboard");
+  const scope = staffAttendanceScope(session.role);
+  if (!scope) redirect("/dashboard");
 
   const orgId = await getOrgIdForSession(session);
   if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
   const where = tenantWhere(centreId, orgId);
+  // A coach marks and sees grooms only — see lib/staff-attendance-scope.ts.
+  const roleFilter =
+    scope === "all" ? { not: "RIDER" as const } : { in: [...GROUND_STAFF_ROLES] as string[] };
 
   const sinceDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   const [recent, staff] = await Promise.all([
     prisma.staffAttendance.findMany({
-      where: { ...where, date: { gte: sinceDate } },
+      where: { ...where, date: { gte: sinceDate }, user: { role: roleFilter } },
       orderBy: [{ date: "desc" }, { user: { name: "asc" } }],
       include: { user: { select: { id: true, name: true, role: true } } },
       take: 200,
     }),
     prisma.user.findMany({
-      where: { ...where, status: "active", role: { not: "RIDER" } },
+      where: { ...where, status: "active", role: roleFilter },
       orderBy: { name: "asc" },
       select: { id: true, name: true, role: true },
     }),
   ]);
 
-  const todayYMD = new Date().toISOString().slice(0, 10);
+  // The CENTRE's today, not the server's. This used toISOString() — UTC — so
+  // for the first five and a half hours of every Indian day "Mark today"
+  // marked yesterday, which is exactly when a 6 am yard is taking its register.
+  const todayYMD = await todayYmdForCentre(centreId);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Staff Attendance</h1>
-        <p className="text-sm text-muted-foreground">Last 30 days · {recent.length} rows</p>
+        <h1 className="text-2xl font-bold">
+          {scope === "all" ? "Staff Attendance" : "Grooms' Attendance"}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {scope === "all"
+            ? `Last 30 days · ${recent.length} rows`
+            : `Mark the grooms at your centre each morning · last 30 days · ${recent.length} rows`}
+        </p>
       </div>
 
       <Card>
