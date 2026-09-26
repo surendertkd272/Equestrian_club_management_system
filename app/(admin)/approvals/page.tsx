@@ -12,12 +12,23 @@ import { formatDate } from "@/lib/utils";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { ReviewButtons } from "./approvals-client";
 import { formatEnum, roleLabel } from "@/lib/labels";
+import { CHANGE_REVIEWER_ROLES, isChangeKind, mayReviewChange } from "@/lib/change-requests";
+
+const TYPE_LABEL: Record<string, string> = {
+  equipment_stock_change: "Stock change",
+  horse_update: "Horse change",
+  horse_create: "New horse",
+};
 export const dynamic = "force-dynamic";
 
 export default async function ApprovalsPage() {
   const session = await requireSession();
   const centreId = scopeCentre(session);
-  const canReview = can(session.role, "leave.approve");
+  const canReviewGeneric = can(session.role, "leave.approve");
+  // Anyone who can decide SOMETHING here sees the centre's queue; everyone
+  // else — a coach — sees only what they asked for. This page used to list
+  // every request to anyone who opened it.
+  const seesAll = canReviewGeneric || CHANGE_REVIEWER_ROLES.includes(session.role);
 
   // ApprovalRequest has a scalar centreId but NO `centre` relation, so the
   // tenantWhere() relation-filter can't be used here. Bound by org instead:
@@ -36,6 +47,7 @@ export default async function ApprovalsPage() {
     // scopeCentre() reads the client-controlled ew_hq_centre cookie, so the
     // picked centre must be INTERSECTED with the org's own, never replace it.
     centreId: centreId && orgCentreIds.includes(centreId) ? centreId : { in: orgCentreIds },
+    ...(seesAll ? {} : { requestedBy: session.userId }),
   };
 
   const rows = await prisma.approvalRequest.findMany({
@@ -121,8 +133,8 @@ export default async function ApprovalsPage() {
                 {
                   key: "type",
                   header: "Type",
-                  className: "text-xs font-mono",
-                  cell: (r) => r.entityType,
+                  className: "text-xs",
+                  cell: (r) => TYPE_LABEL[r.entityType] ?? r.entityType,
                 },
                 {
                   key: "status",
@@ -141,6 +153,21 @@ export default async function ApprovalsPage() {
                   ),
                 },
                 {
+                  // Only meaningful for a coach's change: approving it is what
+                  // writes it, so say plainly whether it has been written.
+                  key: "applied",
+                  header: "Applied",
+                  className: "text-xs text-muted-foreground",
+                  cell: (r) =>
+                    !isChangeKind(r.entityType)
+                      ? "—"
+                      : r.appliedAt
+                        ? `✓ ${formatDate(r.appliedAt)}`
+                        : r.status === "pending"
+                          ? "Waiting"
+                          : "Not applied",
+                },
+                {
                   key: "created",
                   header: "Created",
                   className: "text-xs text-muted-foreground",
@@ -152,6 +179,9 @@ export default async function ApprovalsPage() {
                   className: "text-right",
                   cell: (r) => {
                     const isMine = r.requestedBy === session.userId;
+                    const canReview = isChangeKind(r.entityType)
+                      ? mayReviewChange(session.role, r.requestedBy, session.userId)
+                      : canReviewGeneric;
                     return r.status === "pending" ? (
                       <ReviewButtons id={r.id} canReview={canReview} isMine={isMine} />
                     ) : null;

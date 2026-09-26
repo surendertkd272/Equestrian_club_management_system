@@ -67,7 +67,11 @@ export function InventoryRow({
   const isLow = hasRecord && available < threshold;
   const isWatch = hasRecord && !isLow && available < threshold * 1.5;
 
-  async function patch(field: string, body: Record<string, unknown>) {
+  // Returns "pending" when the change went to a manager instead of being
+  // saved (a coach's edit — lib/change-requests.ts), so the caller can put the
+  // field back to the real count rather than leave the typed number showing
+  // as if it had landed.
+  async function patch(field: string, body: Record<string, unknown>): Promise<"saved" | "pending" | "failed"> {
     setBusy(true);
     try {
       const url = `/api/equipment/stock/${catalogId}${centreId ? `?centreId=${centreId}` : ""}`;
@@ -79,13 +83,19 @@ export function InventoryRow({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error(data.message ?? data.error ?? "Failed");
-        return;
+        return "failed";
+      }
+      if (data.pending) {
+        // A toast here, unlike a save: this one needs reading.
+        toast.info("Sent to a manager for approval — the count changes once it's approved.");
+        return "pending";
       }
       // Deliberately a flash on the field rather than a toast: these are
       // high-frequency edits and a toast per cell would bury the screen.
       setSavedField(field);
       setTimeout(() => setSavedField((f) => (f === field ? null : f)), 1600);
       router.refresh();
+      return "saved";
     } finally {
       setBusy(false);
     }
@@ -102,14 +112,21 @@ export function InventoryRow({
       // On an uncounted row an explicit 0 IS meaningful ("checked, we have
       // none"), so it has to save even though it equals the displayed default.
       if (v === current && hasRecord) return;
-      patch(field, { [field]: v, reason: "adjustment" });
+      const input = e.target;
+      patch(field, { [field]: v, reason: "adjustment" }).then((r) => {
+        if (r === "pending") input.value = hasRecord ? String(current) : "";
+      });
     };
   }
 
   function onBlurText(field: string, current: string | null) {
     return (e: React.FocusEvent<HTMLInputElement>) => {
       const v = e.target.value.trim();
-      if (v !== (current ?? "")) patch(field, { [field]: v || null });
+      const input = e.target;
+      if (v !== (current ?? ""))
+        patch(field, { [field]: v || null }).then((r) => {
+          if (r === "pending") input.value = current ?? "";
+        });
     };
   }
 

@@ -7,6 +7,7 @@ import { audit } from "@/lib/audit";
 import { isRealYMD } from "@/lib/utils";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { parseCsv } from "@/lib/csv-parse";
+import { requiresApproval } from "@/lib/change-requests";
 
 // Bulk horse import. Mirrors the riders import flow.
 // Accepts either a CSV string or a structured rows array.
@@ -113,6 +114,15 @@ export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
   if (!can(session.role, "horse.manage")) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  // Coaches' horse changes go through approval one at a time. Fifty horses in
+  // one approval request is not something a manager can meaningfully review,
+  // and a bulk roster load is a manager's job anyway.
+  if (requiresApproval(session.role)) {
+    return NextResponse.json(
+      { error: "FORBIDDEN", message: "Bulk import is done by a manager. Add horses one at a time and they will be sent for approval." },
+      { status: 403 },
+    );
+  }
   const readOnly = await blockIfReadOnly(session);
   if (readOnly) return readOnly;
   if (!session.centreId) return NextResponse.json({ error: "NO_CENTRE" }, { status: 400 });

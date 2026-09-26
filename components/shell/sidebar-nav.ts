@@ -84,7 +84,9 @@ export const NAV: NavGroup[] = [
       // invisible anywhere else, and a setting with no screen is one nobody checks.
       { href: "/schools", label: "Schools", iconName: "School", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
       { href: "/staff/onboarding", label: "Employee Onboarding", iconName: "UserCheck", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"] },
-      { href: "/staff-attendance", label: "Staff Attendance", iconName: "UserCheck", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER"], feature: "staff-attendance" },
+      // COACH sees grooms only — the scope is enforced in the page and the mark
+      // API (lib/staff-attendance-scope.ts), not here.
+      { href: "/staff-attendance", label: "Staff Attendance", iconName: "UserCheck", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER", "COACH"], feature: "staff-attendance" },
       // Gate-log kiosk (MyGate-style In/Out). Same permission as attendance —
       // anyone who can mark roster attendance can also log gate entries.
       { href: "/gate", label: "Gate Log", iconName: "DoorOpen", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "STABLE_MANAGER"] },
@@ -98,7 +100,9 @@ export const NAV: NavGroup[] = [
       { href: "/daily-update", label: "Daily Coach Update", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"] },
       // Manager rollup of the whole team's daily updates.
       { href: "/daily-update/team", label: "Team Daily Updates", iconName: "ClipboardList", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH"] },
-      { href: "/approvals", label: "Approvals", iconName: "FileCheck", perm: ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "INVENTORY_MANAGER", "ACCOUNTANT", "STABLE_MANAGER"], feature: "approvals" },
+      // COACH sees only their own requests here (the page filters) — the place a
+      // coach finds out whether a stock or horse change they sent was approved.
+      { href: "/approvals", label: "Approvals", iconName: "FileCheck", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "INVENTORY_MANAGER", "ACCOUNTANT", "STABLE_MANAGER"], feature: "approvals" },
       { href: "/batch-shifts", label: "Batch Shifts", iconName: "CalendarRange", perm: ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH"] },
       // Procurement requisitions — staff submits, manager + accountant approve.
       // Anyone with requisition.submit (i.e. all staff roles) sees the page.

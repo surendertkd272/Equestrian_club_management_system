@@ -1470,6 +1470,12 @@ model ApprovalRequest {
   reviewedBy  String?
   reviewedAt  DateTime?
   reviewNotes String?
+  // The proposed change itself, for requests raised by a change a coach tried
+  // to make (lib/change-requests.ts). Approving used to only flip `status` —
+  // nothing was applied, so an approval was a note, not a control. With a
+  // payload, approving applies the change and stamps appliedAt.
+  payloadJson Json?
+  appliedAt   DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

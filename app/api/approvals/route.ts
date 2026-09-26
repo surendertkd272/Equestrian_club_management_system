@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isChangeKind } from "@/lib/change-requests";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { centreScopeWhere } from "@/lib/authz-centre";
@@ -53,6 +54,11 @@ export async function POST(req: NextRequest) {
   const parsed = createApprovalSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "VALIDATION", details: parsed.error.flatten() }, { status: 400 });
+  }
+  // Change requests carry a payload that approving APPLIES, so only the server
+  // may raise them — from the route the coach's edit actually went through.
+  if (isChangeKind(parsed.data.entityType)) {
+    return NextResponse.json({ error: "RESERVED_TYPE" }, { status: 400 });
   }
   const resolved = await resolveWriteCentre(session, body);
   if (resolved.error) return resolved.error;

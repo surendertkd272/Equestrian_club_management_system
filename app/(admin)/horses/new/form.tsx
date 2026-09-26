@@ -48,10 +48,18 @@ export function NewHorseForm() {
     for (const k of ["insurerName", "insurancePolicyNo", "insuranceValidFrom", "insuranceValidTo", "efiHorseId", "homeClub", "microchip", "breed", "diet", "stableNo"]) {
       if (payload[k] === "") delete payload[k];
     }
-    const res = await postJson<{ id: string }>("/api/horses", payload);
+    const res = await postJson<{ id?: string; pending?: boolean }>("/api/horses", payload);
     setSaving(false);
     if (!res.ok) {
       toast.error(res.message);
+      return;
+    }
+    if (res.data.pending || !res.data.id) {
+      // A coach's new horse waits for a manager (lib/change-requests.ts) —
+      // there is no horse yet, so there is no profile to go to.
+      toast.info("Sent to a manager for approval — the horse is added once it's approved.");
+      router.push("/approvals");
+      router.refresh();
       return;
     }
     toast.success("Horse added");

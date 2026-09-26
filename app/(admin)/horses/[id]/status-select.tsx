@@ -10,13 +10,22 @@ export function StatusSelect({ horseId, currentStatus }: { horseId: string; curr
   const [saving, setSaving] = useState(false);
 
   async function onChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const next = e.target.value;
+    const select = e.target;
+    const next = select.value;
     if (next === currentStatus) return;
     setSaving(true);
-    const res = await patchJson(`/api/horses/${horseId}`, { status: next });
+    const res = await patchJson<{ pending?: boolean }>(`/api/horses/${horseId}`, { status: next });
     setSaving(false);
     if (!res.ok) {
       toast.error(res.message);
+      select.value = currentStatus;
+      return;
+    }
+    if (res.data?.pending) {
+      // A coach's status change waits for a manager — put the dropdown back to
+      // the real status rather than show one the horse doesn't have yet.
+      select.value = currentStatus;
+      toast.info(`Status change to "${next}" sent to a manager for approval.`);
       return;
     }
     toast.success(`Status → ${next}`);

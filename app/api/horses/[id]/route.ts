@@ -6,6 +6,9 @@ import { updateHorseSchema } from "@/lib/schemas/horse";
 import { audit } from "@/lib/audit";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import type { Prisma } from "@prisma/client";
+import { horseUpdateData, describeHorseUpdate } from "@/lib/horse-writes";
+import { CHANGE_KINDS, raiseChangeRequest, requiresApproval } from "@/lib/change-requests";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -37,38 +40,29 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const d = parsed.data;
-  const updated = await prisma.horse.update({
-    where: { id: horse.id },
-    data: {
-      ...(d.name !== undefined ? { name: d.name } : {}),
-      ...(d.breed !== undefined ? { breed: d.breed || null } : {}),
-      ...(d.sex !== undefined ? { sex: d.sex || null } : {}),
-      ...(d.dob !== undefined ? { dob: d.dob ? new Date(d.dob) : null } : {}),
-      ...(d.ageYears !== undefined ? { ageYears: d.ageYears ?? null } : {}),
-      ...(d.heightIn !== undefined ? { heightIn: d.heightIn ?? null } : {}),
-      ...(d.microchip !== undefined ? { microchip: d.microchip || null } : {}),
-      // No `|| null` fallback here: the schema's .min(1) already refuses an
-      // empty string, so the only way this key is present is a real value.
-      // Omitting it from the PATCH body (not sending it at all) is how an
-      // existing record without one stays untouched.
-      ...(d.identificationMarks !== undefined ? { identificationMarks: d.identificationMarks } : {}),
-      ...(d.efiHorseId !== undefined ? { efiHorseId: d.efiHorseId || null } : {}),
-      ...(d.homeClub !== undefined ? { homeClub: d.homeClub || null } : {}),
-      ...(d.ownership !== undefined ? { ownership: d.ownership } : {}),
-      ...(d.stableNo !== undefined ? { stableNo: d.stableNo || null } : {}),
-      ...(d.diet !== undefined ? { diet: d.diet || null } : {}),
-      ...(d.status !== undefined ? { status: d.status } : {}),
-      ...(d.insurerName !== undefined ? { insurerName: d.insurerName || null } : {}),
-      ...(d.insurancePolicyNo !== undefined ? { insurancePolicyNo: d.insurancePolicyNo || null } : {}),
-      ...(d.insurancePremium !== undefined ? { insurancePremium: d.insurancePremium ?? null } : {}),
-      ...(d.insuranceValidFrom !== undefined
-        ? { insuranceValidFrom: d.insuranceValidFrom ? new Date(d.insuranceValidFrom) : null }
-        : {}),
-      ...(d.insuranceValidTo !== undefined
-        ? { insuranceValidTo: d.insuranceValidTo ? new Date(d.insuranceValidTo) : null }
-        : {}),
-    },
-  });
+
+  // A head coach's edit to a horse's record becomes a request a manager
+  // approves — see lib/change-requests.ts. Nothing changes on the horse until
+  // then.
+  if (requiresApproval(session.role)) {
+    const me = await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } });
+    const request = await raiseChangeRequest({
+      centreId: horse.centreId,
+      kind: CHANGE_KINDS.HORSE_UPDATE,
+      entityId: horse.id,
+      title: `Horse change: ${horse.name}`,
+      body: describeHorseUpdate(horse as unknown as Record<string, unknown>, d),
+      payload: { data: d } as Prisma.InputJsonValue,
+      requestedBy: session.userId,
+      requesterName: me?.name ?? "A coach",
+    });
+    return NextResponse.json(
+      { ok: true, pending: true, approvalId: request.id, message: "Sent to a manager for approval." },
+      { status: 202 },
+    );
+  }
+
+  const updated = await prisma.horse.update({ where: { id: horse.id }, data: horseUpdateData(d) });
 
   await audit({
     userId: session.userId,

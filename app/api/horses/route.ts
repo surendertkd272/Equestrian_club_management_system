@@ -7,6 +7,9 @@ import { audit } from "@/lib/audit";
 import { blockIfFeatureOff, getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { scopeCentre } from "@/lib/tenancy";
+import type { Prisma } from "@prisma/client";
+import { horseCreateData } from "@/lib/horse-writes";
+import { CHANGE_KINDS, raiseChangeRequest, requiresApproval } from "@/lib/change-requests";
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
@@ -59,31 +62,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "FORBIDDEN_CROSS_ORG" }, { status: 403 });
   }
 
-  const horse = await prisma.horse.create({
-    data: {
+  // A head coach adding a horse raises a request a manager approves; the
+  // horse is created on approval (lib/change-requests.ts).
+  if (requiresApproval(session.role)) {
+    const me = await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } });
+    const request = await raiseChangeRequest({
       centreId,
-      name: parsed.data.name,
-      breed: parsed.data.breed || null,
-      sex: parsed.data.sex || null,
-      dob: parsed.data.dob ? new Date(parsed.data.dob) : null,
-      ageYears: parsed.data.ageYears ?? null,
-      heightIn: parsed.data.heightIn ?? null,
-      microchip: parsed.data.microchip || null,
-      identificationMarks: parsed.data.identificationMarks,
-      // EFI id + home club were captured by the form but silently dropped
-      // here — persist them.
-      efiHorseId: parsed.data.efiHorseId || null,
-      homeClub: parsed.data.homeClub || null,
-      ownership: parsed.data.ownership,
-      stableNo: parsed.data.stableNo || null,
-      diet: parsed.data.diet || null,
-      insurerName: parsed.data.insurerName || null,
-      insurancePolicyNo: parsed.data.insurancePolicyNo || null,
-      insurancePremium: parsed.data.insurancePremium ?? null,
-      insuranceValidFrom: parsed.data.insuranceValidFrom ? new Date(parsed.data.insuranceValidFrom) : null,
-      insuranceValidTo: parsed.data.insuranceValidTo ? new Date(parsed.data.insuranceValidTo) : null,
-    },
-  });
+      kind: CHANGE_KINDS.HORSE_CREATE,
+      entityId: "new",
+      title: `New horse: ${parsed.data.name}`,
+      body: [parsed.data.breed, parsed.data.sex, parsed.data.stableNo && `stable ${parsed.data.stableNo}`, parsed.data.identificationMarks]
+        .filter(Boolean)
+        .join(" · "),
+      payload: { data: parsed.data } as Prisma.InputJsonValue,
+      requestedBy: session.userId,
+      requesterName: me?.name ?? "A coach",
+    });
+    return NextResponse.json(
+      { ok: true, pending: true, approvalId: request.id, message: "Sent to a manager for approval." },
+      { status: 202 },
+    );
+  }
+
+  const horse = await prisma.horse.create({ data: horseCreateData(parsed.data, centreId) });
 
   await audit({
     userId: session.userId,

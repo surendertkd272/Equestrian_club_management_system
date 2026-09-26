@@ -4,9 +4,10 @@ import { getSession } from "@/lib/auth";
 import { scopeCentreForRoute } from "@/lib/tenancy";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { updateStockSchema } from "@/lib/schemas/equipment";
-import { audit } from "@/lib/audit";
-import { notifyLowStockIfCrossed } from "@/lib/equipment-notify";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import type { Prisma } from "@prisma/client";
+import { applyStockChange, describeStockChange } from "@/lib/equipment-stock";
+import { CHANGE_KINDS, raiseChangeRequest, requiresApproval } from "@/lib/change-requests";
 
 // PATCH — set qty / apply delta / set threshold for a (centre, catalog
 // item) pair. Auto-creates the EquipmentStock row on first touch. After
@@ -24,9 +25,10 @@ export async function PATCH(
   if (readOnlyBlock) return readOnlyBlock;
 
   // Inventory edits are limited to the inventory manager + centre manager
-  // (and SUPER_ADMIN for cross-centre fixes). HEAD_COACH + COACH can adjust
-  // too — coaches share ground-ops duties and cover for each other, so
-  // inventory access is deliberately not siloed to one person.
+  // (and SUPER_ADMIN for cross-centre fixes). HEAD_COACH + COACH can still
+  // PROPOSE an adjustment — they share ground-ops duties and are often the
+  // ones who notice stock running out — but theirs goes to a manager for
+  // approval instead of being written (below).
   if (
     !["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "INVENTORY_MANAGER", "STABLE_MANAGER", "HEAD_COACH", "COACH"].includes(session.role)
   ) {
@@ -66,124 +68,31 @@ export async function PATCH(
   const catalog = await prisma.equipmentCatalog.findUnique({ where: { id: params.catalogId } });
   if (!catalog) return NextResponse.json({ error: "CATALOG_NOT_FOUND" }, { status: 404 });
 
-  // H2 — serialize concurrent adjustments for this (centre, catalog) pair.
-  // The whole read → compute → upsert → movement runs inside a transaction
-  // that first takes SELECT … FOR UPDATE on the stock row, so two delta writes
-  // can't both read the same prev value and lose an update (and the audited
-  // movement delta is computed from the locked prev, not a stale read). A
-  // first-touch double-create (no row to lock yet) raises P2002 and is retried
-  // once — by then the row exists and takes the locked update path.
-  let stock: Awaited<ReturnType<typeof prisma.equipmentStock.upsert>>;
-  let newQty = 0;
-  let newThreshold: number | null = null;
-  let previousQty = 0;
-  let beforeThreshold: number | null = null;
-
-  const runTx = () =>
-    prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM "EquipmentStock" WHERE "centreId" = ${centreId} AND "catalogId" = ${catalog.id} FOR UPDATE`;
-      const existing = await tx.equipmentStock.findUnique({
-        where: { centreId_catalogId: { centreId, catalogId: catalog.id } },
-      });
-      previousQty = existing?.qty ?? 0;
-      beforeThreshold = existing?.threshold ?? null;
-      const prevUnused = existing?.qtyUnused ?? 0;
-      const prevInUse = existing?.qtyInUse ?? 0;
-      const prevForRepair = existing?.qtyForRepair ?? 0;
-      const prevDamaged = existing?.qtyDamaged ?? 0;
-
-      let newUnused = parsed.data.qtyUnused ?? prevUnused;
-      const newInUse = parsed.data.qtyInUse ?? prevInUse;
-      const newForRepair = parsed.data.qtyForRepair ?? prevForRepair;
-      const newDamaged = parsed.data.qtyDamaged ?? prevDamaged;
-      // Legacy qty/delta path → treated as qtyUnused so the row stays correct.
-      if (parsed.data.qty !== undefined) {
-        newUnused = parsed.data.qty;
-      } else if (parsed.data.delta !== undefined) {
-        newUnused = Math.max(0, prevUnused + parsed.data.delta);
-      }
-      newQty = newUnused + newInUse; // cached "available" for the low-stock sweep
-      newThreshold = parsed.data.threshold === undefined ? existing?.threshold ?? null : parsed.data.threshold;
-      const isRestock = newQty > previousQty;
-
-      const s = await tx.equipmentStock.upsert({
-        where: { centreId_catalogId: { centreId, catalogId: catalog.id } },
-        create: {
-          centreId,
-          catalogId: catalog.id,
-          qty: newQty,
-          qtyUnused: newUnused,
-          qtyInUse: newInUse,
-          qtyForRepair: newForRepair,
-          qtyDamaged: newDamaged,
-          newRequired: parsed.data.newRequired ?? 0,
-          owner: parsed.data.owner ?? null,
-          notes: parsed.data.notes ?? null,
-          threshold: newThreshold,
-          lastRestockedAt: isRestock ? new Date() : null,
-        },
-        update: {
-          qty: newQty,
-          qtyUnused: newUnused,
-          qtyInUse: newInUse,
-          qtyForRepair: newForRepair,
-          qtyDamaged: newDamaged,
-          ...(parsed.data.newRequired !== undefined ? { newRequired: parsed.data.newRequired } : {}),
-          ...(parsed.data.owner !== undefined ? { owner: parsed.data.owner } : {}),
-          ...(parsed.data.notes !== undefined ? { notes: parsed.data.notes } : {}),
-          threshold: newThreshold,
-          ...(isRestock ? { lastRestockedAt: new Date(), lastLowNotifiedAt: null } : {}),
-        },
-      });
-
-      // Always record the movement, even threshold-only updates (delta=0).
-      if (parsed.data.qty !== undefined || parsed.data.delta !== undefined) {
-        await tx.equipmentStockMovement.create({
-          data: {
-            stockId: s.id,
-            delta: newQty - previousQty,
-            reason: parsed.data.reason,
-            notes: parsed.data.notes ?? null,
-            actorId: session.userId,
-          },
-        });
-      }
-      return s;
+  // A coach's adjustment becomes a request a manager approves, rather than a
+  // write — see lib/change-requests.ts. Nothing is written to the stock row
+  // until then, so the count on screen stays the manager-approved one.
+  if (requiresApproval(session.role)) {
+    const current = await prisma.equipmentStock.findUnique({
+      where: { centreId_catalogId: { centreId, catalogId: catalog.id } },
+      select: { qty: true },
     });
-
-  try {
-    stock = await runTx();
-  } catch (e: any) {
-    if (e?.code === "P2002") {
-      stock = await runTx();
-    } else {
-      throw e;
-    }
-  }
-
-  await audit({
-    userId: session.userId,
-    action: "equipment_stock.update",
-    tableName: "equipmentStock",
-    rowId: stock.id,
-    before: { qty: previousQty, threshold: beforeThreshold },
-    after: { qty: newQty, threshold: newThreshold },
-  });
-
-  // Low-stock notification — fires at most once per dip cycle (resets when
-  // qty goes back up).
-  const effectiveThreshold = newThreshold ?? catalog.defaultThreshold;
-  if (newQty < effectiveThreshold) {
-    await notifyLowStockIfCrossed({
-      stockId: stock.id,
+    const me = await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true } });
+    const request = await raiseChangeRequest({
       centreId,
-      catalogId: catalog.id,
-      catalogName: catalog.name,
-      qty: newQty,
-      threshold: effectiveThreshold,
-      unit: catalog.unit,
+      kind: CHANGE_KINDS.STOCK,
+      entityId: catalog.id,
+      title: `Stock change: ${catalog.name}`,
+      body: describeStockChange(catalog.name, catalog.unit, current?.qty ?? 0, parsed.data),
+      payload: { data: parsed.data } as Prisma.InputJsonValue,
+      requestedBy: session.userId,
+      requesterName: me?.name ?? "A coach",
     });
+    return NextResponse.json(
+      { ok: true, pending: true, approvalId: request.id, message: "Sent to a manager for approval." },
+      { status: 202 },
+    );
   }
 
-  return NextResponse.json({ ok: true, qty: newQty, threshold: newThreshold ?? catalog.defaultThreshold });
+  const r = await applyStockChange({ centreId, catalog, data: parsed.data, actorId: session.userId });
+  return NextResponse.json({ ok: true, qty: r.newQty, threshold: r.threshold });
 }

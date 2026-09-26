@@ -58,13 +58,17 @@ export function EditHorseForm({ horseId, initial }: { horseId: string; initial: 
     // reject. Leaving a legacy horse's OTHER fields editable must not be
     // blocked on backfilling this one.
     if (payload.identificationMarks === "") delete payload.identificationMarks;
-    const res = await patchJson(`/api/horses/${horseId}`, payload);
+    const res = await patchJson<{ pending?: boolean }>(`/api/horses/${horseId}`, payload);
     setSaving(false);
     if (!res.ok) {
       toast.error(res.message);
       return;
     }
-    toast.success("Horse updated");
+    if (res.data?.pending) {
+      toast.info("Sent to a manager for approval — the horse changes once it's approved.");
+    } else {
+      toast.success("Horse updated");
+    }
     router.push(`/horses/${horseId}`);
     router.refresh();
   }
