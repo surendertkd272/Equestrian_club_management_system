@@ -15,7 +15,24 @@
 // v4: navigations are now network-first (see fetch handler) — stops stale
 //     cached HTML from referencing JS chunks a later deploy deleted, which
 //     surfaced as "client-side exception" / ChunkLoadError on some pages.
-const CACHE_NAME = "ew-cache-v4";
+// v5: ONLY content-hashed static files are served cache-first now. Everything
+//     else — navigations, in-app page loads (RSC payloads), API reads — is
+//     network-first. v4 still answered in-app navigation and router.refresh()
+//     from cache before the network: after a deploy users kept running old
+//     code (the Record Payment dialog's removed ₹3,000 cap came back from
+//     cache), and after a save the refreshed page could show pre-save data —
+//     an invoice still "outstanding" after it was paid. Bumping the name also
+//     deletes every client's v4 cache on activation.
+const CACHE_NAME = "ew-cache-v5";
+
+// Immutable: Next's build output is content-hashed (a new deploy means new
+// URLs), and the rest are static public files. Safe to serve from cache.
+function isImmutable(url) {
+  return (
+    url.pathname.startsWith("/_next/static/") ||
+    /\.(?:png|jpe?g|gif|svg|webp|ico|woff2?|ttf|otf)$/i.test(url.pathname)
+  );
+}
 
 // Sensitive / fast-moving endpoints we never want stale copies of. The
 // service worker should pass-through to the network for any path that
@@ -78,43 +95,39 @@ self.addEventListener("fetch", (event) => {
   // endpoints should always hit the network — stale data here is a bug.
   if (NO_CACHE_PREFIXES.some((p) => url.pathname.startsWith(p))) return;
 
-  // HTML page navigations: NETWORK-FIRST. Serving a stale cached HTML doc
-  // after a redeploy points the browser at JS chunk URLs that no longer
-  // exist (the new build re-hashed them) → ChunkLoadError / "client-side
-  // exception". So always fetch fresh HTML; fall back to cache only offline.
-  if (req.mode === "navigate") {
+  // Content-hashed and static assets: cache-first, then network. These never
+  // change under the same URL, so a cached copy is never stale.
+  if (isImmutable(url)) {
     event.respondWith(
       (async () => {
-        try {
-          const res = await fetch(req);
-          if (res && res.status === 200 && res.type === "basic") {
-            const cache = await caches.open(CACHE_NAME);
-            cache.put(req, res.clone()).catch(() => {});
-          }
-          return res;
-        } catch {
-          const cached = await caches.match(req);
-          return cached || Response.error();
-        }
+        const cache = await caches.open(CACHE_NAME);
+        const cached = await cache.match(req);
+        if (cached) return cached;
+        const res = await fetch(req);
+        if (res && res.status === 200 && res.type === "basic") cache.put(req, res.clone()).catch(() => {});
+        return res;
       })(),
     );
     return;
   }
 
+  // Everything else — HTML navigations, in-app page loads (Next's RSC fetches
+  // carry `RSC: 1` and a `_rsc` query, and are NOT mode "navigate", which is
+  // how v4 served them stale), and API reads: NETWORK-FIRST. The cache is only
+  // an offline fallback, which is what it was for — a flaky arena connection.
   event.respondWith(
     (async () => {
-      const cache = await caches.open(CACHE_NAME);
-      const cached = await cache.match(req);
-      const network = fetch(req)
-        .then((res) => {
-          // Only stash full, basic responses. Skip opaque + redirects.
-          if (res && res.status === 200 && res.type === "basic") {
-            cache.put(req, res.clone()).catch(() => {});
-          }
-          return res;
-        })
-        .catch(() => cached);
-      return cached || network;
+      try {
+        const res = await fetch(req);
+        if (res && res.status === 200 && res.type === "basic") {
+          const cache = await caches.open(CACHE_NAME);
+          cache.put(req, res.clone()).catch(() => {});
+        }
+        return res;
+      } catch {
+        const cached = await caches.match(req);
+        return cached || Response.error();
+      }
     })(),
   );
 });
