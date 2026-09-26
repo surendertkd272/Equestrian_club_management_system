@@ -16,6 +16,14 @@ export const recordPaymentSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2})?)?$/)
     .optional(),
   notes: z.string().max(300).optional(),
+  // A family often pays more than the one invoice in front of the operator —
+  // registration plus the first month in one UPI transfer. Without this the
+  // extra could not be recorded at all ("must be ≤ 3000"). When set, anything
+  // above what the invoice still owes is kept as an advance on the rider's
+  // account (an invoice-less receipt) instead of over-paying the invoice.
+  // Opt-in, so a typo — 30000 for 3000 — is still refused rather than quietly
+  // turned into a ₹27,000 advance.
+  excessAsAdvance: z.boolean().optional(),
 });
 
 export const bulkMarkPaidSchema = z.object({

@@ -65,6 +65,16 @@ export default async function RiderProfile({ params }: { params: { id: string } 
           creditNotes: { select: { amount: true, gstAmount: true } },
         },
       },
+      // Money received against no invoice: advances (the part of a payment
+      // above the invoice it settled) and plain receipts. Loaded separately
+      // because they hang off the rider, not an invoice — the Payments card
+      // below used to walk invoices only, so every one of these was invisible
+      // on the one page an operator can reach that knows this family's money.
+      paymentsReceived: {
+        where: { invoiceId: null },
+        select: { id: true, amount: true, method: true, paidAt: true, txnRef: true, reason: true, reversalOfId: true },
+        orderBy: { paidAt: "desc" },
+      },
       attendances: { orderBy: { date: "desc" }, take: 30 },
       parentLinks: {
         include: { parent: { select: { id: true, name: true, email: true, phone: true } } },
@@ -530,15 +540,28 @@ export default async function RiderProfile({ params }: { params: { id: string } 
         // Receipts, with the way to undo one. This lives here because /finance
         // redirects to the dashboard — the rider profile is the only page an
         // operator can actually navigate to that knows about this family's money.
-        const receipts = rider.invoices.flatMap((inv) =>
-          inv.payments.map((p) => ({ ...p, invoiceKind: inv.kind })),
-        );
+        const receipts = [
+          ...rider.invoices.flatMap((inv) =>
+            inv.payments.map((p) => ({ ...p, invoiceKind: inv.kind as string | null })),
+          ),
+          ...rider.paymentsReceived.map((p) => ({ ...p, invoiceKind: null as string | null })),
+        ];
         const reversed = new Set(receipts.map((p) => p.reversalOfId).filter((v): v is string => !!v));
         if (receipts.length === 0) return null;
+        // Net of reversals: a reversed advance carries a negative row of its
+        // own, so a plain sum is already the balance.
+        const onAccount = rider.paymentsReceived.reduce((s, p) => s + p.amount, 0);
         return (
           <Card>
             <CardHeader>
-              <CardTitle>Payments</CardTitle>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <CardTitle>Payments</CardTitle>
+                {onAccount > 0.001 && (
+                  <Badge variant="success">
+                    ₹{Math.round(onAccount).toLocaleString("en-IN")} advance on account
+                  </Badge>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <ul className="space-y-1 text-sm">
@@ -554,6 +577,11 @@ export default async function RiderProfile({ params }: { params: { id: string } 
                         {p.amount < 0 && (
                           <span className="ml-2 text-[11px] uppercase tracking-wide text-rose-600">
                             reversal{p.reason ? ` · ${p.reason}` : ""}
+                          </span>
+                        )}
+                        {p.amount > 0 && p.invoiceKind === null && (
+                          <span className="ml-2 text-[11px] uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                            advance / receipt
                           </span>
                         )}
                       </span>

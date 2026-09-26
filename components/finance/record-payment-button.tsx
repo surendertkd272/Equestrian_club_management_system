@@ -33,6 +33,14 @@ export function RecordPaymentButton({
   const dialogRef = useRef<HTMLFormElement>(null);
   useFocusTrap(dialogRef, open);
 
+  const entered = Number(amount);
+  // Anything above what this invoice still owes. Shown before submit, so the
+  // operator sees exactly where the extra goes rather than discovering it.
+  const excess = Number.isFinite(entered) ? Math.round((entered - outstanding) * 100) / 100 : 0;
+  const hasExcess = excess > 0.001;
+  const inr = (n: number) =>
+    `₹${n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -42,15 +50,16 @@ export function RecordPaymentButton({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           invoiceId,
-          amount: Number(amount),
+          amount: entered,
           method,
           ...(txnRef ? { txnRef } : {}),
+          ...(hasExcess ? { excessAsAdvance: true } : {}),
         }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error(
-          data.error === "OVERPAY"
+          data.error === "OVERPAY" || data.error === "DUPLICATE_REF"
             ? data.message
             : data.error === "INVOICE_REFUNDED"
               ? "This invoice was refunded — can't record a payment."
@@ -59,9 +68,11 @@ export function RecordPaymentButton({
         return;
       }
       toast.success(
-        data.invoiceStatus === "paid"
-          ? "Payment recorded — invoice fully paid"
-          : `Payment recorded · ₹${data.outstanding.toFixed(2)} still outstanding`,
+        data.advanceAmount > 0
+          ? `Invoice fully paid · ${inr(data.advanceAmount)} kept as advance on account`
+          : data.invoiceStatus === "paid"
+            ? "Payment recorded — invoice fully paid"
+            : `Payment recorded · ₹${data.outstanding.toFixed(2)} still outstanding`,
       );
       setOpen(false);
       setTxnRef("");
@@ -101,15 +112,24 @@ export function RecordPaymentButton({
             </div>
             <div>
               <Label>Amount (₹) *</Label>
+              {/* No max: a family paying registration and the first month in
+                  one transfer is normal. The overflow is shown below and kept
+                  as an advance rather than refused. */}
               <Input aria-label="Amount (₹)"
                 type="number"
                 min={0.01}
                 step="0.01"
-                max={outstanding}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 autoFocus
               />
+              {hasExcess && (
+                <p className="mt-1.5 rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                  {inr(excess)} more than this invoice. {inr(outstanding)} will settle it and{" "}
+                  <strong>{inr(excess)}</strong> will be kept as an advance on the rider&apos;s
+                  account.
+                </p>
+              )}
             </div>
             <div>
               <Label>Method</Label>

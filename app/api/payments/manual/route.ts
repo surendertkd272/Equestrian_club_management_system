@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
   // and clobber each other's status update). The pre-read above is only used
   // for the not-found / cross-centre / refunded fast-path.
   let payment: Awaited<ReturnType<typeof prisma.payment.create>>;
+  let advance: Awaited<ReturnType<typeof prisma.payment.create>> | null = null;
   let newStatus: string;
   let newTotalPaid: number;
   let collectableTotal: number;
@@ -92,32 +93,78 @@ export async function POST(req: NextRequest) {
       });
       const collectable =
         target + (credits._sum.amount ?? 0) + (credits._sum.gstAmount ?? 0);
-      if (parsed.data.amount > collectable - alreadyPaid + 0.001) {
-        throw new Overpay(Math.max(0, collectable - alreadyPaid));
+      const outstanding = Math.max(0, collectable - alreadyPaid);
+      // Round to paise so the split can't leave a 0.0000001 fragment on
+      // either side of it.
+      const toInvoice = Math.round(Math.min(parsed.data.amount, outstanding) * 100) / 100;
+      const excess = Math.round((parsed.data.amount - toInvoice) * 100) / 100;
+      if (excess > 0.001 && (!parsed.data.excessAsAdvance || toInvoice <= 0.001)) {
+        // Not opted in, or nothing left on the invoice to settle (then this is
+        // a plain receipt and belongs on the receipt form, not here).
+        throw new Overpay(outstanding);
       }
+      const clearedAt = parsed.data.method === "cheque" ? null : paidAt;
       const p = await tx.payment.create({
         data: {
           invoiceId: inv.id,
           centreId: inv.centreId,
           riderId: inv.riderId,
-          amount: parsed.data.amount,
+          amount: toInvoice,
           method: parsed.data.method,
           txnRef: parsed.data.txnRef,
           paidAt,
-          clearedAt: parsed.data.method === "cheque" ? null : paidAt,
+          clearedAt,
         },
       });
-      const totalPaid = alreadyPaid + parsed.data.amount;
+      // The rest of the same transfer, kept on the rider's account, with the
+      // same method and date as the part that settled the invoice.
+      //
+      // NOT the same txnRef: it is UNIQUE, so a re-submitted UPI reference
+      // collides instead of being recorded twice. The invoice row keeps the
+      // real reference (so that protection still holds for this transfer) and
+      // the advance names it in its note, which is what someone matching the
+      // bank statement needs.
+      const refNote = parsed.data.txnRef ? ` · ref ${parsed.data.txnRef}` : "";
+      const adv =
+        excess > 0.001
+          ? await tx.payment.create({
+              data: {
+                invoiceId: null,
+                centreId: inv.centreId,
+                riderId: inv.riderId,
+                amount: excess,
+                method: parsed.data.method,
+                txnRef: null,
+                paidAt,
+                clearedAt,
+                reason: `Advance — paid ₹${parsed.data.amount.toFixed(2)} against a ₹${toInvoice.toFixed(2)} ${inv.kind} invoice${refNote}`,
+              },
+            })
+          : null;
+      const totalPaid = alreadyPaid + toInvoice;
       const status = totalPaid >= collectable - 0.001 ? "paid" : "due";
       // Unconditional update under the lock — idempotent if status is unchanged.
       await tx.invoice.update({ where: { id: inv.id }, data: { status } });
-      return { payment: p, newStatus: status, newTotalPaid: totalPaid, collectable };
+      return { payment: p, advance: adv, newStatus: status, newTotalPaid: totalPaid, collectable };
     });
     payment = r.payment;
+    advance = r.advance;
     newStatus = r.newStatus;
     newTotalPaid = r.newTotalPaid;
     collectableTotal = r.collectable;
   } catch (e) {
+    // txnRef is UNIQUE — the same UPI/cheque reference recorded twice. That is
+    // almost always the same money entered a second time, so say that, rather
+    // than crash with a 500 the operator can't act on.
+    if ((e as { code?: string })?.code === "P2002") {
+      return NextResponse.json(
+        {
+          error: "DUPLICATE_REF",
+          message: `Reference ${parsed.data.txnRef} is already recorded against another payment.`,
+        },
+        { status: 409 },
+      );
+    }
     if (e instanceof Overpay) {
       return NextResponse.json(
         {
@@ -135,7 +182,13 @@ export async function POST(req: NextRequest) {
     action: "payment.record_manual",
     tableName: "payment",
     rowId: payment.id,
-    after: { invoiceId: inv.id, amount: payment.amount, method: payment.method, newStatus },
+    after: {
+      invoiceId: inv.id,
+      amount: payment.amount,
+      method: payment.method,
+      newStatus,
+      ...(advance ? { advanceAmount: advance.amount, advancePaymentId: advance.id } : {}),
+    },
   });
 
   return NextResponse.json({
@@ -144,5 +197,6 @@ export async function POST(req: NextRequest) {
     invoiceStatus: newStatus,
     totalPaid: newTotalPaid,
     outstanding: Math.max(0, collectableTotal - newTotalPaid),
+    advanceAmount: advance?.amount ?? 0,
   });
 }
