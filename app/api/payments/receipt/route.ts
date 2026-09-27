@@ -6,6 +6,7 @@ import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { getOrgIdForSession } from "@/lib/features-gate";
+import { FEE_MONTH_RE, FEE_RECORDER_ROLES, formatFeeMonth } from "@/lib/fee-month";
 
 // Record fees received, with no invoice behind them.
 //
@@ -31,6 +32,8 @@ const schema = z.object({
   paidAt: z.string().optional(),
   txnRef: z.string().max(120).optional(),
   note: z.string().max(300).optional(),
+  // Set = a monthly fee for that month ("YYYY-MM"), the thing coaches record.
+  feeMonth: z.string().regex(FEE_MONTH_RE).optional(),
   // Screenshot / slip proving the money arrived. Same /uploads whitelist the
   // rest of the app uses — an external URL here would let someone point the
   // club's own records at a host they control.
@@ -44,7 +47,8 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  if (!can(session.role, "finance.write")) {
+  const finance = can(session.role, "finance.write");
+  if (!finance && !FEE_RECORDER_ROLES.has(session.role)) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
   const readOnly = await blockIfReadOnly(session);
@@ -59,6 +63,15 @@ export async function POST(req: NextRequest) {
     );
   }
   const d = parsed.data;
+  // A coach records a month's fee and nothing else: not an untyped receipt,
+  // and never outside their own centre (enforced by the rider lookup below,
+  // which pins centre-bound callers to session.centreId).
+  if (!finance && (!d.feeMonth || !session.centreId)) {
+    return NextResponse.json(
+      { error: "FORBIDDEN", message: "Coaches can record a monthly fee only." },
+      { status: 403 },
+    );
+  }
 
   const orgId = await getOrgIdForSession(session);
   if (!orgId) return NextResponse.json({ error: "NO_ORG" }, { status: 403 });
@@ -92,7 +105,11 @@ export async function POST(req: NextRequest) {
       // it clears, and counting it as revenue on the day it was written is how
       // a bounced cheque quietly overstates a month.
       clearedAt: d.method === "cheque" ? null : paidAt,
-      reason: d.note ?? null,
+      reason: d.feeMonth
+        ? `Monthly fee — ${formatFeeMonth(d.feeMonth)}${d.note ? ` · ${d.note}` : ""}`
+        : d.note ?? null,
+      feeMonth: d.feeMonth ?? null,
+      recordedByUserId: session.userId,
       proofUrl: d.proofUrl ?? null,
       txnRef: d.txnRef || null,
     },
@@ -108,6 +125,7 @@ export async function POST(req: NextRequest) {
       amount: d.amount,
       method: d.method,
       note: d.note ?? null,
+      feeMonth: d.feeMonth ?? null,
       hasProof: Boolean(d.proofUrl),
     },
     ip: req.headers.get("x-forwarded-for"),

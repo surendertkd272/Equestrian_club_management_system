@@ -2068,6 +2068,16 @@ model Payment {
   // payment happened; there is no gateway record behind it, so a bare figure
   // typed by staff is otherwise unverifiable months later.
   proofUrl  String?
+  // The month a fee payment is FOR, "YYYY-MM". Set = this is a monthly fee
+  // (what coaches record for their riders, and the part of a payment above an
+  // invoice when the family was paying the month too). Null on an invoice
+  // payment or a genuine advance. Separate from paidAt: September's fee is
+  // often paid on 3 October.
+  feeMonth  String?
+  // Who typed it in. Payments were attributable only through the audit log,
+  // and "which coach recorded this ₹2,000?" is the first question asked of a
+  // fee a coach entered.
+  recordedByUserId String?
 
   // A reversal is a NEW row with a negative amount pointing at the original —
   // a bounced cheque, a receipt entered against the wrong rider, a refund. It

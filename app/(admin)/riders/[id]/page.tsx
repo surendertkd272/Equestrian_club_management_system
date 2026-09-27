@@ -23,6 +23,8 @@ import { WithdrawPanel, WithdrawnRiderBanner } from "./withdraw-panel";
 import { creditPosition } from "@/lib/credit-note";
 import { InvoiceReversalActions, ReversePaymentButton } from "@/components/finance/reversal-actions";
 import { RecordPaymentButton } from "@/components/finance/record-payment-button";
+import { RecordFeeButton, MarkAsFeeButton } from "@/components/finance/record-fee-button";
+import { FEE_RECORDER_ROLES, currentFeeMonth, formatFeeMonth } from "@/lib/fee-month";
 import { ConsentRecord } from "./consent-record";
 import { PLATFORM_TZ } from "@/lib/tz";
 export const dynamic = "force-dynamic";
@@ -59,7 +61,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
         orderBy: { createdAt: "desc" },
         include: {
           payments: {
-            select: { id: true, amount: true, method: true, paidAt: true, txnRef: true, reason: true, reversalOfId: true },
+            select: { id: true, amount: true, method: true, paidAt: true, txnRef: true, reason: true, reversalOfId: true, feeMonth: true, recordedByUserId: true },
             orderBy: { paidAt: "desc" },
           },
           creditNotes: { select: { amount: true, gstAmount: true } },
@@ -72,7 +74,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
       // on the one page an operator can reach that knows this family's money.
       paymentsReceived: {
         where: { invoiceId: null },
-        select: { id: true, amount: true, method: true, paidAt: true, txnRef: true, reason: true, reversalOfId: true },
+        select: { id: true, amount: true, method: true, paidAt: true, txnRef: true, reason: true, reversalOfId: true, feeMonth: true, recordedByUserId: true },
         orderBy: { paidAt: "desc" },
       },
       attendances: { orderBy: { date: "desc" }, take: 30 },
@@ -536,7 +538,7 @@ export default async function RiderProfile({ params }: { params: { id: string } 
         </CardContent>
       </Card>
 
-      {(() => {
+      {await (async () => {
         // Receipts, with the way to undo one. This lives here because /finance
         // redirects to the dashboard — the rider profile is the only page an
         // operator can actually navigate to that knows about this family's money.
@@ -547,30 +549,89 @@ export default async function RiderProfile({ params }: { params: { id: string } 
           ...rider.paymentsReceived.map((p) => ({ ...p, invoiceKind: null as string | null })),
         ];
         const reversed = new Set(receipts.map((p) => p.reversalOfId).filter((v): v is string => !!v));
-        if (receipts.length === 0) return null;
-        // Net of reversals: a reversed advance carries a negative row of its
-        // own, so a plain sum is already the balance.
-        const onAccount = rider.paymentsReceived.reduce((s, p) => s + p.amount, 0);
+        const financeWrite = can(session.role, "finance.write");
+        const canRecordFee = financeWrite || FEE_RECORDER_ROLES.has(session.role);
+        if (receipts.length === 0 && !canRecordFee) return null;
+
+        // What each invoice-less payment IS. Every one used to be called an
+        // "advance", including the monthly fees a coach records for the
+        // club's own books — so a fee showed up as money owed back.
+        const byId = new Map(receipts.map((p) => [p.id, p]));
+        const kindOf = (p: (typeof receipts)[number]): "invoice" | "fee" | "advance" | "receipt" => {
+          const base = p.reversalOfId ? byId.get(p.reversalOfId) ?? p : p;
+          if (base.invoiceKind !== null) return "invoice";
+          if (base.feeMonth) return "fee";
+          if (base.reason?.startsWith("Advance")) return "advance";
+          return "receipt";
+        };
+        // Net of reversals: a reversal row carries the negative amount.
+        const onAccount = rider.paymentsReceived
+          .filter((p) => kindOf({ ...p, invoiceKind: null }) === "advance")
+          .reduce((s, p) => s + p.amount, 0);
+        const tz = rider.centre?.timezone ?? PLATFORM_TZ;
+        const month = currentFeeMonth(tz);
+        const thisMonthFee = rider.paymentsReceived
+          .filter((p) => (p.reversalOfId ? byId.get(p.reversalOfId)?.feeMonth : p.feeMonth) === month)
+          .reduce((s, p) => s + p.amount, 0);
+
+        const recorderIds = [...new Set(receipts.map((p) => p.recordedByUserId).filter((v): v is string => !!v))];
+        const recorders = recorderIds.length
+          ? await prisma.user.findMany({ where: { id: { in: recorderIds } }, select: { id: true, name: true } })
+          : [];
+        const recorderName = new Map(recorders.map((u) => [u.id, u.name]));
+
         return (
           <Card>
             <CardHeader>
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <CardTitle>Payments</CardTitle>
-                {onAccount > 0.001 && (
-                  <Badge variant="success">
-                    ₹{Math.round(onAccount).toLocaleString("en-IN")} advance on account
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={thisMonthFee > 0.001 ? "success" : "outline"}>
+                    {formatFeeMonth(month)} fee:{" "}
+                    {thisMonthFee > 0.001 ? `₹${Math.round(thisMonthFee).toLocaleString("en-IN")}` : "not recorded"}
                   </Badge>
-                )}
+                  {onAccount > 0.001 && (
+                    <Badge variant="warning">
+                      ₹{Math.round(onAccount).toLocaleString("en-IN")} advance on account
+                    </Badge>
+                  )}
+                  {canRecordFee && <RecordFeeButton riderId={rider.id} />}
+                </div>
               </div>
             </CardHeader>
             <CardContent>
+              {receipts.length === 0 ? (
+                <p className="py-2 text-sm text-muted-foreground">No payments recorded yet.</p>
+              ) : (
               <ul className="space-y-1 text-sm">
                 {receipts
                   .sort((a, b) => b.paidAt.getTime() - a.paidAt.getTime())
-                  .map((p) => (
-                    <li key={p.id} className="flex items-center justify-between gap-3 border-b py-1 last:border-0">
+                  .map((p) => {
+                    const kind = kindOf(p);
+                    return (
+                    <li key={p.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b py-1.5 last:border-0">
                       <span>
                         {formatDate(p.paidAt)} · {formatEnum(p.method)}
+                        {p.amount > 0 && kind === "fee" && p.feeMonth && (
+                          <span className="ml-2 text-[11px] uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                            monthly fee · {formatFeeMonth(p.feeMonth)}
+                          </span>
+                        )}
+                        {p.amount > 0 && kind === "advance" && (
+                          <span className="ml-2 text-[11px] uppercase tracking-wide text-amber-700 dark:text-amber-400">
+                            advance
+                          </span>
+                        )}
+                        {p.amount > 0 && kind === "receipt" && (
+                          <span className="ml-2 text-[11px] uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                            fee received
+                          </span>
+                        )}
+                        {p.amount > 0 && kind === "invoice" && p.invoiceKind && (
+                          <span className="ml-2 text-[11px] uppercase tracking-wide text-muted-foreground">
+                            {formatEnum(p.invoiceKind)} invoice
+                          </span>
+                        )}
                         {p.txnRef && (
                           <span className="ml-2 font-mono text-xs text-muted-foreground">{p.txnRef}</span>
                         )}
@@ -579,15 +640,18 @@ export default async function RiderProfile({ params }: { params: { id: string } 
                             reversal{p.reason ? ` · ${p.reason}` : ""}
                           </span>
                         )}
-                        {p.amount > 0 && p.invoiceKind === null && (
-                          <span className="ml-2 text-[11px] uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
-                            advance / receipt
+                        {p.recordedByUserId && recorderName.get(p.recordedByUserId) && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            by {recorderName.get(p.recordedByUserId)}
                           </span>
                         )}
                       </span>
                       <span className="flex items-center gap-2">
                         <span className="font-mono">₹{Math.round(p.amount).toLocaleString("en-IN")}</span>
-                        {can(session.role, "finance.write") && (
+                        {financeWrite && kind === "advance" && p.amount > 0 && !reversed.has(p.id) && (
+                          <MarkAsFeeButton paymentId={p.id} />
+                        )}
+                        {financeWrite && (
                           <ReversePaymentButton
                             paymentId={p.id}
                             amount={p.amount}
@@ -596,8 +660,10 @@ export default async function RiderProfile({ params }: { params: { id: string } 
                         )}
                       </span>
                     </li>
-                  ))}
+                    );
+                  })}
               </ul>
+              )}
             </CardContent>
           </Card>
         );

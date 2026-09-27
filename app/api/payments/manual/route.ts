@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { recordPaymentSchema } from "@/lib/schemas/payment";
 import { audit } from "@/lib/audit";
+import { formatFeeMonth } from "@/lib/fee-month";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 
 // Thrown inside the payment transaction when, under the invoice row lock, the
@@ -114,6 +115,7 @@ export async function POST(req: NextRequest) {
           txnRef: parsed.data.txnRef,
           paidAt,
           clearedAt,
+          recordedByUserId: session.userId,
         },
       });
       // The rest of the same transfer, kept on the rider's account, with the
@@ -125,6 +127,7 @@ export async function POST(req: NextRequest) {
       // the advance names it in its note, which is what someone matching the
       // bank statement needs.
       const refNote = parsed.data.txnRef ? ` · ref ${parsed.data.txnRef}` : "";
+      const feeMonth = parsed.data.excessFeeMonth ?? null;
       const adv =
         excess > 0.001
           ? await tx.payment.create({
@@ -137,7 +140,11 @@ export async function POST(req: NextRequest) {
                 txnRef: null,
                 paidAt,
                 clearedAt,
-                reason: `Advance — paid ₹${parsed.data.amount.toFixed(2)} against a ₹${toInvoice.toFixed(2)} ${inv.kind} invoice${refNote}`,
+                reason: feeMonth
+                  ? `Monthly fee — ${formatFeeMonth(feeMonth)} · paid with the ${inv.kind} invoice (₹${parsed.data.amount.toFixed(2)} in all)${refNote}`
+                  : `Advance — paid ₹${parsed.data.amount.toFixed(2)} against a ₹${toInvoice.toFixed(2)} ${inv.kind} invoice${refNote}`,
+                feeMonth,
+                recordedByUserId: session.userId,
               },
             })
           : null;
@@ -198,5 +205,6 @@ export async function POST(req: NextRequest) {
     totalPaid: newTotalPaid,
     outstanding: Math.max(0, collectableTotal - newTotalPaid),
     advanceAmount: advance?.amount ?? 0,
+    excessFeeMonth: advance?.feeMonth ?? null,
   });
 }

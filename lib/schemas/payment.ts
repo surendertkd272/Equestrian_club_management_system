@@ -24,6 +24,10 @@ export const recordPaymentSchema = z.object({
   // Opt-in, so a typo — 30000 for 3000 — is still refused rather than quietly
   // turned into a ₹27,000 advance.
   excessAsAdvance: z.boolean().optional(),
+  // With excessAsAdvance: file the extra as that month's fee ("YYYY-MM")
+  // instead of an advance — a family paying registration and this month in
+  // one transfer.
+  excessFeeMonth: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).optional(),
 });
 
 export const bulkMarkPaidSchema = z.object({
