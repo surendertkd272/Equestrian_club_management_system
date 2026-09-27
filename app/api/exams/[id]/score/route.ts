@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
@@ -7,12 +8,60 @@ import { can } from "@/lib/permissions";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { updateExamScoreSchema, parseRubric, computeTotal, findScoreViolations, countUnscored } from "@/lib/schemas/exam";
 import { audit } from "@/lib/audit";
-import { generateUniqueSerial, verifyUrl } from "@/lib/cert";
-import { hasBaseUrl } from "@/lib/absolute-url";
-import { notifyCentreManager, notify, notifyRiderAndParents } from "@/lib/notify";
-import { sendSms } from "@/lib/sms";
-import { sendEmail, renderEmail } from "@/lib/email";
-import { sendWhatsApp } from "@/lib/whatsapp";
+import {
+  ExamPanelError,
+  isExamManager,
+  lockExam,
+  pendingCards,
+  panelAggregate,
+  adjustedTotal,
+  completeIfPanelDone,
+  afterExamCompleted,
+  type FinalizeResult,
+  type LockedExam,
+} from "@/lib/exam-panel";
+
+const COMPLETED_MESSAGE =
+  "This exam is already completed. A centre manager can reopen it for correction from the exam page.";
+const CARD_LOCKED_MESSAGE =
+  "This card is already submitted and locked. It can only change if a manager reopens the exam after it completes.";
+
+// Which card a request is about, and whether the caller may write it.
+// A co-judge's card is addressed by `judgeId`; no judgeId means the lead
+// examiner's card (Exam.scoresJson). Only the card's own judge, or a manager
+// acting for them, may touch it — a head coach seated as co-judge who saved
+// without a judgeId used to overwrite the LEAD's marks.
+function resolveCard(
+  session: { userId: string; role: string },
+  exam: { examinerId: string | null; judges: { judgeId: string }[] },
+  judgeId: string | undefined,
+): { error: NextResponse } | { judgeId: string | null } {
+  const isManager = isExamManager(session.role);
+  if (judgeId) {
+    if (!exam.judges.some((j) => j.judgeId === judgeId)) {
+      return { error: NextResponse.json({ error: "JUDGE_NOT_ON_EXAM" }, { status: 400 }) };
+    }
+    if (!isManager && session.userId !== judgeId) {
+      return { error: NextResponse.json({ error: "NOT_YOUR_CARD" }, { status: 403 }) };
+    }
+    return { judgeId };
+  }
+  if (!isManager && exam.examinerId !== session.userId) {
+    const seated = exam.judges.some((j) => j.judgeId === session.userId);
+    return {
+      error: NextResponse.json(
+        {
+          error: seated ? "NOT_YOUR_CARD" : "NOT_YOUR_EXAM",
+          message: seated
+            ? "You're on this exam's jury — mark your own card, not the lead examiner's. Reload the page to open it."
+            : "Only the lead examiner or a centre manager can mark this card.",
+        },
+        { status: 403 },
+      ),
+    };
+  }
+  return { judgeId: null };
+}
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
@@ -34,40 +83,26 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     include: { judges: true },
   });
   if (!exam) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
-  // every centre while org-fencing nobody. centreFence does both.
-  const fence36 = await centreFence(session, exam.centreId);
-  if (fence36) {
-    return NextResponse.json({ error: fence36 }, { status: 403 });
+  // HQ roles carry centreId = null, so a hand-rolled comparison locked ADMIN
+  // out of every centre while org-fencing nobody. centreFence does both.
+  const fence = await centreFence(session, exam.centreId);
+  if (fence) {
+    return NextResponse.json({ error: fence }, { status: 403 });
   }
-  // Determine which judge is submitting. If `judgeId` is supplied, only that
-  // judge (or a manager/admin) may submit on their row. With no judgeId we
-  // fall back to the legacy single-judge flow on Exam.scoresJson, and require
-  // that the caller IS the lead examiner.
-  const isManager = session.role === "SUPER_ADMIN" || session.role === "CENTRE_MANAGER";
-  const judgeRow = judgeId ? exam.judges.find((j) => j.judgeId === judgeId) : null;
-  if (judgeId) {
-    if (!judgeRow) {
-      return NextResponse.json({ error: "JUDGE_NOT_ON_EXAM" }, { status: 400 });
-    }
-    if (!isManager && session.userId !== judgeId) {
-      return NextResponse.json({ error: "NOT_YOUR_CARD" }, { status: 403 });
-    }
-  } else if (session.role === "EXAMINER" && exam.examinerId !== session.userId) {
-    return NextResponse.json({ error: "NOT_YOUR_EXAM" }, { status: 403 });
-  }
-  if (exam.status === "completed") {
-    return NextResponse.json({ error: "ALREADY_COMPLETED" }, { status: 409 });
-  }
+  const card = resolveCard(session, exam, judgeId);
+  if ("error" in card) return card.error;
+  const isCoJudgeCard = card.judgeId !== null;
+  // Deductions and time faults belong to the lead examiner (or a manager); a
+  // co-judge marks their own rubric card only.
+  const mayAdjust = !isCoJudgeCard || isExamManager(session.role);
 
   const template = await prisma.scoringTemplate.findUnique({
     where: { centreId_levelKey: { centreId: exam.centreId, levelKey: String(exam.level) } },
   });
   if (!template) return NextResponse.json({ error: "NO_TEMPLATE_FOR_LEVEL" }, { status: 400 });
-  // The score handler runs DURING an active exam — use the snapshot the
-  // exam was created with so a mid-exam rubric edit doesn't change the
-  // scoring rules under the examiner's feet. The live template still
-  // contributes passThreshold + levelName.
+  // Mark against the rubric the exam was scheduled with, so a mid-exam rubric
+  // edit doesn't change the rules under the examiner's feet. Exams created
+  // before snapshots existed are pinned on their first save (below).
   const rubric = parseRubric(exam.rubricSnapshotJson ?? template.categoriesJson);
 
   // Reject any per-item score outside its rubric [0, max] before aggregating —
@@ -79,9 +114,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   // Locking a half-filled card is almost always a slip, and it is irreversible:
-  // unscored items count as zero, the exam completes, and the parents are
-  // notified of a result the child did not actually get. Refuse unless the
-  // examiner has explicitly confirmed a partial card.
+  // unscored items count as zero. Refuse unless the examiner has explicitly
+  // confirmed a partial card.
   if (final && !allowIncomplete) {
     const { unscored, total: itemCount } = countUnscored(rubric, scores);
     if (unscored > 0) {
@@ -97,234 +131,114 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
   }
 
-  // Per-judge subtotal first.
-  const { total: thisJudgeTotal, max } = computeTotal(rubric, scores);
+  const { total: cardTotal, max } = computeTotal(rubric, scores);
 
-  // Aggregate across EVERY submitted card on the panel — the lead examiner's
-  // and each co-judge's — and take the mean.
-  //
-  // The lead's card is not an ExamJudge row: claiming an exam doesn't create
-  // one, so her marks live on Exam.scoresJson. Averaging only the ExamJudge
-  // rows therefore threw the lead examiner's card away entirely. Observed on
-  // a two-judge panel: lead marked 91/91 (pass), co-judge marked 0/91, and
-  // the exam was recorded as 0 / FAIL — not the 45.5 a mean would give. The
-  // mirror case was just as wrong: when the lead submitted last, `aggregate =
-  // thisJudgeTotal` discarded every co-judge instead.
-  //
-  // Recompute the lead's subtotal from her stored score map rather than
-  // reusing exam.totalScore, which has already had deductions and time faults
-  // applied and would double-count them below.
-  const subtotals: number[] = [];
-  if (judgeRow) {
-    await prisma.examJudge.update({
-      where: { id: judgeRow.id },
-      data: {
-        // jsonb column — pass the score map object directly.
-        scoresJson: scores,
-        subTotal: thisJudgeTotal,
-        submittedAt: final ? new Date() : null,
-      },
-    });
-    const leadScores = exam.scoresJson as Record<string, number | string> | null;
-    if (leadScores && typeof leadScores === "object" && Object.keys(leadScores).length > 0) {
-      subtotals.push(computeTotal(rubric, leadScores).total);
-    }
-  } else {
-    subtotals.push(thisJudgeTotal);
-  }
-  // Read AFTER the update above so the submitting co-judge's own card is
-  // included here exactly once (it is deliberately not pushed in the branch).
-  const allJudges = await prisma.examJudge.findMany({ where: { examId: exam.id } });
-  for (const j of allJudges) {
-    if (typeof j.subTotal === "number") subtotals.push(j.subTotal);
-  }
-  const aggregate = subtotals.length > 0
-    ? subtotals.reduce((s, v) => s + v, 0) / subtotals.length
-    : thisJudgeTotal;
+  let outcome: {
+    locked: LockedExam;
+    completion: FinalizeResult | null;
+    provisionalTotal: number;
+  };
+  try {
+    outcome = await prisma.$transaction(async (tx) => {
+      // Re-read under a row lock: every guard below must hold at write time,
+      // not at the moment the request arrived.
+      const fresh = await lockExam(tx, exam.id);
+      if (!fresh) throw new ExamPanelError("NOT_FOUND", "This exam no longer exists.", 404);
+      if (fresh.status === "completed") throw new ExamPanelError("ALREADY_COMPLETED", COMPLETED_MESSAGE, 409);
+      const judgeRow = isCoJudgeCard ? fresh.judges.find((j) => j.judgeId === card.judgeId) : null;
+      if (isCoJudgeCard && !judgeRow) {
+        throw new ExamPanelError("JUDGE_NOT_ON_EXAM", "That judge is no longer on this exam's jury.", 400);
+      }
+      if (judgeRow ? judgeRow.submittedAt : fresh.leadSubmittedAt) {
+        throw new ExamPanelError("CARD_SUBMITTED", CARD_LOCKED_MESSAGE, 409);
+      }
 
-  const effectiveDeductions = deductions ?? exam.deductions;
-  const effectiveTimeFaults = timeFaults ?? exam.timeFaults;
-  // Final score = aggregate of rubric scores minus deductions and time
-  // faults. Pass mark applies to this adjusted total.
-  const total = Math.max(0, aggregate - effectiveDeductions - effectiveTimeFaults);
-  const passed = max > 0 ? total / max >= template.passThreshold / 100 : null;
-
-  const updated = await prisma.exam.update({
-    where: { id: exam.id },
-    data: {
-      // Single-judge legacy: persist the score map on the exam too. With the
-      // co-judge case, leave Exam.scoresJson alone (the lead's existing card
-      // stays untouched). jsonb column — write the object directly.
-      ...(judgeRow ? {} : { scoresJson: scores as Prisma.InputJsonValue }),
-      totalScore: total,
-      deductions: effectiveDeductions,
-      timeFaults: effectiveTimeFaults,
-      status: final ? "completed" : "in_progress",
-      passed: final ? passed : null,
-    },
-  });
-
-  // Auto-issue certificate + bump rider level on a passing final submission.
-  let certificateId: string | null = null;
-  if (final) {
-    const rider = await prisma.rider.findUnique({
-      where: { id: exam.riderId },
-      select: { firstName: true, lastName: true, mobile: true, fatherPhone: true, motherPhone: true, email: true, centre: { select: { name: true } } },
-    });
-    const riderName = rider ? `${rider.firstName} ${rider.lastName}` : "Rider";
-    const parentPhone = rider?.fatherPhone ?? rider?.motherPhone ?? rider?.mobile;
-
-    if (passed === true) {
-      await notifyCentreManager(exam.centreId, {
-        type: "exam.passed",
-        title: `${riderName} passed Level ${exam.level}`,
-        body: `Examiner ${exam.examinerName} submitted ${total} / ${max}. Certificate auto-issued.`,
-        link: `/exams/${exam.id}`,
-        payload: { examId: exam.id, riderId: exam.riderId, totalScore: total, max },
-      });
-      // In-app notification to the rider (student portal) and every linked parent.
-      await notifyRiderAndParents(exam.riderId, {
-        centreId: exam.centreId,
-        type: "exam.passed",
-        title: `🎉 ${riderName} passed Level ${exam.level}`,
-        body: `Score ${total} / ${max}. Certificate is being issued.`,
-        link: `/parent/${exam.riderId}`,
-        payload: { examId: exam.id, totalScore: total, max },
-      });
-      // Parent SMS — the headline good-news moment.
-      if (parentPhone) {
-        await sendSms({
-          to: parentPhone,
-          body: `Congratulations! ${riderName} passed Level ${exam.level} with ${total}/${max}. Certificate ready for collection. — Equiwings`,
-          ref: { type: "exam.passed", rowId: exam.id, payload: { riderId: exam.riderId } },
-        });
-        // Parent WhatsApp — pre-approved template `ew_exam_passed`.
-        await sendWhatsApp({
-          to: parentPhone,
-          centreId: exam.centreId,
-          template: {
-            name: "ew_exam_passed",
-            bodyParams: [riderName, String(exam.level), String(total), String(max)],
-          },
-          previewBody: `${riderName} passed Level ${exam.level} with ${total}/${max}`,
-          ref: { type: "exam.passed", rowId: exam.id, payload: { riderId: exam.riderId } },
+      const now = new Date();
+      if (judgeRow) {
+        await tx.examJudge.update({
+          where: { id: judgeRow.id },
+          // jsonb column — pass the score map object directly.
+          data: { scoresJson: scores, subTotal: cardTotal, submittedAt: final ? now : null },
         });
       }
-      // Parent email is NOT sent here. Staff trigger it manually from the
-      // certificate detail or certificates list ('Send result to parent'
-      // button) so they can review the score before parents see it.
-    } else {
-      await notifyCentreManager(exam.centreId, {
-        type: "exam.failed",
-        title: `${riderName} did not pass Level ${exam.level}`,
-        body: `Score ${total} / ${max}. Coach can re-schedule.`,
-        link: `/exams/${exam.id}`,
-        payload: { examId: exam.id, riderId: exam.riderId, totalScore: total, max },
-      });
-      // No "you failed" SMS — coach delivers that in person.
-      // Parent in-app gets a softer message so they're informed without an SMS ping.
-      await notifyRiderAndParents(exam.riderId, {
-        centreId: exam.centreId,
-        type: "exam.not_passed",
-        title: `${riderName}'s Level ${exam.level} result is in`,
-        body: `Your coach will follow up on next steps.`,
-        link: `/parent/${exam.riderId}`,
-        payload: { examId: exam.id },
-      });
-      // Failed exams have no certificate, so no manual 'Send result' UI
-      // exists — coach owns the in-person follow-up. In-app notification
-      // above is the only parent-visible artifact.
-    }
-    // Also notify the examiner themselves so it shows in their feed (when the
-    // exam has an assigned examiner — sitting exams are always claimed by now).
-    if (exam.examinerId) {
-      await notify({
-        userId: exam.examinerId,
-        centreId: exam.centreId,
-        type: passed ? "exam.passed" : "exam.failed",
-        title: `Exam submitted — ${passed ? "PASS" : "FAIL"}`,
-        body: `${riderName} · Level ${exam.level} · ${total}/${max}`,
-        link: `/exams/${exam.id}`,
-      });
-    }
-  }
-  if (final && passed === true) {
-    // One live certificate per rider per level. Re-scoring an exam, or sitting
-    // the same level twice, used to mint a second serial — and both then
-    // verified as authentic on the public page, so a rider could hold two
-    // valid Level 1 certificates with different numbers. A revoked one does
-    // not count, so a legitimate re-sit after revocation still issues.
-    const alreadyHeld = await prisma.certificate.findFirst({
-      where: {
-        riderId: exam.riderId,
-        levelName: template.levelName,
-        type: "promotion",
-        revokedAt: null,
-      },
-      select: { id: true },
-    });
-    if (alreadyHeld) {
-      certificateId = alreadyHeld.id;
-    } else {
-      // Checked here rather than at the top of the route: a FAILED exam
-      // issues no certificate, and refusing to record that result over a
-      // missing URL would block work that has nothing to do with QR codes.
-      // At this point we are definitely about to mint one, so stopping is
-      // correct — and it throws inside the transaction, so the exam result
-      // rolls back rather than leaving a pass with no certificate behind it.
-      if (!hasBaseUrl()) {
-        throw new Error(
-          "No public site address is configured (NEXT_PUBLIC_APP_URL), so this certificate's QR code would be unscannable. Set it, then re-score this exam.",
-        );
-      }
-      const serial = await generateUniqueSerial(exam.level);
-      const cert = await prisma.certificate.create({
+      await tx.exam.update({
+        where: { id: exam.id },
         data: {
-          centreId: exam.centreId,
-          riderId: exam.riderId,
-          examId: exam.id,
-          type: "promotion",
-          levelName: template.levelName,
-          serialNo: serial,
-          qrCode: verifyUrl(serial),
-          signedBy: session.userId,
+          ...(judgeRow
+            ? {}
+            : { scoresJson: scores as Prisma.InputJsonValue, leadSubmittedAt: final ? now : null }),
+          ...(mayAdjust && deductions !== undefined ? { deductions } : {}),
+          ...(mayAdjust && timeFaults !== undefined ? { timeFaults } : {}),
+          ...(fresh.rubricSnapshotJson == null
+            ? { rubricSnapshotJson: template.categoriesJson as Prisma.InputJsonValue }
+            : {}),
+          status: "in_progress",
         },
       });
-      certificateId = cert.id;
-      await prisma.rider.update({
-        where: { id: exam.riderId },
-        data: { currentLevel: template.levelName },
-      });
-      await audit({
-        userId: session.userId,
-        action: "certificate.auto_issue",
-        tableName: "certificate",
-        rowId: cert.id,
-        after: { serial, levelName: template.levelName, riderId: exam.riderId, examId: exam.id },
-      });
+
+      const locked = (await tx.exam.findUnique({
+        where: { id: exam.id },
+        include: { judges: { orderBy: { position: "asc" } } },
+      }))!;
+      const completion = final ? await completeIfPanelDone(tx, locked, session.userId) : null;
+      let provisionalTotal = 0;
+      if (!completion) {
+        // Still waiting on at least one card: keep a provisional figure for the
+        // lists, but no verdict until the whole panel is in.
+        provisionalTotal = adjustedTotal(panelAggregate(rubric, locked), locked.deductions, locked.timeFaults);
+        await tx.exam.update({
+          where: { id: exam.id },
+          data: { totalScore: provisionalTotal, passed: null },
+        });
+      }
+      return { locked, completion, provisionalTotal };
+    });
+  } catch (e) {
+    if (e instanceof ExamPanelError) {
+      return NextResponse.json({ error: e.code, message: e.message }, { status: e.status });
     }
+    throw e;
   }
+
+  const { locked, completion } = outcome;
+  const waitingFor = completion ? [] : pendingCards(locked);
 
   await audit({
     userId: session.userId,
-    action: final ? "exam.submit" : "exam.draft",
+    action: completion ? "exam.submit" : final ? "exam.card_submit" : "exam.draft",
     tableName: "exam",
     rowId: exam.id,
     before: { status: exam.status, totalScore: exam.totalScore },
-    after: { status: updated.status, totalScore: updated.totalScore, passed: updated.passed, certificateId },
+    after: {
+      status: completion ? "completed" : "in_progress",
+      totalScore: completion ? completion.total : outcome.provisionalTotal,
+      passed: completion ? completion.passed : null,
+      card: card.judgeId ?? "lead",
+      certificateId: completion?.certificateId ?? null,
+    },
   });
+
+  if (completion) {
+    await afterExamCompleted(locked, completion, session.userId);
+  }
 
   return NextResponse.json({
     ok: true,
-    status: updated.status,
-    totalScore: updated.totalScore,
-    max,
-    passed,
-    certificateId,
+    status: completion ? "completed" : "in_progress",
+    totalScore: completion ? completion.total : outcome.provisionalTotal,
+    max: completion ? completion.max : max,
+    passed: completion ? completion.passed : null,
+    certificateId: completion?.certificateId ?? null,
+    completed: completion !== null,
+    // Judges whose card is still open — the exam completes when this is empty.
+    waitingFor,
   });
 }
 
-// Reset draft → back to scheduled, scores cleared.
+const resetSchema = z.object({ judgeId: z.string().min(1).optional() }).nullable();
+
+// Reset a draft card: clears that card's marks. With no judgeId it is the lead
+// examiner's card; a co-judge resets their own with { judgeId }.
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
@@ -333,32 +247,70 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const readOnlyBlock = await blockIfReadOnly(session);
   if (readOnlyBlock) return readOnlyBlock;
 
-  const exam = await prisma.exam.findUnique({ where: { id: params.id } });
-  if (!exam) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
-  // HQ roles carry centreId = null, so this comparison locked ADMIN out of
-  // every centre while org-fencing nobody. centreFence does both.
-  const fence36 = await centreFence(session, exam.centreId);
-  if (fence36) {
-    return NextResponse.json({ error: fence36 }, { status: 403 });
-  }
-  if (session.role === "EXAMINER" && exam.examinerId !== session.userId) {
-    return NextResponse.json({ error: "NOT_YOUR_EXAM" }, { status: 403 });
-  }
-  if (exam.status === "completed") {
-    return NextResponse.json({ error: "ALREADY_COMPLETED" }, { status: 409 });
-  }
+  const parsed = resetSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "VALIDATION" }, { status: 400 });
+  const judgeId = parsed.data?.judgeId;
 
-  await prisma.exam.update({
-    where: { id: exam.id },
-    data: { scoresJson: Prisma.DbNull, totalScore: null, status: "scheduled", passed: null },
+  const exam = await prisma.exam.findUnique({ where: { id: params.id }, include: { judges: true } });
+  if (!exam) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  const fence = await centreFence(session, exam.centreId);
+  if (fence) {
+    return NextResponse.json({ error: fence }, { status: 403 });
+  }
+  const card = resolveCard(session, exam, judgeId);
+  if ("error" in card) return card.error;
+  const template = await prisma.scoringTemplate.findUnique({
+    where: { centreId_levelKey: { centreId: exam.centreId, levelKey: String(exam.level) } },
   });
+  const rubric = parseRubric(exam.rubricSnapshotJson ?? template?.categoriesJson ?? null);
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const fresh = await lockExam(tx, exam.id);
+      if (!fresh) throw new ExamPanelError("NOT_FOUND", "This exam no longer exists.", 404);
+      if (fresh.status === "completed") throw new ExamPanelError("ALREADY_COMPLETED", COMPLETED_MESSAGE, 409);
+      const judgeRow = card.judgeId ? fresh.judges.find((j) => j.judgeId === card.judgeId) : null;
+      if (card.judgeId && !judgeRow) {
+        throw new ExamPanelError("JUDGE_NOT_ON_EXAM", "That judge is no longer on this exam's jury.", 400);
+      }
+      if (judgeRow ? judgeRow.submittedAt : fresh.leadSubmittedAt) {
+        throw new ExamPanelError("CARD_SUBMITTED", CARD_LOCKED_MESSAGE, 409);
+      }
+      if (judgeRow) {
+        await tx.examJudge.update({
+          where: { id: judgeRow.id },
+          data: { scoresJson: Prisma.DbNull, subTotal: null },
+        });
+      } else {
+        await tx.exam.update({ where: { id: exam.id }, data: { scoresJson: Prisma.DbNull } });
+      }
+      // Back to "scheduled" only when no card on the panel has marks left;
+      // otherwise refresh the provisional figure without the cleared card.
+      const after = (await tx.exam.findUnique({ where: { id: exam.id }, include: { judges: true } }))!;
+      const anyMarks = after.scoresJson != null || after.judges.some((j) => j.scoresJson != null);
+      await tx.exam.update({
+        where: { id: exam.id },
+        data: anyMarks
+          ? {
+              totalScore: adjustedTotal(panelAggregate(rubric, after), after.deductions, after.timeFaults),
+              passed: null,
+            }
+          : { status: "scheduled", totalScore: null, passed: null },
+      });
+    });
+  } catch (e) {
+    if (e instanceof ExamPanelError) {
+      return NextResponse.json({ error: e.code, message: e.message }, { status: e.status });
+    }
+    throw e;
+  }
 
   await audit({
     userId: session.userId,
     action: "exam.reset_draft",
     tableName: "exam",
     rowId: exam.id,
-    before: { status: exam.status },
+    before: { status: exam.status, card: card.judgeId ?? "lead" },
   });
 
   return NextResponse.json({ ok: true });

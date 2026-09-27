@@ -14,6 +14,8 @@ import { ExamScorer } from "./scorer";
 import { JudgesPanel } from "./judges-panel";
 import { SupportStaffPanel } from "./support-staff-panel";
 import { AttachmentsPanel } from "./attachments-panel";
+import { ReopenExamButton, RescheduleForm, RemoveExamButton } from "../exam-actions";
+import { isExamManager, pendingCards } from "@/lib/exam-panel";
 import { ChevronLeft } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { formatEnum } from "@/lib/labels";
@@ -42,6 +44,7 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
       judges: { orderBy: { position: "asc" } },
       attachments: { orderBy: { uploadedAt: "desc" } },
       previousExam: { select: { id: true, attemptNumber: true, passed: true, totalScore: true, date: true } },
+      _count: { select: { certificates: true } },
     },
   });
   if (!exam) notFound();
@@ -70,12 +73,19 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
     : template
       ? parseRubric(template.categoriesJson)
       : [];
-  // If a co-judge is viewing, load their own card; otherwise fall back to
-  // the lead's scoresJson on the exam row.
+  // A co-judge viewing gets their own card, whatever their role — a head coach
+  // or manager seated on the jury used to be handed the LEAD's card, and
+  // saving it overwrote the lead examiner's marks. Anyone else (the lead, or
+  // a manager acting for them) works on the lead's scoresJson.
   const myJudgeRow =
-    session.role === "EXAMINER" && exam.examinerId !== session.userId
-      ? exam.judges.find((j) => j.judgeId === session.userId)
-      : null;
+    exam.examinerId !== session.userId ? exam.judges.find((j) => j.judgeId === session.userId) ?? null : null;
+  const cardSubmitted = myJudgeRow ? !!myJudgeRow.submittedAt : !!exam.leadSubmittedAt;
+  const waitingFor = exam.status === "completed" ? [] : pendingCards(exam);
+  const isManager = isExamManager(session.role);
+  const canSchedule = can(session.role, "exam.schedule") && !readOnly;
+  const isOpen = exam.status !== "completed";
+  const hasResult = !!exam.reopenedAt || exam._count.certificates > 0;
+  const riderName = `${exam.rider.firstName} ${exam.rider.lastName}`;
   // scoresJson is a native jsonb column — Prisma returns the parsed object,
   // so no JSON.parse here. Narrow to a plain object before treating as a
   // record (a malformed legacy value could in theory be a primitive/array,
@@ -84,13 +94,15 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
     if (!v || typeof v !== "object" || Array.isArray(v)) return {};
     return v as Record<string, number | string>;
   };
-  const initialScores: Record<string, number | string> = myJudgeRow?.scoresJson
+  // A co-judge starts from THEIR card, even when it is still empty. Falling
+  // back to the lead's marks pre-filled a fresh co-judge card with the lead's
+  // scores, so an untouched card was submitted as an exact copy of the lead's.
+  const initialScores: Record<string, number | string> = myJudgeRow
     ? asScores(myJudgeRow.scoresJson)
     : asScores(exam.scoresJson);
-  const canEditAdjustments =
-    session.role === "SUPER_ADMIN" ||
-    session.role === "CENTRE_MANAGER" ||
-    (session.role === "EXAMINER" && exam.examinerId === session.userId);
+  // Deductions and time faults are the lead examiner's (or a manager's) —
+  // never a co-judge's, who marks their own rubric card only.
+  const canEditAdjustments = isManager || exam.examinerId === session.userId;
 
   const otherExams = await prisma.exam.findMany({
     where: {
@@ -163,6 +175,48 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
         )}
       </Card>
 
+      {exam.reopenedAt && (
+        <Card className="border-warning/30 bg-warning-soft">
+          <CardContent className="py-3 text-sm">
+            <span className="font-semibold">Reopened for correction</span> on {formatDate(exam.reopenedAt)}
+            {exam.reopenReason ? <> — {exam.reopenReason}</> : null}.
+            {isOpen && " The result stands until every judge re-submits their card."}
+          </CardContent>
+        </Card>
+      )}
+
+      {((isOpen && canSchedule && !hasResult) || (!isOpen && isManager)) && (
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-2 py-3">
+            {!isOpen ? (
+              <ReopenExamButton examId={exam.id} />
+            ) : exam.sittingId ? (
+              <>
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/exams/sittings/${exam.sittingId}`}>Open sitting</Link>
+                </Button>
+                <RemoveExamButton
+                  examId={exam.id}
+                  riderName={riderName}
+                  inSitting
+                  afterRemove={`/exams/sittings/${exam.sittingId}`}
+                />
+              </>
+            ) : (
+              <>
+                <RescheduleForm
+                  url={`/api/exams/${exam.id}`}
+                  initialDate={exam.date.toISOString().slice(0, 10)}
+                  initialTime={exam.time}
+                  label="Reschedule"
+                />
+                <RemoveExamButton examId={exam.id} riderName={riderName} inSitting={false} afterRemove="/exams" />
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {exam.previousExam && (
         <Card className="border-warning/30 bg-warning-soft">
           <CardContent className="py-3 text-sm">
@@ -181,6 +235,8 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
         examId={exam.id}
         leadExaminerId={exam.examinerId ?? ""}
         leadExaminerName={exam.examinerName ?? "Unassigned"}
+        leadSubmitted={!!exam.leadSubmittedAt}
+        completed={exam.status === "completed"}
         canManage={session.role === "SUPER_ADMIN" || session.role === "CENTRE_MANAGER"}
         judges={exam.judges.map((j) => ({
           id: j.id,
@@ -247,6 +303,9 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
           initialDeductions={exam.deductions}
           initialTimeFaults={exam.timeFaults}
           canEditAdjustments={canEditAdjustments}
+          cardSubmitted={cardSubmitted}
+          waitingFor={waitingFor}
+          canReopen={isManager}
         />
       )}
 

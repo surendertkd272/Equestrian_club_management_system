@@ -14,10 +14,14 @@ const addSchema = z.object({ judgeId: z.string().min(1) });
 // club level. Everyone else — grooms, farriers, vets, accountants, inventory,
 // school observers, inspection officers, riders, parents — must not appear on
 // a jury panel, because that panel is printed on the result sheet.
+//
+// Every role here must hold exam.score. The exam now completes only when
+// every card on the panel is submitted, so a judge who cannot open the
+// scorer (a plain COACH could be seated but never mark) would hold the exam
+// open forever.
 const JUDGE_ELIGIBLE_ROLES: readonly string[] = [
   "EXAMINER",
   "HEAD_COACH",
-  "COACH",
   "CENTRE_MANAGER",
   "ADMIN",
   "SUPER_ADMIN",
@@ -70,7 +74,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json(
       {
         error: "JUDGE_NOT_ELIGIBLE",
-        message: `${judge.name} (${formatEnum(judge.role)}) can't sit on an exam jury. Pick an examiner, coach, head coach or centre manager.`,
+        message: `${judge.name} (${formatEnum(judge.role)}) can't sit on an exam jury. Pick an examiner, head coach or centre manager.`,
       },
       { status: 400 },
     );

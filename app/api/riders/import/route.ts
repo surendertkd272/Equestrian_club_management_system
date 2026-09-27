@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { resolveWriteCentre } from "@/lib/resolve-centre";
@@ -334,6 +335,7 @@ export async function POST(req: NextRequest) {
     // Resolve each distinct school name ONCE for the whole sheet. A ninety-row
     // intake from one school would otherwise upsert the same row ninety times.
     const schoolIdByName = new Map<string, string | null>();
+    const rubricByLevel = new Map<number, Prisma.JsonValue | null>();
     for (const { row } of valid) {
       const key = (row.school ?? "").trim().toLowerCase();
       if (!schoolIdByName.has(key)) {
@@ -390,6 +392,17 @@ export async function POST(req: NextRequest) {
       if (row.level && parsed.data.examinerId) {
         const examiner = await tx.user.findUnique({ where: { id: parsed.data.examinerId } });
         if (examiner && examiner.status === "active") {
+          // Pin the rubric the exam will be marked against (one lookup per
+          // level for the whole sheet). No template yet → the score route
+          // pins one on the first save.
+          if (!rubricByLevel.has(row.level)) {
+            const t = await tx.scoringTemplate.findUnique({
+              where: { centreId_levelKey: { centreId: targetCentreId, levelKey: String(row.level) } },
+              select: { categoriesJson: true },
+            });
+            rubricByLevel.set(row.level, t?.categoriesJson ?? null);
+          }
+          const rubricSnapshot = rubricByLevel.get(row.level);
           await tx.exam.create({
             data: {
               centreId: targetCentreId,
@@ -399,6 +412,9 @@ export async function POST(req: NextRequest) {
               level: row.level,
               date: new Date(),
               status: "scheduled",
+              ...(rubricSnapshot != null
+                ? { rubricSnapshotJson: rubricSnapshot as Prisma.InputJsonValue }
+                : {}),
             },
           });
           examsScheduled++;

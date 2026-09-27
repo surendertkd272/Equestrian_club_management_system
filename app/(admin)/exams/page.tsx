@@ -12,6 +12,8 @@ import { Plus } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { formatEnum } from "@/lib/labels";
+import { can } from "@/lib/permissions";
+import { ExportCsvButton } from "@/components/ui/export-csv";
 export const dynamic = "force-dynamic";
 
 const STATUS_VARIANT: Record<string, "success" | "warning" | "outline" | "destructive"> = {
@@ -43,6 +45,9 @@ export default async function ExamsPage({
     where.OR = [
       { examinerId: session.userId },
       { examinerId: null, sitting: { examiners: { some: { examinerId: session.userId } } } },
+      // Seated as a co-judge. The exam completes only when every judge has
+      // submitted, so a co-judge who can't find the exam holds it open.
+      { judges: { some: { judgeId: session.userId } } },
     ];
   }
 
@@ -72,6 +77,12 @@ export default async function ExamsPage({
   ]);
 
   const canSchedule = ["SUPER_ADMIN", "CENTRE_MANAGER"].includes(session.role);
+  // Same permission the export route checks (app/api/export/[entity]).
+  const canExport = can(session.role, "exam.schedule");
+  const exportQuery = new URLSearchParams({
+    ...(searchParams.status ? { status: searchParams.status } : {}),
+    ...(searchParams.level ? { level: searchParams.level } : {}),
+  }).toString();
   const canManageTemplates = session.role === "SUPER_ADMIN";
   // Lookup table: Exam.level (Int) → label. The centre's own ScoringTemplate
   // wins, because that is the rubric the exam is actually marked against and
@@ -97,6 +108,7 @@ export default async function ExamsPage({
           <h1 className="text-2xl font-bold">Exams</h1>
         </div>
         <div className="flex flex-wrap gap-2">
+          {canExport && <ExportCsvButton entity="exams" label="Export results" query={exportQuery || undefined} />}
           {canManageTemplates && (
             <Button asChild variant="outline">
               <Link href="/exams/templates">Manage templates</Link>

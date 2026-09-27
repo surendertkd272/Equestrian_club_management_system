@@ -10,6 +10,8 @@ import type { RubricCategory } from "@/lib/schemas/exam";
 import { Save, FileEdit, RotateCcw } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
 
+type SubmitResult = { passed?: boolean | null; completed?: boolean; waitingFor?: string[] };
+
 export function ExamScorer({
   examId,
   status,
@@ -21,6 +23,9 @@ export function ExamScorer({
   initialDeductions,
   initialTimeFaults,
   canEditAdjustments,
+  cardSubmitted = false,
+  waitingFor = [],
+  canReopen = false,
 }: {
   examId: string;
   status: string;
@@ -36,6 +41,12 @@ export function ExamScorer({
   // Deductions/time-faults are typically lead-judge / manager territory.
   // Co-judges score their own card but only the lead enters faults.
   canEditAdjustments?: boolean;
+  // This card is locked, but the exam is still waiting on other judges.
+  cardSubmitted?: boolean;
+  // Judges whose card is still open.
+  waitingFor?: string[];
+  // A manager can reopen a completed exam for correction (see ReopenExam).
+  canReopen?: boolean;
 }) {
   const router = useRouter();
   const [scores, setScores] = useState<Record<string, number | string>>(initialScores);
@@ -43,6 +54,12 @@ export function ExamScorer({
   const [deductions, setDeductions] = useState<number>(initialDeductions ?? 0);
   const [timeFaults, setTimeFaults] = useState<number>(initialTimeFaults ?? 0);
   const [busy, setBusy] = useState<null | "draft" | "submit" | "reset">(null);
+  // ScoringEngine hydrates from initialScores once and then owns its state.
+  // Bumping this key remounts it — the only way to make a reset visible;
+  // clearing our own copy left the old marks on screen, and the next tap sent
+  // every one of them back to the server.
+  const [engineKey, setEngineKey] = useState(0);
+  const [engineInitial, setEngineInitial] = useState(initialScores);
   // Snapshot of what's on the server. Updated after every successful save.
   // Lets us tell the examiner whether they have unsaved changes — important
   // for the 'mid-exam halt' case where they need confidence their work is safe.
@@ -55,7 +72,9 @@ export function ExamScorer({
     Object.keys(initialScores).length > 0 ? new Date() : null,
   );
   const isCompleted = status === "completed";
+  const locked = isCompleted || cardSubmitted;
   const adjusted = Math.max(0, total - deductions - timeFaults);
+  const hasSavedMarks = Object.keys(savedSnapshot.scores).length > 0;
 
   // Has anything changed since the last save? Cheap deep-compare via JSON
   // since the score map is small (≤ a few dozen keys).
@@ -68,7 +87,7 @@ export function ExamScorer({
   // changes — the bridge case the user flagged where an exam halts and
   // they need confidence their work is recoverable.
   useEffect(() => {
-    if (!isDirty || isCompleted) return;
+    if (!isDirty || locked) return;
     function onBeforeUnload(e: BeforeUnloadEvent) {
       e.preventDefault();
       // Some browsers (Safari) only show the prompt if returnValue is set.
@@ -76,11 +95,11 @@ export function ExamScorer({
     }
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [isDirty, isCompleted]);
+  }, [isDirty, locked]);
 
   async function save(final: boolean, allowIncomplete = false) {
     setBusy(final ? "submit" : "draft");
-    const res = await patchJson<{ passed?: boolean }>(`/api/exams/${examId}/score`, {
+    const res = await patchJson<SubmitResult>(`/api/exams/${examId}/score`, {
       scores,
       final,
       ...(allowIncomplete ? { allowIncomplete: true } : {}),
@@ -98,8 +117,8 @@ export function ExamScorer({
           title: `Submit with ${d.unscored} item${d.unscored === 1 ? "" : "s"} unscored?`,
           body:
             `${d.unscored} of ${d.itemCount} rubric items have no score, and unscored items count as zero — ` +
-            `so the rider will be recorded lower than they earned. This cannot be undone once submitted, ` +
-            `and the result is sent to the rider and their parents.`,
+            `so the rider will be recorded lower than they earned. Your card locks once submitted, ` +
+            `and when the whole jury is in the result is sent to the rider and their parents.`,
           destructive: true,
           confirmLabel: "Submit anyway",
         });
@@ -112,6 +131,16 @@ export function ExamScorer({
     setSavedSnapshot({ scores: { ...scores }, deductions, timeFaults });
     setLastSavedAt(new Date());
     if (final) {
+      if (res.data.completed === false) {
+        const names = res.data.waitingFor ?? [];
+        toast.success(
+          names.length > 0
+            ? `Your card is submitted. Waiting for ${names.join(", ")} to submit theirs.`
+            : "Your card is submitted.",
+        );
+        router.refresh();
+        return;
+      }
       toast.success(
         res.data.passed === true ? "Submitted — pass" : res.data.passed === false ? "Submitted — fail" : "Submitted",
       );
@@ -125,13 +154,15 @@ export function ExamScorer({
   async function reset() {
     const ok = await openConfirm({
       title: "Reset this draft?",
-      body: "All saved scores will be cleared and the exam will go back to scheduled.",
+      body: judgeId
+        ? "All the marks on your card will be cleared."
+        : "All saved scores will be cleared and the exam will go back to scheduled.",
       destructive: true,
       confirmLabel: "Reset draft",
     });
     if (!ok) return;
     setBusy("reset");
-    const res = await deleteJson(`/api/exams/${examId}/score`);
+    const res = await deleteJson(`/api/exams/${examId}/score`, judgeId ? { judgeId } : undefined);
     setBusy(null);
     if (!res.ok) {
       toast.error(res.message);
@@ -139,22 +170,28 @@ export function ExamScorer({
     }
     toast.success("Draft reset");
     setScores({});
+    setTotal(0);
+    setSavedSnapshot({ scores: {}, deductions, timeFaults });
+    setLastSavedAt(null);
+    setEngineInitial({});
+    setEngineKey((k) => k + 1);
     router.refresh();
   }
 
   return (
     <div className="space-y-4">
       <ScoringEngine
+        key={engineKey}
         rubricConfig={rubric}
-        initialScores={initialScores}
-        readOnly={isCompleted}
+        initialScores={engineInitial}
+        readOnly={locked}
         onScoreChange={(s, t) => {
           setScores(s);
           setTotal(t);
         }}
       />
 
-      {canEditAdjustments && !isCompleted && (
+      {canEditAdjustments && !locked && (
         <div className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2">
           <label className="block">
             <span className="text-xs font-semibold uppercase text-muted-foreground">Deductions</span>
@@ -184,7 +221,7 @@ export function ExamScorer({
       )}
 
       <div className="sticky bottom-4 space-y-2 rounded-lg border bg-card p-4 shadow-lg">
-        {!isCompleted && (
+        {!locked && (
           <div className="flex items-center justify-between rounded-md border bg-muted/30 px-2 py-1 text-[11px]">
             {isDirty ? (
               <span className="font-semibold text-amber-700">● Unsaved changes</span>
@@ -219,16 +256,16 @@ export function ExamScorer({
         </div>
         <div className="text-xs text-muted-foreground">Pass mark: {passThreshold}%</div>
 
-        {!isCompleted && (
+        {!locked && (
           <p className="rounded border border-dashed bg-muted/10 px-2 py-1 text-[11px] text-muted-foreground">
             <b>Tip:</b> Click <b>Save draft</b> anytime — if the exam is paused or you need to step away,
             your scores are kept and you can come back to continue here.
           </p>
         )}
 
-        {!isCompleted && (
+        {!locked && (
           <div className="grid gap-2 sm:grid-cols-3">
-            {status === "in_progress" && (
+            {hasSavedMarks && (
               <Button variant="outline" disabled={busy !== null} onClick={reset} className="border-destructive/40 text-destructive">
                 <RotateCcw className="h-4 w-4" />
                 {busy === "reset" ? "Resetting…" : "Reset draft"}
@@ -244,16 +281,23 @@ export function ExamScorer({
             </Button>
           </div>
         )}
+        {cardSubmitted && !isCompleted && (
+          <div className="rounded-md border bg-muted p-3 text-center text-sm">
+            <div className="font-medium">Your card is submitted and locked</div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              {waitingFor.length > 0
+                ? `The result is worked out once every judge has submitted. Still waiting for: ${waitingFor.join(", ")}.`
+                : "The result is worked out once every judge has submitted."}
+            </div>
+          </div>
+        )}
         {isCompleted && (
           <div className="rounded-md border bg-muted p-3 text-center text-sm">
-            {/* This used to read "Contact a Super Admin to unlock" — there is no
-                unlock. A completed exam is refused for every role including
-                SUPER_ADMIN, so the old copy sent examiners chasing a remedy
-                that does not exist. Say what can actually be done instead. */}
             <div className="font-medium">Submitted and locked</div>
             <div className="mt-1 text-xs text-muted-foreground">
-              Scores can&rsquo;t be changed after submission. If this result is wrong, the centre
-              can revoke any certificate it issued and schedule a re-sit.
+              {canReopen
+                ? "If a mark is wrong, reopen the exam for correction below. Every judge's card unlocks with their marks kept."
+                : "Scores can’t be changed after submission. If this result is wrong, ask a centre manager to reopen the exam for correction."}
             </div>
           </div>
         )}
