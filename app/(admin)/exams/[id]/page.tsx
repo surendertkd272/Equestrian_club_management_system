@@ -117,7 +117,7 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <Button asChild variant="ghost" size="sm">
           <Link href="/exams">
             <ChevronLeft className="h-4 w-4" /> Back to exams

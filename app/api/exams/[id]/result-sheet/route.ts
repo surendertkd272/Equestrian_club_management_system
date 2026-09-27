@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { centreFence } from "@/lib/authz-centre";
+import { examSheetDenied } from "@/lib/exam-access";
 import { getSession } from "@/lib/auth";
 import { parseRubric } from "@/lib/schemas/exam";
 import { renderPrintable, pdfHeader, escapeHtml } from "@/lib/pdf";
@@ -16,7 +17,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const exam = await prisma.exam.findUnique({
     where: { id: params.id },
     include: {
-      rider: { select: { firstName: true, lastName: true, dob: true } },
+      rider: { select: { firstName: true, lastName: true, dob: true, schoolId: true } },
       centre: { select: { name: true } },
       judges: { orderBy: { position: "asc" } },
     },
@@ -28,6 +29,9 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   if (fence36) {
     return NextResponse.json({ error: fence36 }, { status: 403 });
   }
+  // Same club is not enough: see lib/exam-access.ts for who may open this sheet.
+  const denied = await examSheetDenied(session, exam, "result");
+  if (denied) return NextResponse.json({ error: denied }, { status: 403 });
   if (exam.status !== "completed") {
     return NextResponse.json({ error: "NOT_COMPLETED" }, { status: 409 });
   }

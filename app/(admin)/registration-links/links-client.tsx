@@ -29,10 +29,10 @@ function LinkRow({ def, baseUrl }: { def: LinkDef; baseUrl: string }) {
   const wa = `https://wa.me/?text=${encodeURIComponent(`${def.label} — register here: ${url}`)}`;
 
   return (
-    <div className="rounded-md border bg-card p-3">
+    <div className="min-w-0 rounded-md border bg-card p-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <span className="text-sm font-semibold">{def.label}</span>
-        <div className="flex items-center gap-3 text-xs">
+        <div className="flex flex-wrap items-center gap-3 text-xs">
           <button type="button" onClick={copy} className="inline-flex items-center gap-1 text-primary hover:underline">
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
             {copied ? "Copied" : "Copy link"}
