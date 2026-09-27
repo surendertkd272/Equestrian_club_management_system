@@ -93,11 +93,11 @@ export default async function LessonsPage({ searchParams }: { searchParams: SP }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Lessons</h1>
         </div>
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
           <Link href={`/lessons?date=${fmt(prev)}`} className="rounded border px-2 py-1 hover:bg-accent">← {fmt(prev)}</Link>
           <form className="flex items-center gap-2">
             <input type="date" name="date" defaultValue={date} className="h-8 rounded border bg-card px-2 text-xs" />

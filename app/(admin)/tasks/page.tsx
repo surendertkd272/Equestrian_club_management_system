@@ -82,7 +82,7 @@ export default async function TasksPage({
             {escalatedCount > 0 && <span className="ml-1 text-destructive">· {escalatedCount} escalated</span>}
           </p>
         </div>
-        <div className="flex flex-wrap items-end gap-2">
+        <div className="flex min-w-0 flex-wrap items-end gap-2">
           <Button asChild variant={searchParams.mine === "1" ? "default" : "outline"} size="sm">
             <Link href={searchParams.mine === "1" ? "/tasks" : "/tasks?mine=1"}>
               {searchParams.mine === "1" ? "Showing: my tasks" : "Show only mine"}

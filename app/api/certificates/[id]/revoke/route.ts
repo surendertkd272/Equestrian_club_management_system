@@ -7,7 +7,7 @@ import { can } from "@/lib/permissions";
 import { audit } from "@/lib/audit";
 import { blockIfFeatureOff } from "@/lib/features-gate";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
-import { revokeCertificate } from "@/lib/certificate-revoke";
+import { revokeCertificate, restoreLevelOnUnrevoke } from "@/lib/certificate-revoke";
 
 const schema = z.object({
   reason: z.string().min(2).max(300),
@@ -76,6 +76,10 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
 
   const cert = await prisma.certificate.findUnique({ where: { id: params.id } });
   if (!cert) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
+  // SUPER_ADMIN is HQ for ONE organisation — without the fence another org's
+  // super admin could un-revoke this club's certificates by id.
+  const fence = await centreFence(session, cert.centreId);
+  if (fence) return NextResponse.json({ error: fence }, { status: 403 });
   if (!cert.revokedAt) return NextResponse.json({ error: "NOT_REVOKED" }, { status: 409 });
 
   await prisma.certificate.update({
@@ -84,22 +88,9 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   });
 
   // Mirror of the rollback in POST: revoking demotes the rider, so undoing a
-  // mistaken revocation has to promote them back. Without this, typo recovery
-  // restored the certificate but left the rider a level down.
-  let levelRestoredTo: string | undefined;
-  if (cert.type === "promotion" && cert.levelName && cert.riderId) {
-    const rider = await prisma.rider.findUnique({
-      where: { id: cert.riderId },
-      select: { currentLevel: true },
-    });
-    if (rider && rider.currentLevel !== cert.levelName) {
-      levelRestoredTo = cert.levelName;
-      await prisma.rider.update({
-        where: { id: cert.riderId },
-        data: { currentLevel: cert.levelName },
-      });
-    }
-  }
+  // mistaken revocation promotes them back — but never below a level they
+  // have reached since (lib/certificate-revoke.ts).
+  const levelRestoredTo = await restoreLevelOnUnrevoke(prisma, cert);
 
   await audit({
     userId: session.userId,

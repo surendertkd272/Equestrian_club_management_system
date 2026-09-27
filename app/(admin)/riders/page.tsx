@@ -84,12 +84,12 @@ export default async function RidersPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Riders</h1>
           <p className="text-sm text-muted-foreground">{total} total</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <ExportCsvButton entity="riders" />
           {["SUPER_ADMIN", "CENTRE_MANAGER"].includes(session.role) && (
             <Button asChild variant="outline">

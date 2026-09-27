@@ -103,7 +103,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   return (
     <div className="flex min-h-screen">
       <Sidebar role={session.role} features={[...features]} />
-      <div className="flex flex-1 flex-col">
+      {/* min-w-0: a flex child defaults to min-width:auto, so the widest thing
+          on any page (a table, the top bar's icon row) set the width of the
+          whole column — every admin page laid out ~420–530px wide on a 390px
+          phone and the right edge was cut off. */}
+      <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           session={session}
           centre={centre}

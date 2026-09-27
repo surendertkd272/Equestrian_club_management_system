@@ -117,9 +117,16 @@ export async function getParentChildren(parentUserId: string): Promise<ChildSumm
 // the fields the portal renders, or null when the parent isn't linked to this rider.
 // Use this anywhere a parent fetches a specific child — it's the gate.
 export async function getChildIfLinked(parentUserId: string, riderId: string) {
-  const link = await prisma.parentLink.findUnique({
-    where: { parentUserId_riderId: { parentUserId, riderId } },
-  });
+  // The link lookup IS the access gate, keyed on the signed-in parent, and it
+  // runs before any org is bound. Parents carry no orgId (tenancy flows
+  // through the link), so under enforced RLS this read saw no ParentLink rows
+  // at all unless a parallel getFeaturesForSession() happened to bind the org
+  // first — and the child's page answered 404 to the child's own parent.
+  const link = await runWithRlsBypass(() =>
+    prisma.parentLink.findUnique({
+      where: { parentUserId_riderId: { parentUserId, riderId } },
+    }),
+  );
   if (!link) return null;
 
   // The link above IS the access gate; the rider fetch is session→tenant

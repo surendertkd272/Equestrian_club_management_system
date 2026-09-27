@@ -22,14 +22,14 @@ export function AssigneeFilter({ assignees }: { assignees: Assignee[] }) {
   }
 
   return (
-    <div>
+    <div className="min-w-0 max-w-full">
       <label className="mb-1 block text-[10px] tracking-wider text-muted-foreground">
         Assignee
       </label>
       <select
         value={current}
         onChange={(e) => go(e.target.value)}
-        className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+        className="h-9 max-w-full rounded-md border border-input bg-background px-3 text-sm sm:max-w-[16rem]"
       >
         <option value="">Everyone</option>
         <option value="unassigned">Unassigned</option>
