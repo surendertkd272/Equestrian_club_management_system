@@ -9,6 +9,7 @@ import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { submitChecklistSchema } from "@/lib/schemas/checklist";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { alertChecklistIssues } from "@/lib/checklist-alert";
 
 // Roles allowed to file a daily checklist — same crew that does morning
 // rounds. (Admin tier included so HQ can submit on-site too.)
@@ -69,14 +70,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "SHIFT_REQUIRED" }, { status: 400 });
     }
   }
+  let horseName: string | null = null;
   if (parsed.data.horseId) {
     const horse = await prisma.horse.findUnique({
       where: { id: parsed.data.horseId },
-      select: { centreId: true },
+      select: { centreId: true, name: true },
     });
     if (!horse || horse.centreId !== tpl.centreId) {
       return NextResponse.json({ error: "HORSE_NOT_IN_CENTRE" }, { status: 400 });
     }
+    horseName = horse.name;
   }
 
   // Build a label snapshot map from the template items, rejecting any
@@ -126,6 +129,27 @@ export async function POST(req: NextRequest) {
       declarationAgreed: parsed.data.declarationAgreed ?? false,
     },
   });
+
+  // Tell the managers and HQ about anything marked not done. After the
+  // write and never allowed to fail it: the checklist is filed either way.
+  const failed = parsed.data.items
+    .filter((r) => r.status === "not_done")
+    .map((r) => {
+      const t = itemMap.get(r.itemId)!;
+      return { label: t.label, section: t.section ?? null, remarks: r.remarks ?? null };
+    });
+  if (failed.length > 0) {
+    await alertChecklistIssues({
+      submissionId: submission.id,
+      centreId: tpl.centreId,
+      submitterId: session.userId,
+      submitterName: session.name,
+      shift: parsed.data.shift ?? null,
+      horseName,
+      failed,
+      generalNotes: parsed.data.generalNotes ?? null,
+    }).catch((err) => console.warn("[checklist] issue alert failed:", err));
+  }
 
   return NextResponse.json({ ok: true, id: submission.id });
 }

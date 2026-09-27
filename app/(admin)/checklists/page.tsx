@@ -195,12 +195,12 @@ export default async function ChecklistsPage({
                   header: "Submitted",
                   primary: true,
                   cell: (s) => (
-                    <span>
+                    <Link href={`/checklists/submissions/${s.id}`} className="hover:underline">
                       {formatDate(s.submittedAt)}{" "}
                       <span className="text-xs text-muted-foreground">
                         {wallPartsInTz(s.submittedAt, tz).time}
                       </span>
-                    </span>
+                    </Link>
                   ),
                 },
                 {
@@ -252,6 +252,15 @@ export default async function ChecklistsPage({
                       </div>
                     );
                   },
+                },
+                {
+                  key: "view",
+                  header: "Report",
+                  cell: (s) => (
+                    <Link href={`/checklists/submissions/${s.id}`} className="text-xs font-medium text-primary hover:underline">
+                      View →
+                    </Link>
+                  ),
                 },
                 {
                   key: "signedOff",

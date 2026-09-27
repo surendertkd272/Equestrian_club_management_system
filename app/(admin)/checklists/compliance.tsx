@@ -50,7 +50,8 @@ export async function ChecklistCompliance({
         </div>
         <CardDescription>
           Every coach, head coach, stable manager and groom, with the time they submitted the
-          general checklist for each shift. A blank is a check that was not submitted.
+          general checklist for each shift. A blank is a check that was not submitted. Tap a time or
+          an issue count to open the full report.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -86,8 +87,8 @@ export async function ChecklistCompliance({
                   ),
                 },
                 { key: "role", header: "Role", cell: (r) => <Badge variant="outline">{roleLabel(r.role)}</Badge> },
-                { key: "morning", header: "Morning", cell: (r) => <Slot time={r.morning} /> },
-                { key: "evening", header: "Evening", cell: (r) => <Slot time={r.evening} /> },
+                { key: "morning", header: "Morning", cell: (r) => <Slot slot={r.morning} /> },
+                { key: "evening", header: "Evening", cell: (r) => <Slot slot={r.evening} /> },
                 {
                   key: "horses",
                   header: "Horse Reports",
@@ -100,7 +101,12 @@ export async function ChecklistCompliance({
                   numeric: true,
                   cell: (r) =>
                     r.issues > 0 ? (
-                      <span className="font-semibold text-amber-700 dark:text-amber-400">{r.issues}</span>
+                      <Link
+                        href={`/checklists/submissions/${r.firstIssueId}`}
+                        className="font-semibold text-amber-700 underline dark:text-amber-400"
+                      >
+                        {r.issues}
+                      </Link>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     ),
@@ -114,9 +120,13 @@ export async function ChecklistCompliance({
   );
 }
 
-function Slot({ time }: { time: string | null }) {
-  return time ? (
-    <Badge variant="success">✓ {time}</Badge>
+function Slot({ slot }: { slot: { id: string; time: string } | null }) {
+  // The time opens that submission in full: a tick says it was filed, not
+  // what it said.
+  return slot ? (
+    <Link href={`/checklists/submissions/${slot.id}`} title="Open the full report">
+      <Badge variant="success" className="hover:underline">✓ {slot.time}</Badge>
+    </Link>
   ) : (
     <Badge variant="destructive">Not submitted</Badge>
   );
@@ -140,6 +150,7 @@ async function loadCentre(centre: Centre, date?: string) {
     prisma.checklistSubmission.findMany({
       where: { centreId: centre.id, submittedAt: { gte: from, lte: to } },
       select: {
+        id: true,
         submittedByUserId: true,
         submittedAt: true,
         shift: true,
@@ -150,22 +161,34 @@ async function loadCentre(centre: Centre, date?: string) {
     }),
   ]);
 
-  const byUser = new Map<string, { morning: Date | null; evening: Date | null; horseReports: number; issues: number }>();
+  type Slot = { id: string; at: Date };
+  const byUser = new Map<
+    string,
+    { morning: Slot | null; evening: Slot | null; horseReports: number; issues: number; firstIssueId: string | null }
+  >();
   for (const s of subs) {
-    const row = byUser.get(s.submittedByUserId) ?? { morning: null, evening: null, horseReports: 0, issues: 0 };
+    const row = byUser.get(s.submittedByUserId) ?? {
+      morning: null,
+      evening: null,
+      horseReports: 0,
+      issues: 0,
+      firstIssueId: null,
+    };
     if (s.template.scope === "general") {
       // Earliest submission per shift is the one that counts for "did they
       // do it"; a second one the same shift is a correction, not a new round.
-      if (s.shift === "evening") row.evening ??= s.submittedAt;
-      else row.morning ??= s.submittedAt;
+      if (s.shift === "evening") row.evening ??= { id: s.id, at: s.submittedAt };
+      else row.morning ??= { id: s.id, at: s.submittedAt };
     } else {
       row.horseReports += 1;
     }
-    row.issues += s.items.filter((i) => i.status === "not_done").length;
+    const issues = s.items.filter((i) => i.status === "not_done").length;
+    row.issues += issues;
+    if (issues > 0) row.firstIssueId ??= s.id;
     byUser.set(s.submittedByUserId, row);
   }
 
-  const fmt = (d: Date | null) => (d ? wallPartsInTz(d, tz).time : null);
+  const fmt = (s: Slot | null) => (s ? { id: s.id, time: wallPartsInTz(s.at, tz).time } : null);
   const rows = people.map((p) => {
     const r = byUser.get(p.id);
     return {
@@ -176,6 +199,7 @@ async function loadCentre(centre: Centre, date?: string) {
       evening: fmt(r?.evening ?? null),
       horseReports: r?.horseReports ?? 0,
       issues: r?.issues ?? 0,
+      firstIssueId: r?.firstIssueId ?? null,
     };
   });
 
