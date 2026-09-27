@@ -61,6 +61,33 @@ describe("RLS org-isolation coverage", () => {
     ).toEqual([]);
   });
 
+  it("no policy scopes a row through a foreign key that can be NULL", () => {
+    // A via-parent policy — EXISTS (SELECT 1 FROM "Parent" p WHERE p.id =
+    // "Child"."parentId") — is false for every row whose parentId is NULL, so
+    // those rows become unwritable and invisible under RLS_ENFORCE=1. Payment
+    // hit exactly this: invoiceId went nullable for receipts/advances, the
+    // policy still went through Invoice, and recording ₹5,000 on a ₹3,000
+    // invoice failed in production only. Scope such tables by their own
+    // centreId/orgId instead.
+    const schema = readFileSync(join(ROOT, "prisma/schema.prisma"), "utf8");
+    const bodies = new Map(
+      [...schema.matchAll(/^model (\w+) \{([\s\S]*?)^\}/gm)].map((m) => [m[1], m[2]]),
+    );
+    // The LAST policy per table is the live one (later migrations replace).
+    const live = new Map<string, string>();
+    for (const m of sql.matchAll(/CREATE POLICY "(\w+)_org_isolation" ON "\w+" FOR ALL\s+USING \(([\s\S]*?)\)\s+WITH CHECK/g)) {
+      live.set(m[1], m[2]);
+    }
+    const bad: string[] = [];
+    for (const [table, using] of live) {
+      for (const [, col] of using.matchAll(new RegExp(`"${table}"\\."(\\w+)"`, "g"))) {
+        const field = bodies.get(table)?.match(new RegExp(`^\\s+${col}\\s+(\\S+)`, "m"));
+        if (field?.[1].endsWith("?")) bad.push(`${table}.${col}`);
+      }
+    }
+    expect(bad, `RLS policies scoped through a nullable column: ${bad.join(", ")}`).toEqual([]);
+  });
+
   it("every model has an org-isolation policy in a migration", () => {
     const missing = all.filter(
       (m) => !sql.includes(`CREATE POLICY "${m}_org_isolation" ON "${m}"`),
