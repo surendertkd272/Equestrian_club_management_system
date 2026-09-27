@@ -13,7 +13,7 @@ export function ExportCsvButton({
   label = "Export CSV",
   query,
 }: {
-  entity: "riders" | "horses" | "attendance" | "invoices" | "audit";
+  entity: "riders" | "horses" | "attendance" | "invoices" | "exams" | "audit";
   label?: string;
   query?: string;
 }) {

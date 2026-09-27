@@ -8,10 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { ClaimButton } from "./claim-button";
+import { can } from "@/lib/permissions";
+import { RescheduleForm, RemoveExamButton, CancelSittingButton } from "../../exam-actions";
 
 export const dynamic = "force-dynamic";
 
-const CAN_VIEW = ["SUPER_ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER"];
+const CAN_VIEW = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER"];
 
 // Marking queue for a sitting: pool of examiners + riders. Pool examiners pick
 // (claim) an unassigned rider to mark; claimed riders lock to their examiner.
@@ -37,6 +39,13 @@ export default async function SittingDetail({ params }: { params: { id: string }
   const isManager = ["SUPER_ADMIN", "CENTRE_MANAGER"].includes(session.role);
   const inPool = sitting.examiners.some((e) => e.examinerId === session.userId);
   const unassigned = sitting.exams.filter((e) => !e.examinerId).length;
+  // Managers (anyone who can schedule exams) can move the sitting, cancel it,
+  // or take a rider off it. A rider with a result on record stays put.
+  const canSchedule = can(session.role, "exam.schedule");
+  const hasResult = (e: (typeof sitting.exams)[number]) => e.status === "completed" || !!e.reopenedAt;
+  const withResults = sitting.exams.filter(hasResult).length;
+  const waiting = sitting.exams.length - withResults;
+  const startTime = sitting.exams[0]?.time ?? "09:00";
 
   return (
     <div className="space-y-6">
@@ -46,6 +55,20 @@ export default async function SittingDetail({ params }: { params: { id: string }
           {formatDate(sitting.date)} · {sitting.exams.length} rider{sitting.exams.length === 1 ? "" : "s"} ·{" "}
           {unassigned} unassigned
         </p>
+        {sitting.notes && <p className="mt-1 text-sm">{sitting.notes}</p>}
+        {canSchedule && (
+          <div className="mt-3 flex flex-wrap items-start gap-2">
+            {withResults === 0 && (
+              <RescheduleForm
+                url={`/api/exam-sittings/${sitting.id}`}
+                initialDate={sitting.date.toISOString().slice(0, 10)}
+                initialTime={startTime}
+                label="Change date / time"
+              />
+            )}
+            <CancelSittingButton sittingId={sitting.id} waiting={waiting} withResults={withResults} />
+          </div>
+        )}
       </div>
 
       <Card>
@@ -96,6 +119,7 @@ export default async function SittingDetail({ params }: { params: { id: string }
                         )}
                       </td>
                       <td className="py-2 text-right">
+                        <div className="flex items-center justify-end gap-2">
                         {e.status === "completed" ? (
                           <Link href={`/exams/${e.id}`} className="text-xs text-primary underline">
                             View
@@ -117,6 +141,10 @@ export default async function SittingDetail({ params }: { params: { id: string }
                         ) : (
                           <span className="text-xs text-muted-foreground">Locked · {e.examinerName}</span>
                         )}
+                        {canSchedule && !hasResult(e) && (
+                          <RemoveExamButton examId={e.id} riderName={name} inSitting compact />
+                        )}
+                        </div>
                       </td>
                     </tr>
                   );

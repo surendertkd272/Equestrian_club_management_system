@@ -9,6 +9,7 @@ import { getOrgIdForSession } from "@/lib/features-gate";
 import { toCsv, csvResponse } from "@/lib/csv";
 import { resolveCentreTz } from "@/lib/centre-tz";
 import { endOfDayInTz } from "@/lib/tz";
+import { computeTotal, parseRubric } from "@/lib/schemas/exam";
 
 // Single dispatcher for CSV exports — saves on boilerplate (auth + scoping +
 // content-type plumbing) so adding a new export is just a clause in the
@@ -30,6 +31,10 @@ const ALLOWED = new Set([
   "expenses",
   "salary",
   "advances",
+  // Exam results — the club's promotion record. Only one exam could be seen
+  // at a time (its printed result sheet), so a season's results could not be
+  // taken out of the product for a federation return or a parents' meeting.
+  "exams",
   "audit",
 ]);
 
@@ -55,6 +60,10 @@ const EXPORT_PERMISSION: Record<string, Permission> = {
   expenses: "finance.read",
   salary: "finance.read",
   advances: "finance.read",
+  // Whoever schedules exams owns the results register. exam.score alone is
+  // not enough: an examiner marks the riders in front of them and has no
+  // business bulk-exporting the whole club's history.
+  exams: "exam.schedule",
   // audit keeps its own stricter SUPER_ADMIN-only check further down.
 };
 
@@ -378,6 +387,90 @@ export async function GET(req: Request, { params }: { params: { entity: string }
       }),
     );
     return csvResponse(`advances-${ts}.csv`, csv, { total, returned: rows.length, truncated: total > rows.length });
+  }
+
+  if (params.entity === "exams") {
+    // Optional filters mirror the /exams list: ?status, ?level, ?from, ?to
+    // (YYYY-MM-DD, inclusive, on the exam day).
+    const url = new URL(req.url);
+    const status = url.searchParams.get("status");
+    const level = Number(url.searchParams.get("level"));
+    const from = url.searchParams.get("from");
+    const to = url.searchParams.get("to");
+    const ymd = /^\d{4}-\d{2}-\d{2}$/;
+    const examWhere = {
+      ...where,
+      ...(status ? { status } : {}),
+      ...(Number.isInteger(level) && level > 0 ? { level } : {}),
+      ...((from && ymd.test(from)) || (to && ymd.test(to))
+        ? {
+            date: {
+              // Exam.date is a date-only value stored at UTC midnight or noon;
+              // bound by whole UTC days so both conventions fall inside.
+              ...(from && ymd.test(from) ? { gte: new Date(`${from}T00:00:00Z`) } : {}),
+              ...(to && ymd.test(to) ? { lte: new Date(`${to}T23:59:59Z`) } : {}),
+            },
+          }
+        : {}),
+      // Results are rider data: a school-pinned administrator sees their own
+      // pupils only (lib/school-scope.ts).
+      ...(schoolFence.schoolId ? { rider: schoolFence } : {}),
+    };
+    const [total, rows] = await Promise.all([
+      prisma.exam.count({ where: examWhere }),
+      prisma.exam.findMany({
+        where: examWhere,
+        include: {
+          rider: { select: { firstName: true, lastName: true } },
+          centre: { select: { name: true } },
+          judges: { select: { judgeName: true }, orderBy: { position: "asc" } },
+          certificates: { where: { revokedAt: null }, select: { serialNo: true } },
+        },
+        orderBy: [{ date: "desc" }, { time: "asc" }],
+        take: ROW_CAP,
+      }),
+    ]);
+    // Max marks come from the rubric each exam was marked against — its
+    // snapshot, else the centre's live template for that level.
+    const templates = await prisma.scoringTemplate.findMany({
+      where: { centreId: { in: Array.from(new Set(rows.map((r) => r.centreId))) } },
+      select: { centreId: true, levelKey: true, levelName: true, passThreshold: true, categoriesJson: true },
+    });
+    const tpl = new Map(templates.map((t) => [`${t.centreId}:${t.levelKey}`, t]));
+    const csv = toCsv(
+      [
+        "Date", "Time", "Rider", "Level", "Level name", "Attempt", "Status", "Examiner", "Co-judges",
+        "Deductions", "Time faults", "Total", "Max", "Percent", "Pass mark %", "Result", "Certificate",
+        "Corrected", "Centre",
+      ],
+      rows.map((e) => {
+        const t = tpl.get(`${e.centreId}:${e.level}`);
+        const max = computeTotal(parseRubric(e.rubricSnapshotJson ?? t?.categoriesJson ?? null), {}).max;
+        const done = e.status === "completed";
+        return [
+          e.date.toISOString().slice(0, 10),
+          e.time,
+          `${e.rider.firstName} ${e.rider.lastName}`,
+          e.level,
+          t?.levelName ?? "",
+          e.attemptNumber,
+          e.status,
+          e.examinerName ?? "",
+          e.judges.map((j) => j.judgeName).join("; "),
+          e.deductions,
+          e.timeFaults,
+          done && e.totalScore !== null ? e.totalScore : "",
+          max > 0 ? max : "",
+          done && e.totalScore !== null && max > 0 ? Math.round((e.totalScore / max) * 1000) / 10 : "",
+          t?.passThreshold ?? "",
+          e.passed === true ? "Pass" : e.passed === false ? "Did not pass" : "",
+          e.certificates.map((c) => c.serialNo).join("; "),
+          e.reopenedAt ? `Reopened ${e.reopenedAt.toISOString().slice(0, 10)}: ${e.reopenReason ?? ""}` : "",
+          e.centre?.name ?? "",
+        ];
+      }),
+    );
+    return csvResponse(`exams-${ts}.csv`, csv, { total, returned: rows.length, truncated: total > rows.length });
   }
 
   if (params.entity === "audit") {

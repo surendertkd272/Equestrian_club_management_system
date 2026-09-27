@@ -7,6 +7,8 @@ import { can } from "@/lib/permissions";
 import { parseDateOnly } from "@/lib/schemas/attendance";
 import { audit } from "@/lib/audit";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
+import { OPEN_EXAM_STATUSES } from "@/lib/exam-schedule";
+import { Prisma } from "@prisma/client";
 
 // Bulk-schedule a sitting: one date + level, N riders, and a POOL of examiners.
 // Creates the ExamSitting + the examiner pool (ExamSittingExaminer) + one
@@ -84,6 +86,28 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "NO_TEMPLATE_FOR_LEVEL" }, { status: 400 });
   }
 
+  // One open booking per rider per level. Nothing stopped the same rider
+  // being put into two sittings for the same level, so they sat on two
+  // examiners' queues and could be marked — and certified — twice.
+  const alreadyBooked = await prisma.exam.findMany({
+    where: { riderId: { in: riders.map((r) => r.id) }, level: d.level, status: { in: OPEN_EXAM_STATUSES } },
+    select: { riderId: true, date: true, rider: { select: { firstName: true, lastName: true } } },
+    orderBy: { date: "asc" },
+  });
+  if (alreadyBooked.length > 0) {
+    const names = alreadyBooked
+      .map((b) => `${b.rider.firstName} ${b.rider.lastName} (${b.date.toISOString().slice(0, 10)})`)
+      .join(", ");
+    return NextResponse.json(
+      {
+        error: "RIDER_ALREADY_SCHEDULED",
+        riderIds: Array.from(new Set(alreadyBooked.map((b) => b.riderId))),
+        message: `Already booked for Level ${d.level}: ${names}. Leave them out, or remove them from that sitting first.`,
+      },
+      { status: 409 },
+    );
+  }
+
   // For re-attempt linking — load each rider's most recent failed exam at
   // this level in one go.
   const priorFails = await prisma.exam.findMany({
@@ -131,6 +155,9 @@ export async function POST(req: NextRequest) {
           time: d.time,
           status: "scheduled",
           sittingId: sitting.id,
+          // Pin the rubric the sitting is marked against, so a later template
+          // edit can't change the rules mid-exam or rewrite old result sheets.
+          rubricSnapshotJson: template.categoriesJson as Prisma.InputJsonValue,
           previousExamId: prior?.id ?? null,
           attemptNumber: prior ? prior.attemptNumber + 1 : 1,
         };

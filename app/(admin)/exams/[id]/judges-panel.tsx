@@ -25,12 +25,17 @@ export function JudgesPanel({
   examId,
   leadExaminerId,
   leadExaminerName,
+  leadSubmitted,
+  completed,
   canManage,
   judges,
 }: {
   examId: string;
   leadExaminerId: string;
   leadExaminerName: string;
+  // Each judge locks their own card; the exam completes when every card is in.
+  leadSubmitted: boolean;
+  completed: boolean;
   canManage: boolean;
   judges: Judge[];
 }) {
@@ -80,7 +85,9 @@ export function JudgesPanel({
   async function removeJudge(judgeRowId: string) {
     const ok = await openConfirm({
       title: "Remove jury member?",
-      body: "Their submitted card (if any) will be discarded from the average.",
+      body:
+        "Their card (if any) is discarded from the average. If every remaining judge has already submitted, " +
+        "the exam completes now and the result is sent to the rider and their parents.",
       destructive: true,
       confirmLabel: "Remove",
     });
@@ -88,11 +95,12 @@ export function JudgesPanel({
     setBusy(true);
     try {
       const res = await fetch(`/api/exams/${examId}/judges/${judgeRowId}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error("Failed");
+        toast.error(data.message ?? "Failed");
         return;
       }
-      toast.success("Removed");
+      toast.success(data.completed ? "Removed — every card was in, so the exam is now complete" : "Removed");
       router.refresh();
     } finally {
       setBusy(false);
@@ -110,19 +118,16 @@ export function JudgesPanel({
             <Crown className="h-4 w-4 text-amber-600" />
             <span className="font-medium">{leadExaminerName}</span>
             <Badge variant="outline" className="ml-1 text-[10px] uppercase">Lead</Badge>
+            <CardState submitted={leadSubmitted} completed={completed} />
           </li>
           {coJudges.map((j) => (
             <li key={j.id} className="flex items-center justify-between rounded border px-2 py-1.5">
               <div className="flex items-center gap-2">
                 <span className="font-medium">{j.judgeName}</span>
                 <Badge variant="outline" className="text-[10px] uppercase">jury</Badge>
-                {j.submittedAt && (
-                  <Badge variant="success" className="text-[10px]">
-                    submitted {j.subTotal !== null ? `· ${j.subTotal}` : ""}
-                  </Badge>
-                )}
+                <CardState submitted={!!j.submittedAt} completed={completed} subTotal={j.subTotal} />
               </div>
-              {canManage && (
+              {canManage && !completed && (
                 <button
                   type="button"
                   onClick={() => removeJudge(j.id)}
@@ -136,7 +141,7 @@ export function JudgesPanel({
           ))}
         </ul>
 
-        {canManage && candidates.length > 0 && (
+        {canManage && !completed && candidates.length > 0 && (
           <div className="flex items-end gap-2">
             <Select value={pick} onChange={(e) => setPick(e.target.value)}>
               <option value="">Add a jury member…</option>
@@ -155,5 +160,31 @@ export function JudgesPanel({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// Whether this judge's card is in. The exam only completes when every card
+// on the panel is submitted.
+function CardState({
+  submitted,
+  completed,
+  subTotal,
+}: {
+  submitted: boolean;
+  completed: boolean;
+  subTotal?: number | null;
+}) {
+  if (submitted) {
+    return (
+      <Badge variant="success" className="text-[10px]">
+        submitted {typeof subTotal === "number" ? `· ${subTotal}` : ""}
+      </Badge>
+    );
+  }
+  if (completed) return null;
+  return (
+    <Badge variant="warning" className="text-[10px]">
+      card open
+    </Badge>
   );
 }

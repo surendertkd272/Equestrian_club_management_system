@@ -2257,6 +2257,15 @@ model Exam {
   // Null on legacy rows that pre-date this column; loadRiderExamHistory +
   // the result-sheet PDF fall back to the live template when null.
   rubricSnapshotJson Json?
+  // When the lead examiner locked their own card (their marks live on
+  // scoresJson). Co-judges lock theirs via ExamJudge.submittedAt. The exam
+  // only completes once EVERY card on the panel is locked — see lib/exam-panel.ts.
+  leadSubmittedAt    DateTime?
+  // A completed exam reopened by a manager to correct a mistake. Cleared
+  // cards are re-marked and re-submitted; the reason stays on record.
+  reopenedAt         DateTime?
+  reopenedBy         String?
+  reopenReason       String?
   passed             Boolean?
   // Deductions are subtracted from the rubric total before pass/fail. Used
   // for course faults, time penalties, refusals, etc. that aren't rubric
