@@ -22,14 +22,25 @@ const today = () => {
 // A rider's monthly fee, as the coach collected it — for the club's own
 // records. No invoice, no cap: fees differ rider to rider. Coaches may use
 // this (and only this) money form; see FEE_RECORDER_ROLES.
-export function RecordFeeButton({ riderId }: { riderId: string }) {
+type Method = "cash" | "upi" | "bank" | "cheque" | "card";
+export type EditableFee = {
+  id: string;
+  amount: number;
+  feeMonth: string | null;
+  method: string;
+  paidAt: string; // YYYY-MM-DD
+  note: string;
+};
+
+// With `edit`, the same form changes a fee already recorded (finance roles).
+export function RecordFeeButton({ riderId, edit }: { riderId: string; edit?: EditableFee }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [feeMonth, setFeeMonth] = useState(thisMonth);
-  const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState<"cash" | "upi" | "bank" | "cheque" | "card">("cash");
-  const [paidAt, setPaidAt] = useState(today);
-  const [note, setNote] = useState("");
+  const [feeMonth, setFeeMonth] = useState(() => edit?.feeMonth ?? thisMonth());
+  const [amount, setAmount] = useState(() => (edit ? String(edit.amount) : ""));
+  const [method, setMethod] = useState<Method>(() => (edit?.method as Method) ?? "cash");
+  const [paidAt, setPaidAt] = useState(() => edit?.paidAt ?? today());
+  const [note, setNote] = useState(() => edit?.note ?? "");
   const [busy, setBusy] = useState(false);
   const ref = useRef<HTMLFormElement>(null);
   useFocusTrap(ref, open);
@@ -42,27 +53,31 @@ export function RecordFeeButton({ riderId }: { riderId: string }) {
     if (!valid) return;
     setBusy(true);
     try {
-      const res = await fetch("/api/payments/receipt", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          riderId,
-          amount: value,
-          method,
-          paidAt,
-          feeMonth,
-          ...(note.trim() ? { note: note.trim() } : {}),
-        }),
-      });
+      const payload = { amount: value, method, paidAt, feeMonth, ...(note.trim() ? { note: note.trim() } : {}) };
+      const res = edit
+        ? await fetch(`/api/payments/${edit.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          })
+        : await fetch("/api/payments/receipt", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ riderId, ...payload }),
+          });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error(data.message ?? data.error ?? "Couldn't save the fee");
         return;
       }
-      toast.success(`Monthly fee recorded · ₹${value.toLocaleString("en-IN")}`);
+      toast.success(
+        edit ? "Fee updated" : `Monthly fee recorded · ₹${value.toLocaleString("en-IN")}`,
+      );
       setOpen(false);
-      setAmount("");
-      setNote("");
+      if (!edit) {
+        setAmount("");
+        setNote("");
+      }
       router.refresh();
     } finally {
       setBusy(false);
@@ -71,13 +86,23 @@ export function RecordFeeButton({ riderId }: { riderId: string }) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1 rounded border bg-card px-2.5 py-1.5 text-xs hover:bg-muted"
-      >
-        <IndianRupee className="h-3 w-3" /> Record Monthly Fee
-      </button>
+      {edit ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="rounded border px-2 py-1 text-[11px] hover:bg-muted"
+        >
+          Edit
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="inline-flex items-center gap-1 rounded border bg-card px-2.5 py-1.5 text-xs hover:bg-muted"
+        >
+          <IndianRupee className="h-3 w-3" /> Record Monthly Fee
+        </button>
+      )}
       {open && (
         <div className="fixed inset-0 z-40">
           <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} aria-hidden />
@@ -87,11 +112,11 @@ export function RecordFeeButton({ riderId }: { riderId: string }) {
             onKeyDown={(e) => { if (e.key === "Escape") setOpen(false); }}
             role="dialog"
             aria-modal="true"
-            aria-label="Record monthly fee"
+            aria-label={edit ? "Edit fee" : "Record monthly fee"}
             tabIndex={-1}
             className="absolute left-1/2 top-[15%] z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 space-y-3 rounded-lg border bg-card p-4 shadow-xl outline-none"
           >
-            <h2 className="text-base font-semibold">Record Monthly Fee</h2>
+            <h2 className="text-base font-semibold">{edit ? "Edit Fee" : "Record Monthly Fee"}</h2>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Fee for month *</Label>
@@ -112,7 +137,7 @@ export function RecordFeeButton({ riderId }: { riderId: string }) {
               </div>
               <div>
                 <Label>Method</Label>
-                <Select aria-label="Method" value={method} onChange={(e) => setMethod(e.target.value as typeof method)}>
+                <Select aria-label="Method" value={method} onChange={(e) => setMethod(e.target.value as Method)}>
                   <option value="cash">Cash</option>
                   <option value="upi">UPI</option>
                   <option value="bank">Bank Transfer</option>
@@ -210,6 +235,59 @@ export function MarkAsFeeButton({ paymentId }: { paymentId: string }) {
       </button>
       <button type="button" onClick={() => setEditing(false)} className="px-1 text-[11px] text-muted-foreground">
         Cancel
+      </button>
+    </span>
+  );
+}
+
+// Delete a recorded fee, after an inline "are you sure" (no native confirm —
+// it is easy to tap through on a phone and invisible to the audit trail).
+export function DeleteFeeButton({ paymentId, amount }: { paymentId: string; amount: number }) {
+  const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function remove() {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/payments/${paymentId}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.message ?? data.error ?? "Failed");
+        return;
+      }
+      toast.success("Fee deleted");
+      router.refresh();
+    } finally {
+      setBusy(false);
+      setConfirming(false);
+    }
+  }
+
+  if (!confirming) {
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirming(true)}
+        className="rounded border px-2 py-1 text-[11px] text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950"
+      >
+        Delete
+      </button>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px]">
+      Delete ₹{Math.round(amount).toLocaleString("en-IN")}?
+      <button
+        type="button"
+        onClick={remove}
+        disabled={busy}
+        className="rounded bg-rose-600 px-2 py-1 font-medium text-white disabled:opacity-50"
+      >
+        {busy ? "…" : "Yes, delete"}
+      </button>
+      <button type="button" onClick={() => setConfirming(false)} className="px-1 text-muted-foreground">
+        No
       </button>
     </span>
   );

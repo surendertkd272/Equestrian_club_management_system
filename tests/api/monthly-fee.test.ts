@@ -24,6 +24,7 @@ vi.mock("next/headers", () => ({
 const { POST: recordPayment } = await import("@/app/api/payments/manual/route");
 const { POST: recordReceipt } = await import("@/app/api/payments/receipt/route");
 const { POST: setFeeMonth } = await import("@/app/api/payments/[id]/fee-month/route");
+const { PATCH: editFee, DELETE: deleteFee } = await import("@/app/api/payments/[id]/route");
 
 async function loginAs(u: { id: string; role: string; centreId: string | null; name: string }) {
   const payload: SessionPayload = { userId: u.id, role: u.role as Role, centreId: u.centreId, name: u.name };
@@ -189,5 +190,82 @@ describe("marking an existing advance as a monthly fee", () => {
     await loginAs(f.other.manager);
     expect((await call(f.adv.id, "2026-09")).status).toBe(403);
     expect((await prisma.payment.findUniqueOrThrow({ where: { id: f.adv.id } })).feeMonth).toBeNull();
+  });
+});
+
+describe("editing and deleting a recorded fee", () => {
+  async function withFee() {
+    const f = await setup();
+    await loginAs(f.coach);
+    await recordReceipt(json({ riderId: f.rider.id, amount: 4000, method: "cash", feeMonth: "2026-09", note: "paid by father" }));
+    const fee = await prisma.payment.findFirstOrThrow({ where: { riderId: f.rider.id } });
+    await loginAs(f.manager);
+    return { ...f, fee };
+  }
+  const edit = (id: string, body: unknown) =>
+    editFee(mockReq("http://localhost", { method: "PATCH", body: JSON.stringify(body) }), { params: { id } });
+  const del = (id: string) => deleteFee(mockReq("http://localhost", { method: "DELETE" }), { params: { id } });
+  const good = { amount: 3500, feeMonth: "2026-10", method: "upi", paidAt: "2026-10-02", note: "fee revised" };
+
+  it("a manager can change the amount, month, method, date and note — and it is audited", async () => {
+    const f = await withFee();
+    const r = await edit(f.fee.id, good);
+    expect(r.status).toBe(200);
+    const after = await prisma.payment.findUniqueOrThrow({ where: { id: f.fee.id } });
+    expect(after).toMatchObject({ amount: 3500, feeMonth: "2026-10", method: "upi", reason: "Monthly fee — Oct 2026 · fee revised" });
+    expect(after.paidAt.toISOString().slice(0, 10)).toBe("2026-10-02");
+    // Who recorded it originally is kept; the edit is attributed in the log.
+    expect(after.recordedByUserId).toBe(f.coach.id);
+    const log = await prisma.auditLog.findFirstOrThrow({ where: { action: "payment.fee_edited", rowId: f.fee.id } });
+    expect(log.userId).toBe(f.manager.id);
+    expect(JSON.stringify(log.before)).toContain("4000");
+  });
+
+  it("a manager can delete it; the audit log keeps the whole row", async () => {
+    const f = await withFee();
+    const r = await del(f.fee.id);
+    expect(r.status).toBe(200);
+    expect(await prisma.payment.findUnique({ where: { id: f.fee.id } })).toBeNull();
+    const log = await prisma.auditLog.findFirstOrThrow({ where: { action: "payment.fee_deleted", rowId: f.fee.id } });
+    expect(JSON.stringify(log.before)).toContain("paid by father");
+  });
+
+  it("a coach can record a fee but not change or delete one", async () => {
+    const f = await withFee();
+    await loginAs(f.coach);
+    expect((await edit(f.fee.id, good)).status).toBe(403);
+    expect((await del(f.fee.id)).status).toBe(403);
+    expect((await prisma.payment.findUniqueOrThrow({ where: { id: f.fee.id } })).amount).toBe(4000);
+  });
+
+  it("another club's manager can't touch it", async () => {
+    const f = await withFee();
+    await loginAs(f.other.manager);
+    expect((await edit(f.fee.id, good)).status).toBe(403);
+    expect((await del(f.fee.id)).status).toBe(403);
+  });
+
+  it("an invoice payment is not editable or deletable — it keeps Reverse", async () => {
+    const f = await withFee();
+    await recordPayment(json({ invoiceId: f.invoice.id, amount: 3000, method: "cash" }));
+    const invPay = await prisma.payment.findFirstOrThrow({ where: { invoiceId: f.invoice.id } });
+    expect((await edit(invPay.id, good)).status).toBe(409);
+    expect((await del(invPay.id)).status).toBe(409);
+    expect((await prisma.invoice.findUniqueOrThrow({ where: { id: f.invoice.id } })).status).toBe("paid");
+  });
+
+  it("a reversed fee can't be edited or deleted — that would orphan its reversal", async () => {
+    const f = await withFee();
+    await prisma.payment.create({
+      data: { centreId: f.centre.id, riderId: f.rider.id, amount: -4000, method: "cash", reversalOfId: f.fee.id },
+    });
+    expect((await edit(f.fee.id, good)).status).toBe(409);
+    expect((await del(f.fee.id)).status).toBe(409);
+  });
+
+  it("rejects a bad edit", async () => {
+    const f = await withFee();
+    expect((await edit(f.fee.id, { ...good, amount: 0 })).status).toBe(400);
+    expect((await edit(f.fee.id, { ...good, feeMonth: "Oct" })).status).toBe(400);
   });
 });

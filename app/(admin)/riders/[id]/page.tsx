@@ -23,10 +23,10 @@ import { WithdrawPanel, WithdrawnRiderBanner } from "./withdraw-panel";
 import { creditPosition } from "@/lib/credit-note";
 import { InvoiceReversalActions, ReversePaymentButton } from "@/components/finance/reversal-actions";
 import { RecordPaymentButton } from "@/components/finance/record-payment-button";
-import { RecordFeeButton, MarkAsFeeButton } from "@/components/finance/record-fee-button";
-import { FEE_RECORDER_ROLES, currentFeeMonth, formatFeeMonth } from "@/lib/fee-month";
+import { RecordFeeButton, MarkAsFeeButton, DeleteFeeButton } from "@/components/finance/record-fee-button";
+import { FEE_RECORDER_ROLES, currentFeeMonth, feeNoteOf, formatFeeMonth } from "@/lib/fee-month";
 import { ConsentRecord } from "./consent-record";
-import { PLATFORM_TZ } from "@/lib/tz";
+import { PLATFORM_TZ, wallPartsInTz } from "@/lib/tz";
 export const dynamic = "force-dynamic";
 
 function AttendanceSummary({ attendances }: { attendances: { status: string }[] }) {
@@ -608,6 +608,12 @@ export default async function RiderProfile({ params }: { params: { id: string } 
                   .sort((a, b) => b.paidAt.getTime() - a.paidAt.getTime())
                   .map((p) => {
                     const kind = kindOf(p);
+                    // A fee held against no invoice, not reversed: editable
+                    // and deletable (see /api/payments/[id]). Anything on an
+                    // invoice keeps Reverse, because the invoice's status
+                    // depends on it.
+                    const editable =
+                      financeWrite && kind !== "invoice" && p.amount > 0 && !p.reversalOfId && !reversed.has(p.id);
                     return (
                     <li key={p.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b py-1.5 last:border-0">
                       <span>
@@ -648,10 +654,24 @@ export default async function RiderProfile({ params }: { params: { id: string } 
                       </span>
                       <span className="flex items-center gap-2">
                         <span className="font-mono">₹{Math.round(p.amount).toLocaleString("en-IN")}</span>
-                        {financeWrite && kind === "advance" && p.amount > 0 && !reversed.has(p.id) && (
-                          <MarkAsFeeButton paymentId={p.id} />
+                        {editable && kind === "advance" && <MarkAsFeeButton paymentId={p.id} />}
+                        {editable && (
+                          <>
+                            <RecordFeeButton
+                              riderId={rider.id}
+                              edit={{
+                                id: p.id,
+                                amount: p.amount,
+                                feeMonth: p.feeMonth,
+                                method: p.method,
+                                paidAt: wallPartsInTz(p.paidAt, tz).date,
+                                note: feeNoteOf(p.reason),
+                              }}
+                            />
+                            <DeleteFeeButton paymentId={p.id} amount={p.amount} />
+                          </>
                         )}
-                        {financeWrite && (
+                        {financeWrite && !editable && (
                           <ReversePaymentButton
                             paymentId={p.id}
                             amount={p.amount}

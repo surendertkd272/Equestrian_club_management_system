@@ -27,3 +27,9 @@ export function currentFeeMonth(tz = "Asia/Kolkata", now = new Date()): string {
 // whole of what they may do with money here. Invoices, reversals and
 // everything else stay with finance.write.
 export const FEE_RECORDER_ROLES = new Set(["COACH", "HEAD_COACH"]);
+
+// The free-text part of a fee's reason, without the "Monthly fee — Sep 2026"
+// or "Advance" label the system writes in front of it.
+export function feeNoteOf(reason: string | null): string {
+  return (reason ?? "").replace(/^(Advance|Monthly fee — [A-Za-z]{3} \d{4})( — | · )?/, "");
+}
