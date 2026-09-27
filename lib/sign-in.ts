@@ -183,6 +183,7 @@ export async function finishSignIn(
     centreId: user.centreId ?? null,
     name: user.name,
     tokenVersion: user.tokenVersion,
+    ...(user.mustChangePassword ? { mustRotate: true } : {}),
   });
   await setSessionCookie(token);
   // Audited here rather than at each call site so both sign-in paths are

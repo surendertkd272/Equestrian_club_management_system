@@ -6,6 +6,7 @@ import { scopeCentre, tenantWhere } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NewSittingForm } from "./form";
+import { bookingBlockReason } from "@/lib/exam-booking";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +19,11 @@ export default async function NewSittingPage() {
 
   const [riders, examiners, templates] = await Promise.all([
     prisma.rider.findMany({
-      where: { ...tenantWhere(centreId, orgId), status: "active" },
-      select: { id: true, firstName: true, lastName: true, currentLevel: true },
+      // Every rider who hasn't left — the ones who can't be booked yet are
+      // listed separately WITH the reason, instead of silently missing (a
+      // bulk-imported roster waiting for consent used to vanish from here).
+      where: { ...tenantWhere(centreId, orgId), status: { not: "withdrawn" } },
+      select: { id: true, firstName: true, lastName: true, currentLevel: true, status: true },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
     prisma.user.findMany({
@@ -43,11 +47,12 @@ export default async function NewSittingPage() {
     <div className="mx-auto max-w-2xl space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Schedule Exams</CardTitle>
+          <CardTitle>Schedule a single sitting</CardTitle>
           <CardDescription>
             One date + level. Pick the riders and the examiner pool — we&apos;ll create a
             scheduled exam per rider, unassigned. On the day, any examiner in the pool picks a
-            rider to mark (it then locks to them). Re-attempts link automatically.
+            rider to mark (it then locks to them). Re-attempts link automatically. Booking several
+            levels on one date? <a href="/exams/days/new" className="text-primary underline">Schedule an exam day</a> instead.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -55,6 +60,7 @@ export default async function NewSittingPage() {
             riders={riders.map((r) => ({
               id: r.id,
               label: `${r.firstName} ${r.lastName}${r.currentLevel ? ` · ${r.currentLevel}` : ""}`,
+              blocked: bookingBlockReason(r.status),
             }))}
             examiners={examiners}
             levels={templates.map((t) => ({ key: t.levelKey, name: t.levelName }))}

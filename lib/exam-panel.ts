@@ -103,6 +103,8 @@ export type FinalizeResult = {
   certificateSerial: string | null;
   levelName: string;
   revokedCertificateIds: string[];
+  // Per revoked certificate: the level the rider was rolled back to (undefined = untouched).
+  revokedLevelRollback: (string | null | undefined)[];
 };
 
 // Complete the exam if every card on its panel is locked; otherwise null.
@@ -136,6 +138,7 @@ export async function completeIfPanelDone(
   let certificateMinted = false;
   let certificateSerial: string | null = null;
   const revokedCertificateIds: string[] = [];
+  const revokedLevelRollback: (string | null | undefined)[] = [];
 
   if (passed === true) {
     // One live certificate per rider per level. Re-marking an exam, or sitting
@@ -187,7 +190,7 @@ export async function completeIfPanelDone(
       select: { id: true, type: true, levelName: true, riderId: true },
     });
     for (const c of live) {
-      await revokeCertificate(tx, c, actorUserId, "Exam re-marked after correction — did not pass");
+      revokedLevelRollback.push(await revokeCertificate(tx, c, actorUserId, "Exam re-marked after correction — did not pass"));
       revokedCertificateIds.push(c.id);
     }
   }
@@ -201,6 +204,7 @@ export async function completeIfPanelDone(
     certificateSerial,
     levelName: template.levelName,
     revokedCertificateIds,
+    revokedLevelRollback,
   };
 }
 
@@ -216,6 +220,7 @@ export async function afterExamCompleted(
     examinerId: string | null;
     examinerName: string | null;
     reopenedAt: Date | null;
+    sittingId: string | null;
   },
   r: FinalizeResult,
   actorUserId: string,
@@ -229,25 +234,81 @@ export async function afterExamCompleted(
       after: { serial: r.certificateSerial, levelName: r.levelName, riderId: exam.riderId, examId: exam.id },
     });
   }
-  for (const id of r.revokedCertificateIds) {
+  for (const [i, id] of r.revokedCertificateIds.entries()) {
+    const rolledBackTo = r.revokedLevelRollback[i];
     await audit({
       userId: actorUserId,
       action: "certificate.revoke",
       tableName: "certificate",
       rowId: id,
-      after: { reason: "Exam re-marked after correction — did not pass", examId: exam.id },
+      after: {
+        reason: "Exam re-marked after correction — did not pass",
+        examId: exam.id,
+        ...(rolledBackTo !== undefined
+          ? { riderLevelRolledBackFrom: r.levelName, riderLevelRolledBackTo: rolledBackTo }
+          : {}),
+      },
     });
   }
   try {
-    await sendResultNotifications(exam, r);
+    await sendResultNotifications(exam, r, actorUserId);
+    if (exam.sittingId) await notifyIfSittingComplete(exam.sittingId);
   } catch (err) {
     console.warn("[exam-panel] result notifications failed:", err);
   }
 }
 
+// ONE summary to the centre manager when the last rider in a sitting is
+// marked — and one more when the last sitting of an exam day finishes —
+// instead of a notification per rider (a 200-rider day sent 194). The
+// completedNotifiedAt claim makes it exactly-once even when the last two
+// cards land at the same moment.
+export async function notifyIfSittingComplete(sittingId: string): Promise<void> {
+  const open = await prisma.exam.count({ where: { sittingId, status: { in: ["scheduled", "in_progress"] } } });
+  if (open > 0) return;
+  const claimed = await prisma.examSitting.updateMany({
+    where: { id: sittingId, completedNotifiedAt: null },
+    data: { completedNotifiedAt: new Date() },
+  });
+  if (claimed.count === 0) return;
+  const s = await prisma.examSitting.findUnique({
+    where: { id: sittingId },
+    include: { exams: { select: { passed: true } }, examDay: { select: { id: true, name: true } } },
+  });
+  if (!s || s.exams.length === 0) return;
+  const passed = s.exams.filter((e) => e.passed === true).length;
+  await notifyCentreManager(s.centreId, {
+    type: "exam.sitting_complete",
+    title: `Level ${s.level} sitting complete — ${passed} of ${s.exams.length} passed`,
+    body: `${s.exams.length - passed} did not pass.${s.examDay ? ` Part of ${s.examDay.name}.` : ""}`,
+    link: `/exams/sittings/${s.id}`,
+    payload: { sittingId: s.id, passed, total: s.exams.length },
+  });
+  if (!s.examDay) return;
+  const dayOpen = await prisma.exam.count({
+    where: { sitting: { examDayId: s.examDay.id }, status: { in: ["scheduled", "in_progress"] } },
+  });
+  if (dayOpen > 0) return;
+  const dayClaimed = await prisma.examDay.updateMany({
+    where: { id: s.examDay.id, completedNotifiedAt: null },
+    data: { completedNotifiedAt: new Date() },
+  });
+  if (dayClaimed.count === 0) return;
+  const all = await prisma.exam.findMany({ where: { sitting: { examDayId: s.examDay.id } }, select: { passed: true } });
+  const dayPassed = all.filter((e) => e.passed === true).length;
+  await notifyCentreManager(s.centreId, {
+    type: "exam.day_complete",
+    title: `${s.examDay.name} complete — ${dayPassed} of ${all.length} passed`,
+    body: "Every rider on the day has been marked. Certificates for the passes are issued.",
+    link: `/exams/days/${s.examDay.id}`,
+    payload: { examDayId: s.examDay.id, passed: dayPassed, total: all.length },
+  });
+}
+
 async function sendResultNotifications(
   exam: Parameters<typeof afterExamCompleted>[0],
   r: FinalizeResult,
+  actorUserId: string,
 ): Promise<void> {
   const { total, max, passed } = r;
   // A corrected result tells people it changed, and only re-sends the
@@ -259,9 +320,12 @@ async function sendResultNotifications(
   });
   const riderName = rider ? `${rider.firstName} ${rider.lastName}` : "Rider";
   const parentPhone = rider?.fatherPhone ?? rider?.motherPhone ?? rider?.mobile;
+  // A rider marked in a sitting is covered by the sitting's summary; the
+  // manager still hears about every correction individually.
+  const tellManager = !exam.sittingId || corrected;
 
   if (passed === true) {
-    await notifyCentreManager(exam.centreId, {
+    if (tellManager) await notifyCentreManager(exam.centreId, {
       type: "exam.passed",
       title: corrected
         ? `${riderName}'s Level ${exam.level} result was corrected — passed`
@@ -308,7 +372,7 @@ async function sendResultNotifications(
       });
     }
   } else {
-    await notifyCentreManager(exam.centreId, {
+    if (tellManager) await notifyCentreManager(exam.centreId, {
       type: "exam.failed",
       title: corrected
         ? `${riderName}'s Level ${exam.level} result was corrected — did not pass`
@@ -332,7 +396,8 @@ async function sendResultNotifications(
       payload: { examId: exam.id },
     });
   }
-  if (exam.examinerId) {
+  // The examiner who pressed Submit already saw the result on screen.
+  if (exam.examinerId && exam.examinerId !== actorUserId) {
     await notify({
       userId: exam.examinerId,
       centreId: exam.centreId,

@@ -397,9 +397,14 @@ export async function GET(req: Request, { params }: { params: { entity: string }
     const level = Number(url.searchParams.get("level"));
     const from = url.searchParams.get("from");
     const to = url.searchParams.get("to");
+    // One exam day, or one sitting, from their own pages.
+    const dayId = url.searchParams.get("dayId");
+    const sittingId = url.searchParams.get("sittingId");
     const ymd = /^\d{4}-\d{2}-\d{2}$/;
     const examWhere = {
       ...where,
+      ...(sittingId ? { sittingId } : {}),
+      ...(dayId ? { sitting: { examDayId: dayId } } : {}),
       ...(status ? { status } : {}),
       ...(Number.isInteger(level) && level > 0 ? { level } : {}),
       ...((from && ymd.test(from)) || (to && ymd.test(to))

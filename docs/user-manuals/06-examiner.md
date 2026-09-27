@@ -1,26 +1,27 @@
 # Examiner — User Guide
-_Equiwings CMS · Score exam-day sittings and issue verified certificates._
+_Equiwings CMS · Mark exam-day riders and issue verified certificates._
 
 ## Logging in
-Go to **/login** and sign in with the email and password your admin gave you. On your first login you may be asked to set a new password. You'll land on your **Dashboard**, with the menu down the left side. On a phone the menu collapses to a hamburger (☰) at the top.
+Go to **/login** and sign in with the email and password your admin gave you. On your first login you'll be asked to set a new password — nothing else works until you do. You'll land on your **Dashboard**, with the menu down the left side. On a phone the menu collapses to a hamburger (☰) at the top.
 
 ## What you can do
 You're here for exam day. You can:
-- View the riders you're examining
-- Open the exams assigned to you and score each rider against the rubric
-- See pass/fail decided by the score, with the certificate issued automatically on a pass
-- View reports and print result sheets
+- See the riders waiting in the examiner pools you're part of
+- Pick a rider and mark them against the level's rubric
+- Mark your own card when you sit on a jury panel with other judges
+- See pass/fail worked out from the marks, with the certificate issued automatically on a pass
+- Print the jury sheet (a blank paper rubric) and the rider's result card
 - Request leave
 
-You don't run classes, attendance, batches or club operations — your view is focused on exams and certificates. You only see exams where you're the lead examiner or a co-judge.
+You don't run classes, attendance, batches or club operations — your view is focused on exams and certificates. You only see exams where you're in the examiner pool, the lead examiner, or a co-judge.
 
 ## Your menu
 **Riders & Training**
 - **Riders** — view the riders you're examining: profiles, levels and history (view-only).
-- **Exams** — your assigned exam sittings; open each one to score it _(if your club has this turned on)_.
+- **Exams** — the riders waiting for you, and the ones you've marked _(if your club has this turned on)_.
 
 **Money & Records**
-- **Reports** — exam results and exports _(if your club has this turned on)_.
+- **Reports** — exam results _(if your club has this turned on)_.
 - **Certificates** — view, print and verify the QR certificates from your exams _(if your club has this turned on)_.
 - **Notifications** — your alerts.
 
@@ -29,28 +30,32 @@ You'll also see **Leave Requests** under Staff & Operations to request your time
 > Tip: Exams, Certificates and Riders are "Pinned for you" at the top of the menu for fast access on exam day.
 
 ## Common tasks
-**1. Open the exams assigned to you**
-1. Open **Exams** — the list shows only sittings assigned to you.
-2. Use the Status or Level filters if the list is long.
-3. Click **Open →** on a rider's row to start scoring.
+**1. Pick a rider to mark**
+1. Open **Exams**. Riders waiting in your pools are listed there; use the Rider search or the Status/Level filters if the list is long.
+2. Or open the sitting for your level (from the exam day page, or the rider's row) and tap **Pick & mark** next to a waiting rider.
+3. The rider is now yours — no other examiner can pick them — and the marking sheet opens.
 
-**2. Score a rider**
-1. On the exam page you'll see the rider, level, and the **pass mark** percentage.
-2. Tap **Print judge sheet** if you want a paper rubric to mark from in the arena.
-3. Enter a score for each rubric category; add any deductions or time faults if the level uses them.
-4. Save the card. The total and **Pass / Fail** are worked out for you.
+**2. Mark a rider**
+1. The sheet shows the rider, the level, and the **pass mark**.
+2. Tap **Print jury sheet** if you'd rather mark on paper in the arena first.
+3. Tap a mark for each item. The bar at the bottom shows the running total and whether your marks are saved.
+4. Tap **Draft** (**Save draft** on a larger screen) any time — you can close the page and come back. **Reset draft** clears your card.
+5. If you're the lead examiner, add any **deductions** or **time faults**.
 
-**3. Finish an exam and issue the certificate**
-1. Once all categories are scored, complete the exam.
-2. On a **pass**, the QR-verified certificate is issued automatically.
-3. Open **Certificates** to **Print** it or open **Verify ↗** to confirm the public QR link.
+**3. Submit your card**
+1. Tap **Submit** (**Lock & submit** on a larger screen). If some items have no mark, you'll be asked to confirm — blank items count as zero.
+2. Your card locks once submitted.
+3. **If you're the only judge**, the result is worked out straight away. On a **pass** the QR-verified certificate is issued and the rider's parents get a message.
+4. **If there's a jury panel**, the exam waits until **every judge has submitted their own card**, then uses the average. The panel shows whose card is still open.
 
-**4. Print a rider's result**
-1. From a completed exam, use **Print result** for the rider-facing result card.
-2. Or open **Reports** for the fuller rider narrative.
+**4. Correct a mistake**
+You can change your card freely until you submit it. After the exam is completed, only a centre manager can **reopen it for correction** — when they do, you'll get a notification, your card unlocks with your marks still there, and you correct and submit it again.
 
-**5. Request leave**
-1. Open **Leave Requests**, pick your dates, add a reason, and submit for approval.
+**5. Print a rider's result**
+From a completed exam, use **Print result** for the rider-facing result card, or open **Reports** for the fuller rider narrative.
+
+**6. Request leave**
+Open **Leave Requests**, pick your dates, add a reason, and submit for approval.
 
 ## Your account & help
 - **Account** (/account) — update your profile, change your password, set notification preferences, and "Sign out everywhere".
@@ -58,9 +63,9 @@ You'll also see **Leave Requests** under Staff & Operations to request your time
 - **Help** (/help) — guidance and answers.
 
 ## Good to know
-- You can only see and score exams where you're the **lead examiner or a co-judge** — others stay hidden.
-- Scheduling exams is done by your club's managers, not you — you score the ones assigned to you.
+- You only see and mark exams where you're in the pool, the lead, or a co-judge — others stay hidden.
+- Scheduling exams is done by your club's managers and head coaches, not you.
 - Certificates issue **automatically on a pass**; you don't issue them by hand.
 - Rider profiles and reports are **view-only** for you.
 - A "(if your club has this turned on)" item is a plan feature; if you don't see it, your club hasn't enabled it.
-- It works on your phone browser, so you can score from the arena.
+- It works in your phone's browser, so you can mark from the arena.

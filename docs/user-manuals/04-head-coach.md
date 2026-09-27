@@ -19,7 +19,7 @@ You lead the coaching team. You manage riders, batches, lessons, attendance, pro
 - **Attendance** — mark riders present, absent, or late.
 - **Progress** — per-rider skill tracking.
 - **Monthly Skills** — this month's skill ratings per rider.
-- **Exams** — schedule, score, and record exam results and levels.
+- **Exams** — book exam days, sit on jury panels, and export results.
 
 **Staff & Operations**
 - **Staff Attendance** — daily staff check-in.
@@ -56,7 +56,7 @@ You lead the coaching team. You manage riders, batches, lessons, attendance, pro
 ## Common tasks
 1. **Plan the week's classes:** In **Batches**, set up the recurring slots (day, time, level, coach), then use **Lessons** to schedule sessions and assign horses.
 2. **Track a rider's growth:** Mark **Attendance**, log skills in **Progress**, and set this month's ratings in **Monthly Skills**.
-3. **Run an exam:** In **Exams**, schedule it, then record scores and publish results and levels.
+3. **Run an exam day:** In **Exams**, tap **Schedule exam day**, give each rider their level and pick the examiners for each level. Follow the day from its page; move it, cancel it, or remove one rider while they're still waiting. If a completed result is wrong, ask your centre manager to **reopen it for correction**.
 4. **Approve your team's requests:** Open **Approvals**, **Leave Requests**, **Batch Shifts**, or **Requisitions** and approve or decline.
 5. **Wrap up the day:** Write your **Daily Coach Update**, then review **Team Daily Updates** to see what the rest of the coaching team logged.
 6. **Send in a bill:** Use **Submit Invoice** to record something you purchased for the club, with the amount and a receipt.
