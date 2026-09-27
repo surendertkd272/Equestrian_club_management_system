@@ -671,6 +671,9 @@ export default async function RiderProfile({ params }: { params: { id: string } 
                             <DeleteFeeButton paymentId={p.id} amount={p.amount} />
                           </>
                         )}
+                        {financeWrite && kind === "invoice" && p.amount > 0 && p.method !== "razorpay" && !reversed.has(p.id) && (
+                          <DeleteFeeButton paymentId={p.id} amount={p.amount} />
+                        )}
                         {financeWrite && !editable && (
                           <ReversePaymentButton
                             paymentId={p.id}

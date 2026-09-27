@@ -245,13 +245,38 @@ describe("editing and deleting a recorded fee", () => {
     expect((await del(f.fee.id)).status).toBe(403);
   });
 
-  it("an invoice payment is not editable or deletable — it keeps Reverse", async () => {
+  it("an invoice payment entered by mistake can be deleted — the invoice is due again — but not edited", async () => {
     const f = await withFee();
     await recordPayment(json({ invoiceId: f.invoice.id, amount: 3000, method: "cash" }));
     const invPay = await prisma.payment.findFirstOrThrow({ where: { invoiceId: f.invoice.id } });
-    expect((await edit(invPay.id, good)).status).toBe(409);
-    expect((await del(invPay.id)).status).toBe(409);
     expect((await prisma.invoice.findUniqueOrThrow({ where: { id: f.invoice.id } })).status).toBe("paid");
+    expect((await edit(invPay.id, good)).status).toBe(409);
+    const r = await del(invPay.id);
+    expect(r.status).toBe(200);
+    expect((await r.json()).invoiceStatus).toBe("due");
+    expect(await prisma.payment.findUnique({ where: { id: invPay.id } })).toBeNull();
+    expect((await prisma.invoice.findUniqueOrThrow({ where: { id: f.invoice.id } })).status).toBe("due");
+    const log = await prisma.auditLog.findFirstOrThrow({ where: { action: "payment.deleted", rowId: invPay.id } });
+    expect(log.userId).toBe(f.manager.id);
+  });
+
+  it("deleting one of two part-payments leaves the invoice due, not paid", async () => {
+    const f = await withFee();
+    await recordPayment(json({ invoiceId: f.invoice.id, amount: 1000, method: "cash" }));
+    await recordPayment(json({ invoiceId: f.invoice.id, amount: 2000, method: "upi" }));
+    expect((await prisma.invoice.findUniqueOrThrow({ where: { id: f.invoice.id } })).status).toBe("paid");
+    const first = await prisma.payment.findFirstOrThrow({ where: { invoiceId: f.invoice.id, amount: 1000 } });
+    await del(first.id);
+    expect((await prisma.invoice.findUniqueOrThrow({ where: { id: f.invoice.id } })).status).toBe("due");
+  });
+
+  it("an online (Razorpay) payment can't be deleted — it keeps Reverse", async () => {
+    const f = await withFee();
+    const online = await prisma.payment.create({
+      data: { invoiceId: f.invoice.id, centreId: f.centre.id, riderId: f.rider.id, amount: 3000, method: "razorpay", txnRef: "pay_X1" },
+    });
+    expect((await del(online.id)).status).toBe(409);
+    expect(await prisma.payment.findUnique({ where: { id: online.id } })).not.toBeNull();
   });
 
   it("a reversed fee can't be edited or deleted — that would orphan its reversal", async () => {

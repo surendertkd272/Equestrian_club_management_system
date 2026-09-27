@@ -256,7 +256,7 @@ export function DeleteFeeButton({ paymentId, amount }: { paymentId: string; amou
         toast.error(data.message ?? data.error ?? "Failed");
         return;
       }
-      toast.success("Fee deleted");
+      toast.success(data.invoiceStatus === "due" ? "Payment deleted · invoice is due again" : "Deleted");
       router.refresh();
     } finally {
       setBusy(false);

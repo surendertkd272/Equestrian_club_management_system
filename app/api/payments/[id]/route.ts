@@ -8,7 +8,8 @@
 //
 // What CAN be edited or deleted here is money held against no invoice (a
 // monthly fee, an untyped fee received, or a legacy advance) that has not been
-// reversed. The full before/after goes to the audit log, so an edit or delete
+// reversed. A cash/UPI/bank/cheque payment on an invoice can also be DELETED
+// (entered by mistake): the invoice's status is recomputed under its lock. The full before/after goes to the audit log, so an edit or delete
 // is never silent: "who changed Aarav's September fee from ₹4,000 to ₹3,500"
 // stays answerable.
 //
@@ -57,7 +58,11 @@ async function load(id: string) {
   return prisma.payment.findUnique({ where: { id }, select: SELECT });
 }
 
-async function guard(session: SessionPayload | null, id: string): Promise<Loaded> {
+async function guard(
+  session: SessionPayload | null,
+  id: string,
+  mode: "edit" | "delete" = "edit",
+): Promise<Loaded> {
   if (!session) return { ok: false, res: NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 }) };
   if (!can(session.role, "finance.write")) {
     return {
@@ -74,14 +79,21 @@ async function guard(session: SessionPayload | null, id: string): Promise<Loaded
   if (!p) return { ok: false, res: NextResponse.json({ error: "NOT_FOUND" }, { status: 404 }) };
   const fence = await centreFence(session, p.centreId);
   if (fence) return { ok: false, res: NextResponse.json({ error: fence }, { status: 403 }) };
-  if (p.invoiceId || p.amount <= 0 || p.reversalOfId || p.reversals.length > 0) {
+  // An invoice payment can be DELETED (the invoice goes back to due) but not
+  // edited: changing the amount on a settled invoice is a new payment or a
+  // credit note, not a correction. An online (Razorpay) payment is neither —
+  // the gateway holds its own record of that money, so it stays reverse-only.
+  const invoiceBlocked = !!p.invoiceId && (mode === "edit" || p.method === "razorpay");
+  if (invoiceBlocked || p.amount <= 0 || p.reversalOfId || p.reversals.length > 0) {
     return {
       ok: false,
       res: NextResponse.json(
         {
           error: "NOT_EDITABLE",
-          message: p.invoiceId
-            ? "This payment settles an invoice. Use Reverse instead."
+          message: invoiceBlocked
+            ? p.method === "razorpay"
+              ? "An online payment can't be deleted. Use Reverse instead."
+              : "An invoice payment can be deleted, not edited."
             : "A reversed payment can't be edited or deleted.",
         },
         { status: 409 },
@@ -140,19 +152,58 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getSession();
-  const g = await guard(session, params.id);
+  const g = await guard(session, params.id, "delete");
   if (!g.ok) return g.res;
-  await prisma.payment.delete({ where: { id: g.p.id } });
+
+  let invoiceStatus: string | null = null;
+  if (!g.p.invoiceId) {
+    await prisma.payment.delete({ where: { id: g.p.id } });
+  } else {
+    // Settles an invoice: delete and recompute its status under the invoice
+    // lock every payment/credit/reversal path takes, re-checking the row
+    // under it (a reversal may have landed since the guard read it).
+    const invoiceId = g.p.invoiceId;
+    const r = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Invoice" WHERE id = ${invoiceId} FOR UPDATE`;
+      const again = await tx.payment.findUnique({
+        where: { id: g.p.id },
+        select: { reversals: { select: { id: true } } },
+      });
+      if (!again) return { ok: false as const, status: 404, error: "NOT_FOUND" };
+      if (again.reversals.length > 0) return { ok: false as const, status: 409, error: "ALREADY_REVERSED" };
+      await tx.payment.delete({ where: { id: g.p.id } });
+      const inv = await tx.invoice.findUniqueOrThrow({
+        where: { id: invoiceId },
+        select: { amount: true, gstAmount: true, voidedAt: true, status: true },
+      });
+      // A voided invoice keeps its status, as in ./reverse.
+      if (inv.voidedAt) return { ok: true as const, status: inv.status };
+      // Net of credit notes — the figure the payment path collects against.
+      const credits = await tx.invoice.aggregate({
+        where: { creditNoteForId: invoiceId },
+        _sum: { amount: true, gstAmount: true },
+      });
+      const target =
+        inv.amount + inv.gstAmount + (credits._sum.amount ?? 0) + (credits._sum.gstAmount ?? 0);
+      const paid = (await tx.payment.aggregate({ where: { invoiceId }, _sum: { amount: true } }))._sum.amount ?? 0;
+      const next = paid >= target - 0.001 ? "paid" : "due";
+      await tx.invoice.update({ where: { id: invoiceId }, data: { status: next } });
+      return { ok: true as const, status: next };
+    });
+    if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+    invoiceStatus = r.status;
+  }
   // The whole row goes to the audit log: this is the only copy left of it.
   const { reversals: _r, ...snapshot } = g.p;
   await audit({
     userId: session!.userId,
-    action: "payment.fee_deleted",
+    action: g.p.invoiceId ? "payment.deleted" : "payment.fee_deleted",
     tableName: "payment",
     rowId: g.p.id,
     before: snapshot,
+    after: invoiceStatus ? { invoiceStatusNow: invoiceStatus } : undefined,
     ip: req.headers.get("x-forwarded-for"),
     userAgent: req.headers.get("user-agent"),
   });
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, invoiceStatus });
 }
