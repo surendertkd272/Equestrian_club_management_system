@@ -8,7 +8,7 @@ import { can } from "@/lib/permissions";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { audit } from "@/lib/audit";
 import { parseDateOnly } from "@/lib/schemas/attendance";
-import { ExamPanelError } from "@/lib/exam-panel";
+import { ExamPanelError, notifyIfSittingComplete } from "@/lib/exam-panel";
 import { OPEN_EXAM_STATUSES, removableExamInclude, removalProblem, removalSnapshot } from "@/lib/exam-schedule";
 
 const patchSchema = z
@@ -74,6 +74,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         include: { exams: { select: { status: true, reopenedAt: true } } },
       });
       if (!sitting) throw new ExamPanelError("NOT_FOUND", "This sitting no longer exists.", 404);
+      if (d.date && sitting.examDayId) {
+        throw new ExamPanelError(
+          "IN_EXAM_DAY",
+          "This sitting is part of an exam day — move the whole day instead, so its levels stay on the same date.",
+          409,
+        );
+      }
       const hasResults = sitting.exams.some((e) => e.status === "completed" || e.reopenedAt);
       if (d.date && hasResults) {
         throw new ExamPanelError(
@@ -143,13 +150,19 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         await tx.exam.deleteMany({ where: { id: { in: removable.map((e) => e.id) } } });
       }
       const kept = exams.length - removable.length;
-      if (kept === 0) await tx.examSitting.delete({ where: { id: g.sitting.id } });
+      if (kept === 0) {
+        const gone = await tx.examSitting.delete({ where: { id: g.sitting.id }, select: { examDayId: true } });
+        if (gone.examDayId && (await tx.examSitting.count({ where: { examDayId: gone.examDayId } })) === 0) {
+          await tx.examDay.delete({ where: { id: gone.examDayId } });
+        }
+      }
       return { removed: removable.map(removalSnapshot), kept, sittingRemoved: kept === 0 };
     });
   } catch (e) {
     return panelErrorResponse(e);
   }
 
+  if (!result.sittingRemoved) await notifyIfSittingComplete(g.sitting.id).catch(() => {});
   await audit({
     userId: g.session.userId,
     action: "exam.sitting_cancelled",

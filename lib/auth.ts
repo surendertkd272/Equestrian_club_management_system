@@ -50,6 +50,11 @@ export type SessionPayload = {
   // Epoch ms — non-null means the impersonation expires when Date.now()
   // crosses this. Independent of JWT exp so we can show a countdown in UI.
   impersonationExpiresAt?: number;
+  // Signed in on a server-generated temporary password. Pages already force
+  // /account/rotate (each layout checks the DB); this marker lets the
+  // middleware refuse API calls too, which temp-password accounts could make
+  // freely until they rotated. Dropped when change-password re-mints.
+  mustRotate?: boolean;
 };
 
 function getSecret() {

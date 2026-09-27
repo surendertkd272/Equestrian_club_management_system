@@ -16,6 +16,8 @@ import { can } from "@/lib/permissions";
 import { ExportCsvButton } from "@/components/ui/export-csv";
 export const dynamic = "force-dynamic";
 
+const PAGE_SIZE = 50;
+
 const STATUS_VARIANT: Record<string, "success" | "warning" | "outline" | "destructive"> = {
   scheduled: "outline",
   in_progress: "warning",
@@ -25,7 +27,7 @@ const STATUS_VARIANT: Record<string, "success" | "warning" | "outline" | "destru
 export default async function ExamsPage({
   searchParams,
 }: {
-  searchParams: { status?: string; level?: string };
+  searchParams: { status?: string; level?: string; q?: string; page?: string };
 }) {
   const session = await assertRoute("/exams");
   const centreId = scopeCentre(session);
@@ -35,6 +37,17 @@ export default async function ExamsPage({
   const where: any = { ...tenantWhere(centreId, orgId) };
   if (searchParams.status) where.status = searchParams.status;
   if (searchParams.level) where.level = Number(searchParams.level);
+  const q = (searchParams.q ?? "").trim();
+  if (q) {
+    where.rider = {
+      OR: [
+        { firstName: { contains: q, mode: "insensitive" } },
+        { lastName: { contains: q, mode: "insensitive" } },
+      ],
+    };
+  }
+  // Paged, not capped: a hard take:100 hid half of a 200-rider exam day.
+  const page = Math.max(1, Math.floor(Number(searchParams.page) || 1));
   if (session.role === "EXAMINER") {
     // Show exams already claimed by this examiner AND the unclaimed ones from
     // sittings she is staffed on. Filtering on examinerId alone deadlocked the
@@ -51,13 +64,25 @@ export default async function ExamsPage({
     ];
   }
 
-  const [exams, templates, catalog] = await Promise.all([
+  const isExaminer = session.role === "EXAMINER";
+  const [exams, total, days, templates, catalog] = await Promise.all([
     prisma.exam.findMany({
       where,
       include: { rider: { select: { id: true, firstName: true, lastName: true } } },
-      orderBy: [{ date: "desc" }, { time: "asc" }],
-      take: 100,
+      orderBy: [{ date: "desc" }, { time: "asc" }, { id: "asc" }],
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
     }),
+    prisma.exam.count({ where }),
+    // Exam days — the whole-day view managers and head coaches work from.
+    isExaminer
+      ? Promise.resolve([])
+      : prisma.examDay.findMany({
+          where: tenantWhere(centreId, orgId),
+          orderBy: { date: "desc" },
+          take: 8,
+          include: { sittings: { select: { exams: { select: { status: true } } } } },
+        }),
     prisma.scoringTemplate.findMany({
       where: tenantWhere(centreId, orgId),
       select: { levelKey: true, levelName: true },
@@ -76,13 +101,23 @@ export default async function ExamsPage({
     }),
   ]);
 
-  const canSchedule = ["SUPER_ADMIN", "CENTRE_MANAGER"].includes(session.role);
+  // Anyone who may schedule gets the buttons — head coaches hold
+  // exam.schedule but were never shown them.
+  const canSchedule = can(session.role, "exam.schedule");
   // Same permission the export route checks (app/api/export/[entity]).
   const canExport = can(session.role, "exam.schedule");
   const exportQuery = new URLSearchParams({
     ...(searchParams.status ? { status: searchParams.status } : {}),
     ...(searchParams.level ? { level: searchParams.level } : {}),
   }).toString();
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pageHref = (n: number) =>
+    `/exams?${new URLSearchParams({
+      ...(searchParams.status ? { status: searchParams.status } : {}),
+      ...(searchParams.level ? { level: searchParams.level } : {}),
+      ...(q ? { q } : {}),
+      ...(n > 1 ? { page: String(n) } : {}),
+    }).toString()}`;
   const canManageTemplates = session.role === "SUPER_ADMIN";
   // Lookup table: Exam.level (Int) → label. The centre's own ScoringTemplate
   // wins, because that is the rubric the exam is actually marked against and
@@ -115,21 +150,66 @@ export default async function ExamsPage({
             </Button>
           )}
           {canSchedule && (
-            // One scheduling path: the batch flow (multi-rider + examiner pool).
-            // The single-rider form still backs the per-rider "Schedule exam"
-            // shortcut on a rider's profile, but isn't a top-level option here.
+            <Button asChild variant="outline">
+              <Link href="/exams/sittings/new">Single sitting</Link>
+            </Button>
+          )}
+          {canSchedule && (
+            // An exam day books every level on one date at once; a single
+            // sitting (one level) stays available for small top-ups.
             <Button asChild>
-              <Link href="/exams/sittings/new">
-                <Plus className="h-4 w-4" /> Schedule exams
+              <Link href="/exams/days/new">
+                <Plus className="h-4 w-4" /> Schedule exam day
               </Link>
             </Button>
           )}
         </div>
       </div>
 
+      {days.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Exam days</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {days.map((d) => {
+              const all = d.sittings.flatMap((s) => s.exams);
+              const done = all.filter((e) => e.status === "completed").length;
+              return (
+                <Link
+                  key={d.id}
+                  href={`/exams/days/${d.id}`}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm hover:bg-muted/40"
+                >
+                  <span className="min-w-0">
+                    <span className="font-medium">{d.name}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      {formatDate(d.date)} · {d.sittings.length} level{d.sittings.length === 1 ? "" : "s"}
+                    </span>
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {done} / {all.length} marked
+                  </span>
+                </Link>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <form className="flex flex-wrap items-end gap-2 text-sm" method="get">
+            <div className="min-w-0">
+              <label className="mb-1 block text-xs text-muted-foreground">Rider</label>
+              <input
+                aria-label="Search by rider name"
+                name="q"
+                defaultValue={q}
+                placeholder="Name…"
+                className="h-9 w-44 max-w-full rounded-md border border-input bg-background px-3 text-sm"
+              />
+            </div>
             <div>
               <label className="mb-1 block text-xs text-muted-foreground">Status</label>
               <select aria-label="Filter by status"
@@ -173,8 +253,8 @@ export default async function ExamsPage({
                 {canSchedule && (
                   <>
                     {" "}
-                    <Link href="/exams/sittings/new" className="text-primary underline">
-                      Schedule the first one
+                    <Link href="/exams/days/new" className="text-primary underline">
+                      Schedule the first exam day
                     </Link>
                     .
                   </>
@@ -230,6 +310,30 @@ export default async function ExamsPage({
               },
             ]}
           />
+          {total > 0 && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+              <span>
+                Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
+              </span>
+              {pages > 1 && (
+                <span className="flex gap-2">
+                  {page > 1 ? (
+                    <Link href={pageHref(page - 1)} className="rounded-md border px-3 py-1 hover:bg-muted">
+                      ← Previous
+                    </Link>
+                  ) : null}
+                  <span className="px-1 py-1">
+                    Page {page} of {pages}
+                  </span>
+                  {page < pages ? (
+                    <Link href={pageHref(page + 1)} className="rounded-md border px-3 py-1 hover:bg-muted">
+                      Next →
+                    </Link>
+                  ) : null}
+                </span>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

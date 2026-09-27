@@ -232,6 +232,10 @@ function stripSlugPrefix(pathname: string): { slug: string | null; logical: stri
   return { slug: m[1], logical: m[2] ?? "/" };
 }
 
+// API calls a temp-password session may still make: the rotation itself,
+// signing out, and reading who is signed in.
+const ROTATION_API = ["/api/account/change-password", "/api/auth", "/api/account/me", "/api/account/sign-out-everywhere"];
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const { slug, logical } = stripSlugPrefix(pathname);
@@ -269,6 +273,19 @@ export async function middleware(req: NextRequest) {
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret, { audience: TENANT_AUDIENCE });
+
+    // Still on a temporary password: only the calls the rotate screen needs.
+    // Pages enforce this in each layout; API routes didn't, so a new examiner
+    // could claim and mark riders over the API without ever setting a password.
+    if (isApi && (payload as { mustRotate?: boolean }).mustRotate && !ROTATION_API.some((p) => matchesPrefix(logical, p))) {
+      return NextResponse.json(
+        {
+          error: "PASSWORD_ROTATION_REQUIRED",
+          message: "You're still on the temporary password. Set a new one first (Account → Change password).",
+        },
+        { status: 403 },
+      );
+    }
 
     // Central RBAC for admin PAGE routes: the sidebar only HIDES links; without
     // this a signed-in staff member could reach a page outside their role by

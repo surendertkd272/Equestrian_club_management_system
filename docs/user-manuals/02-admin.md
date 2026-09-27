@@ -29,7 +29,7 @@ Go to your club's web address and open the login page. Sign in with the email an
 - **Batches** — recurring class slots (day, time, level, coach).
 - **Club Catalog** — each club's fee plans, levels, and skills.
 - **Monthly Skills** — this month's skill ratings per rider.
-- **Exams** — schedule formal exams, record results, and set levels.
+- **Exams** — book exam days, reopen results for correction, and export results (pick a centre in the top bar first).
 
 **Staff & Operations**
 - **Staff** — the staff directory; create accounts, set roles, KYC, and salary band.

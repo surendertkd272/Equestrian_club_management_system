@@ -220,64 +220,85 @@ export function ExamScorer({
         </div>
       )}
 
-      <div className="sticky bottom-4 space-y-2 rounded-lg border bg-card p-4 shadow-lg">
+      {/* On a phone this bar sat over the marks being tapped and took 37% of
+          the screen (312px). It is now one status line + one row of buttons
+          there; the breakdown and the tip only show on wider screens. */}
+      <div className="sticky bottom-2 space-y-2 rounded-lg border bg-card p-2.5 shadow-lg sm:bottom-4 sm:p-4">
         {!locked && (
-          <div className="flex items-center justify-between rounded-md border bg-muted/30 px-2 py-1 text-[11px]">
+          <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-2 py-1 text-[11px]">
             {isDirty ? (
               <span className="font-semibold text-amber-700">● Unsaved changes</span>
             ) : lastSavedAt ? (
-              <span className="text-emerald-700">✓ Saved · all scores stored</span>
+              <span className="text-emerald-700">✓ Saved</span>
             ) : (
               <span className="text-muted-foreground">No draft saved yet</span>
             )}
-            {lastSavedAt && (
-              <span className="font-mono text-muted-foreground">
-                {lastSavedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
-              </span>
-            )}
+            <span className="flex items-center gap-2">
+              {lastSavedAt && (
+                <span className="font-mono text-muted-foreground">
+                  {lastSavedAt.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              )}
+              <span className="text-sm font-bold text-primary sm:hidden">Total {adjusted}</span>
+            </span>
           </div>
         )}
 
-        <div className="flex items-center justify-between text-sm">
+        <div className={`${locked ? "flex" : "hidden sm:flex"} items-center justify-between text-sm`}>
           <span className="text-muted-foreground">Rubric subtotal</span>
           <span className="font-mono">{total}</span>
         </div>
         {(deductions > 0 || timeFaults > 0) && (
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="hidden items-center justify-between text-xs text-muted-foreground sm:flex">
             <span>
               − deductions {deductions} − time faults {timeFaults}
             </span>
             <span className="font-mono">{adjusted}</span>
           </div>
         )}
-        <div className="flex items-center justify-between text-sm">
+        <div className={`${locked ? "flex" : "hidden sm:flex"} items-center justify-between text-sm`}>
           <span className="text-muted-foreground">Adjusted total</span>
           <span className="text-xl font-bold text-primary">{adjusted}</span>
         </div>
-        <div className="text-xs text-muted-foreground">Pass mark: {passThreshold}%</div>
+        <div className={`${locked ? "block" : "hidden sm:block"} text-xs text-muted-foreground`}>Pass mark: {passThreshold}%</div>
 
         {!locked && (
-          <p className="rounded border border-dashed bg-muted/10 px-2 py-1 text-[11px] text-muted-foreground">
+          <p className="hidden rounded border border-dashed bg-muted/10 px-2 py-1 text-[11px] text-muted-foreground sm:block">
             <b>Tip:</b> Click <b>Save draft</b> anytime — if the exam is paused or you need to step away,
             your scores are kept and you can come back to continue here.
           </p>
         )}
 
         {!locked && (
-          <div className="grid gap-2 sm:grid-cols-3">
+          // pr-14 on phones keeps Submit clear of the floating menu button
+          // that sits in the bottom-right corner below md.
+          <div className={`grid gap-2 pr-14 md:pr-0 ${hasSavedMarks ? "grid-cols-[auto_1fr_1.4fr]" : "grid-cols-[1fr_1.4fr]"} sm:grid-cols-3`}>
             {hasSavedMarks && (
-              <Button variant="outline" disabled={busy !== null} onClick={reset} className="border-destructive/40 text-destructive">
+              <Button
+                variant="outline"
+                disabled={busy !== null}
+                onClick={reset}
+                aria-label="Reset draft"
+                className="border-destructive/40 px-3 text-destructive"
+              >
                 <RotateCcw className="h-4 w-4" />
-                {busy === "reset" ? "Resetting…" : "Reset draft"}
+                <span className="hidden sm:inline">{busy === "reset" ? "Resetting…" : "Reset draft"}</span>
               </Button>
             )}
-            <Button variant="outline" disabled={busy !== null} onClick={() => save(false)}>
+            <Button variant="outline" disabled={busy !== null} onClick={() => save(false)} aria-label="Save draft">
               <FileEdit className="h-4 w-4" />
-              {busy === "draft" ? "Saving…" : "Save draft"}
+              <span className="sm:hidden">{busy === "draft" ? "Saving…" : "Draft"}</span>
+              <span className="hidden sm:inline">{busy === "draft" ? "Saving…" : "Save draft"}</span>
             </Button>
-            <Button disabled={busy !== null} onClick={() => save(true)} className="bg-emerald-600 hover:bg-emerald-700">
+            <Button
+              disabled={busy !== null}
+              onClick={() => save(true)}
+              aria-label={`Lock & submit L${level}`}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
               <Save className="h-4 w-4" />
-              {busy === "submit" ? "Submitting…" : `Lock & submit L${level}`}
+              <span className="sm:hidden">{busy === "submit" ? "Submitting…" : "Submit"}</span>
+              <span className="hidden sm:inline">{busy === "submit" ? "Submitting…" : `Lock & submit L${level}`}</span>
             </Button>
           </div>
         )}

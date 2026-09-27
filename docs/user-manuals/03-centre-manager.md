@@ -21,7 +21,7 @@ You own one club's day-to-day operations. You can create and edit almost everyth
 - **Progress** — per-rider skill tracking.
 - **Club Catalog** — fee plans, levels, and skills for your club.
 - **Monthly Skills** — this month's skill ratings per rider.
-- **Exams** — schedule, score, and record exam results and levels.
+- **Exams** — book exam days, follow the marking, correct results, and export them.
 
 **Staff & Operations**
 - **Staff** — staff directory; create accounts, set roles, KYC, salary band.
@@ -69,7 +69,11 @@ You own one club's day-to-day operations. You can create and edit almost everyth
 2. **Set up a class:** Go to **Batches**, create a slot (day, time, level, coach), then use **Lessons** to schedule the individual sessions and assign horses.
 3. **Add a staff member:** Open **Employee Onboarding** to send a self-registration link, then approve them — or create the account directly in **Staff** and set their role, KYC, and salary band.
 4. **Approve leave:** Open **Leave Requests**, review the dates, and approve or decline.
-5. **Run an exam:** In **Exams**, schedule the exam, record scores, and publish results and levels — then issue **Certificates** to the riders who passed.
+5. **Run an exam day:** In **Exams**, tap **Schedule exam day**. Name it, pick the date, give each rider their level (tap **Add all shown at their next level** to fill it in), and pick the examiners for each level. Riders still waiting for parental consent are listed separately with the reason — chase their consent first. The day page then shows every level's progress; you get one summary when each level finishes and one when the whole day is done.
+   - **Jury panels:** on an exam's page, add co-judges. The result waits until every judge has submitted, then uses the average. Remove a judge who didn't turn up and the exam finishes with the others.
+   - **Changes:** move or cancel the whole day from its page, or remove one rider from a sitting. Riders who already have a result are never removed.
+   - **Corrections:** on a completed exam, **Reopen for correction** and give a reason. The judges' cards unlock; when they re-submit, a pass keeps its certificate and a fail revokes it.
+   - **Results:** **Export results** on Exams (or on the day or sitting) downloads a spreadsheet. Certificates for passes are issued automatically.
 6. **Clear purchase requests:** Open **Requisitions** (or **Approvals**), check each request, and approve or decline.
 
 ## Your account & help

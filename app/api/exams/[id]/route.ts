@@ -7,7 +7,7 @@ import { can } from "@/lib/permissions";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { audit } from "@/lib/audit";
 import { parseDateOnly } from "@/lib/schemas/attendance";
-import { ExamPanelError, lockExam } from "@/lib/exam-panel";
+import { ExamPanelError, lockExam, notifyIfSittingComplete } from "@/lib/exam-panel";
 import { removableExamInclude, removalProblem, removalSnapshot } from "@/lib/exam-schedule";
 
 const patchSchema = z
@@ -114,11 +114,15 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       const problem = removalProblem(fresh, discardMarks);
       if (problem) throw problem;
       await tx.exam.delete({ where: { id: fresh.id } });
-      // A sitting left with no riders is an empty shell on the schedule.
+      // A sitting left with no riders is an empty shell on the schedule — and
+      // so is an exam day left with no sittings.
       let emptiedSitting: string | null = null;
       if (fresh.sittingId && (await tx.exam.count({ where: { sittingId: fresh.sittingId } })) === 0) {
-        await tx.examSitting.delete({ where: { id: fresh.sittingId } });
+        const gone = await tx.examSitting.delete({ where: { id: fresh.sittingId }, select: { examDayId: true } });
         emptiedSitting = fresh.sittingId;
+        if (gone.examDayId && (await tx.examSitting.count({ where: { examDayId: gone.examDayId } })) === 0) {
+          await tx.examDay.delete({ where: { id: gone.examDayId } });
+        }
       }
       return { removed: removalSnapshot(fresh), sittingRemoved: emptiedSitting };
     }));
@@ -126,6 +130,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return panelErrorResponse(e);
   }
 
+  // Removing the last rider still waiting can be what finishes the sitting.
+  if (removed.sittingId && !sittingRemoved) await notifyIfSittingComplete(removed.sittingId).catch(() => {});
   await audit({
     userId: g.session.userId,
     action: "exam.removed",

@@ -636,6 +636,7 @@ model Centre {
   progressLevels       ProgressLevel[]
   exams                Exam[]
   examSittings         ExamSitting[]
+  examDays             ExamDay[]
   scoringTemplates     ScoringTemplate[]
   staffAttendances     StaffAttendance[]
   leaveRequests        LeaveRequest[]
@@ -2032,7 +2033,7 @@ model Invoice {
 }
 
 model Payment {
-  id        String    @id @default(cuid())
+  id               String    @id @default(cuid())
   // Optional, because not every payment settles an invoice.
   //
   // A club that does not bill riders through the platform still takes money —
@@ -2044,36 +2045,36 @@ model Payment {
   // A row with no invoiceId is a receipt: money received, recorded against a
   // rider, settling nothing. Same table on purpose — reversals, exports and
   // every sum(amount) keep working across both kinds.
-  invoiceId String?
+  invoiceId        String?
   // The payment's OWN centre, rather than inferring it through the invoice.
   //
   // Revenue was scoped as `where: { invoice: { centreId } }`, so a receipt with
   // no invoice would have been silently excluded — the same zero-revenue bug in
   // a new place. Backfilled from the invoice for every existing row.
-  centreId  String
+  centreId         String
   // Who paid, for a receipt. Invoice-settling rows resolve the rider through
   // the invoice as before.
-  riderId   String?
-  amount    Float
-  method    String // razorpay | cash | cheque | upi
+  riderId          String?
+  amount           Float
+  method           String // razorpay | cash | cheque | upi
   // Gateway/transaction reference. UNIQUE so a re-delivered webhook (or the
   // verify redirect racing the webhook) can't double-apply a payment — the
   // second insert hits P2002 and is treated as already-applied. Postgres
   // allows multiple NULLs, so cash payments without a ref are unaffected.
-  txnRef    String?   @unique
-  paidAt    DateTime  @default(now())
-  clearedAt DateTime?
+  txnRef           String?   @unique
+  paidAt           DateTime  @default(now())
+  clearedAt        DateTime?
   // Proof of the money arriving — a UPI screenshot, a bank slip, a scanned
   // cash receipt. For a club collecting privately this IS the evidence the
   // payment happened; there is no gateway record behind it, so a bare figure
   // typed by staff is otherwise unverifiable months later.
-  proofUrl  String?
+  proofUrl         String?
   // The month a fee payment is FOR, "YYYY-MM". Set = this is a monthly fee
   // (what coaches record for their riders, and the part of a payment above an
   // invoice when the family was paying the month too). Null on an invoice
   // payment or a genuine advance. Separate from paidAt: September's fee is
   // often paid on 3 October.
-  feeMonth  String?
+  feeMonth         String?
   // Who typed it in. Payments were attributable only through the audit log,
   // and "which coach recorded this ₹2,000?" is the first question asked of a
   // fee a coach entered.
@@ -2232,7 +2233,7 @@ model ScoringTemplate {
 }
 
 model Exam {
-  id                 String   @id @default(cuid())
+  id                 String    @id @default(cuid())
   centreId           String
   riderId            String
   // Assigned examiner. NULL = unassigned: scheduled from a sitting pool and not
@@ -2242,8 +2243,8 @@ model Exam {
   examinerName       String? // denormalised so historical exams survive renames
   level              Int // 1..N, matches ScoringTemplate.levelKey
   date               DateTime // exam day (date-only, stored as UTC midnight)
-  time               String   @default("09:00") // HH:MM 24h
-  status             String   @default("scheduled") // scheduled | in_progress | completed
+  time               String    @default("09:00") // HH:MM 24h
+  status             String    @default("scheduled") // scheduled | in_progress | completed
   // Numeric total. When the exam has co-judges, this is the average of each
   // judge's numericSum() over the rubric (so a single field still drives
   // rider-facing UI, certificates, parent SMS, etc.).
@@ -2270,20 +2271,20 @@ model Exam {
   // Deductions are subtracted from the rubric total before pass/fail. Used
   // for course faults, time penalties, refusals, etc. that aren't rubric
   // items per se.
-  deductions         Float    @default(0)
-  timeFaults         Float    @default(0)
+  deductions         Float     @default(0)
+  timeFaults         Float     @default(0)
   // PRD "Test-day support" — grooms / helpers assigned to this exam.
   // JSON array of user.id strings; never deep enough to warrant its own table.
   supportStaffJson   Json?
   // Re-attempt link — points to the previous failed exam at this level for
   // the same rider. Lets the result card show "Attempt 2".
   previousExamId     String?
-  attemptNumber      Int      @default(1)
+  attemptNumber      Int       @default(1)
   // Sitting groups multiple exams happening on the same day with the same
   // examiner / level (saves typing each one in).
   sittingId          String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   centre       Centre           @relation(fields: [centreId], references: [id], onDelete: Cascade)
   rider        Rider            @relation(fields: [riderId], references: [id], onDelete: Cascade)
@@ -2342,21 +2343,51 @@ model ExamAttachment {
 // with the same examiner. Lets us schedule "Saturday's Level 2" in one shot
 // instead of 12 individual rows.
 model ExamSitting {
-  id           String   @id @default(cuid())
-  centreId     String
-  level        Int
-  date         DateTime
+  id                  String    @id @default(cuid())
+  centreId            String
+  level               Int
+  date                DateTime
   // Legacy single-examiner columns (kept nullable for old rows). The examiner
   // POOL now lives in ExamSittingExaminer — any pooled examiner can claim a
   // rider from the sitting.
-  examinerId   String?
-  examinerName String?
-  notes        String?
-  createdAt    DateTime @default(now())
+  examinerId          String?
+  examinerName        String?
+  notes               String?
+  // The exam day this sitting belongs to (one sitting per level on the day).
+  // Null for a sitting booked on its own.
+  examDayId           String?
+  // Set once when the last rider in the sitting is marked, so the manager gets
+  // ONE summary for the sitting instead of a notification per rider.
+  completedNotifiedAt DateTime?
+  createdAt           DateTime  @default(now())
 
   centre    Centre                @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  examDay   ExamDay?              @relation(fields: [examDayId], references: [id], onDelete: SetNull)
   exams     Exam[]
   examiners ExamSittingExaminer[]
+
+  @@index([centreId, date])
+  @@index([examDayId])
+}
+
+// One exam day at a club: riders across several levels on one date, booked in
+// one go. Each level on the day is an ordinary ExamSitting (examiner pool,
+// claiming, marking) linked here, so the day can be seen, moved and cancelled
+// as a whole.
+model ExamDay {
+  id                  String    @id @default(cuid())
+  centreId            String
+  name                String
+  date                DateTime // date-only, UTC noon (parseDateOnly)
+  time                String    @default("09:00") // HH:MM start time
+  notes               String?
+  createdBy           String?
+  // Set once when the last rider of the day is marked (one summary message).
+  completedNotifiedAt DateTime?
+  createdAt           DateTime  @default(now())
+
+  centre   Centre        @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  sittings ExamSitting[]
 
   @@index([centreId, date])
 }

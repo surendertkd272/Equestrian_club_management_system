@@ -9,12 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { roleLabel } from "@/lib/labels";
+import { openConfirm } from "@/components/ui/confirm-dialog";
+import Link from "next/link";
 export function NewSittingForm({
   riders,
   examiners,
   levels,
 }: {
-  riders: { id: string; label: string }[];
+  riders: { id: string; label: string; blocked: string | null }[];
   examiners: { id: string; name: string; role: string }[];
   levels: { key: string; name: string }[];
 }) {
@@ -49,19 +51,33 @@ export function NewSittingForm({
     }
     setBusy(true);
     try {
-      const res = await fetch("/api/exam-sittings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          level: Number(level),
-          date,
-          time,
-          examinerIds: Array.from(pool),
-          riderIds: Array.from(picked),
-          notes: notes || undefined,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
+      const send = (allowSkipLevels: boolean) =>
+        fetch("/api/exam-sittings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            level: Number(level),
+            date,
+            time,
+            examinerIds: Array.from(pool),
+            riderIds: Array.from(picked),
+            notes: notes || undefined,
+            ...(allowSkipLevels ? { allowSkipLevels: true } : {}),
+          }),
+        });
+      let res = await send(false);
+      let data = await res.json().catch(() => ({}));
+      // Booking riders past the next level up needs a deliberate yes.
+      if (res.status === 409 && data.error === "LEVEL_SKIP") {
+        const ok = await openConfirm({
+          title: "Book riders past their next level?",
+          body: data.message,
+          confirmLabel: "Book anyway",
+        });
+        if (!ok) return;
+        res = await send(true);
+        data = await res.json().catch(() => ({}));
+      }
       if (!res.ok) {
         toast.error(data.message ?? data.error ?? "Failed");
         return;
@@ -73,7 +89,9 @@ export function NewSittingForm({
     }
   }
 
-  const visible = q ? riders.filter((r) => r.label.toLowerCase().includes(q.toLowerCase())) : riders;
+  const bookable = riders.filter((r) => !r.blocked);
+  const blocked = riders.filter((r) => r.blocked);
+  const visible = q ? bookable.filter((r) => r.label.toLowerCase().includes(q.toLowerCase())) : bookable;
 
   return (
     <form onSubmit={submit} className="space-y-4">
@@ -137,6 +155,23 @@ export function NewSittingForm({
             </label>
           ))}
         </div>
+        {blocked.length > 0 && (
+          <details className="rounded-md border border-warning/30 bg-warning-soft px-3 py-2 text-sm">
+            <summary className="cursor-pointer font-medium">
+              {blocked.length} rider{blocked.length === 1 ? " can't" : "s can't"} be booked yet
+            </summary>
+            <ul className="mt-2 space-y-1 text-xs">
+              {blocked.map((r) => (
+                <li key={r.id}>
+                  <span className="font-medium">{r.label}</span> — {r.blocked}
+                </li>
+              ))}
+            </ul>
+            <Link href="/riders/consent" className="mt-2 inline-block text-xs text-primary underline">
+              Chase missing consent →
+            </Link>
+          </details>
+        )}
       </div>
 
       <div>

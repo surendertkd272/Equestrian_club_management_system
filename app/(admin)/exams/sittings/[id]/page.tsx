@@ -9,11 +9,14 @@ import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { ClaimButton } from "./claim-button";
 import { can } from "@/lib/permissions";
+import { ExportCsvButton } from "@/components/ui/export-csv";
 import { RescheduleForm, RemoveExamButton, CancelSittingButton } from "../../exam-actions";
 
 export const dynamic = "force-dynamic";
 
-const CAN_VIEW = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "COACH", "EXAMINER"];
+// COACH is not here: the page-access table (middleware) never lets a coach
+// reach /exams/*, so listing them only suggested an access they don't have.
+const CAN_VIEW = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER", "HEAD_COACH", "EXAMINER"];
 
 // Marking queue for a sitting: pool of examiners + riders. Pool examiners pick
 // (claim) an unassigned rider to mark; claimed riders lock to their examiner.
@@ -24,6 +27,7 @@ export default async function SittingDetail({ params }: { params: { id: string }
   const sitting = await prisma.examSitting.findUnique({
     where: { id: params.id },
     include: {
+      examDay: { select: { id: true, name: true } },
       examiners: { orderBy: { examinerName: "asc" } },
       exams: {
         include: { rider: { select: { firstName: true, lastName: true } } },
@@ -55,10 +59,20 @@ export default async function SittingDetail({ params }: { params: { id: string }
           {formatDate(sitting.date)} · {sitting.exams.length} rider{sitting.exams.length === 1 ? "" : "s"} ·{" "}
           {unassigned} unassigned
         </p>
+        {sitting.examDay && (
+          <p className="mt-1 text-sm">
+            Part of{" "}
+            <Link href={`/exams/days/${sitting.examDay.id}`} className="text-primary underline">
+              {sitting.examDay.name}
+            </Link>
+          </p>
+        )}
         {sitting.notes && <p className="mt-1 text-sm">{sitting.notes}</p>}
         {canSchedule && (
           <div className="mt-3 flex flex-wrap items-start gap-2">
-            {withResults === 0 && (
+            <ExportCsvButton entity="exams" label="Export results" query={`sittingId=${sitting.id}`} />
+            {/* A sitting inside an exam day moves with its day. */}
+            {withResults === 0 && !sitting.examDay && (
               <RescheduleForm
                 url={`/api/exam-sittings/${sitting.id}`}
                 initialDate={sitting.date.toISOString().slice(0, 10)}

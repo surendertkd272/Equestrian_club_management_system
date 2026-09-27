@@ -263,3 +263,54 @@ export function CancelSittingButton({
     </Button>
   );
 }
+
+export function CancelDayButton({
+  dayId,
+  waiting,
+  withResults,
+}: {
+  dayId: string;
+  waiting: number;
+  withResults: number;
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+
+  async function cancel() {
+    const ok = await openConfirm({
+      title: "Cancel this exam day?",
+      body:
+        `${waiting} rider${waiting === 1 ? "" : "s"} still waiting, across every level, will be taken off the schedule.` +
+        (withResults > 0
+          ? ` ${withResults} rider${withResults === 1 ? " who has" : "s who have"} a result stay on record, and so does the day.`
+          : ""),
+      destructive: true,
+      confirmLabel: "Cancel exam day",
+      cancelLabel: "Keep it",
+    });
+    if (!ok) return;
+    setBusy(true);
+    const res = await deleteWithMarksCheck<{ removed: number; dayRemoved: boolean }>(`/api/exam-days/${dayId}`);
+    setBusy(false);
+    if (!res) return;
+    if (!res.ok) {
+      toast.error(res.message);
+      return;
+    }
+    toast.success(`Removed ${res.data.removed} rider${res.data.removed === 1 ? "" : "s"} from the schedule`);
+    if (res.data.dayRemoved) router.push("/exams");
+    else router.refresh();
+  }
+
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={cancel}
+      disabled={busy || waiting === 0}
+      className="border-destructive/40 text-destructive"
+    >
+      <XCircle className="h-4 w-4" /> {busy ? "Cancelling…" : "Cancel exam day"}
+    </Button>
+  );
+}
