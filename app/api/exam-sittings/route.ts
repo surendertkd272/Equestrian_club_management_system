@@ -60,7 +60,8 @@ export async function POST(req: NextRequest) {
     const fence = await centreFence(session, centreId);
     if (fence) return NextResponse.json({ error: fence }, { status: 403 });
 
-    const pool = await examinerPool(prisma, session, centreId, d.examinerIds);
+    const examDate = parseDateOnly(d.date);
+    const pool = await examinerPool(prisma, session, centreId, d.examinerIds, examDate);
     const riderIds = Array.from(new Set(d.riderIds));
     const { ladder, priorFails, skipped } = await checkBookings(prisma, {
       centreId,
@@ -68,7 +69,6 @@ export async function POST(req: NextRequest) {
       allowSkipLevels: d.allowSkipLevels,
     });
     const template = ladder.byRank.get(d.level)!;
-    const examDate = parseDateOnly(d.date);
 
     const sittingId = await prisma.$transaction((tx) =>
       createSittingTx(tx, {

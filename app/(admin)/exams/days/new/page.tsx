@@ -8,6 +8,7 @@ import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { bookingBlockReason, levelLadder, suggestedLevel } from "@/lib/exam-booking";
 import { NewExamDayForm } from "./form";
+import { examinerLabel } from "@/lib/examiner-label";
 
 export const dynamic = "force-dynamic";
 
@@ -43,8 +44,12 @@ export default async function NewExamDayPage() {
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
     prisma.user.findMany({
-      where: { centreId, role: "EXAMINER", status: "active" },
-      select: { id: true, name: true },
+      // Visiting examiners whose access has ended are not offered.
+      where: {
+        centreId, role: "EXAMINER", status: "active",
+        OR: [{ accessExpiresAt: null }, { accessExpiresAt: { gt: new Date() } }],
+      },
+      select: { id: true, name: true, accessExpiresAt: true, mustChangePassword: true },
       orderBy: { name: "asc" },
     }),
     levelLadder(prisma, centreId),
@@ -75,13 +80,14 @@ export default async function NewExamDayPage() {
           <CardDescription>
             Everyone sitting on one date, each at their own level. Each level becomes its own sitting with its own
             examiner pool; on the day, examiners pick riders from their level&rsquo;s queue. The whole day can then be
-            followed, moved or cancelled from one page.
+            followed, moved or cancelled from one page. Judges coming in from outside?{" "}
+            <Link href="/exams/examiners" className="text-primary underline">Register visiting examiners</Link> first.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <NewExamDayForm
             levels={levels}
-            examiners={examiners}
+            examiners={examiners.map((u) => ({ id: u.id, name: examinerLabel(u) }))}
             riders={riders.map((r) => ({
               id: r.id,
               name: `${r.firstName} ${r.lastName}`,

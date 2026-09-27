@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { riderOutsideExaminerScope } from "@/lib/exam-access";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
@@ -25,6 +26,8 @@ export default async function RiderAnalytics({ params }: { params: { id: string 
   });
   if (!rider) notFound();
   if (centreId && rider.centreId !== centreId) notFound();
+  // Examiners (often visiting judges) see only the riders they examine.
+  if (await riderOutsideExaminerScope(session, rider.id)) notFound();
 
   const [exams, certificates, skillStatus, attendance, totalSkillsAtCentre] = await Promise.all([
     prisma.exam.findMany({

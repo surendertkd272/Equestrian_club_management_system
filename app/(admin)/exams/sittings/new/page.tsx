@@ -7,6 +7,7 @@ import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NewSittingForm } from "./form";
 import { bookingBlockReason } from "@/lib/exam-booking";
+import { examinerLabel } from "@/lib/examiner-label";
 
 export const dynamic = "force-dynamic";
 
@@ -32,8 +33,9 @@ export default async function NewSittingPage() {
         // Only EXAMINERs may be in the pool — they're the ones who score riders.
         role: "EXAMINER",
         status: "active",
+        OR: [{ accessExpiresAt: null }, { accessExpiresAt: { gt: new Date() } }],
       },
-      select: { id: true, name: true, role: true },
+      select: { id: true, name: true, role: true, accessExpiresAt: true, mustChangePassword: true },
       orderBy: { name: "asc" },
     }),
     prisma.scoringTemplate.findMany({
@@ -62,7 +64,7 @@ export default async function NewSittingPage() {
               label: `${r.firstName} ${r.lastName}${r.currentLevel ? ` · ${r.currentLevel}` : ""}`,
               blocked: bookingBlockReason(r.status),
             }))}
-            examiners={examiners}
+            examiners={examiners.map((u) => ({ id: u.id, role: u.role, name: examinerLabel(u) }))}
             levels={templates.map((t) => ({ key: t.levelKey, name: t.levelName }))}
           />
         </CardContent>

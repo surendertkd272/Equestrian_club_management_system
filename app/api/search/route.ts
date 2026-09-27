@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { examinerRiderScope, examinerCertificateScope } from "@/lib/exam-access";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { scopeCentreForRoute, tenantWhere } from "@/lib/tenancy";
@@ -48,9 +49,12 @@ export async function GET(req: NextRequest) {
   // { centreId?, centre: { orgId } } — narrows to one centre for centre-scoped
   // roles, org-bounds for HQ. Applies to every centre-owned table below.
   const tWhere = tenantWhere(centreId, orgId);
-  const ridersWhere = tWhere;
+  // Examiners (often visiting judges) find only the riders they examine.
+  const ridersWhere = { ...tWhere, ...(examinerRiderScope(session) ?? {}) };
   const horsesWhere = tWhere;
-  const certsWhere = tWhere;
+  const certsWhere = { ...tWhere, ...(examinerCertificateScope(session) ?? {}) };
+  // …and only exams on the riders they examine.
+  const examinerScope = examinerRiderScope(session);
 
   const [riders, horses, users, centres, certs, exams, batches, meds] = await Promise.all([
     prisma.rider.findMany({
@@ -134,6 +138,7 @@ export async function GET(req: NextRequest) {
     prisma.exam.findMany({
       where: {
         ...tWhere,
+        ...(examinerScope ? { rider: examinerScope } : {}),
         OR: [
           { examinerName: { contains: q } },
           { rider: { firstName: { contains: q } } },

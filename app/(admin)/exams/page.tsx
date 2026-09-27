@@ -13,6 +13,7 @@ import { formatDate } from "@/lib/utils";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { formatEnum } from "@/lib/labels";
 import { can } from "@/lib/permissions";
+import { isExamManager } from "@/lib/exam-panel";
 import { ExportCsvButton } from "@/components/ui/export-csv";
 export const dynamic = "force-dynamic";
 
@@ -147,6 +148,11 @@ export default async function ExamsPage({
           {canManageTemplates && (
             <Button asChild variant="outline">
               <Link href="/exams/templates">Manage templates</Link>
+            </Button>
+          )}
+          {isExamManager(session.role) && (
+            <Button asChild variant="outline">
+              <Link href="/exams/examiners">Examiners</Link>
             </Button>
           )}
           {canSchedule && (

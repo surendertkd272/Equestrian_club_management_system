@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { examinerCertificateScope } from "@/lib/exam-access";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
@@ -39,6 +40,9 @@ export default async function CertificateView({ params }: { params: { id: string
   // an HQ user must not open another org's certificate by id.
   const orgId = await getOrgIdForSession(session);
   if (!orgId || (await getOrgIdForCentre(cert.centreId)) !== orgId) notFound();
+  // An examiner sees the certificates from exams they marked.
+  const certScope = examinerCertificateScope(session);
+  if (certScope && (await prisma.certificate.count({ where: { id: cert.id, ...certScope } })) === 0) notFound();
   const canSendResult = SEND_RESULT_ROLES.has(session.role) && !!cert.examId;
 
   const signer = cert.signedBy ? await prisma.user.findUnique({ where: { id: cert.signedBy }, select: { name: true, role: true } }) : null;

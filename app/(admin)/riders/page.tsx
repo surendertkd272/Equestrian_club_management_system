@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { examinerRiderScope } from "@/lib/exam-access";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
@@ -49,6 +50,9 @@ export default async function RidersPage({
   if (!orgId) redirect("/no-organisation");
   const centreId = scopeCentre(session);
   const where: any = { ...tenantWhere(centreId, orgId) };
+  // Examiners (often visiting judges) see only the riders they examine.
+  const examinerScope = examinerRiderScope(session);
+  if (examinerScope) where.AND = [examinerScope];
   // "All statuses" means all CURRENT riders — someone who left the club two
   // years ago shouldn't be padding out the roll every time you open the page.
   // They're one filter selection away, never gone.

@@ -83,11 +83,17 @@ export function suggestedLevel(ladder: Ladder, currentLevel: string | null): num
 
 // Resolve and check an examiner pool: active EXAMINERs of this centre (a
 // SUPER_ADMIN may staff across centres).
-export async function examinerPool(db: Db, session: SessionPayload, centreId: string, ids: string[]) {
+export async function examinerPool(
+  db: Db,
+  session: SessionPayload,
+  centreId: string,
+  ids: string[],
+  examDate?: Date,
+) {
   const unique = Array.from(new Set(ids));
   const users = await db.user.findMany({
     where: { id: { in: unique }, status: "active" },
-    select: { id: true, name: true, role: true, centreId: true },
+    select: { id: true, name: true, role: true, centreId: true, accessExpiresAt: true },
   });
   if (users.length !== unique.length) {
     throw new BookingError("EXAMINER_NOT_FOUND", "One of the chosen examiners doesn't exist or is inactive.", 404);
@@ -97,6 +103,17 @@ export async function examinerPool(db: Db, session: SessionPayload, centreId: st
   }
   if (session.role !== "SUPER_ADMIN" && users.some((u) => u.centreId && u.centreId !== centreId)) {
     throw new BookingError("EXAMINER_CROSS_CENTRE", "Every examiner in the pool must belong to this centre.", 400);
+  }
+  // A visiting examiner whose access ends before the exam could never mark it.
+  // examDate is noon UTC of the exam day; access runs to the end of its day.
+  const cutoff = examDate ? examDate.getTime() : Date.now();
+  const lapsed = users.filter((u) => u.accessExpiresAt && u.accessExpiresAt.getTime() < cutoff);
+  if (lapsed.length > 0) {
+    throw new BookingError(
+      "EXAMINER_ACCESS_ENDS",
+      `${lapsed.map((u) => `${u.name}'s access ends ${u.accessExpiresAt!.toISOString().slice(0, 10)}`).join("; ")} — before this exam. Extend their access on Exams → Examiners first.`,
+      400,
+    );
   }
   return users;
 }

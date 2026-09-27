@@ -42,6 +42,10 @@ export default async function SittingDetail({ params }: { params: { id: string }
 
   const isManager = ["SUPER_ADMIN", "CENTRE_MANAGER"].includes(session.role);
   const inPool = sitting.examiners.some((e) => e.examinerId === session.userId);
+  // Examiners see the sittings they work — not every level's rider list.
+  if (session.role === "EXAMINER" && !inPool && !sitting.exams.some((e) => e.examinerId === session.userId)) {
+    redirect("/exams");
+  }
   const unassigned = sitting.exams.filter((e) => !e.examinerId).length;
   // Managers (anyone who can schedule exams) can move the sitting, cancel it,
   // or take a rider off it. A rider with a result on record stays put.

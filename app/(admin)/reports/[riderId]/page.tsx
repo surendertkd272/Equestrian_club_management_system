@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { riderOutsideExaminerScope } from "@/lib/exam-access";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
@@ -48,6 +49,8 @@ export default async function ReportCard({
   const orgId = await getOrgIdForSession(session);
   if (!orgId) notFound();
   if ((await getOrgIdForCentre(rider.centreId)) !== orgId) notFound();
+  // Examiners (often visiting judges) see only the riders they examine.
+  if (await riderOutsideExaminerScope(session, rider.id)) notFound();
 
   const coach = rider.batch?.coachId
     ? await prisma.user.findUnique({ where: { id: rider.batch.coachId }, select: { name: true } })

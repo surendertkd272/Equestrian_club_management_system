@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { examinerRiderScope } from "@/lib/exam-access";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
@@ -36,7 +37,7 @@ export default async function ReportsPage() {
 
   const [riders, recentDispatches] = await Promise.all([
     prisma.rider.findMany({
-      where: { ...tenantWhere(centreId, orgId), status: "active" },
+      where: { ...tenantWhere(centreId, orgId), status: "active", ...(examinerRiderScope(session) ?? {}) },
       select: { id: true, firstName: true, lastName: true, currentLevel: true, batch: { select: { name: true } } },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
