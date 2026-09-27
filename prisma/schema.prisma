@@ -729,6 +729,10 @@ model User {
   // session middleware forces the user through /account/rotate on next sign-in
   // before reaching any other page. Cleared once they pick a new password.
   mustChangePassword    Boolean   @default(false)
+  // Access end for time-limited accounts — a visiting examiner brought in for
+  // one exam day. From this moment sign-in is refused and every existing
+  // session stops working (lib/auth.ts getSession). Null = no end date.
+  accessExpiresAt        DateTime?
   // Credential handover. When HQ generates a temp password (create / reset /
   // bulk issue), the plaintext is kept AES-256-GCM encrypted (lib/pii.ts) so
   // the handover sheet can be re-opened and given to a club — which is what

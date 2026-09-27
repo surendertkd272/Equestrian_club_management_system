@@ -18,6 +18,7 @@ import { isReadOnly } from "@/lib/roles";
 import { bmiBand, bmiBandLabel, bmiBandTone, bmiNeedsAttention } from "@/lib/bmi";
 import { loadRiderExamHistory } from "@/lib/exam-history";
 import { ExamHistoryList } from "@/components/exams/exam-history-list";
+import { riderOutsideExaminerScope } from "@/lib/exam-access";
 import { formatEnum } from "@/lib/labels";
 import { WithdrawPanel, WithdrawnRiderBanner } from "./withdraw-panel";
 import { creditPosition } from "@/lib/credit-note";
@@ -96,6 +97,56 @@ export default async function RiderProfile({ params }: { params: { id: string } 
     getOrgIdForSession(session),
   ]);
   if (!sessionOrgId || riderOrgId !== sessionOrgId) notFound();
+
+  // Examiners — often visiting judges from outside the club — get a judging
+  // view of the riders they examine: level, riding & medical notes (safety in
+  // the arena) and exam history. Never the family's address, phone numbers,
+  // documents, consent evidence or accounts, which this page otherwise shows.
+  if (session.role === "EXAMINER") {
+    if (await riderOutsideExaminerScope(session, rider.id)) notFound();
+    const history = await loadRiderExamHistory(rider.id, rider.centreId, { take: 10 });
+    const age = rider.dob ? Math.floor((Date.now() - rider.dob.getTime()) / (365.25 * 86400000)) : null;
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">
+            {rider.firstName} {rider.lastName}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {rider.centre.name}
+            {age !== null ? ` · ${age} yrs` : ""} · {rider.currentLevel ?? "No level yet"}
+          </p>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Riding &amp; Medical</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="grid grid-cols-2 gap-y-2 text-sm">
+              <dt className="text-muted-foreground">Current Level</dt>
+              <dd>{rider.currentLevel ?? "—"}</dd>
+              <dt className="text-muted-foreground">Height / Weight</dt>
+              <dd>
+                {rider.heightCm ?? "—"} cm / {rider.weightKg ?? "—"} kg
+              </dd>
+              <dt className="text-muted-foreground">Medical</dt>
+              <dd>{rider.medicalNotes ?? "—"}</dd>
+              <dt className="text-muted-foreground">Allergies</dt>
+              <dd>{rider.allergies ?? "—"}</dd>
+            </dl>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Exam History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ExamHistoryList exams={history} />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const batches = await prisma.batch.findMany({
     where: { centreId: rider.centreId },

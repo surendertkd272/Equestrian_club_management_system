@@ -24,6 +24,7 @@ export type SignInUser = {
   emailVerifiedAt: Date | null;
   mustChangePassword: boolean;
   deletionRequestedAt: Date | null;
+  accessExpiresAt?: Date | null;
 };
 
 // Account-state gate — conditions that make a sign-in impossible even when the
@@ -49,6 +50,18 @@ export function accountStateGate(
       {
         error: "DELETION_PENDING",
         scheduledFor: deletionScheduledFor(user.deletionRequestedAt).toISOString(),
+      },
+      { status: 403 },
+    );
+  }
+
+  // A time-limited account (a visiting examiner) whose access has ended.
+  // getSession() would null the session anyway; refusing here says why.
+  if (user.accessExpiresAt && user.accessExpiresAt.getTime() <= Date.now()) {
+    return NextResponse.json(
+      {
+        error: "ACCESS_EXPIRED",
+        message: `This account's access ended on ${user.accessExpiresAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Kolkata" })}. Ask the centre to extend it if you're examining again.`,
       },
       { status: 403 },
     );

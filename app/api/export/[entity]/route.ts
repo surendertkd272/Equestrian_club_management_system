@@ -75,7 +75,9 @@ const EXPORT_PERMISSION: Record<string, Permission> = {
 // scoped to inventory checks and has no business bulk-exporting children's
 // contact details either. These roles have their own scoped endpoints
 // (/api/parent/children, /api/student/me) and never need a bulk export.
-const NO_BULK_EXPORT: readonly string[] = ["RIDER", "PARENT", "INSPECTION_OFFICER"];
+// EXAMINER too: examiners are often judges from outside the club, and the
+// rider export handed a visiting judge every family's mobile and email.
+const NO_BULK_EXPORT: readonly string[] = ["RIDER", "PARENT", "INSPECTION_OFFICER", "EXAMINER"];
 
 export async function GET(req: Request, { params }: { params: { entity: string } }) {
   const session = await getSession();

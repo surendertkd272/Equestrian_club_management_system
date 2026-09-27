@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { riderOutsideExaminerScope } from "@/lib/exam-access";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
@@ -34,6 +35,8 @@ export default async function RiderProgressPage({
   // HQ users (centreId=null) bypass the centre check above — bound them by org
   // so they can't open another org's rider by id.
   if ((await getOrgIdForCentre(rider.centreId)) !== orgId) notFound();
+  // Examiners (often visiting judges) see only the riders they examine.
+  if (await riderOutsideExaminerScope(session, rider.id)) notFound();
 
   const [levels, statuses] = await Promise.all([
     prisma.progressLevel.findMany({

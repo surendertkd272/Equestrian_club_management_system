@@ -43,3 +43,45 @@ export async function examSheetDenied(
   }
   return "FORBIDDEN";
 }
+
+// ─── What an examiner may see of the club's riders ─────────────────────────
+// Examiners are often judges from OUTSIDE the club, in for one exam day. They
+// held rider.read like any coach, so a visiting judge could browse all 500
+// riders, open any child's profile (address, parents' phones, medical notes),
+// search the roster, and download it as a CSV. They now see the riders on an
+// exam they lead, co-judge, or are in the examiner pool for — and nobody else.
+
+type RiderScope = import("@prisma/client").Prisma.RiderWhereInput;
+
+export function examinerRiderScope(session: SessionPayload): RiderScope | null {
+  if (session.role !== "EXAMINER") return null;
+  const uid = session.userId;
+  return {
+    exams: {
+      some: {
+        OR: [
+          { examinerId: uid },
+          { judges: { some: { judgeId: uid } } },
+          { sitting: { examiners: { some: { examinerId: uid } } } },
+        ],
+      },
+    },
+  };
+}
+
+// True when this examiner may NOT see this rider (always false for other roles).
+export async function riderOutsideExaminerScope(session: SessionPayload, riderId: string): Promise<boolean> {
+  const scope = examinerRiderScope(session);
+  if (!scope) return false;
+  const { prisma } = await import("@/lib/prisma");
+  return (await prisma.rider.count({ where: { id: riderId, ...scope } })) === 0;
+}
+
+// Certificates an examiner may see: those from exams they marked.
+export function examinerCertificateScope(
+  session: SessionPayload,
+): import("@prisma/client").Prisma.CertificateWhereInput | null {
+  if (session.role !== "EXAMINER") return null;
+  const uid = session.userId;
+  return { exam: { OR: [{ examinerId: uid }, { judges: { some: { judgeId: uid } } }] } };
+}

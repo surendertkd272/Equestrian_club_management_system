@@ -192,6 +192,7 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
         tokenVersion: true,
         status: true,
         deletionRequestedAt: true,
+        accessExpiresAt: true,
         centreId: true,
         orgId: true,
         centre: { select: { orgId: true, org: { select: { status: true } } } },
@@ -204,6 +205,8 @@ export const getSession = cache(async (): Promise<SessionPayload | null> => {
     // the raw cookie verification (not getSession) so a user can still
     // withdraw their own request during the grace window.
     if (u.deletionRequestedAt) return null;
+    // Time-limited account (a visiting examiner) past its end date.
+    if (u.accessExpiresAt && u.accessExpiresAt.getTime() <= Date.now()) return null;
     const orgStatus = u.centre?.org?.status ?? u.org?.status;
     if (orgStatus === "suspended") return null;
     // RLS backstop: bind this request's org for the Postgres policies. getSession

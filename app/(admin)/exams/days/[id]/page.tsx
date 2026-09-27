@@ -26,7 +26,7 @@ export default async function ExamDayPage({ params }: { params: { id: string } }
       sittings: {
         orderBy: { level: "asc" },
         include: {
-          examiners: { select: { examinerName: true }, orderBy: { examinerName: "asc" } },
+          examiners: { select: { examinerName: true, examinerId: true }, orderBy: { examinerName: "asc" } },
           exams: { select: { status: true, examinerId: true, passed: true, reopenedAt: true, time: true } },
         },
       },
@@ -34,6 +34,10 @@ export default async function ExamDayPage({ params }: { params: { id: string } }
   });
   if (!day) notFound();
   if (await centreFence(session, day.centreId)) notFound();
+  // An examiner sees an exam day they are working on.
+  if (session.role === "EXAMINER" && !day.sittings.some((s) => s.examiners.some((x) => x.examinerId === session.userId))) {
+    redirect("/exams");
+  }
 
   const templates = await prisma.scoringTemplate.findMany({
     where: { centreId: day.centreId },

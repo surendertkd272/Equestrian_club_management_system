@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { examinerCertificateScope } from "@/lib/exam-access";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
@@ -37,7 +38,7 @@ export default async function CertificatesPage({
   if (!orgId) redirect("/no-organisation");
   const canBulk = can(session.role, "certificate.bulk");
 
-  const where: any = { ...tenantWhere(centreId, orgId) };
+  const where: any = { ...tenantWhere(centreId, orgId), ...(examinerCertificateScope(session) ?? {}) };
   if (searchParams.type) where.type = searchParams.type;
   if (searchParams.batch) where.batchTag = searchParams.batch;
   if (searchParams.revoked === "yes") where.revokedAt = { not: null };

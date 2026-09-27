@@ -63,7 +63,8 @@ Open **Leave Requests**, pick your dates, add a reason, and submit for approval.
 - **Help** (/help) — guidance and answers.
 
 ## Good to know
-- You only see and mark exams where you're in the pool, the lead, or a co-judge — others stay hidden.
+- You only see and mark exams where you're in the pool, the lead, or a co-judge — and you only see the **riders** on those exams (their level, riding and medical notes, and exam history — not family contact details).
+- If you're a **visiting examiner**, your account has an end date set by the centre; after it you can no longer sign in. Ask the centre to extend it if you're examining again.
 - Scheduling exams is done by your club's managers and head coaches, not you.
 - Certificates issue **automatically on a pass**; you don't issue them by hand.
 - Rider profiles and reports are **view-only** for you.

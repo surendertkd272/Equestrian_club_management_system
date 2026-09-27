@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     }
     const pools = new Map<number, Awaited<ReturnType<typeof examinerPool>>>();
     for (const level of byLevel.keys()) {
-      pools.set(level, await examinerPool(prisma, session, centreId, d.pools[String(level)]));
+      pools.set(level, await examinerPool(prisma, session, centreId, d.pools[String(level)], parseDateOnly(d.date)));
     }
     const { ladder, priorFails, skipped } = await checkBookings(prisma, {
       centreId,
