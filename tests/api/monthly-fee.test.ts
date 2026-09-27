@@ -67,13 +67,13 @@ describe("paying the registration and the month together", () => {
     expect((await prisma.invoice.findUniqueOrThrow({ where: { id: f.invoice.id } })).status).toBe("paid");
   });
 
-  it("still keeps an advance when that is what was chosen", async () => {
+  it("no longer creates an advance: extra money with no month is refused", async () => {
     const f = await setup();
     await loginAs(f.manager);
-    await recordPayment(json({ invoiceId: f.invoice.id, amount: 5000, method: "cash", excessAsAdvance: true }));
-    const extra = await prisma.payment.findFirstOrThrow({ where: { riderId: f.rider.id, invoiceId: null } });
-    expect(extra.feeMonth).toBeNull();
-    expect(extra.reason).toMatch(/^Advance/);
+    const r = await recordPayment(json({ invoiceId: f.invoice.id, amount: 5000, method: "cash", excessAsAdvance: true }));
+    expect(r.status).toBe(409);
+    expect(await prisma.payment.count()).toBe(0);
+    expect((await prisma.invoice.findUniqueOrThrow({ where: { id: f.invoice.id } })).status).toBe("due");
   });
 });
 
@@ -135,13 +135,22 @@ describe("a coach recording a monthly fee", () => {
 });
 
 describe("marking an existing advance as a monthly fee", () => {
+  // An advance recorded before advances were removed: the legacy row a
+  // club may still have (the owner's own ₹2,000).
   async function withAdvance() {
     const f = await setup();
     await loginAs(f.manager);
-    await recordPayment(
-      json({ invoiceId: f.invoice.id, amount: 5000, method: "cash", txnRef: "UPI123", excessAsAdvance: true }),
-    );
-    const adv = await prisma.payment.findFirstOrThrow({ where: { riderId: f.rider.id, invoiceId: null } });
+    await recordPayment(json({ invoiceId: f.invoice.id, amount: 3000, method: "cash", txnRef: "UPI123" }));
+    const adv = await prisma.payment.create({
+      data: {
+        invoiceId: null,
+        centreId: f.centre.id,
+        riderId: f.rider.id,
+        amount: 2000,
+        method: "cash",
+        reason: "Advance — paid ₹5000.00 against a ₹3000.00 registration invoice · ref UPI123",
+      },
+    });
     return { ...f, adv };
   }
   const call = (id: string, feeMonth: string) =>

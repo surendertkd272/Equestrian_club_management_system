@@ -29,10 +29,8 @@ export function RecordPaymentButton({
   const [amount, setAmount] = useState(outstanding.toFixed(2));
   const [method, setMethod] = useState<"cash" | "cheque" | "upi" | "bank" | "card">("cash");
   const [txnRef, setTxnRef] = useState("");
-  // Where money above the invoice goes. At this club it is nearly always the
-  // month's fee paid in the same transfer, so that is the default; "advance"
-  // is for money genuinely held against future bills.
-  const [excessAs, setExcessAs] = useState<"fee" | "advance">("fee");
+  // Money above the invoice is the month's fee paid in the same transfer.
+  // There is no advance: the club asked for fees, not money held on account.
   const [feeMonth, setFeeMonth] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -62,7 +60,7 @@ export function RecordPaymentButton({
           method,
           ...(txnRef ? { txnRef } : {}),
           ...(hasExcess ? { excessAsAdvance: true } : {}),
-          ...(hasExcess && excessAs === "fee" && feeMonth ? { excessFeeMonth: feeMonth } : {}),
+          ...(hasExcess && feeMonth ? { excessFeeMonth: feeMonth } : {}),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -78,9 +76,7 @@ export function RecordPaymentButton({
       }
       toast.success(
         data.advanceAmount > 0
-          ? data.excessFeeMonth
-            ? `Invoice fully paid · ${inr(data.advanceAmount)} recorded as the monthly fee`
-            : `Invoice fully paid · ${inr(data.advanceAmount)} kept as advance on account`
+          ? `Invoice fully paid · ${inr(data.advanceAmount)} recorded as the monthly fee`
           : data.invoiceStatus === "paid"
             ? "Payment recorded — invoice fully paid"
             : `Payment recorded · ₹${data.outstanding.toFixed(2)} still outstanding`,
@@ -125,7 +121,7 @@ export function RecordPaymentButton({
               <Label>Amount (₹) *</Label>
               {/* No max: a family paying registration and the month's fee in
                   one transfer is normal. The overflow is shown below and filed
-                  as that month's fee (or an advance) rather than refused. */}
+                  as that month's fee rather than refused. */}
               <Input aria-label="Amount (₹)"
                 type="number"
                 min={0.01}
@@ -135,37 +131,16 @@ export function RecordPaymentButton({
                 autoFocus
               />
               {hasExcess && (
-                <fieldset className="mt-1.5 space-y-1.5 rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
-                  <legend className="sr-only">What is the extra for?</legend>
-                  <p>
-                    {inr(outstanding)} settles this invoice. The other <strong>{inr(excess)}</strong> is:
-                  </p>
-                  <label className="flex flex-wrap items-center gap-2">
-                    <input
-                      type="radio"
-                      name="excessAs"
-                      checked={excessAs === "fee"}
-                      onChange={() => setExcessAs("fee")}
-                    />
-                    Monthly fee for
-                    <input
-                      type="month"
-                      aria-label="Fee month"
-                      value={feeMonth}
-                      onChange={(e) => { setFeeMonth(e.target.value); setExcessAs("fee"); }}
-                      className="h-7 rounded border border-input bg-background px-1 text-xs text-foreground"
-                    />
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="excessAs"
-                      checked={excessAs === "advance"}
-                      onChange={() => setExcessAs("advance")}
-                    />
-                    An advance, kept on the rider&apos;s account
-                  </label>
-                </fieldset>
+<p className="mt-1.5 flex flex-wrap items-center gap-2 rounded-md border border-emerald-300 bg-emerald-50 px-2 py-1.5 text-xs text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
+                  {inr(outstanding)} settles this invoice. The other <strong>{inr(excess)}</strong> is the monthly fee for
+                  <input
+                    type="month"
+                    aria-label="Fee month"
+                    value={feeMonth}
+                    onChange={(e) => setFeeMonth(e.target.value)}
+                    className="h-7 rounded border border-input bg-background px-1 text-xs text-foreground"
+                  />
+                </p>
               )}
             </div>
             <div>
@@ -190,7 +165,7 @@ export function RecordPaymentButton({
               <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={busy}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={busy || Number(amount) <= 0 || (hasExcess && excessAs === "fee" && !feeMonth)}>
+              <Button type="submit" disabled={busy || Number(amount) <= 0 || (hasExcess && !feeMonth)}>
                 {busy ? "Saving…" : "Record"}
               </Button>
             </div>

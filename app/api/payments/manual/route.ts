@@ -99,9 +99,11 @@ export async function POST(req: NextRequest) {
       // either side of it.
       const toInvoice = Math.round(Math.min(parsed.data.amount, outstanding) * 100) / 100;
       const excess = Math.round((parsed.data.amount - toInvoice) * 100) / 100;
-      if (excess > 0.001 && (!parsed.data.excessAsAdvance || toInvoice <= 0.001)) {
-        // Not opted in, or nothing left on the invoice to settle (then this is
-        // a plain receipt and belongs on the receipt form, not here).
+      // The extra is recorded only as a named month's fee. No advances: the
+      // club asked for them to go ("in riders we don't need advance").
+      if (excess > 0.001 && (!parsed.data.excessAsAdvance || !parsed.data.excessFeeMonth || toInvoice <= 0.001)) {
+        // Not opted in, no month given, or nothing left on the invoice to
+        // settle (then it is a plain fee and belongs on Record Monthly Fee).
         throw new Overpay(outstanding);
       }
       const clearedAt = parsed.data.method === "cheque" ? null : paidAt;
@@ -140,9 +142,7 @@ export async function POST(req: NextRequest) {
                 txnRef: null,
                 paidAt,
                 clearedAt,
-                reason: feeMonth
-                  ? `Monthly fee — ${formatFeeMonth(feeMonth)} · paid with the ${inv.kind} invoice (₹${parsed.data.amount.toFixed(2)} in all)${refNote}`
-                  : `Advance — paid ₹${parsed.data.amount.toFixed(2)} against a ₹${toInvoice.toFixed(2)} ${inv.kind} invoice${refNote}`,
+                reason: `Monthly fee — ${formatFeeMonth(feeMonth!)} · paid with the ${inv.kind} invoice (₹${parsed.data.amount.toFixed(2)} in all)${refNote}`,
                 feeMonth,
                 recordedByUserId: session.userId,
               },

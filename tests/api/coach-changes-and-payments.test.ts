@@ -3,8 +3,8 @@
 //
 //   1. A family pays ₹5,000 against a ₹3,000 invoice. That used to be refused
 //      outright ("must be ≤ 3000"). Now ₹3,000 settles the invoice and ₹2,000
-//      is kept as an advance on the rider's account — never an over-paid
-//      invoice.
+//      is recorded as the month's fee (the club has no advances) — never an
+//      over-paid invoice.
 //
 //   2. Coaches don't change stock or horse records on their own say-so. Their
 //      edit becomes an approval request carrying the change; a manager
@@ -75,10 +75,10 @@ describe("recording more than the invoice", () => {
     return { centre, rider, invoice };
   }
 
-  it("settles the invoice and keeps the rest as an advance", async () => {
+  it("settles the invoice and records the rest as the month's fee", async () => {
     const { rider, invoice } = await setup();
     const r = await recordPayment(
-      json({ invoiceId: invoice.id, amount: 5000, method: "upi", txnRef: "626950923335", excessAsAdvance: true }),
+      json({ invoiceId: invoice.id, amount: 5000, method: "upi", txnRef: "626950923335", excessAsAdvance: true, excessFeeMonth: "2026-09" }),
     );
     expect(r.status).toBe(200);
     const body = await r.json();
@@ -98,6 +98,7 @@ describe("recording more than the invoice", () => {
     expect(pays.find((p) => p.invoiceId === invoice.id)!.txnRef).toBe("626950923335");
     expect(adv.txnRef).toBeNull();
     expect(adv.reason).toContain("626950923335");
+    expect(adv.feeMonth).toBe("2026-09");
   });
 
   it("the same UPI reference still can't be recorded twice", async () => {
@@ -105,7 +106,7 @@ describe("recording more than the invoice", () => {
     const second = await prisma.invoice.create({
       data: { centreId: invoice.centreId, riderId: invoice.riderId, amount: 1000, kind: "monthly", dueDate: new Date() },
     });
-    await recordPayment(json({ invoiceId: invoice.id, amount: 5000, method: "upi", txnRef: "UPI-1", excessAsAdvance: true }));
+    await recordPayment(json({ invoiceId: invoice.id, amount: 5000, method: "upi", txnRef: "UPI-1", excessAsAdvance: true, excessFeeMonth: "2026-09" }));
     const r = await recordPayment(json({ invoiceId: second.id, amount: 1000, method: "upi", txnRef: "UPI-1" }));
     expect(r.status).toBe(409);
     expect((await r.json()).error).toBe("DUPLICATE_REF");
