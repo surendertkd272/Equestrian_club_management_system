@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
     orderBy: [{ firstName: "asc" }],
   });
 
-  const { consentRecipient } = await import("@/lib/rider-consent-request");
+  const { consentRecipient, consentPhone } = await import("@/lib/rider-consent-request");
   return NextResponse.json({
     ok: true,
     canSend: hasBaseUrl(),
@@ -73,6 +73,7 @@ export async function GET(req: NextRequest) {
       id: r.id,
       name: `${r.firstName} ${r.lastName}`,
       email: consentRecipient(r),
+      phone: consentPhone(r),
       pendingSince: r.consentRequests[0]?.sentAt ?? null,
     })),
   });
@@ -142,7 +143,10 @@ export async function POST(req: NextRequest) {
     rowId: resolved.centreId,
     after: {
       requested: result.requested,
-      noEmail: result.skippedNoEmail.length,
+      byPhone: result.requestedByPhone,
+      // Links handed to staff for manual WhatsApp — each one a live credential.
+      shareable: result.shareable.map((x) => x.id),
+      noContact: result.skippedNoEmail.length,
       alreadySigned: result.skippedAlreadySigned,
       alreadyPending: result.skippedAlreadyPending,
       failed: result.failed.length,

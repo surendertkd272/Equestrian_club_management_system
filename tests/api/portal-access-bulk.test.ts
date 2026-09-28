@@ -74,9 +74,11 @@ describe("bulk portal access", () => {
     expect(user.mustChangePassword).toBe(true);
   });
 
-  it("falls back to the parent email captured at registration", async () => {
-    // The case that matters: a child with no address of their own, whose
-    // parent gave one in the DPDPA consent block or the import sheet.
+  it("leaves the parent's email for the parent login", async () => {
+    // A child with no address of their own, whose parent gave one at
+    // registration. That address used to become the CHILD's login — and the
+    // parent login that needed it was then refused as "email taken". It now
+    // stays free for /api/riders/parent-access/bulk.
     const r = await mkRider({ centreId: centre.id, email: null });
     await prisma.rider.update({
       where: { id: r.id },
@@ -85,8 +87,22 @@ describe("bulk portal access", () => {
     await signIn(hq);
 
     const body = await (await call({ centreId: centre.id })).json();
-    expect(body.created).toHaveLength(1);
-    expect(body.created[0].email).toBe("mum@p.in");
+    expect(body.created).toHaveLength(0);
+    expect(body.noEmail).toHaveLength(1);
+    expect(await prisma.user.count({ where: { email: "mum@p.in" } })).toBe(0);
+  });
+
+  it("won't key a student login on an address that is a parent's", async () => {
+    const r = await mkRider({ centreId: centre.id, email: "Family@P.in" });
+    await prisma.rider.update({
+      where: { id: r.id },
+      data: { parentalConsentJson: { parentEmail: "family@p.in", parentName: "Priya" } },
+    });
+    await signIn(hq);
+
+    const body = await (await call({ centreId: centre.id })).json();
+    expect(body.created).toHaveLength(0);
+    expect(body.familyEmail).toHaveLength(1);
   });
 
   it("never invents an address — reports the rider by name instead", async () => {

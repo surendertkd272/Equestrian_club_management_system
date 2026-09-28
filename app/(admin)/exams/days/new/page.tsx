@@ -81,7 +81,8 @@ export default async function NewExamDayPage() {
             Everyone sitting on one date, each at their own level. Each level becomes its own sitting with its own
             examiner pool; on the day, examiners pick riders from their level&rsquo;s queue. The whole day can then be
             followed, moved or cancelled from one page. Judges coming in from outside?{" "}
-            <Link href="/exams/examiners" className="text-primary underline">Register visiting examiners</Link> first.
+            <Link href="/exams/examiners" className="text-primary underline">Register visiting examiners</Link> first. Returning riders still showing no level?{" "}
+            <Link href="/riders/levels" className="text-primary underline">Set their levels</Link> so each is offered the right next level.
           </CardDescription>
         </CardHeader>
         <CardContent>

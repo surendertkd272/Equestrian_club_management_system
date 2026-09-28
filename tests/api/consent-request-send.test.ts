@@ -95,7 +95,8 @@ describe("sending consent requests", () => {
   });
 
   it("names riders it cannot reach instead of failing silently", async () => {
-    const noEmail = await mkRider({ centreId: centre.id, email: null, firstName: "Unreachable" });
+    // No email and no phone anywhere on file.
+    const noEmail = await mkRider({ centreId: centre.id, email: null, firstName: "Unreachable", fatherPhone: null, mobile: "" });
     const res = await issue([noEmail.id]);
 
     // These are the paper-form cases. A count of "0 sent" with no names
@@ -103,6 +104,20 @@ describe("sending consent requests", () => {
     expect(res.requested).toBe(0);
     expect(res.skippedNoEmail).toHaveLength(1);
     expect(res.skippedNoEmail[0].name).toContain("Unreachable");
+  });
+
+  it("reaches a family with no email on their phone (HPS sim gap 4)", async () => {
+    // Most families have no email. With no SMS/WhatsApp provider configured
+    // the link comes back for staff to send from their own WhatsApp.
+    const rider = await mkRider({ centreId: centre.id, email: null, firstName: "Phoneonly", fatherPhone: "9100014662" });
+    const res = await issue([rider.id]);
+    expect(res.requested).toBe(0);
+    expect(res.skippedNoEmail).toHaveLength(0);
+    expect(res.shareable).toHaveLength(1);
+    expect(res.shareable[0]).toMatchObject({ name: expect.stringContaining("Phoneonly"), phone: "9100014662" });
+    expect(res.shareable[0].url).toMatch(/^http.*\/consent\/[\w-]{20,}$/);
+    // A live request exists, so a second run doesn't mint another.
+    expect((await issue([rider.id])).skippedAlreadyPending).toBe(1);
   });
 
   it("falls back to a linked parent's address", async () => {

@@ -31,6 +31,23 @@ export function isExamManager(role: string): boolean {
   return EXAM_MANAGER_ROLES.includes(role);
 }
 
+// Roles that may be seated on an exam jury. Examiners are the point of the
+// role; senior coaching staff and centre management routinely co-judge at
+// club level. Everyone else — grooms, farriers, vets, accountants, inventory,
+// school observers, inspection officers, riders, parents — must not appear on
+// a jury panel, because that panel is printed on the result sheet.
+//
+// Every role here must hold exam.score. The exam completes only when every
+// card on the panel is submitted, so a judge who cannot open the scorer (a
+// plain COACH could be seated but never mark) would hold the exam open forever.
+export const JUDGE_ELIGIBLE_ROLES: readonly string[] = [
+  "EXAMINER",
+  "HEAD_COACH",
+  "CENTRE_MANAGER",
+  "ADMIN",
+  "SUPER_ADMIN",
+];
+
 // A refusal raised inside a transaction. Throwing rolls the whole transaction
 // back; the route turns it into a JSON response.
 export class ExamPanelError extends Error {
@@ -279,7 +296,7 @@ export async function notifyIfSittingComplete(sittingId: string): Promise<void> 
   const passed = s.exams.filter((e) => e.passed === true).length;
   await notifyCentreManager(s.centreId, {
     type: "exam.sitting_complete",
-    title: `Level ${s.level} sitting complete — ${passed} of ${s.exams.length} passed`,
+    title: `Level ${s.level}${s.groupNo ? ` · Group ${s.groupNo}` : ""} sitting complete — ${passed} of ${s.exams.length} passed`,
     body: `${s.exams.length - passed} did not pass.${s.examDay ? ` Part of ${s.examDay.name}.` : ""}`,
     link: `/exams/sittings/${s.id}`,
     payload: { sittingId: s.id, passed, total: s.exams.length },

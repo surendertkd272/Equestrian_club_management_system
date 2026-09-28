@@ -4,13 +4,14 @@ import { OnboardingWizard } from "./wizard";
 import { bindRlsBypass } from "@/lib/tenant-context";
 import { getSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
+import { readDriveToken } from "@/lib/signup-drive";
 
 export const dynamic = "force-dynamic";
 
 export default async function OnboardingPage({
   searchParams,
 }: {
-  searchParams: { centre?: string };
+  searchParams: { centre?: string; drive?: string };
 }) {
   bindRlsBypass(); // public-by-unguessable-id flow (no session to bind an org from)
   const slug = searchParams.centre;
@@ -30,7 +31,7 @@ export default async function OnboardingPage({
   // from here on carries the right one, so the stale slug dies out instead of
   // being copied forward forever.
   if (centre && slug && centre.slug !== slug) {
-    redirect(`/onboarding?centre=${centre.slug}`);
+    redirect(`/onboarding?centre=${centre.slug}${searchParams.drive ? `&drive=${encodeURIComponent(searchParams.drive)}` : ""}`);
   }
 
   if (!centre) {
@@ -87,6 +88,9 @@ export default async function OnboardingPage({
     );
   }
 
+  const drive = searchParams.drive ? await readDriveToken(searchParams.drive, centre.id) : null;
+  const driveExpired = Boolean(searchParams.drive) && !drive;
+
   return (
     <main className="min-h-screen bg-secondary py-8">
       <div className="container max-w-2xl">
@@ -97,7 +101,17 @@ export default async function OnboardingPage({
             Replaces the paper Rider Registration Form + Indemnity Release.
           </p>
         </div>
-        <OnboardingWizard centreSlug={centre.slug} centreName={centre.name} />
+        {driveExpired && (
+          <p className="mb-4 rounded-md border border-warning/40 bg-warning-soft px-3 py-2 text-center text-sm">
+            This sign-up drive link has expired — you can still register below.
+          </p>
+        )}
+        <OnboardingWizard
+          centreSlug={centre.slug}
+          centreName={centre.name}
+          driveToken={drive ? searchParams.drive : undefined}
+          driveSchool={drive?.school ?? null}
+        />
       </div>
     </main>
   );

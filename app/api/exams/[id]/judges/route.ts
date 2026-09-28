@@ -6,26 +6,9 @@ import { getSession } from "@/lib/auth";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { audit } from "@/lib/audit";
 import { formatEnum } from "@/lib/labels";
+import { JUDGE_ELIGIBLE_ROLES } from "@/lib/exam-panel";
 
 const addSchema = z.object({ judgeId: z.string().min(1) });
-
-// Roles that may be seated on an exam jury. Examiners are the point of the
-// role; senior coaching staff and centre management routinely co-judge at
-// club level. Everyone else — grooms, farriers, vets, accountants, inventory,
-// school observers, inspection officers, riders, parents — must not appear on
-// a jury panel, because that panel is printed on the result sheet.
-//
-// Every role here must hold exam.score. The exam now completes only when
-// every card on the panel is submitted, so a judge who cannot open the
-// scorer (a plain COACH could be seated but never mark) would hold the exam
-// open forever.
-const JUDGE_ELIGIBLE_ROLES: readonly string[] = [
-  "EXAMINER",
-  "HEAD_COACH",
-  "CENTRE_MANAGER",
-  "ADMIN",
-  "SUPER_ADMIN",
-];
 
 // POST — add a co-judge to an exam. Position auto-assigned as max+1, so the
 // lead examiner stays implicit at position 1 (no row needed for them).

@@ -20,6 +20,7 @@ import { isFeatureEnabledForCentre } from "@/lib/features-gate";
 import { bindRlsBypass } from "@/lib/tenant-context";
 import { sendConsentReceipt } from "@/lib/rider-consent-request";
 import { resolveSchoolId } from "@/lib/school-scope";
+import { readDriveToken, DRIVE_LIMIT_PER_CONNECTION, DRIVE_LIMIT_TOTAL } from "@/lib/signup-drive";
 
 export const runtime = "nodejs";
 
@@ -55,7 +56,18 @@ export async function POST(req: NextRequest) {
   // correcting a mistyped phone number three times burned three of her ten
   // slots on submissions that never created anything, and the bare
   // "RATE_LIMITED" string was rendered to her with no explanation.
-  const rl = await checkRate(`onboarding:${clientFingerprint(req)}`, 10, 60 * 60_000);
+  const centre = await prisma.centre.findUnique({ where: { slug: d.centreSlug } });
+  if (!centre) return NextResponse.json({ error: "CENTRE_NOT_FOUND" }, { status: 404 });
+
+  // A sign-up drive link (lib/signup-drive.ts) lifts the per-connection limit
+  // for a school drive — a hundred families on one Wi-Fi — under the drive's
+  // own ceiling. Read off the raw body: the schema strips unknown keys.
+  const drive = await readDriveToken((json as { driveToken?: unknown } | null)?.driveToken, centre.id);
+  const fp = clientFingerprint(req);
+  let rl = drive
+    ? await checkRate(`onboarding-drive:${drive.driveId}:${fp}`, DRIVE_LIMIT_PER_CONNECTION, 60 * 60_000)
+    : await checkRate(`onboarding:${fp}`, 10, 60 * 60_000);
+  if (rl.ok && drive) rl = await checkRate(`onboarding-drive:${drive.driveId}`, DRIVE_LIMIT_TOTAL, 60 * 60_000);
   if (!rl.ok) {
     return NextResponse.json(
       {
@@ -68,9 +80,6 @@ export async function POST(req: NextRequest) {
       { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
     );
   }
-
-  const centre = await prisma.centre.findUnique({ where: { slug: d.centreSlug } });
-  if (!centre) return NextResponse.json({ error: "CENTRE_NOT_FOUND" }, { status: 404 });
 
   const ip = req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? null;
   const ua = req.headers.get("user-agent") ?? null;
@@ -241,7 +250,13 @@ export async function POST(req: NextRequest) {
     action: "create",
     tableName: "rider",
     rowId: rider.id,
-    after: { id: rider.id, name: `${rider.firstName} ${rider.lastName}`, centreId: centre.id, status: "pending_approval" },
+    after: {
+      id: rider.id,
+      name: `${rider.firstName} ${rider.lastName}`,
+      centreId: centre.id,
+      status: "pending_approval",
+      ...(drive ? { signupDrive: drive.driveId } : {}),
+    },
     ip,
     userAgent: ua,
   });

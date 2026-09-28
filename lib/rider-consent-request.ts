@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { sendEmail, renderEmail, isValidEmail } from "@/lib/email";
+import { sendSms, isSmsConfigured, normalizeIndianPhone } from "@/lib/sms";
+import { sendWhatsApp, isWhatsAppConfigured } from "@/lib/whatsapp";
 import { absoluteUrl } from "@/lib/absolute-url";
 
 // Collecting indemnity + injury NOC from riders who never saw the public
@@ -125,6 +127,12 @@ export async function issueShareableLink(opts: {
 
 export type IssueResult = {
   requested: number;
+  // Of `requested`, how many went by SMS / WhatsApp rather than email.
+  requestedByPhone: number;
+  // Families with no email and no messaging provider to reach them: a live
+  // link each, for staff to send from their own WhatsApp (wa.me tap-through).
+  shareable: { id: string; name: string; phone: string; url: string }[];
+  // No email AND no phone number anywhere on file.
   skippedNoEmail: { id: string; name: string }[];
   skippedAlreadySigned: number;
   skippedAlreadyPending: number;
@@ -146,6 +154,8 @@ export async function issueConsentRequests(opts: {
 }): Promise<IssueResult> {
   const result: IssueResult = {
     requested: 0,
+    requestedByPhone: 0,
+    shareable: [],
     skippedNoEmail: [],
     skippedAlreadySigned: 0,
     skippedAlreadyPending: 0,
@@ -165,6 +175,9 @@ export async function issueConsentRequests(opts: {
       firstName: true,
       lastName: true,
       email: true,
+      mobile: true,
+      fatherPhone: true,
+      motherPhone: true,
       indemnitySignedAt: true,
       // Needed by consentRecipient — without it the parent-email fallback
       // silently never fires.
@@ -190,9 +203,57 @@ export async function issueConsentRequests(opts: {
     }
     const to = consentRecipient(rider);
     if (!to) {
-      // Not a failure — a real and common state (bulk sheets often omit the
-      // email). Named, so the club can chase these on paper instead.
-      result.skippedNoEmail.push({ id: rider.id, name });
+      // Most families here have no email at all, so an email-only request
+      // reached a handful of them. Reach them on their phone instead.
+      const phone = consentPhone(rider);
+      if (!phone || !normalizeIndianPhone(phone)) {
+        // Not a failure — a real and common state. Named, so the club can
+        // chase these on paper instead.
+        result.skippedNoEmail.push({ id: rider.id, name });
+        continue;
+      }
+      try {
+        const raw = crypto.randomBytes(TOKEN_BYTES).toString("base64url");
+        const request = await prisma.riderConsentRequest.create({
+          data: {
+            riderId: rider.id,
+            centreId: opts.centreId,
+            // No address was used; the phone is on the rider record.
+            email: "",
+            tokenHash: hashToken(raw),
+            expiresAt: new Date(now.getTime() + TTL_DAYS * 86400_000),
+            createdById: opts.createdById,
+          },
+        });
+        const url = absoluteUrl(`/consent/${raw}`);
+        const text = `${opts.centreName}: please sign the riding indemnity for ${name} before their next session (1 minute): ${url}`;
+        const ref = { type: "rider.consent_request", rowId: request.id, payload: { riderId: rider.id } };
+        let sent = false;
+        if (isSmsConfigured()) {
+          sent = (await sendSms({ to: phone, body: text, ref })).ok;
+        } else if (isWhatsAppConfigured()) {
+          const r = await sendWhatsApp({
+            to: phone,
+            centreId: opts.centreId,
+            // Pre-approved Meta template — see DEPLOYMENT.md template list.
+            // Body params: {rider name}, {centre}, {link}.
+            template: { name: "ew_consent_request", bodyParams: [name, opts.centreName, url] },
+            previewBody: text,
+            ref,
+          });
+          sent = r.ok && !("skipped" in r && r.skipped);
+        }
+        if (sent) {
+          result.requested++;
+          result.requestedByPhone++;
+        } else {
+          // No provider (or the send failed): hand the link to staff to send
+          // from their own WhatsApp. Same link, same expiry.
+          result.shareable.push({ id: rider.id, name, phone, url });
+        }
+      } catch (e) {
+        result.failed.push({ id: rider.id, reason: e instanceof Error ? e.message : "send failed" });
+      }
       continue;
     }
 

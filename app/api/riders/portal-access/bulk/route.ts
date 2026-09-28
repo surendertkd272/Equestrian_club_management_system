@@ -7,16 +7,16 @@ import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { resolveWriteCentre } from "@/lib/resolve-centre";
 import { audit } from "@/lib/audit";
 import { storeIssuedCredential } from "@/lib/issued-credential";
-import { consentRecipient } from "@/lib/rider-consent-request";
-import { isValidEmail } from "@/lib/email";
+import { studentLoginEmail } from "@/lib/family-email";
 
 // Portal logins for a whole centre's riders at once.
 //
 // Zero riders in a hundred had a login, and creating them one at a time —
-// typing an address per rider — is why. This resolves the address the same way
-// the consent flow does (rider's own, then a linked parent, then the parental
-// consent block), so a club that captured parent emails at registration or in
-// the import sheet gets logins without retyping anything.
+// typing an address per rider — is why. This uses the rider's OWN address.
+// It used to fall back to the parent's (as the consent flow does), which gave
+// the family address to the child's login — and the parent login that needed
+// it was then refused as "email taken". A parent's address is now left for
+// the parent (see /api/riders/parent-access/bulk and lib/family-email.ts).
 //
 // Deliberately does NOT invent an address. A rider with none is reported by
 // name; a login keyed on a made-up email is worse than no login.
@@ -68,12 +68,19 @@ export async function POST(req: NextRequest) {
 
   const created: { id: string; name: string; email: string; password: string }[] = [];
   const noEmail: { id: string; name: string }[] = [];
+  // Their only address is a parent's — that belongs on the parent login.
+  const familyEmail: { id: string; name: string }[] = [];
   const emailTaken: { id: string; name: string; email: string }[] = [];
 
   for (const r of riders) {
     const name = `${r.firstName} ${r.lastName}`;
-    const email = consentRecipient(r);
-    if (!email || !isValidEmail(email)) {
+    const own = studentLoginEmail(r);
+    if (own.familyEmail) {
+      familyEmail.push({ id: r.id, name });
+      continue;
+    }
+    const email = own.email;
+    if (!email) {
       // Named, not silently dropped — these are the ones needing an address
       // collected before they can ever have a login.
       noEmail.push({ id: r.id, name });
@@ -117,6 +124,7 @@ export async function POST(req: NextRequest) {
       dryRun: true,
       wouldCreate: created.length,
       noEmail,
+      familyEmail,
       names: created.slice(0, 20).map((c) => c.name),
     });
   }
@@ -126,10 +134,10 @@ export async function POST(req: NextRequest) {
     action: "rider.portal_access_bulk",
     tableName: "rider",
     rowId: resolved.centreId,
-    after: { created: created.length, noEmail: noEmail.length, emailTaken: emailTaken.length },
+    after: { created: created.length, noEmail: noEmail.length, familyEmail: familyEmail.length, emailTaken: emailTaken.length },
     ip: req.headers.get("x-forwarded-for"),
     userAgent: req.headers.get("user-agent"),
   });
 
-  return NextResponse.json({ ok: true, created, noEmail, emailTaken });
+  return NextResponse.json({ ok: true, created, noEmail, familyEmail, emailTaken });
 }
