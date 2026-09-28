@@ -2,6 +2,7 @@ import Link from "next/link";
 import { examinerCertificateScope } from "@/lib/exam-access";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { resultRecipients, RESULT_RECIPIENT_SELECT } from "@/lib/result-recipients";
 import { requireSession } from "@/lib/auth";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession, getOrgIdForCentre } from "@/lib/features-gate";
@@ -30,7 +31,7 @@ export default async function CertificateView({ params }: { params: { id: string
   const cert = await prisma.certificate.findUnique({
     where: { id: params.id },
     include: {
-      rider: { select: { firstName: true, lastName: true, email: true } },
+      rider: { select: { firstName: true, lastName: true, ...RESULT_RECIPIENT_SELECT } },
       centre: { select: { name: true, address: true } },
     },
   });
@@ -63,7 +64,7 @@ export default async function CertificateView({ params }: { params: { id: string
             <SendResultButton
               certId={cert.id}
               alreadySentAt={cert.resultEmailSentAt?.toISOString() ?? null}
-              parentEmail={cert.rider.email}
+              parentEmail={resultRecipients(cert.rider).join(", ") || null}
             />
           )}
           <PrintButton />

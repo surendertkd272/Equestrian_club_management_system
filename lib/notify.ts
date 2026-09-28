@@ -96,11 +96,24 @@ export async function notifyHq(
 }
 
 // Notify the manager(s) of a centre. Centre.managerId is the single point of contact.
+// The centre's linked manager — or, when none is linked (or they've left),
+// every active CENTRE_MANAGER at the centre. Centre.managerId was never set for
+// a centre created in the app, so this used to deliver nothing at all there:
+// exam summaries, enrolment alerts, injury alerts all vanished.
 export async function notifyCentreManager(centreId: string, rest: Omit<NotifyInput, "userId" | "centreId">) {
   const centre = await prisma.centre.findUnique({ where: { id: centreId }, select: { managerId: true } });
-  if (centre?.managerId) {
-    await notify({ ...rest, userId: centre.managerId, centreId });
+  const linked = centre?.managerId
+    ? await prisma.user.findUnique({ where: { id: centre.managerId }, select: { id: true, status: true } })
+    : null;
+  if (linked && linked.status === "active") {
+    await notify({ ...rest, userId: linked.id, centreId });
+    return;
   }
+  const managers = await prisma.user.findMany({
+    where: { centreId, role: "CENTRE_MANAGER", status: "active" },
+    select: { id: true },
+  });
+  await notifyMany(managers.map((m) => m.id), { ...rest, centreId });
 }
 
 // Notify every parent linked to a rider. Skips silently when the rider has no

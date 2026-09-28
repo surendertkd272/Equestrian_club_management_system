@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { linkCentreManagerIfUnset } from "@/lib/centre-manager";
 import { prisma } from "@/lib/prisma";
 import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
@@ -103,6 +104,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   // profile still showing COACH. updateMany is a no-op for non-staff users.
   if (willDemoteRole && d.role !== undefined) {
     await prisma.staff.updateMany({ where: { userId: target.id }, data: { role: d.role } });
+  }
+  if (updated.role === "CENTRE_MANAGER" && updated.status === "active") {
+    await linkCentreManagerIfUnset(prisma, updated.centreId, updated.id);
   }
 
   await audit({

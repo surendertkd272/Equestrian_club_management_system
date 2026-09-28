@@ -24,7 +24,7 @@ async function blockIfForeignCentre(
   return null;
 }
 
-// PATCH /api/centres/[id] — edit a club's name / address / GST.
+// PATCH /api/centres/[id] — edit a club's name / address / GST / manager.
 // HQ-only: even centre managers shouldn't rename their own club from inside it,
 // since the brand is owned at the HQ level.
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -49,6 +49,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!existing) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   const foreign = await blockIfForeignCentre(session, existing.orgId);
   if (foreign) return foreign;
+  if (d.managerId) {
+    const mgr = await prisma.user.findUnique({
+      where: { id: d.managerId },
+      select: { role: true, centreId: true, status: true },
+    });
+    if (!mgr || mgr.role !== "CENTRE_MANAGER" || mgr.centreId !== existing.id || mgr.status !== "active") {
+      return NextResponse.json(
+        { error: "INVALID_MANAGER", message: "Pick an active centre manager who works at this club." },
+        { status: 400 },
+      );
+    }
+  }
 
   const updated = await prisma.centre.update({
     where: { id: existing.id },
@@ -56,6 +68,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       ...(d.name !== undefined ? { name: d.name } : {}),
       ...(d.address !== undefined ? { address: d.address || null } : {}),
       ...(d.gstNo !== undefined ? { gstNo: d.gstNo || null } : {}),
+      ...(d.managerId !== undefined ? { managerId: d.managerId } : {}),
       // jsonb column — pass the array directly; empty → Prisma.DbNull to clear.
       ...(d.emergencyContacts !== undefined
         ? { emergencyContactsJson: d.emergencyContacts.length === 0 ? Prisma.DbNull : d.emergencyContacts }
@@ -68,8 +81,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     action: "centre.update",
     tableName: "centre",
     rowId: existing.id,
-    before: { name: existing.name, address: existing.address, gstNo: existing.gstNo },
-    after: { name: updated.name, address: updated.address, gstNo: updated.gstNo },
+    before: { name: existing.name, address: existing.address, gstNo: existing.gstNo, managerId: existing.managerId },
+    after: { name: updated.name, address: updated.address, gstNo: updated.gstNo, managerId: updated.managerId },
   });
 
   return NextResponse.json({ ok: true });

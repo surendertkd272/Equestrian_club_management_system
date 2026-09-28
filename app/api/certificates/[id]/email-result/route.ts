@@ -19,6 +19,7 @@ import { blockIfFeatureOff } from "@/lib/features-gate";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { sendEmail, renderEmail } from "@/lib/email";
 import { renderExamBreakdownHtml } from "@/lib/exam-email-breakdown";
+import { resultRecipients, RESULT_RECIPIENT_SELECT } from "@/lib/result-recipients";
 
 const ALLOWED_ROLES = new Set([
   "SUPER_ADMIN",
@@ -43,7 +44,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     where: { id: params.id },
     include: {
       rider: {
-        select: { id: true, firstName: true, lastName: true, email: true },
+        select: { id: true, firstName: true, lastName: true, ...RESULT_RECIPIENT_SELECT },
       },
       centre: { select: { name: true } },
       exam: {
@@ -78,9 +79,13 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       { status: 409 },
     );
   }
-  if (!cert.rider.email) {
+  const recipients = resultRecipients(cert.rider);
+  if (recipients.length === 0) {
     return NextResponse.json(
-      { error: "NO_PARENT_EMAIL", message: "No email on file for this rider — add one on the rider profile first." },
+      {
+        error: "NO_PARENT_EMAIL",
+        message: "No parent or rider email on file — link a parent or add an email on the rider profile first.",
+      },
       { status: 409 },
     );
   }
@@ -102,23 +107,32 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       : {};
   const breakdown = renderExamBreakdownHtml(rubricJson, scores);
   const riderName = `${cert.rider.firstName} ${cert.rider.lastName}`;
-  const examDate = cert.exam.date.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" });
+  const examDate = cert.exam.date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    // Date-only column stored as UTC midnight — format it in UTC so the day never shifts.
+    timeZone: "UTC",
+  });
 
-  await sendEmail({
-    to: cert.rider.email,
-    subject: `🎉 ${riderName} passed Level ${cert.exam.level}!`,
-    html: renderEmail({
-      centreName: cert.centre.name,
-      heading: `Congratulations — Level ${cert.exam.level} passed!`,
-      body: `<p>Dear Parent / Guardian,</p>
+  // One email per recipient, so parents never see each other's address.
+  for (const to of recipients) {
+    await sendEmail({
+      to,
+      subject: `🎉 ${riderName} passed Level ${cert.exam.level}!`,
+      html: renderEmail({
+        centreName: cert.centre.name,
+        heading: `Congratulations — Level ${cert.exam.level} passed!`,
+        body: `<p>Dear Parent / Guardian,</p>
 <p>We are delighted to report that <b>${riderName}</b> successfully passed the Level ${cert.exam.level} examination on <b>${examDate}</b> with a score of <b>${cert.exam.totalScore ?? "—"}</b>.</p>
 <p>Examiner: <b>${cert.exam.examinerName}</b></p>
 ${breakdown}
 <p>Certificate <span style="font-family:monospace">${cert.serialNo}</span> has been auto-issued and is ready for collection at the centre.</p>
 <p>Well done ${cert.rider.firstName}! 🐎</p>`,
-    }),
-    ref: { type: "exam.passed.manual", rowId: cert.id, payload: { certId: cert.id, examId: cert.exam.id, riderId: cert.rider.id } },
-  });
+      }),
+      ref: { type: "exam.passed.manual", rowId: cert.id, payload: { certId: cert.id, examId: cert.exam.id, riderId: cert.rider.id } },
+    });
+  }
 
   await prisma.certificate.update({
     where: { id: cert.id },
@@ -129,8 +143,8 @@ ${breakdown}
     action: "certificate.email_result",
     tableName: "certificate",
     rowId: cert.id,
-    after: { sentTo: cert.rider.email, examId: cert.exam.id },
+    after: { sentTo: recipients, examId: cert.exam.id },
   });
 
-  return NextResponse.json({ ok: true, sentTo: cert.rider.email });
+  return NextResponse.json({ ok: true, sentTo: recipients.join(", ") });
 }

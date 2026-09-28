@@ -52,7 +52,7 @@ export function SendResultButton({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         if (data.error === "NO_PARENT_EMAIL") {
-          toast.error("No email on file — add one to the rider profile first");
+          toast.error("No parent or rider email on file — link a parent or add an email first");
         } else if (data.error === "NO_EXAM_LINKED") {
           toast.error("This certificate isn't tied to an exam");
         } else {

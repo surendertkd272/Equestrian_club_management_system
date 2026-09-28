@@ -53,6 +53,12 @@ export default async function CentresPage() {
       })
     : [];
   const managerById = new Map(managers.map((m) => [m.id, m]));
+  // Who can be picked as each club's manager in the edit form.
+  const candidates = await prisma.user.findMany({
+    where: { centreId: { in: centres.map((c) => c.id) }, role: "CENTRE_MANAGER", status: "active" },
+    select: { id: true, name: true, centreId: true },
+    orderBy: { name: "asc" },
+  });
 
   return (
     <div className="space-y-6">
@@ -100,7 +106,9 @@ export default async function CentresPage() {
                     name: c.name,
                     address: c.address ?? "",
                     gstNo: c.gstNo ?? "",
+                    managerId: c.managerId ?? "",
                   }}
+                  managers={candidates.filter((m) => m.centreId === c.id).map((m) => ({ id: m.id, name: m.name }))}
                 />
                 <div className="mt-4 border-t pt-3">
                   <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

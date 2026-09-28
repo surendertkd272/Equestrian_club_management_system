@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { linkCentreManagerIfUnset } from "@/lib/centre-manager";
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { getSession, hashPassword } from "@/lib/auth";
@@ -140,6 +141,7 @@ export async function POST(req: NextRequest) {
       mustChangePassword: true,
     },
   });
+  if (user.role === "CENTRE_MANAGER") await linkCentreManagerIfUnset(prisma, user.centreId, user.id);
 
   // Keep the generated temp so the handover sheet for this centre can be
   // re-opened later. Cleared the moment the user picks their own password.

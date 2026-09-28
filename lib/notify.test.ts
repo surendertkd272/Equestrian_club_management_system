@@ -145,3 +145,25 @@ describe("notifyCentreManager", () => {
     expect(await prisma.notification.count()).toBe(0);
   });
 });
+
+describe("notifyCentreManager fallback (HPS sim bug 2)", () => {
+  it("with no linked manager, reaches every active centre manager of the centre", async () => {
+    const centre = await mkCentre({ managerId: null });
+    const a = await mkUser({ role: "CENTRE_MANAGER", centreId: centre.id });
+    const b = await mkUser({ role: "CENTRE_MANAGER", centreId: centre.id });
+    await mkUser({ role: "CENTRE_MANAGER", centreId: centre.id, status: "inactive" });
+    await mkUser({ role: "COACH", centreId: centre.id });
+    await notifyCentreManager(centre.id, { type: "t", title: "T", body: "B" });
+    const to = (await prisma.notification.findMany()).map((n) => n.userId).sort();
+    expect(to).toEqual([a.id, b.id].sort());
+  });
+
+  it("a linked manager who has left doesn't swallow the alert", async () => {
+    const gone = await mkUser({ role: "CENTRE_MANAGER", status: "inactive" });
+    const centre = await mkCentre({ managerId: gone.id });
+    const current = await mkUser({ role: "CENTRE_MANAGER", centreId: centre.id });
+    await notifyCentreManager(centre.id, { type: "t", title: "T", body: "B" });
+    const rows = await prisma.notification.findMany();
+    expect(rows.map((r) => r.userId)).toEqual([current.id]);
+  });
+});

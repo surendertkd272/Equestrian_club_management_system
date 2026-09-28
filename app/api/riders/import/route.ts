@@ -9,7 +9,7 @@ import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { parseCsv } from "@/lib/csv-parse";
 import { parseXlsx } from "@/lib/xlsx-parse";
 import { isRealYMD } from "@/lib/utils";
-import { indianMobile, indianPhone } from "@/lib/schemas/phone";
+import { indianMobile, indianPhone, stripCountryCode } from "@/lib/schemas/phone";
 import { RIDER_STATUS } from "@/lib/rider-status";
 import { calcBmi } from "@/lib/utils";
 import { resolveSchoolId } from "@/lib/school-scope";
@@ -237,7 +237,7 @@ export async function POST(req: NextRequest) {
   // being blank — `?? ""` folds a missing number to the same empty string on
   // both sides, so two mobile-less rows still collide correctly on name+dob
   // instead of comparing "null" against "undefined".
-  const normMobile = (m: string | null | undefined) => (m ?? "").replace(/[\s()\-.]/g, "").replace(/^(?:\+?91|0)/, "");
+  const normMobile = (m: string | null | undefined) => stripCountryCode(m ?? "");
   const existingMobile = new Set(existing.map((e) => normMobile(e.mobile)));
   const existingEmail = new Set(existing.filter((e) => e.email).map((e) => e.email!.toLowerCase()));
   // Identity of a PERSON, not of a phone. One household shares one number, so

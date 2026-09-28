@@ -33,22 +33,26 @@ const GLYPH: Partial<Record<NonNullable<BadgeProps["variant"]>, string>> = {
 };
 
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof badgeVariants> {
   /** Opt out where the glyph would be noise (e.g. a count chip). */
   noGlyph?: boolean;
 }
 
+// A <span>, not a <div>: badges sit inline in sentences (`<p>… · <Badge/></p>`),
+// and a div inside a <p> is invalid HTML — the browser closes the <p> early,
+// so React's server and client trees disagree and the page throws a hydration
+// error. inline-flex keeps the look identical.
 export function Badge({ className, variant, noGlyph, children, ...props }: BadgeProps) {
   const glyph = !noGlyph && variant ? GLYPH[variant] : undefined;
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props}>
+    <span className={cn(badgeVariants({ variant }), className)} {...props}>
       {glyph && (
         <span aria-hidden className="text-[0.7em] leading-none">
           {glyph}
         </span>
       )}
       {children}
-    </div>
+    </span>
   );
 }
