@@ -6,7 +6,7 @@ import { assertRoute } from "@/lib/route-guard";
 import { scopeCentre } from "@/lib/tenancy";
 import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { RegistrationLinks } from "./links-client";
+import { RegistrationLinks, DriveLinkCreator } from "./links-client";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +33,7 @@ export default async function RegistrationLinksPage() {
   const centreId = scopeCentre(session);
   const centres = await prisma.centre.findMany({
     where: centreId ? { id: centreId, orgId } : { orgId },
-    select: { id: true, name: true, slug: true },
+    select: { id: true, name: true, slug: true, schools: { select: { name: true }, orderBy: { name: "asc" } } },
     orderBy: { name: "asc" },
   });
 
@@ -59,6 +59,7 @@ export default async function RegistrationLinksPage() {
             </CardHeader>
             <CardContent>
               <RegistrationLinks slug={c.slug} baseUrl={baseUrl} />
+              <DriveLinkCreator centreId={c.id} schools={c.schools.map((s) => s.name)} />
             </CardContent>
           </Card>
         ))

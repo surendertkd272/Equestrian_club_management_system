@@ -13,6 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { openConfirm } from "@/components/ui/confirm-dialog";
 import { postJson } from "@/lib/client/post-json";
 
+// Mirrors MAX_RIDERS_PER_SITTING in lib/exam-booking.ts (a server module).
+const MAX_PER_GROUP = 200;
+
 type RiderRow = {
   id: string;
   name: string;
@@ -40,6 +43,9 @@ export function NewExamDayForm({
   // riderId → level they sit (absent = not sitting)
   const [assign, setAssign] = useState<Map<string, number>>(new Map());
   const [pools, setPools] = useState<Record<number, Set<string>>>({});
+  // Optional jury panel per level — co-judges on every rider. Never the same
+  // person as the level's pool (the API refuses that).
+  const [panels, setPanels] = useState<Record<number, Set<string>>>({});
   const [q, setQ] = useState("");
   const [school, setSchool] = useState("");
   const [busy, setBusy] = useState(false);
@@ -72,13 +78,30 @@ export function NewExamDayForm({
       for (const r of shown) next.delete(r.id);
       return next;
     });
-  const togglePool = (level: number, id: string) =>
-    setPools((prev) => {
+  const toggleIn = (
+    setter: typeof setPools,
+    other: typeof setPools,
+    level: number,
+    id: string,
+  ) => {
+    setter((prev) => {
       const set = new Set(prev[level] ?? []);
       if (set.has(id)) set.delete(id);
       else set.add(id);
       return { ...prev, [level]: set };
     });
+    other((prev) => {
+      if (!prev[level]?.has(id)) return prev;
+      const set = new Set(prev[level]);
+      set.delete(id);
+      return { ...prev, [level]: set };
+    });
+  };
+  const togglePool = (level: number, id: string) => toggleIn(setPools, setPanels, level, id);
+  const togglePanel = (level: number, id: string) => toggleIn(setPanels, setPools, level, id);
+  // A level bigger than one sitting runs as near-equal groups (server:
+  // splitIntoGroups), sharing the level's examiners and panel.
+  const groupsFor = (count: number) => Math.ceil(count / MAX_PER_GROUP);
 
   const perLevel = levels
     .map((l) => ({ ...l, count: Array.from(assign.values()).filter((v) => v === l.rank).length }))
@@ -98,6 +121,9 @@ export function NewExamDayForm({
       notes: notes || undefined,
       entries: Array.from(assign.entries()).map(([riderId, level]) => ({ riderId, level })),
       pools: Object.fromEntries(perLevel.map((l) => [String(l.rank), Array.from(pools[l.rank] ?? [])])),
+      panels: Object.fromEntries(
+        perLevel.filter((l) => panels[l.rank]?.size).map((l) => [String(l.rank), Array.from(panels[l.rank]!)]),
+      ),
     };
     let res = await postJson<{ id: string; examsCreated: number }>("/api/exam-days", body);
     if (!res.ok && res.code === "LEVEL_SKIP") {
@@ -224,8 +250,15 @@ export function NewExamDayForm({
                 <span className="text-xs text-muted-foreground">
                   {l.count} rider{l.count === 1 ? "" : "s"} · {pools[l.rank]?.size ?? 0} examiner
                   {(pools[l.rank]?.size ?? 0) === 1 ? "" : "s"}
+                  {(panels[l.rank]?.size ?? 0) > 0 && ` · ${panels[l.rank]!.size} on the panel`}
                 </span>
               </div>
+              {groupsFor(l.count) > 1 && (
+                <p className="mb-2 text-xs">
+                  Runs as {groupsFor(l.count)} groups of about {Math.ceil(l.count / groupsFor(l.count))} riders (the most in
+                  one group is {MAX_PER_GROUP}). The examiners below work every group.
+                </p>
+              )}
               {examiners.length === 0 ? (
                 <p className="text-xs text-muted-foreground">This centre has no active examiners.</p>
               ) : (
@@ -240,6 +273,29 @@ export function NewExamDayForm({
                     </label>
                   ))}
                 </div>
+              )}
+              {examiners.length > 1 && (
+                <details className="mt-2" open={(panels[l.rank]?.size ?? 0) > 0}>
+                  <summary className="cursor-pointer text-xs text-muted-foreground">
+                    Jury panel (optional) — judges who co-judge every rider at this level
+                  </summary>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {examiners.map((u) => (
+                      <label
+                        key={u.id}
+                        className="flex cursor-pointer items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1 text-sm hover:bg-muted/40"
+                      >
+                        <input
+                          type="checkbox"
+                          aria-label={`${u.name} on the Level ${l.rank} panel`}
+                          checked={panels[l.rank]?.has(u.id) ?? false}
+                          onChange={() => togglePanel(l.rank, u.id)}
+                        />
+                        {u.name}
+                      </label>
+                    ))}
+                  </div>
+                </details>
               )}
             </div>
           ))

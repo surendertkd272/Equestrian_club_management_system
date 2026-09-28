@@ -7,7 +7,9 @@ import { getOrgIdForSession } from "@/lib/features-gate";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { hasBaseUrl } from "@/lib/absolute-url";
-import { consentRecipient } from "@/lib/rider-consent-request";
+import { consentRecipient, consentPhone } from "@/lib/rider-consent-request";
+import { isSmsConfigured, normalizeIndianPhone } from "@/lib/sms";
+import { isWhatsAppConfigured } from "@/lib/whatsapp";
 import { ConsentRequestPanel } from "./client";
 import { VerifySignatureButton } from "./verify-button";
 
@@ -91,9 +93,11 @@ export default async function RiderConsentPage() {
     id: r.id,
     name: `${r.firstName} ${r.lastName}`,
     email: consentRecipient(r),
+    phone: normalizeIndianPhone(consentPhone(r)) ? consentPhone(r) : null,
     pendingSince: r.consentRequests[0]?.sentAt?.toISOString() ?? null,
   }));
   const reachable = rows.filter((r) => r.email).length;
+  const byPhone = rows.filter((r) => !r.email && r.phone).length;
 
   return (
     <div className="space-y-6">
@@ -101,7 +105,8 @@ export default async function RiderConsentPage() {
         <h1 className="text-2xl font-bold">Consent collection</h1>
         <p className="text-sm text-muted-foreground">
           Riders added by import or by staff never saw the registration form, so they have no
-          indemnity on file. Email them a signing link, then confirm the signatures as they arrive.
+          indemnity on file. Send them a signing link — by email, or on their phone when there&rsquo;s no email — then confirm
+          the signatures as they arrive.
         </p>
       </div>
 
@@ -118,6 +123,8 @@ export default async function RiderConsentPage() {
         centreId={centreId}
         rows={rows}
         reachable={reachable}
+        byPhone={byPhone}
+        messaging={isSmsConfigured() || isWhatsAppConfigured()}
         canSend={hasBaseUrl()}
       />
 

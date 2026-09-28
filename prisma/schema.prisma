@@ -2363,6 +2363,13 @@ model ExamSitting {
   // Set once when the last rider in the sitting is marked, so the manager gets
   // ONE summary for the sitting instead of a notification per rider.
   completedNotifiedAt DateTime?
+  // A level too big for one sitting on an exam day runs as several groups:
+  // 1, 2, … Null when the level is a single sitting.
+  groupNo             Int?
+  // The sitting's jury panel: judges seated as co-judges on EVERY rider in
+  // the sitting (on top of whichever pool examiner leads each one). Riders
+  // added later get them too. Never overlaps the claim pool.
+  panelJudgeIds       String[]  @default([])
   createdAt           DateTime  @default(now())
 
   centre    Centre                @relation(fields: [centreId], references: [id], onDelete: Cascade)

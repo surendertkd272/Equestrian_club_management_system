@@ -741,14 +741,27 @@ function clearPersisted(centreSlug: string) {
   }
 }
 
-export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: string; centreName: string }) {
+export function OnboardingWizard({
+  centreSlug,
+  centreName,
+  driveToken,
+  driveSchool,
+}: {
+  centreSlug: string;
+  centreName: string;
+  // A school sign-up drive link (lib/signup-drive.ts): sent with the
+  // submission, and its school filled in for every family.
+  driveToken?: string;
+  driveSchool?: string | null;
+}) {
+  const fresh = (): WizardData => ({ centreSlug, ...(driveSchool ? { school: driveSchool } : {}) });
   // Initial state hydrates from sessionStorage on first client render —
   // useState's initializer runs once, so we read the persisted snapshot
   // exactly when it matters. SSR runs this with window===undefined and
   // gets the empty initial state, which then rehydrates on mount.
   const [stepIdx, setStepIdx] = useState(0);
   const [submitting, setSubmitting] = useState(false);
-  const [data, setData] = useState<WizardData>({ centreSlug });
+  const [data, setData] = useState<WizardData>(fresh);
   // /api/onboarding returns { riderId, status: 'pending_approval' }.
   // There's no immediate invoice — that's created later when a centre
   // admin approves the rider. Confirmation card uses riderId as the
@@ -796,7 +809,7 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
   // sibling B after finishing A on the same browser).
   function discardDraft() {
     clearPersisted(centreSlug);
-    setData({ centreSlug });
+    setData(fresh());
     setStepIdx(0);
     setRestored(false);
   }
@@ -806,7 +819,7 @@ export function OnboardingWizard({ centreSlug, centreName }: { centreSlug: strin
   }
 
   async function submitAll(indemnity: IndemnityInput) {
-    const payload = { ...data, ...indemnity };
+    const payload = { ...data, ...indemnity, ...(driveToken ? { driveToken } : {}) };
     setSubmitting(true);
     let res: Response;
     try {

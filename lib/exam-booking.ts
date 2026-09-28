@@ -2,6 +2,8 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 import type { SessionPayload } from "@/lib/auth";
 import { ENROLLED_RIDER_STATUSES, riderBlockedReason } from "@/lib/rider-status";
 import { OPEN_EXAM_STATUSES } from "@/lib/exam-schedule";
+import { JUDGE_ELIGIBLE_ROLES } from "@/lib/exam-panel";
+import { formatEnum } from "@/lib/labels";
 
 // ─── Booking riders onto exams ──────────────────────────────────────────────
 // One set of rules for every way an exam gets booked — a single sitting
@@ -12,12 +14,24 @@ type Db = PrismaClient | Prisma.TransactionClient;
 
 // A sitting was capped at 50 riders, so a 200-rider exam day meant five
 // separate bookings. The claim pool works at any size; these caps only guard
-// against a runaway request.
+// against a runaway request. On an exam day a level bigger than one sitting
+// runs as several groups (see splitIntoGroups) rather than being refused.
 export const MAX_RIDERS_PER_SITTING = 200;
 export const MAX_RIDERS_PER_DAY = 500;
 export const MAX_EXAMINERS_PER_POOL = 12;
 
 export type BookingEntry = { riderId: string; level: number };
+
+// Split a level's riders into near-equal groups of at most `max` — 250 riders
+// run as two groups of 125, not 200 + 50. One group when it fits.
+export function splitIntoGroups<T>(items: T[], max = MAX_RIDERS_PER_SITTING): T[][] {
+  if (items.length === 0) return [];
+  const groups = Math.ceil(items.length / max);
+  const size = Math.ceil(items.length / groups);
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
 
 export class BookingError extends Error {
   constructor(
@@ -116,6 +130,80 @@ export async function examinerPool(
     );
   }
   return users;
+}
+
+// Resolve and check a sitting's jury panel: people seated as co-judges on every
+// rider. Same eligibility as a per-exam co-judge (they must be able to open the
+// scorer, or the exam could never complete), and never someone in the claim
+// pool — a pool examiner who led a rider would be judging them twice.
+export async function panelJudges(
+  db: Db,
+  session: SessionPayload,
+  centreId: string,
+  ids: string[],
+  opts: { examDate: Date; poolIds: string[] },
+) {
+  const unique = Array.from(new Set(ids));
+  if (unique.length === 0) return [];
+  const users = await db.user.findMany({
+    where: { id: { in: unique }, status: "active" },
+    select: { id: true, name: true, role: true, centreId: true, accessExpiresAt: true },
+  });
+  if (users.length !== unique.length) {
+    throw new BookingError("JUDGE_NOT_FOUND", "One of the chosen judges doesn't exist or is inactive.", 404);
+  }
+  const ineligible = users.find((u) => !JUDGE_ELIGIBLE_ROLES.includes(u.role));
+  if (ineligible) {
+    throw new BookingError(
+      "JUDGE_NOT_ELIGIBLE",
+      `${ineligible.name} (${formatEnum(ineligible.role)}) can't sit on an exam jury. Pick an examiner, head coach or centre manager.`,
+      400,
+    );
+  }
+  if (session.role !== "SUPER_ADMIN" && users.some((u) => u.centreId && u.centreId !== centreId)) {
+    throw new BookingError("JUDGE_CROSS_CENTRE", "Every judge on the panel must belong to this centre.", 400);
+  }
+  const inPool = users.filter((u) => opts.poolIds.includes(u.id));
+  if (inPool.length > 0) {
+    throw new BookingError(
+      "JUDGE_IN_POOL",
+      `${inPool.map((u) => u.name).join(", ")} already ${inPool.length === 1 ? "leads" : "lead"} riders in this sitting's pool — a panel judge sits on every rider instead. Pick someone else.`,
+      409,
+    );
+  }
+  const lapsed = users.filter((u) => u.accessExpiresAt && u.accessExpiresAt.getTime() < opts.examDate.getTime());
+  if (lapsed.length > 0) {
+    throw new BookingError(
+      "EXAMINER_ACCESS_ENDS",
+      `${lapsed.map((u) => `${u.name}'s access ends ${u.accessExpiresAt!.toISOString().slice(0, 10)}`).join("; ")} — before this exam. Extend their access on Exams → Examiners first.`,
+      400,
+    );
+  }
+  return users;
+}
+
+// Seat judges as co-judges on the given exams, each after the exam's last
+// card. Skips an exam a judge already sits on or leads.
+export async function seatPanelTx(
+  tx: Prisma.TransactionClient,
+  examIds: string[],
+  judges: { id: string; name: string }[],
+): Promise<number> {
+  if (examIds.length === 0 || judges.length === 0) return 0;
+  const exams = await tx.exam.findMany({
+    where: { id: { in: examIds } },
+    select: { id: true, examinerId: true, judges: { select: { judgeId: true, position: true } } },
+  });
+  const rows: Prisma.ExamJudgeCreateManyInput[] = [];
+  for (const e of exams) {
+    let pos = Math.max(1, ...e.judges.map((j) => j.position));
+    for (const j of judges) {
+      if (e.examinerId === j.id || e.judges.some((x) => x.judgeId === j.id)) continue;
+      rows.push({ examId: e.id, judgeId: j.id, judgeName: j.name, position: ++pos });
+    }
+  }
+  if (rows.length) await tx.examJudge.createMany({ data: rows, skipDuplicates: true });
+  return rows.length;
 }
 
 // Check a set of bookings against every rule; throws BookingError on the
@@ -227,7 +315,9 @@ export async function createSittingTx(
     time: string;
     notes?: string | null;
     examDayId?: string | null;
+    groupNo?: number | null;
     pool: { id: string; name: string }[];
+    panel?: { id: string; name: string }[];
     riderIds: string[];
     rubric: Prisma.JsonValue;
     priorFails: Map<string, { id: string; attemptNumber: number }>;
@@ -240,11 +330,44 @@ export async function createSittingTx(
       date: args.date,
       notes: args.notes ?? null,
       examDayId: args.examDayId ?? null,
+      groupNo: args.groupNo ?? null,
+      panelJudgeIds: (args.panel ?? []).map((j) => j.id),
     },
   });
   await tx.examSittingExaminer.createMany({
     data: args.pool.map((u) => ({ sittingId: sitting.id, examinerId: u.id, examinerName: u.name })),
   });
+  await addExamsToSittingTx(tx, {
+    sittingId: sitting.id,
+    centreId: args.centreId,
+    level: args.level,
+    date: args.date,
+    time: args.time,
+    riderIds: args.riderIds,
+    rubric: args.rubric,
+    priorFails: args.priorFails,
+    panel: args.panel ?? [],
+  });
+  return sitting.id;
+}
+
+// One unassigned exam per rider in an existing sitting, pinned to the rubric
+// it will be marked against, with the sitting's jury panel seated on each.
+// Used when the sitting is created and when a late rider is added to it.
+export async function addExamsToSittingTx(
+  tx: Prisma.TransactionClient,
+  args: {
+    sittingId: string;
+    centreId: string;
+    level: number;
+    date: Date;
+    time: string;
+    riderIds: string[];
+    rubric: Prisma.JsonValue;
+    priorFails: Map<string, { id: string; attemptNumber: number }>;
+    panel: { id: string; name: string }[];
+  },
+): Promise<string[]> {
   await tx.exam.createMany({
     data: args.riderIds.map((riderId) => {
       const prior = args.priorFails.get(`${riderId}:${args.level}`);
@@ -257,12 +380,18 @@ export async function createSittingTx(
         date: args.date,
         time: args.time,
         status: "scheduled",
-        sittingId: sitting.id,
+        sittingId: args.sittingId,
         rubricSnapshotJson: args.rubric as Prisma.InputJsonValue,
         previousExamId: prior?.id ?? null,
         attemptNumber: prior ? prior.attemptNumber + 1 : 1,
       };
     }),
   });
-  return sitting.id;
+  const created = await tx.exam.findMany({
+    where: { sittingId: args.sittingId, riderId: { in: args.riderIds }, status: "scheduled" },
+    select: { id: true },
+  });
+  const ids = created.map((e) => e.id);
+  await seatPanelTx(tx, ids, args.panel);
+  return ids;
 }

@@ -100,6 +100,11 @@ export default async function RidersPage({
               <Link href="/riders/import">Bulk upload riders</Link>
             </Button>
           )}
+          {can(session.role, "exam.schedule") && !isReadOnly(session.role) && (
+            <Button asChild variant="outline">
+              <Link href="/riders/levels">Set levels</Link>
+            </Button>
+          )}
           {/* SCHOOL_ADMINISTRATOR is read-only — they see riders but
               don't onboard new ones. Other roles keep the existing
               behaviour (anyone reaching this page can onboard). */}

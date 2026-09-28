@@ -15,12 +15,17 @@ import {
   checkBookings,
   createSittingTx,
   examinerPool,
+  panelJudges,
+  splitIntoGroups,
 } from "@/lib/exam-booking";
 
 // Book a whole exam day in one go: riders across several levels on one date.
 // Creates the ExamDay plus one ordinary sitting per level (each with its own
-// examiner pool), all in one transaction. A 200-rider day used to mean five
-// separate sittings with nothing tying them together.
+// examiner pool, and optionally a jury panel seated on every rider), all in
+// one transaction. A 200-rider day used to mean five separate sittings with
+// nothing tying them together. A level bigger than one sitting runs as
+// near-equal groups sharing the level's examiners — it used to be refused,
+// forcing a second exam day for the overflow.
 const schema = z.object({
   name: z.string().trim().min(2).max(120),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -32,6 +37,8 @@ const schema = z.object({
     .max(MAX_RIDERS_PER_DAY),
   // Examiner pool per level, keyed by level number.
   pools: z.record(z.array(z.string().min(1)).min(1).max(MAX_EXAMINERS_PER_POOL)),
+  // Optional jury panel per level: co-judges on every rider of that level.
+  panels: z.record(z.array(z.string().min(1)).max(MAX_EXAMINERS_PER_POOL)).optional(),
   allowSkipLevels: z.boolean().optional(),
   centreId: z.string().optional(),
 });
@@ -59,17 +66,23 @@ export async function POST(req: NextRequest) {
   try {
     const byLevel = new Map<number, string[]>();
     for (const e of d.entries) byLevel.set(e.level, [...(byLevel.get(e.level) ?? []), e.riderId]);
-    for (const [level, riders] of byLevel) {
-      if (riders.length > MAX_RIDERS_PER_SITTING) {
-        throw new BookingError("TOO_MANY_RIDERS", `Level ${level} has ${riders.length} riders — the most for one level is ${MAX_RIDERS_PER_SITTING}.`, 400);
-      }
+    for (const level of byLevel.keys()) {
       if (!d.pools[String(level)]?.length) {
         throw new BookingError("POOL_REQUIRED", `Pick at least one examiner for Level ${level}.`, 400);
       }
     }
     const pools = new Map<number, Awaited<ReturnType<typeof examinerPool>>>();
+    const panels = new Map<number, Awaited<ReturnType<typeof panelJudges>>>();
     for (const level of byLevel.keys()) {
-      pools.set(level, await examinerPool(prisma, session, centreId, d.pools[String(level)], parseDateOnly(d.date)));
+      const pool = d.pools[String(level)];
+      pools.set(level, await examinerPool(prisma, session, centreId, pool, parseDateOnly(d.date)));
+      panels.set(
+        level,
+        await panelJudges(prisma, session, centreId, d.panels?.[String(level)] ?? [], {
+          examDate: parseDateOnly(d.date),
+          poolIds: pool,
+        }),
+      );
     }
     const { ladder, priorFails, skipped } = await checkBookings(prisma, {
       centreId,
@@ -83,22 +96,27 @@ export async function POST(req: NextRequest) {
       const day = await tx.examDay.create({
         data: { centreId, name: d.name, date, time: d.time, notes: d.notes ?? null, createdBy: session.userId },
       });
-      const sittings: { level: number; id: string; riders: number }[] = [];
+      const sittings: { level: number; group: number | null; id: string; riders: number }[] = [];
       for (const level of levels) {
-        const riderIds = byLevel.get(level)!;
-        const id = await createSittingTx(tx, {
-          centreId,
-          level,
-          date,
-          time: d.time,
-          notes: d.notes ?? null,
-          examDayId: day.id,
-          pool: pools.get(level)!,
-          riderIds,
-          rubric: ladder.byRank.get(level)!.categoriesJson,
-          priorFails,
-        });
-        sittings.push({ level, id, riders: riderIds.length });
+        const groups = splitIntoGroups(byLevel.get(level)!, MAX_RIDERS_PER_SITTING);
+        for (const [i, riderIds] of groups.entries()) {
+          const group = groups.length > 1 ? i + 1 : null;
+          const id = await createSittingTx(tx, {
+            centreId,
+            level,
+            date,
+            time: d.time,
+            notes: d.notes ?? null,
+            examDayId: day.id,
+            groupNo: group,
+            pool: pools.get(level)!,
+            panel: panels.get(level)!,
+            riderIds,
+            rubric: ladder.byRank.get(level)!.categoriesJson,
+            priorFails,
+          });
+          sittings.push({ level, group, id, riders: riderIds.length });
+        }
       }
       return { id: day.id, sittings };
     });

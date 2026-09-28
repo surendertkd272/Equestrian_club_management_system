@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { VerifyPanel } from "./verify-panel";
+import { BulkEnrolmentReview } from "./bulk-review";
 import { formatEnum } from "@/lib/labels";
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,33 @@ export default async function EnrolmentsPage() {
       <div>
         <h1 className="text-2xl font-bold">Self-Enrolment Approvals</h1>
       </div>
+
+      {pending.length > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Review in bulk</CardTitle>
+            <CardDescription>
+              For a sign-up drive: select riders (filter by school), then approve them together. Riders with missing
+              documents are flagged — open them below before approving.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BulkEnrolmentReview
+              canVerify={VERIFIER_ROLES.includes(session.role)}
+              rows={pending.map((r) => ({
+                id: r.id,
+                name: `${r.firstName} ${r.lastName}`,
+                school: r.school ?? "",
+                schoolClass: r.schoolClass ?? "",
+                verified: !!r.verifiedAt,
+                hasPhoto: !!r.photoUrl,
+                hasAadhaar: !!(r.aadhaarDocUrl || r.aadhaarNo),
+                signed: !!r.indemnitySignedAt,
+              }))}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
