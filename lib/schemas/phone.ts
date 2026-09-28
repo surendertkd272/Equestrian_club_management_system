@@ -22,7 +22,18 @@ export const indianMobile = (msg = "Enter a 10-digit Indian mobile number") =>
     .string()
     .transform(stripSeparators)
     .refine((s) => /^(?:\+?91|0)?[6-9]\d{9}$/.test(s), msg)
-    .transform((s) => s.replace(/^(?:\+?91|0)/, ""));
+    // Strip a country code / trunk 0 only when one is actually there (more
+    // than 10 digits). A bare 10-digit mobile that happens to START with 91 —
+    // 91xxxxxxxx is a real series — was cut to 8 digits ("9100014662" →
+    // "00014662"), and every SMS and WhatsApp to that family then failed
+    // silently at dispatch.
+    .transform(stripCountryCode);
+
+/** "+91 98110 45566" / "09811045566" / "9811045566" → "9811045566". */
+export function stripCountryCode(s: string): string {
+  const bare = stripSeparators(s);
+  return bare.length > 10 ? bare.replace(/^(?:\+?91|0)/, "") : bare;
+}
 
 /**
  * A mobile OR an STD-code landline. For emergency contacts, which are often a

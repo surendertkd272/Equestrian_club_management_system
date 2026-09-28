@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { examinerCertificateScope } from "@/lib/exam-access";
 import { prisma } from "@/lib/prisma";
+import { resultRecipients, RESULT_RECIPIENT_SELECT } from "@/lib/result-recipients";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { assertRoute } from "@/lib/route-guard";
@@ -49,7 +50,7 @@ export default async function CertificatesPage({
     prisma.certificate.findMany({
       where,
       include: {
-        rider: { select: { firstName: true, lastName: true, email: true } },
+        rider: { select: { firstName: true, lastName: true, ...RESULT_RECIPIENT_SELECT } },
         centre: { select: { name: true } },
       },
       orderBy: { issuedAt: "desc" },
@@ -181,7 +182,7 @@ export default async function CertificatesPage({
                       <SendResultButton
                         certId={c.id}
                         alreadySentAt={c.resultEmailSentAt?.toISOString() ?? null}
-                        parentEmail={c.rider.email}
+                        parentEmail={resultRecipients(c.rider).join(", ") || null}
                       />
                     )}
                     <Link href={`/certificates/${c.id}`} className="text-xs text-primary underline">

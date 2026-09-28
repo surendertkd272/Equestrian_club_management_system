@@ -8,17 +8,29 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useUnsavedChanges } from "@/lib/use-unsaved-changes";
 
-type Initial = { name: string; address: string; gstNo: string };
+type Initial = { name: string; address: string; gstNo: string; managerId: string };
 
-export function CentreEditForm({ id, initial }: { id: string; initial: Initial }) {
+export function CentreEditForm({
+  id,
+  initial,
+  managers,
+}: {
+  id: string;
+  initial: Initial;
+  managers: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const [name, setName] = useState(initial.name);
   const [address, setAddress] = useState(initial.address);
   const [gstNo, setGstNo] = useState(initial.gstNo);
+  const [managerId, setManagerId] = useState(initial.managerId);
   const [busy, setBusy] = useState(false);
 
   const dirty =
-    name !== initial.name || address !== initial.address || gstNo !== initial.gstNo;
+    name !== initial.name ||
+    address !== initial.address ||
+    gstNo !== initial.gstNo ||
+    managerId !== initial.managerId;
   useUnsavedChanges(dirty && !busy);
 
   async function save() {
@@ -32,6 +44,7 @@ export function CentreEditForm({ id, initial }: { id: string; initial: Initial }
           name: name !== initial.name ? name : undefined,
           address: address !== initial.address ? address || null : undefined,
           gstNo: gstNo !== initial.gstNo ? gstNo || null : undefined,
+          managerId: managerId !== initial.managerId ? managerId || null : undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -50,6 +63,7 @@ export function CentreEditForm({ id, initial }: { id: string; initial: Initial }
     setName(initial.name);
     setAddress(initial.address);
     setGstNo(initial.gstNo);
+    setManagerId(initial.managerId);
   }
 
   return (
@@ -76,6 +90,25 @@ export function CentreEditForm({ id, initial }: { id: string; initial: Initial }
           onChange={(e) => setAddress(e.target.value)}
           placeholder="Street, city, state"
         />
+      </div>
+      <div className="sm:col-span-2">
+        <Label htmlFor={`c-mgr-${id}`}>Club manager</Label>
+        <select
+          id={`c-mgr-${id}`}
+          value={managerId}
+          onChange={(e) => setManagerId(e.target.value)}
+          className="mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+        >
+          <option value="">None — alerts go to every centre manager here</option>
+          {managers.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name}
+            </option>
+          ))}
+        </select>
+        {managers.length === 0 && (
+          <p className="mt-1 text-xs text-muted-foreground">No active centre manager at this club yet.</p>
+        )}
       </div>
       <div className="sm:col-span-2 flex gap-2">
         <Button onClick={save} disabled={!dirty || busy}>

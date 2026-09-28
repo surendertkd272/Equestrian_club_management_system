@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { linkCentreManagerIfUnset } from "@/lib/centre-manager";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
       status: "active",
     },
   });
+  if (user.role === "CENTRE_MANAGER") await linkCentreManagerIfUnset(prisma, user.centreId, user.id);
 
   // photo / PAN / bank-proof live in kycDocsJson (same keys synthRecordFromStaff
   // reads for the profile + print packet). Only store keys that were provided.

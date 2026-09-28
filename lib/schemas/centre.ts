@@ -49,6 +49,9 @@ export const updateCentreSchema = z.object({
   address: z.string().max(300).nullable().optional(),
   gstNo: gstSchema,
   emergencyContacts: emergencyContactsSchema.optional(),
+  // The centre's manager — who centre-manager notifications go to. Must be an
+  // active CENTRE_MANAGER of this centre; null clears it.
+  managerId: z.string().min(1).nullable().optional(),
 });
 
 export type CreateCentreInput = z.infer<typeof createCentreSchema>;
