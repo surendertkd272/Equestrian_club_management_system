@@ -137,6 +137,10 @@ export default async function ExamsPage({
   }
   const levels = Array.from(new Set(templates.map((t) => t.levelKey))).sort();
 
+  const openReviews = isExamManager(session.role)
+    ? await prisma.examReviewRequest.count({ where: { status: "open", exam: tenantWhere(centreId, orgId) } })
+    : 0;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -153,6 +157,16 @@ export default async function ExamsPage({
           {isExamManager(session.role) && (
             <Button asChild variant="outline">
               <Link href="/exams/examiners">Examiners</Link>
+            </Button>
+          )}
+          {isExamManager(session.role) && (
+            <Button asChild variant="outline">
+              <Link href="/exams/reviews">Review requests{openReviews ? ` (${openReviews})` : ""}</Link>
+            </Button>
+          )}
+          {canSchedule && (
+            <Button asChild variant="outline">
+              <Link href="/exams/reports">Reports</Link>
             </Button>
           )}
           {canSchedule && (

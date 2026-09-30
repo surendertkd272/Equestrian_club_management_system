@@ -9,6 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { formatEnum } from "@/lib/labels";
+import { prisma } from "@/lib/prisma";
+import { REVIEW_WINDOW_DAYS } from "@/lib/exam-reopen";
+import { ReviewRequest } from "./review-request";
 export const dynamic = "force-dynamic";
 
 export default async function ParentChildPage({ params }: { params: { riderId: string } }) {
@@ -24,6 +27,15 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
   const showPayment = features.has("fee-collection");
   // Exam history with rubric attached for the expandable per-exam breakdown.
   const examHistory = await loadRiderExamHistory(rider.id, rider.centreId, { take: 10 });
+  // Results a family can still ask the club to look at again.
+  const reviewable = await prisma.exam.findMany({
+    where: { riderId: rider.id, status: "completed", date: { gte: new Date(Date.now() - REVIEW_WINDOW_DAYS * 86400000) } },
+    orderBy: { date: "desc" },
+    select: {
+      id: true, level: true, date: true, passed: true, totalScore: true,
+      reviewRequests: { orderBy: { createdAt: "desc" }, take: 1, select: { status: true, response: true } },
+    },
+  });
   const upcomingExams = exams
     .filter((e) => e.status === "scheduled" || e.status === "in_progress")
     .sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -180,6 +192,30 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
                   {e.sitting?.slotMinutes ? ` · rides at ${e.time}${e.runOrder ? ` (#${e.runOrder})` : ""}` : ""}
                   {e.horseAllocation ? ` · on ${e.horseAllocation.horse.name}` : ""}
                 </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {reviewable.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent results</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <p className="text-xs text-muted-foreground">
+              If something about a result looks wrong, you can ask the club to review it within {REVIEW_WINDOW_DAYS} days of the exam.
+            </p>
+            {reviewable.map((e) => (
+              <div key={e.id} className="flex flex-wrap items-start justify-between gap-2 border-b pb-2 last:border-0">
+                <span>
+                  <span className="font-medium">Level {e.level}</span>{" "}
+                  <span className="text-muted-foreground">
+                    · {formatDate(e.date)} · {e.passed ? "passed" : "not passed"} · score {e.totalScore ?? "—"}
+                  </span>
+                </span>
+                <ReviewRequest examId={e.id} latest={e.reviewRequests[0] ?? null} />
               </div>
             ))}
           </CardContent>

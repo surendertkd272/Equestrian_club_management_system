@@ -666,6 +666,7 @@ model Centre {
   consentRequests      RiderConsentRequest[]
   payments             Payment[]
   schools              School[]
+  examReviewRequests   ExamReviewRequest[]
 
   // GIN, because the lookup is "find the centre that used to answer to this
   // slug" — a containment search over the array, not a prefix scan. Created by
@@ -2298,6 +2299,9 @@ model Exam {
   // Place in the sitting's running order (1, 2, …); time holds their slot.
   // Null until a running order is generated.
   runOrder           Int?
+  // When the result (pass or not) was last emailed to the family, and by whom.
+  resultEmailSentAt  DateTime?
+  resultEmailSentBy  String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -2308,6 +2312,7 @@ model Exam {
   attachments  ExamAttachment[]
   // The horse booked for this rider's slot (HorseAllocation, purpose "exam").
   horseAllocation HorseAllocation?
+  reviewRequests  ExamReviewRequest[]
   previousExam Exam?            @relation("ExamReattempt", fields: [previousExamId], references: [id], onDelete: SetNull)
   retakes      Exam[]           @relation("ExamReattempt")
   sitting      ExamSitting?     @relation(fields: [sittingId], references: [id], onDelete: SetNull)
@@ -3446,4 +3451,27 @@ model School {
   // two different centres, so this is not globally unique.
   @@unique([centreId, name])
   @@index([centreId])
+}
+
+// A family asking for an exam result to be looked at again. The centre
+// manager either reopens the exam for correction (the normal reopen path, with
+// the request as the reason) or declines with a reply the family sees.
+model ExamReviewRequest {
+  id            String    @id @default(cuid())
+  centreId      String
+  examId        String
+  riderId       String
+  requestedById String // the parent's User.id
+  reason        String
+  status        String    @default("open") // open | reopened | declined
+  response      String?
+  decidedById   String?
+  decidedAt     DateTime?
+  createdAt     DateTime  @default(now())
+
+  exam   Exam   @relation(fields: [examId], references: [id], onDelete: Cascade)
+  centre Centre @relation(fields: [centreId], references: [id], onDelete: Cascade)
+
+  @@index([centreId, status])
+  @@index([examId])
 }

@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExamScorer } from "./scorer";
 import { AbsentToggle } from "./absent-toggle";
+import { ReviewDecision } from "./review-decision";
 import { JudgesPanel } from "./judges-panel";
 import { SupportStaffPanel } from "./support-staff-panel";
 import { AttachmentsPanel } from "./attachments-panel";
@@ -48,6 +49,7 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
       _count: { select: { certificates: true } },
       horseAllocation: { select: { horse: { select: { name: true } } } },
       sitting: { select: { slotMinutes: true, examiners: { select: { examinerId: true } } } },
+      reviewRequests: { orderBy: { createdAt: "desc" } },
     },
   });
   if (!exam) notFound();
@@ -181,6 +183,22 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
           </CardContent>
         )}
       </Card>
+
+      {exam.reviewRequests.map((r) => (
+        <Card key={r.id} className={r.status === "open" ? "border-warning/40 bg-warning-soft" : ""}>
+          <CardContent className="space-y-2 py-3 text-sm">
+            <div>
+              <span className="font-semibold">
+                {r.status === "open" ? "The family asked for this result to be reviewed" : r.status === "reopened" ? "Reopened after a review request" : "Review request declined"}
+              </span>{" "}
+              <span className="text-xs text-muted-foreground">({formatDate(r.createdAt)})</span>
+            </div>
+            <p>“{r.reason}”</p>
+            {r.response && <p className="text-xs text-muted-foreground">Reply: {r.response}</p>}
+            {r.status === "open" && isManager && exam.status === "completed" && <ReviewDecision examId={exam.id} requestId={r.id} />}
+          </CardContent>
+        </Card>
+      ))}
 
       {exam.status === "absent" && (
         <Card className="border-warning/30 bg-warning-soft">

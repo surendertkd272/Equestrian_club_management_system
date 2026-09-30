@@ -4,9 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { centreFence } from "@/lib/authz-centre";
 import { getSession } from "@/lib/auth";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
-import { audit } from "@/lib/audit";
-import { notifyMany } from "@/lib/notify";
-import { ExamPanelError, isExamManager, lockExam } from "@/lib/exam-panel";
+import { ExamPanelError, isExamManager } from "@/lib/exam-panel";
+import { reopenExam } from "@/lib/exam-reopen";
 
 const schema = z.object({
   reason: z.string().trim().min(5, "Say why the result needs correcting (at least 5 characters).").max(300),
@@ -47,65 +46,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: fence }, { status: 403 });
   }
 
-  let before: { status: string; totalScore: number | null; passed: boolean | null };
-  let panel: { examinerId: string | null; judgeIds: string[]; level: number; riderId: string };
   try {
-    ({ before, panel } = await prisma.$transaction(async (tx) => {
-      const fresh = await lockExam(tx, exam.id);
-      if (!fresh) throw new ExamPanelError("NOT_FOUND", "This exam no longer exists.", 404);
-      if (fresh.status !== "completed") {
-        throw new ExamPanelError("NOT_COMPLETED", "Only a completed exam can be reopened — this one is still open for marking.", 409);
-      }
-      await tx.exam.update({
-        where: { id: fresh.id },
-        data: {
-          status: "in_progress",
-          passed: null,
-          leadSubmittedAt: null,
-          reopenedAt: new Date(),
-          reopenedBy: session.userId,
-          reopenReason: parsed.data.reason,
-        },
-      });
-      await tx.examJudge.updateMany({ where: { examId: fresh.id }, data: { submittedAt: null } });
-      return {
-        before: { status: fresh.status, totalScore: fresh.totalScore, passed: fresh.passed },
-        panel: {
-          examinerId: fresh.examinerId,
-          judgeIds: fresh.judges.map((j) => j.judgeId),
-          level: fresh.level,
-          riderId: fresh.riderId,
-        },
-      };
-    }));
+    await reopenExam(session, exam.id, parsed.data.reason);
   } catch (e) {
     if (e instanceof ExamPanelError) {
       return NextResponse.json({ error: e.code, message: e.message }, { status: e.status });
     }
     throw e;
-  }
-
-  await audit({
-    userId: session.userId,
-    action: "exam.reopened",
-    tableName: "exam",
-    rowId: exam.id,
-    before,
-    after: { status: "in_progress", reason: parsed.data.reason },
-  });
-
-  // Tell the jury their cards are open again.
-  const jury = [panel.examinerId, ...panel.judgeIds].filter(
-    (id): id is string => !!id && id !== session.userId,
-  );
-  if (jury.length > 0) {
-    await notifyMany(jury, {
-      centreId: exam.centreId,
-      type: "exam.reopened",
-      title: `Level ${panel.level} exam reopened for correction`,
-      body: `Reason: ${parsed.data.reason}. Correct your card and submit it again.`,
-      link: `/exams/${exam.id}`,
-    });
   }
 
   return NextResponse.json({ ok: true });
