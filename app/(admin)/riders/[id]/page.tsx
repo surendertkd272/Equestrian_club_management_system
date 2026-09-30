@@ -18,6 +18,8 @@ import { isReadOnly } from "@/lib/roles";
 import { bmiBand, bmiBandLabel, bmiBandTone, bmiNeedsAttention } from "@/lib/bmi";
 import { loadRiderExamHistory } from "@/lib/exam-history";
 import { ExamHistoryList } from "@/components/exams/exam-history-list";
+import { ExamReady } from "./exam-ready";
+import { levelLadder } from "@/lib/exam-booking";
 import { riderOutsideExaminerScope } from "@/lib/exam-access";
 import { formatEnum } from "@/lib/labels";
 import { WithdrawPanel, WithdrawnRiderBanner } from "./withdraw-panel";
@@ -175,6 +177,16 @@ export default async function RiderProfile({ params }: { params: { id: string } 
     .reduce((t, inv) => t + creditPosition(inv).outstanding, 0);
   const canOffBoard = can(session.role, "rider.write") && !isReadOnly(session.role);
 
+  const canNominate = ["COACH", "HEAD_COACH", "CENTRE_MANAGER", "ADMIN", "SUPER_ADMIN"].includes(session.role);
+  const readyLevels = canNominate
+    ? Array.from((await levelLadder(prisma, rider.centreId)).byRank.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([rank, t]) => ({ rank, name: t.levelName }))
+    : [];
+  const readyBy = rider.examReadyBy
+    ? (await prisma.user.findUnique({ where: { id: rider.examReadyBy }, select: { name: true } }))?.name ?? null
+    : null;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -272,10 +284,19 @@ export default async function RiderProfile({ params }: { params: { id: string } 
               <dd>{formatDate(rider.dob)}</dd>
               <dt className="text-muted-foreground">Gender</dt>
               <dd>{rider.gender ?? "—"}</dd>
-              <dt className="text-muted-foreground">Mobile</dt>
-              <dd>{rider.mobile}</dd>
-              <dt className="text-muted-foreground">Email</dt>
-              <dd>{rider.email ?? "—"}</dd>
+              {/* Contact details are optional — shown only when the family gave them. */}
+              {rider.mobile && (
+                <>
+                  <dt className="text-muted-foreground">Mobile</dt>
+                  <dd>{rider.mobile}</dd>
+                </>
+              )}
+              {rider.email && (
+                <>
+                  <dt className="text-muted-foreground">Email</dt>
+                  <dd>{rider.email}</dd>
+                </>
+              )}
               <dt className="text-muted-foreground">Aadhaar</dt>
               <dd className="flex items-center gap-2">
                 <span className="font-mono">{maskAadhaar(rider.aadhaarLast4)}</span>
@@ -326,18 +347,24 @@ export default async function RiderProfile({ params }: { params: { id: string } 
               <dd>{rider.addressPermanent ?? "—"}</dd>
               <dt className="text-muted-foreground">Pincode</dt>
               <dd>{rider.pincode ?? "—"}</dd>
-              <dt className="text-muted-foreground">Father</dt>
-              <dd>
-                {rider.fatherName ?? "—"} {rider.fatherPhone && `· ${rider.fatherPhone}`}
-              </dd>
-              <dt className="text-muted-foreground">Mother</dt>
-              <dd>
-                {rider.motherName ?? "—"} {rider.motherPhone && `· ${rider.motherPhone}`}
-              </dd>
-              <dt className="text-muted-foreground">Emergency</dt>
-              <dd>
-                {rider.emergencyName ?? "—"} · {rider.emergencyPhone ?? "—"}
-              </dd>
+              {(rider.fatherName || rider.fatherPhone) && (
+                <>
+                  <dt className="text-muted-foreground">Father</dt>
+                  <dd>{[rider.fatherName, rider.fatherPhone].filter(Boolean).join(" · ")}</dd>
+                </>
+              )}
+              {(rider.motherName || rider.motherPhone) && (
+                <>
+                  <dt className="text-muted-foreground">Mother</dt>
+                  <dd>{[rider.motherName, rider.motherPhone].filter(Boolean).join(" · ")}</dd>
+                </>
+              )}
+              {(rider.emergencyName || rider.emergencyPhone) && (
+                <>
+                  <dt className="text-muted-foreground">Emergency</dt>
+                  <dd>{[rider.emergencyName, rider.emergencyPhone].filter(Boolean).join(" · ")}</dd>
+                </>
+              )}
             </dl>
           </CardContent>
         </Card>
@@ -498,6 +525,25 @@ export default async function RiderProfile({ params }: { params: { id: string } 
           )}
         </CardContent>
       </Card>
+
+      {canNominate && readyLevels.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Ready for an exam?</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ExamReady
+              riderId={rider.id}
+              levels={readyLevels}
+              current={
+                rider.examReadyLevel
+                  ? { level: rider.examReadyLevel, note: rider.examReadyNote, by: readyBy, at: (rider.examReadyAt ?? new Date()).toISOString() }
+                  : null
+              }
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

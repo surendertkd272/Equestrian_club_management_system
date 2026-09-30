@@ -11,6 +11,7 @@ import { formatDate } from "@/lib/utils";
 import { formatEnum } from "@/lib/labels";
 import { prisma } from "@/lib/prisma";
 import { REVIEW_WINDOW_DAYS } from "@/lib/exam-reopen";
+import { familyExamWhere } from "@/lib/exam-visibility";
 import { ReviewRequest } from "./review-request";
 export const dynamic = "force-dynamic";
 
@@ -26,10 +27,15 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
   // Existing invoices remain in the DB for audit; only the surface disappears.
   const showPayment = features.has("fee-collection");
   // Exam history with rubric attached for the expandable per-exam breakdown.
-  const examHistory = await loadRiderExamHistory(rider.id, rider.centreId, { take: 10 });
+  const examHistory = await loadRiderExamHistory(rider.id, rider.centreId, { take: 10, familyView: true });
   // Results a family can still ask the club to look at again.
   const reviewable = await prisma.exam.findMany({
-    where: { riderId: rider.id, status: "completed", date: { gte: new Date(Date.now() - REVIEW_WINDOW_DAYS * 86400000) } },
+    where: {
+      riderId: rider.id,
+      status: "completed",
+      date: { gte: new Date(Date.now() - REVIEW_WINDOW_DAYS * 86400000) },
+      ...familyExamWhere,
+    },
     orderBy: { date: "desc" },
     select: {
       id: true, level: true, date: true, passed: true, totalScore: true,
@@ -245,8 +251,11 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
                   <span>
                     <Badge variant="outline">{formatEnum(c.type)}</Badge> {c.levelName}
                   </span>
-                  <span className="font-mono text-xs text-muted-foreground">
+                  <span className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
                     {c.serialNo} · issued {formatDate(c.issuedAt)}
+                    <Link href={`/parent/certificates/${c.id}`} className="font-sans text-primary underline">
+                      View / print
+                    </Link>
                   </span>
                 </li>
               ))}

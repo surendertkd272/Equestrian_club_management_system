@@ -317,6 +317,7 @@ export async function createSittingTx(
     notes?: string | null;
     examDayId?: string | null;
     groupNo?: number | null;
+    holdResults?: boolean;
     pool: { id: string; name: string }[];
     panel?: { id: string; name: string }[];
     riderIds: string[];
@@ -332,6 +333,7 @@ export async function createSittingTx(
       notes: args.notes ?? null,
       examDayId: args.examDayId ?? null,
       groupNo: args.groupNo ?? null,
+      holdResults: args.holdResults ?? false,
       panelJudgeIds: (args.panel ?? []).map((j) => j.id),
     },
   });

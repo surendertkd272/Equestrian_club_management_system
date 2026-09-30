@@ -12,6 +12,7 @@ import { SittingRidersTable, PickNextButton } from "./riders-table";
 import { PanelEditor, PoolEditor } from "../../panel-editor";
 import { AddLateRiders } from "../../add-riders";
 import { SendResultsButton } from "../../send-results-button";
+import { ResultsHold } from "../../results-hold";
 import { JudgeBadges, JudgeReadinessBanner, type JudgeRow } from "../../judge-readiness";
 import { examinerReadiness } from "@/lib/examiner-readiness";
 import { examinerLabel } from "@/lib/examiner-label";
@@ -187,6 +188,7 @@ export default async function SittingDetail({ params }: { params: { id: string }
     time: sitting.slotMinutes ? e.time : null,
     runOrder: sitting.slotMinutes ? e.runOrder : null,
     horse: e.horseAllocation?.horse.name ?? null,
+    arrived: !!e.checkedInAt,
     canMarkAbsent: canSchedule || inPool,
     examinerName: e.examinerName,
     mine: e.examinerId === session.userId,
@@ -236,6 +238,12 @@ export default async function SittingDetail({ params }: { params: { id: string }
               </Link>
             )}
             <Link
+              href={sitting.examDay ? `/exams/check-in?day=${sitting.examDay.id}` : `/exams/check-in?sitting=${sitting.id}`}
+              className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted"
+            >
+              Check-in
+            </Link>
+            <Link
               href={`/exams/sittings/${sitting.id}/order`}
               className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted"
             >
@@ -249,6 +257,24 @@ export default async function SittingDetail({ params }: { params: { id: string }
       </div>
 
       {upcoming && <JudgeReadinessBanner judges={[...poolRows, ...panelRows]} canManage={isExamManager(session.role)} />}
+      {canSchedule && !sitting.examDay && (
+        <ResultsHold
+          scope="sitting"
+          id={sitting.id}
+          held={sitting.holdResults && !sitting.resultsPublishedAt}
+          published={!!sitting.resultsPublishedAt}
+          marked={marked.length}
+        />
+      )}
+      {sitting.examDay && sitting.holdResults && !sitting.resultsPublishedAt && (
+        <p className="rounded-md border border-warning/40 bg-warning-soft px-3 py-2 text-sm">
+          Results are held for this exam day — publish them from{" "}
+          <Link href={`/exams/days/${sitting.examDay.id}`} className="text-primary underline">
+            the day page
+          </Link>
+          .
+        </p>
+      )}
 
       <Card>
         <CardHeader>
@@ -307,6 +333,11 @@ export default async function SittingDetail({ params }: { params: { id: string }
           )}
           {onPanel && (
             <p className="text-xs text-muted-foreground">You&rsquo;re on this sitting&rsquo;s panel — mark your card for each rider.</p>
+          )}
+          {(inPool || onPanel) && (
+            <Link href={`/exams/offline/${sitting.id}`} className="text-xs text-primary underline">
+              No signal in the arena? Mark offline →
+            </Link>
           )}
         </CardHeader>
         <CardContent>

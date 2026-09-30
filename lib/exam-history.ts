@@ -1,3 +1,4 @@
+import { familyExamWhere } from "@/lib/exam-visibility";
 // Server-side helper that loads a rider's completed exams with the rubric
 // each was scored against. Shared by the three exam-history surfaces:
 //   /student        — rider sees own past exams + category breakdown
@@ -28,10 +29,11 @@ export type ExamHistoryEntry = {
 export async function loadRiderExamHistory(
   riderId: string,
   centreId: string,
-  opts: { take?: number } = {},
+  // familyView: leave out results a sitting is still holding (lib/exam-visibility).
+  opts: { take?: number; familyView?: boolean } = {},
 ): Promise<ExamHistoryEntry[]> {
   const exams = await prisma.exam.findMany({
-    where: { riderId, status: "completed" },
+    where: { riderId, status: "completed", ...(opts.familyView ? familyExamWhere : {}) },
     select: {
       id: true,
       date: true,

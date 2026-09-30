@@ -532,7 +532,7 @@ function ParentalConsentStep({
             </Select>
             {relationError && <p id="parentRelation-err" role="alert" className="text-xs text-destructive">{relationError}</p>}
           </div>
-          <Field methods={methods} name="parentPhone" label="Parent's Phone" required placeholder="10-digit mobile" inputMode="tel" />
+          <Field methods={methods} name="parentPhone" label="Parent's Phone (optional)" placeholder="10-digit mobile" inputMode="tel" />
           <Field methods={methods} name="parentEmail" label="Parent's Email" type="email" />
         </div>
 

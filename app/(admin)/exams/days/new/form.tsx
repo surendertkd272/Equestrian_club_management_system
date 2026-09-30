@@ -20,8 +20,15 @@ type RiderRow = {
   id: string;
   name: string;
   school: string;
+  schoolClass: string;
+  batch: string;
   currentLevel: string | null;
+  // Coach nomination, else re-sit level, else the next level up.
   suggested: number | null;
+  // Level they didn't pass (or were absent for) last time, not yet rebooked.
+  resit: number | null;
+  // Level a coach says they're ready for.
+  nominated: number | null;
   blocked: string | null;
 };
 
@@ -29,10 +36,12 @@ export function NewExamDayForm({
   levels,
   examiners,
   riders,
+  initialAssign = {},
 }: {
   levels: { rank: number; name: string }[];
   examiners: { id: string; name: string }[];
   riders: RiderRow[];
+  initialAssign?: Record<string, number>;
 }) {
   const router = useRouter();
   const today = new Date().toISOString().slice(0, 10);
@@ -40,8 +49,12 @@ export function NewExamDayForm({
   const [name, setName] = useState("");
   const [time, setTime] = useState("08:00");
   const [notes, setNotes] = useState("");
+  const [holdResults, setHoldResults] = useState(false);
   // riderId → level they sit (absent = not sitting)
-  const [assign, setAssign] = useState<Map<string, number>>(new Map());
+  const [assign, setAssign] = useState<Map<string, number>>(() => new Map(Object.entries(initialAssign)));
+  const [klass, setKlass] = useState("");
+  const [batch, setBatch] = useState("");
+  const [show, setShow] = useState<"all" | "resit" | "nominated" | "nolevel">(Object.keys(initialAssign).length ? "resit" : "all");
   const [pools, setPools] = useState<Record<number, Set<string>>>({});
   // Optional jury panel per level — co-judges on every rider. Never the same
   // person as the level's pool (the API refuses that).
@@ -53,8 +66,21 @@ export function NewExamDayForm({
   const bookable = riders.filter((r) => !r.blocked);
   const blocked = riders.filter((r) => r.blocked);
   const schools = useMemo(() => Array.from(new Set(bookable.map((r) => r.school).filter(Boolean))).sort(), [bookable]);
+  const classes = useMemo(
+    () => Array.from(new Set(bookable.map((r) => r.schoolClass).filter(Boolean))).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+    [bookable],
+  );
+  const batches = useMemo(() => Array.from(new Set(bookable.map((r) => r.batch).filter(Boolean))).sort(), [bookable]);
   const shown = bookable.filter(
-    (r) => (!q || r.name.toLowerCase().includes(q.toLowerCase())) && (!school || r.school === school),
+    (r) =>
+      (!q || r.name.toLowerCase().includes(q.toLowerCase())) &&
+      (!school || r.school === school) &&
+      (!klass || r.schoolClass === klass) &&
+      (!batch || r.batch === batch) &&
+      (show === "all" ||
+        (show === "resit" && r.resit !== null) ||
+        (show === "nominated" && r.nominated !== null) ||
+        (show === "nolevel" && !r.currentLevel)),
   );
   const levelName = (rank: number) => levels.find((l) => l.rank === rank)?.name ?? `Level ${rank}`;
   const fallback = levels[0]?.rank ?? 1;
@@ -119,6 +145,7 @@ export function NewExamDayForm({
       date,
       time,
       notes: notes || undefined,
+      holdResults,
       entries: Array.from(assign.entries()).map(([riderId, level]) => ({ riderId, level })),
       pools: Object.fromEntries(perLevel.map((l) => [String(l.rank), Array.from(pools[l.rank] ?? [])])),
       panels: Object.fromEntries(
@@ -175,6 +202,32 @@ export function NewExamDayForm({
         </div>
         <div className="flex flex-wrap gap-2">
           <Input className="min-w-0 flex-1" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search riders…" />
+          <Select aria-label="Show" value={show} onChange={(e) => setShow(e.target.value as typeof show)} className="max-w-full sm:max-w-[13rem]">
+            <option value="all">Everyone</option>
+            <option value="nominated">Coach-nominated ({bookable.filter((r) => r.nominated !== null).length})</option>
+            <option value="resit">Re-sits ({bookable.filter((r) => r.resit !== null).length})</option>
+            <option value="nolevel">No level yet</option>
+          </Select>
+          {classes.length > 0 && (
+            <Select aria-label="Class" value={klass} onChange={(e) => setKlass(e.target.value)} className="max-w-full sm:max-w-[8rem]">
+              <option value="">All classes</option>
+              {classes.map((c) => (
+                <option key={c} value={c}>
+                  Class {c}
+                </option>
+              ))}
+            </Select>
+          )}
+          {batches.length > 0 && (
+            <Select aria-label="Batch" value={batch} onChange={(e) => setBatch(e.target.value)} className="max-w-full sm:max-w-[12rem]">
+              <option value="">All batches</option>
+              {batches.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </Select>
+          )}
           {schools.length > 0 && (
             <Select aria-label="School" value={school} onChange={(e) => setSchool(e.target.value)} className="max-w-full sm:max-w-[16rem]">
               <option value="">All schools</option>
@@ -198,8 +251,12 @@ export function NewExamDayForm({
                   <div className="truncate text-xs text-muted-foreground">
                     {r.currentLevel ?? "No level yet"}
                     {r.school ? ` · ${r.school}` : ""}
+                    {r.schoolClass ? ` · Class ${r.schoolClass}` : ""}
+                    {r.batch ? ` · ${r.batch}` : ""}
                   </div>
                 </div>
+                {r.nominated !== null && <Badge variant="success">coach: ready for {levelName(r.nominated)}</Badge>}
+                {r.resit !== null && r.nominated === null && <Badge variant="outline">re-sit {levelName(r.resit)}</Badge>}
                 {skips && <Badge variant="warning">skips a level</Badge>}
                 <Select
                   aria-label={`Level for ${r.name}`}
@@ -306,6 +363,16 @@ export function NewExamDayForm({
         <Label>Notes (optional)</Label>
         <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} maxLength={500} />
       </div>
+
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" className="mt-1" checked={holdResults} onChange={(e) => setHoldResults(e.target.checked)} />
+        <span>
+          Hold results until I publish them
+          <span className="block text-xs text-muted-foreground">
+            Families aren&rsquo;t told on the day. Check the marks, then publish the whole day at once.
+          </span>
+        </span>
+      </label>
 
       <Button type="submit" disabled={busy || total === 0 || missingPool.length > 0}>
         {busy ? "Booking…" : `Book exam day — ${total} rider${total === 1 ? "" : "s"}`}

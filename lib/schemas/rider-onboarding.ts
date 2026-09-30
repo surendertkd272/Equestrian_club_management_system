@@ -151,7 +151,10 @@ export const parentalConsentRequiredSchema = z.object({
   parentRelation: z.enum(["father", "mother", "guardian"], {
     errorMap: () => ({ message: "Select a relation" }),
   }),
-  parentPhone: indianMobile("Parent's 10-digit mobile number"),
+  // Contact details are optional: the club records a parent's phone or email
+  // when the family gives one, and shows it only then. Consent itself — who
+  // the parent is and that they agreed — is what stays required.
+  parentPhone: indianMobile("Parent's 10-digit mobile number").optional().or(z.literal("")),
   parentEmail: z.string().email("Valid email").optional().or(z.literal("")),
   parentConsentAgreed: z.literal(true, {
     errorMap: () => ({ message: "Parent must agree to the consent text" }),

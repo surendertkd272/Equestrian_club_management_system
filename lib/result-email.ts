@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail, renderEmail } from "@/lib/email";
 import { renderExamBreakdownHtml } from "@/lib/exam-email-breakdown";
 import { resultRecipients, RESULT_RECIPIENT_SELECT } from "@/lib/result-recipients";
+import { resultsHeld } from "@/lib/exam-panel";
 
 // Email one exam's result, with the mark breakdown, to the rider's family.
 //
@@ -12,7 +13,7 @@ import { resultRecipients, RESULT_RECIPIENT_SELECT } from "@/lib/result-recipien
 
 export type ResultEmailOutcome =
   | { ok: true; sentTo: string[]; passed: boolean | null }
-  | { ok: false; code: "NOT_FOUND" | "NOT_COMPLETED" | "NO_PARENT_EMAIL"; message: string };
+  | { ok: false; code: "NOT_FOUND" | "NOT_COMPLETED" | "NO_PARENT_EMAIL" | "RESULTS_HELD"; message: string };
 
 const esc = (v: string) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -20,7 +21,7 @@ export async function sendExamResultEmail(examId: string, actorUserId: string): 
   const exam = await prisma.exam.findUnique({
     where: { id: examId },
     select: {
-      id: true, centreId: true, level: true, date: true, status: true, totalScore: true, passed: true,
+      id: true, centreId: true, level: true, date: true, status: true, totalScore: true, passed: true, sittingId: true,
       scoresJson: true, rubricSnapshotJson: true, examinerName: true,
       rider: { select: { id: true, firstName: true, lastName: true, ...RESULT_RECIPIENT_SELECT } },
       centre: { select: { name: true } },
@@ -34,6 +35,9 @@ export async function sendExamResultEmail(examId: string, actorUserId: string): 
   if (!exam) return { ok: false, code: "NOT_FOUND", message: "This exam no longer exists." };
   if (exam.status !== "completed") {
     return { ok: false, code: "NOT_COMPLETED", message: "The exam hasn't been marked yet." };
+  }
+  if (await resultsHeld(exam.sittingId)) {
+    return { ok: false, code: "RESULTS_HELD", message: "This day's results are held — publish them first." };
   }
   const to = resultRecipients(exam.rider);
   if (to.length === 0) {

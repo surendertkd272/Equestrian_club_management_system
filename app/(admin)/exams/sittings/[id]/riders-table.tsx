@@ -21,6 +21,7 @@ export type SittingRiderRow = {
   time: string | null;
   runOrder: number | null;
   horse: string | null;
+  arrived: boolean;
   examinerName: string | null;
   mine: boolean;
   // This viewer's co-judge card on the exam, if they sit on its panel.
@@ -187,7 +188,7 @@ export function SittingRidersTable({
                   ) : e.state === "absent" ? (
                     <Badge variant="outline">Absent</Badge>
                   ) : e.state === "unassigned" ? (
-                    <Badge variant="outline">Waiting</Badge>
+                    <Badge variant={e.arrived ? "success" : "outline"}>{e.arrived ? "Here · waiting" : "Waiting"}</Badge>
                   ) : (
                     <Badge variant="warning">Marking · {e.examinerName}</Badge>
                   )}

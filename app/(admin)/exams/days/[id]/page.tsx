@@ -11,6 +11,8 @@ import { formatDate } from "@/lib/utils";
 import { RescheduleForm, CancelDayButton } from "../../exam-actions";
 import { AddLateRiders } from "../../add-riders";
 import { SendResultsButton } from "../../send-results-button";
+import { ResultsHold } from "../../results-hold";
+import { SlotNoticeButton } from "../../slot-notice-button";
 import { JudgeReadinessBanner, type JudgeRow } from "../../judge-readiness";
 import { examinerReadiness } from "@/lib/examiner-readiness";
 import { examinerLabel } from "@/lib/examiner-label";
@@ -38,7 +40,10 @@ export default async function ExamDayPage({ params }: { params: { id: string } }
         include: {
           examiners: { select: { examinerName: true, examinerId: true }, orderBy: { examinerName: "asc" } },
           exams: {
-            select: { status: true, examinerId: true, passed: true, reopenedAt: true, time: true, resultEmailSentAt: true },
+            select: {
+              status: true, examinerId: true, passed: true, reopenedAt: true, time: true, resultEmailSentAt: true,
+              date: true, slotNotified: true,
+            },
           },
         },
       },
@@ -108,6 +113,26 @@ export default async function ExamDayPage({ params }: { params: { id: string } }
   const allExams = day.sittings.flatMap((s) => s.exams);
   const markedTotal = allExams.filter((e) => e.status === "completed").length;
   const unsentResults = allExams.filter((e) => e.status === "completed" && !e.resultEmailSentAt).length;
+  const slotWaiting = day.sittings.filter((s) => s.slotMinutes).flatMap((s) => s.exams.filter((e) => e.status === "scheduled"));
+  const slotKey = (e: (typeof slotWaiting)[number]) => `${e.date.toISOString().slice(0, 10)} ${e.time}`;
+  const freshSlots = slotWaiting.filter((e) => !e.slotNotified).length;
+  const changedSlots = slotWaiting.filter((e) => e.slotNotified && e.slotNotified !== slotKey(e)).length;
+  // Riders who didn't pass or were absent on this day and aren't booked again.
+  const resitRiders = await prisma.exam.findMany({
+    where: { sitting: { examDayId: day.id }, OR: [{ status: "absent" }, { status: "completed", passed: false }] },
+    select: { riderId: true, level: true },
+  });
+  const rebooked = resitRiders.length
+    ? new Set(
+        (
+          await prisma.exam.findMany({
+            where: { riderId: { in: resitRiders.map((e) => e.riderId) }, status: { in: ["scheduled", "in_progress"] } },
+            select: { riderId: true },
+          })
+        ).map((e) => e.riderId),
+      )
+    : new Set<string>();
+  const resits = resitRiders.filter((e) => !rebooked.has(e.riderId)).length;
   const canPrintCerts = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"].includes(session.role);
   const liveCerts = markedTotal
     ? await prisma.certificate.count({ where: { exam: { sitting: { examDayId: day.id } }, revokedAt: null } })
@@ -171,6 +196,23 @@ export default async function ExamDayPage({ params }: { params: { id: string } }
         <div className="flex flex-wrap items-start gap-2">
           <ExportCsvButton entity="exams" label="Export results" query={`dayId=${day.id}`} />
           {canSchedule && <SendResultsButton scope="day" id={day.id} unsent={unsentResults} marked={markedTotal} />}
+          {canSchedule && <SlotNoticeButton scope="day" id={day.id} fresh={freshSlots} changed={changedSlots} />}
+          {canSchedule && resits > 0 && (
+            <Link
+              href={`/exams/days/new?resit=${day.id}`}
+              className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted"
+            >
+              Book re-sits ({resits})
+            </Link>
+          )}
+          {canSchedule && upcoming && (
+            <Link
+              href={`/exams/check-in?day=${day.id}`}
+              className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted"
+            >
+              Check-in desk
+            </Link>
+          )}
           {canPrintCerts && liveCerts > 0 && (
             <Link
               href={`/certificates/print?day=${day.id}`}
@@ -183,6 +225,15 @@ export default async function ExamDayPage({ params }: { params: { id: string } }
       </div>
 
       {upcoming && <JudgeReadinessBanner judges={judgeRows} canManage={isExamManager(session.role)} />}
+      {canSchedule && (
+        <ResultsHold
+          scope="day"
+          id={day.id}
+          held={day.sittings.some((s) => s.holdResults && !s.resultsPublishedAt) || (day.sittings.length === 0 && day.holdResults)}
+          published={day.sittings.length > 0 && day.sittings.every((s) => !!s.resultsPublishedAt)}
+          marked={markedTotal}
+        />
+      )}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
