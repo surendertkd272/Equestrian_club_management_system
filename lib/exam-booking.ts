@@ -4,6 +4,7 @@ import { ENROLLED_RIDER_STATUSES, riderBlockedReason } from "@/lib/rider-status"
 import { OPEN_EXAM_STATUSES } from "@/lib/exam-schedule";
 import { JUDGE_ELIGIBLE_ROLES } from "@/lib/exam-panel";
 import { formatEnum } from "@/lib/labels";
+import { appendToRunningOrderTx } from "@/lib/exam-running-order";
 
 // ─── Booking riders onto exams ──────────────────────────────────────────────
 // One set of rules for every way an exam gets booked — a single sitting
@@ -388,10 +389,14 @@ export async function addExamsToSittingTx(
     }),
   });
   const created = await tx.exam.findMany({
-    where: { sittingId: args.sittingId, riderId: { in: args.riderIds }, status: "scheduled" },
+    where: { sittingId: args.sittingId, riderId: { in: args.riderIds }, status: "scheduled", runOrder: null },
     select: { id: true },
+    orderBy: { rider: { firstName: "asc" } },
   });
   const ids = created.map((e) => e.id);
   await seatPanelTx(tx, ids, args.panel);
+  // A sitting with a running order: late riders go on the end, each with
+  // their own slot, rather than all sharing the first rider's time.
+  await appendToRunningOrderTx(tx, args.sittingId, ids);
   return ids;
 }

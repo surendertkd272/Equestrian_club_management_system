@@ -164,7 +164,13 @@ export async function getChildDetail(parentUserId: string, riderId: string) {
     prisma.exam.findMany({
       where: { riderId },
       orderBy: { date: "desc" },
-      select: { id: true, date: true, level: true, status: true, totalScore: true, passed: true, examinerName: true },
+      select: {
+        id: true, date: true, level: true, status: true, totalScore: true, passed: true, examinerName: true,
+        // The rider's own slot, once the sitting has a running order, and the
+        // horse booked for it — what a family needs to know for the day.
+        time: true, runOrder: true, sitting: { select: { slotMinutes: true } },
+        horseAllocation: { select: { horse: { select: { name: true } } } },
+      },
       take: 10,
     }),
     prisma.certificate.findMany({

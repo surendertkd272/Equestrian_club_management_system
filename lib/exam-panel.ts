@@ -290,16 +290,22 @@ export async function notifyIfSittingComplete(sittingId: string): Promise<void> 
   if (claimed.count === 0) return;
   const s = await prisma.examSitting.findUnique({
     where: { id: sittingId },
-    include: { exams: { select: { passed: true } }, examDay: { select: { id: true, name: true } } },
+    include: { exams: { select: { passed: true, status: true } }, examDay: { select: { id: true, name: true } } },
   });
   if (!s || s.exams.length === 0) return;
-  const passed = s.exams.filter((e) => e.passed === true).length;
+  // Absent riders finish the sitting but aren't results: "passed of marked".
+  const marked = s.exams.filter((e) => e.status === "completed");
+  const absent = s.exams.filter((e) => e.status === "absent").length;
+  const passed = marked.filter((e) => e.passed === true).length;
   await notifyCentreManager(s.centreId, {
     type: "exam.sitting_complete",
-    title: `Level ${s.level}${s.groupNo ? ` · Group ${s.groupNo}` : ""} sitting complete — ${passed} of ${s.exams.length} passed`,
-    body: `${s.exams.length - passed} did not pass.${s.examDay ? ` Part of ${s.examDay.name}.` : ""}`,
+    title: `Level ${s.level}${s.groupNo ? ` · Group ${s.groupNo}` : ""} sitting complete — ${passed} of ${marked.length} passed`,
+    body:
+      `${marked.length - passed} did not pass.` +
+      (absent ? ` ${absent} absent.` : "") +
+      (s.examDay ? ` Part of ${s.examDay.name}.` : ""),
     link: `/exams/sittings/${s.id}`,
-    payload: { sittingId: s.id, passed, total: s.exams.length },
+    payload: { sittingId: s.id, passed, total: marked.length, absent },
   });
   if (!s.examDay) return;
   const dayOpen = await prisma.exam.count({
@@ -311,14 +317,22 @@ export async function notifyIfSittingComplete(sittingId: string): Promise<void> 
     data: { completedNotifiedAt: new Date() },
   });
   if (dayClaimed.count === 0) return;
-  const all = await prisma.exam.findMany({ where: { sitting: { examDayId: s.examDay.id } }, select: { passed: true } });
-  const dayPassed = all.filter((e) => e.passed === true).length;
+  const all = await prisma.exam.findMany({
+    where: { sitting: { examDayId: s.examDay.id } },
+    select: { passed: true, status: true },
+  });
+  const dayMarked = all.filter((e) => e.status === "completed");
+  const dayAbsent = all.filter((e) => e.status === "absent").length;
+  const dayPassed = dayMarked.filter((e) => e.passed === true).length;
   await notifyCentreManager(s.centreId, {
     type: "exam.day_complete",
-    title: `${s.examDay.name} complete — ${dayPassed} of ${all.length} passed`,
-    body: "Every rider on the day has been marked. Certificates for the passes are issued.",
+    title: `${s.examDay.name} complete — ${dayPassed} of ${dayMarked.length} passed`,
+    body:
+      "Every rider on the day has been marked" +
+      (dayAbsent ? `, ${dayAbsent} absent` : "") +
+      ". Certificates for the passes are issued.",
     link: `/exams/days/${s.examDay.id}`,
-    payload: { examDayId: s.examDay.id, passed: dayPassed, total: all.length },
+    payload: { examDayId: s.examDay.id, passed: dayPassed, total: dayMarked.length, absent: dayAbsent },
   });
 }
 

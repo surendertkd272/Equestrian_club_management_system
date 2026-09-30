@@ -1662,6 +1662,9 @@ model HorseAllocation {
   // this points at the Lesson row. Older allocations created before the
   // Lesson model existed leave it null and use startAt/endAt directly.
   lessonId  String?
+  // purpose=exam: the exam this horse is booked for. Deleting the exam (rider
+  // taken off the sitting) frees the horse.
+  examId    String?  @unique
   startAt   DateTime
   endAt     DateTime
   notes     String?
@@ -1671,6 +1674,7 @@ model HorseAllocation {
   horse  Horse   @relation(fields: [horseId], references: [id])
   rider  Rider?  @relation(fields: [riderId], references: [id])
   lesson Lesson? @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  exam   Exam?   @relation(fields: [examId], references: [id], onDelete: Cascade)
 
   @@index([horseId, startAt])
   @@index([lessonId])
@@ -2287,6 +2291,13 @@ model Exam {
   // Sitting groups multiple exams happening on the same day with the same
   // examiner / level (saves typing each one in).
   sittingId          String?
+  // A rider who didn't turn up: status "absent", with when and why. Not an
+  // open booking, so the rider can be booked onto another exam.
+  absentAt           DateTime?
+  absentReason       String?
+  // Place in the sitting's running order (1, 2, …); time holds their slot.
+  // Null until a running order is generated.
+  runOrder           Int?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -2295,6 +2306,8 @@ model Exam {
   certificates Certificate[]
   judges       ExamJudge[]
   attachments  ExamAttachment[]
+  // The horse booked for this rider's slot (HorseAllocation, purpose "exam").
+  horseAllocation HorseAllocation?
   previousExam Exam?            @relation("ExamReattempt", fields: [previousExamId], references: [id], onDelete: SetNull)
   retakes      Exam[]           @relation("ExamReattempt")
   sitting      ExamSitting?     @relation(fields: [sittingId], references: [id], onDelete: SetNull)
@@ -2366,6 +2379,8 @@ model ExamSitting {
   // A level too big for one sitting on an exam day runs as several groups:
   // 1, 2, … Null when the level is a single sitting.
   groupNo             Int?
+  // Minutes per rider in the running order; null = no running order yet.
+  slotMinutes         Int?
   // The sitting's jury panel: judges seated as co-judges on EVERY rider in
   // the sitting (on top of whichever pool examiner leads each one). Riders
   // added later get them too. Never overlaps the claim pool.

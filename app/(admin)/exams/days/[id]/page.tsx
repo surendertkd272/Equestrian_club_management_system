@@ -85,15 +85,17 @@ export default async function ExamDayPage({ params }: { params: { id: string } }
       pool: s.examiners.map((x) => `${x.examinerName}${upcoming && notReady.has(x.examinerId) ? " ⚠" : ""}`),
       panel: s.panelJudgeIds.map((id) => `${userById.get(id)?.name ?? "Judge"}${upcoming && notReady.has(id) ? " ⚠" : ""}`),
       riders: s.exams.length,
-      waiting: s.exams.filter((e) => e.status !== "completed" && !e.examinerId).length,
-      marking: s.exams.filter((e) => e.status !== "completed" && e.examinerId).length,
+      waiting: s.exams.filter((e) => e.status === "scheduled" && !e.examinerId).length,
+      marking: s.exams.filter((e) => (e.status === "scheduled" || e.status === "in_progress") && e.examinerId).length,
       completed: done.length,
+      absent: s.exams.filter((e) => e.status === "absent").length,
       passed: done.filter((e) => e.passed === true).length,
       start: s.exams[0]?.time ?? day.time,
     };
   });
   const levelCount = new Set(rows.map((r) => r.level)).size;
-  const sum = (k: "riders" | "waiting" | "marking" | "completed" | "passed") => rows.reduce((n, r) => n + r[k], 0);
+  const sum = (k: "riders" | "waiting" | "marking" | "completed" | "passed" | "absent") =>
+    rows.reduce((n, r) => n + r[k], 0);
   const withResults = day.sittings.reduce(
     (n, s) => n + s.exams.filter((e) => e.status === "completed" || e.reopenedAt).length,
     0,
@@ -167,7 +169,7 @@ export default async function ExamDayPage({ params }: { params: { id: string } }
         {[
           ["Waiting", sum("waiting")],
           ["Being marked", sum("marking")],
-          ["Marked", `${sum("completed")} / ${sum("riders")}`],
+          ["Marked", `${sum("completed")} / ${sum("riders") - sum("absent")}${sum("absent") ? ` · ${sum("absent")} absent` : ""}`],
           ["Passed", sum("completed") ? `${sum("passed")} (${pct(sum("passed"), sum("completed"))}%)` : "—"],
         ].map(([label, value]) => (
           <Card key={label as string}>
@@ -201,10 +203,11 @@ export default async function ExamDayPage({ params }: { params: { id: string } }
                 </span>
               </div>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
-                <div className="h-full bg-primary" style={{ width: `${pct(r.completed, r.riders)}%` }} />
+                <div className="h-full bg-primary" style={{ width: `${pct(r.completed + r.absent, r.riders)}%` }} />
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
                 <Badge variant="outline">{r.waiting} waiting</Badge>
+                {r.absent > 0 && <Badge variant="outline">{r.absent} absent</Badge>}
                 <Badge variant="warning">{r.marking} being marked</Badge>
                 <Badge variant="success">{r.completed} marked</Badge>
                 {r.completed > 0 && (

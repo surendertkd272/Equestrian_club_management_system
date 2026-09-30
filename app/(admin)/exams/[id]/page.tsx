@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExamScorer } from "./scorer";
+import { AbsentToggle } from "./absent-toggle";
 import { JudgesPanel } from "./judges-panel";
 import { SupportStaffPanel } from "./support-staff-panel";
 import { AttachmentsPanel } from "./attachments-panel";
@@ -45,6 +46,8 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
       attachments: { orderBy: { uploadedAt: "desc" } },
       previousExam: { select: { id: true, attemptNumber: true, passed: true, totalScore: true, date: true } },
       _count: { select: { certificates: true } },
+      horseAllocation: { select: { horse: { select: { name: true } } } },
+      sitting: { select: { slotMinutes: true, examiners: { select: { examinerId: true } } } },
     },
   });
   if (!exam) notFound();
@@ -103,6 +106,9 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
   // Deductions and time faults are the lead examiner's (or a manager's) —
   // never a co-judge's, who marks their own rubric card only.
   const canEditAdjustments = isManager || exam.examinerId === session.userId;
+  const inPool = !!exam.sitting?.examiners.some((x) => x.examinerId === session.userId);
+  const canMarkAbsent =
+    !readOnly && (canSchedule || inPool) && (exam.status === "absent" || (isOpen && !hasResult));
 
   const otherExams = await prisma.exam.findMany({
     where: {
@@ -143,8 +149,9 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
                 {exam.rider.firstName} {exam.rider.lastName}
               </CardTitle>
               <CardDescription>
-                {template?.levelName ?? `Level ${exam.level}`} · {formatDate(exam.date)} {exam.time} · Examiner:{" "}
-                {exam.examinerName}
+                {template?.levelName ?? `Level ${exam.level}`} · {formatDate(exam.date)} {exam.time}
+                {exam.runOrder ? ` (#${exam.runOrder} in the order)` : ""} · Examiner: {exam.examinerName ?? "not picked yet"}
+                {exam.horseAllocation ? ` · Horse: ${exam.horseAllocation.horse.name}` : ""}
               </CardDescription>
             </div>
             <div className="text-right">
@@ -175,6 +182,19 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
         )}
       </Card>
 
+      {exam.status === "absent" && (
+        <Card className="border-warning/30 bg-warning-soft">
+          <CardContent className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
+            <span>
+              <span className="font-semibold">Absent</span>
+              {exam.absentAt ? <> — marked {formatDate(exam.absentAt)}</> : null}
+              {exam.absentReason ? <>: {exam.absentReason}</> : null}. The rider can be booked onto another exam.
+            </span>
+            {canMarkAbsent && <AbsentToggle examId={exam.id} absent />}
+          </CardContent>
+        </Card>
+      )}
+
       {exam.reopenedAt && (
         <Card className="border-warning/30 bg-warning-soft">
           <CardContent className="py-3 text-sm">
@@ -195,6 +215,7 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
                 <Button asChild variant="outline" size="sm">
                   <Link href={`/exams/sittings/${exam.sittingId}`}>Open sitting</Link>
                 </Button>
+                {canMarkAbsent && exam.status !== "absent" && <AbsentToggle examId={exam.id} absent={false} />}
                 <RemoveExamButton
                   examId={exam.id}
                   riderName={riderName}
@@ -291,8 +312,9 @@ export default async function ExamPage({ params }: { params: { id: string } }) {
             </p>
           </CardContent>
         </Card>
-      ) : (
+      ) : exam.status === "absent" ? null : (
         <ExamScorer
+          cardKey={`${exam.id}:${myJudgeRow ? myJudgeRow.judgeId : "lead"}:${session.userId}`}
           examId={exam.id}
           status={exam.status}
           rubric={rubric}

@@ -24,6 +24,9 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
   const showPayment = features.has("fee-collection");
   // Exam history with rubric attached for the expandable per-exam breakdown.
   const examHistory = await loadRiderExamHistory(rider.id, rider.centreId, { take: 10 });
+  const upcomingExams = exams
+    .filter((e) => e.status === "scheduled" || e.status === "in_progress")
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
 
   const skillsByLevel = new Map<string, typeof skills>();
   for (const s of skills) {
@@ -162,6 +165,26 @@ export default async function ParentChildPage({ params }: { params: { riderId: s
           )}
         </CardContent>
       </Card>
+
+      {upcomingExams.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Coming up: exam{upcomingExams.length === 1 ? "" : "s"}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm">
+            {upcomingExams.map((e) => (
+              <div key={e.id} className="flex flex-wrap items-center justify-between gap-2 border-b py-1.5 last:border-0">
+                <span className="font-medium">Level {e.level}</span>
+                <span className="text-muted-foreground">
+                  {formatDate(e.date)}
+                  {e.sitting?.slotMinutes ? ` · rides at ${e.time}${e.runOrder ? ` (#${e.runOrder})` : ""}` : ""}
+                  {e.horseAllocation ? ` · on ${e.horseAllocation.horse.name}` : ""}
+                </span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
 import { audit } from "@/lib/audit";
 import { BookingError, panelJudges, seatPanelTx } from "@/lib/exam-booking";
+import { OPEN_EXAM_STATUSES } from "@/lib/exam-schedule";
 import {
   ExamPanelError,
   afterExamCompleted,
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         data: { panelJudgeIds: [...sitting.panelJudgeIds, ...fresh.map((j) => j.id)] },
       });
       const open = await tx.exam.findMany({
-        where: { sittingId: sitting.id, status: { not: "completed" } },
+        where: { sittingId: sitting.id, status: { in: OPEN_EXAM_STATUSES } },
         select: { id: true },
       });
       return seatPanelTx(tx, open.map((e) => e.id), fresh);
