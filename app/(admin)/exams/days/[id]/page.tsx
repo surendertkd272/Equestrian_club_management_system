@@ -10,6 +10,7 @@ import { ExportCsvButton } from "@/components/ui/export-csv";
 import { formatDate } from "@/lib/utils";
 import { RescheduleForm, CancelDayButton } from "../../exam-actions";
 import { AddLateRiders } from "../../add-riders";
+import { SendResultsButton } from "../../send-results-button";
 import { JudgeReadinessBanner, type JudgeRow } from "../../judge-readiness";
 import { examinerReadiness } from "@/lib/examiner-readiness";
 import { examinerLabel } from "@/lib/examiner-label";
@@ -36,7 +37,9 @@ export default async function ExamDayPage({ params }: { params: { id: string } }
         orderBy: [{ level: "asc" }, { groupNo: "asc" }],
         include: {
           examiners: { select: { examinerName: true, examinerId: true }, orderBy: { examinerName: "asc" } },
-          exams: { select: { status: true, examinerId: true, passed: true, reopenedAt: true, time: true } },
+          exams: {
+            select: { status: true, examinerId: true, passed: true, reopenedAt: true, time: true, resultEmailSentAt: true },
+          },
         },
       },
     },
@@ -102,6 +105,13 @@ export default async function ExamDayPage({ params }: { params: { id: string } }
   );
   const waitingTotal = sum("riders") - withResults;
   const canSchedule = can(session.role, "exam.schedule");
+  const allExams = day.sittings.flatMap((s) => s.exams);
+  const markedTotal = allExams.filter((e) => e.status === "completed").length;
+  const unsentResults = allExams.filter((e) => e.status === "completed" && !e.resultEmailSentAt).length;
+  const canPrintCerts = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"].includes(session.role);
+  const liveCerts = markedTotal
+    ? await prisma.certificate.count({ where: { exam: { sitting: { examDayId: day.id } }, revokedAt: null } })
+    : 0;
   // Riders not on the day yet, for "Add late riders".
   const lateRiders =
     canSchedule && upcoming
@@ -158,8 +168,17 @@ export default async function ExamDayPage({ params }: { params: { id: string } }
           </p>
           {day.notes && <p className="mt-1 text-sm">{day.notes}</p>}
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-start gap-2">
           <ExportCsvButton entity="exams" label="Export results" query={`dayId=${day.id}`} />
+          {canSchedule && <SendResultsButton scope="day" id={day.id} unsent={unsentResults} marked={markedTotal} />}
+          {canPrintCerts && liveCerts > 0 && (
+            <Link
+              href={`/certificates/print?day=${day.id}`}
+              className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted"
+            >
+              Print certificates ({liveCerts})
+            </Link>
+          )}
         </div>
       </div>
 

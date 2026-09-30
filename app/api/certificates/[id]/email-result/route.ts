@@ -17,9 +17,8 @@ import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 import { blockIfFeatureOff } from "@/lib/features-gate";
 import { blockIfReadOnly } from "@/lib/readonly-gate";
-import { sendEmail, renderEmail } from "@/lib/email";
-import { renderExamBreakdownHtml } from "@/lib/exam-email-breakdown";
-import { resultRecipients, RESULT_RECIPIENT_SELECT } from "@/lib/result-recipients";
+import { RESULT_RECIPIENT_SELECT } from "@/lib/result-recipients";
+import { sendExamResultEmail } from "@/lib/result-email";
 
 const ALLOWED_ROLES = new Set([
   "SUPER_ADMIN",
@@ -79,65 +78,12 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       { status: 409 },
     );
   }
-  const recipients = resultRecipients(cert.rider);
-  if (recipients.length === 0) {
-    return NextResponse.json(
-      {
-        error: "NO_PARENT_EMAIL",
-        message: "No parent or rider email on file — link a parent or add an email on the rider profile first.",
-      },
-      { status: 409 },
-    );
+  const r = await sendExamResultEmail(cert.exam.id, session.userId);
+  if (!r.ok) {
+    return NextResponse.json({ error: r.code, message: r.message }, { status: r.code === "NOT_FOUND" ? 404 : 409 });
   }
+  const recipients = r.sentTo;
 
-  // The rubric snapshot is what the examiner scored against. Fall back to
-  // the live template for legacy exams that pre-date the snapshot column.
-  let rubricJson = cert.exam.rubricSnapshotJson as unknown;
-  if (!rubricJson) {
-    const t = await prisma.scoringTemplate.findUnique({
-      where: { centreId_levelKey: { centreId: cert.exam.centreId, levelKey: String(cert.exam.level) } },
-      select: { categoriesJson: true },
-    });
-    rubricJson = t?.categoriesJson ?? null;
-  }
-
-  const scores =
-    cert.exam.scoresJson && typeof cert.exam.scoresJson === "object" && !Array.isArray(cert.exam.scoresJson)
-      ? (cert.exam.scoresJson as Record<string, number | string>)
-      : {};
-  const breakdown = renderExamBreakdownHtml(rubricJson, scores);
-  const riderName = `${cert.rider.firstName} ${cert.rider.lastName}`;
-  const examDate = cert.exam.date.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-    // Date-only column stored as UTC midnight — format it in UTC so the day never shifts.
-    timeZone: "UTC",
-  });
-
-  // One email per recipient, so parents never see each other's address.
-  for (const to of recipients) {
-    await sendEmail({
-      to,
-      subject: `🎉 ${riderName} passed Level ${cert.exam.level}!`,
-      html: renderEmail({
-        centreName: cert.centre.name,
-        heading: `Congratulations — Level ${cert.exam.level} passed!`,
-        body: `<p>Dear Parent / Guardian,</p>
-<p>We are delighted to report that <b>${riderName}</b> successfully passed the Level ${cert.exam.level} examination on <b>${examDate}</b> with a score of <b>${cert.exam.totalScore ?? "—"}</b>.</p>
-<p>Examiner: <b>${cert.exam.examinerName}</b></p>
-${breakdown}
-<p>Certificate <span style="font-family:monospace">${cert.serialNo}</span> has been auto-issued and is ready for collection at the centre.</p>
-<p>Well done ${cert.rider.firstName}! 🐎</p>`,
-      }),
-      ref: { type: "exam.passed.manual", rowId: cert.id, payload: { certId: cert.id, examId: cert.exam.id, riderId: cert.rider.id } },
-    });
-  }
-
-  await prisma.certificate.update({
-    where: { id: cert.id },
-    data: { resultEmailSentAt: new Date(), resultEmailSentBy: session.userId },
-  });
   await audit({
     userId: session.userId,
     action: "certificate.email_result",

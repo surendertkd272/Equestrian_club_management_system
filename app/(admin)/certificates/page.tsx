@@ -76,8 +76,16 @@ export default async function CertificatesPage({
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="flex flex-wrap items-end justify-between gap-2">
         <h1 className="text-2xl font-bold">Certificates</h1>
+        {searchParams.batch && (
+          <Link
+            href={`/certificates/print?batch=${encodeURIComponent(searchParams.batch)}`}
+            className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted"
+          >
+            Print all in this batch
+          </Link>
+        )}
       </div>
 
       {canBulk && (

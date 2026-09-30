@@ -11,6 +11,7 @@ import { RescheduleForm, CancelSittingButton } from "../../exam-actions";
 import { SittingRidersTable, PickNextButton } from "./riders-table";
 import { PanelEditor, PoolEditor } from "../../panel-editor";
 import { AddLateRiders } from "../../add-riders";
+import { SendResultsButton } from "../../send-results-button";
 import { JudgeBadges, JudgeReadinessBanner, type JudgeRow } from "../../judge-readiness";
 import { examinerReadiness } from "@/lib/examiner-readiness";
 import { examinerLabel } from "@/lib/examiner-label";
@@ -77,6 +78,12 @@ export default async function SittingDetail({ params }: { params: { id: string }
   const waiting = sitting.exams.length - withResults;
   const startTime = sitting.exams[0]?.time ?? "09:00";
   const upcoming = sitting.date.toISOString().slice(0, 10) >= (await todayYmdForCentre(sitting.centreId));
+  const marked = sitting.exams.filter((e) => e.status === "completed");
+  const unsentResults = marked.filter((e) => !e.resultEmailSentAt).length;
+  const liveCerts = marked.length
+    ? await prisma.certificate.count({ where: { exam: { sittingId: sitting.id }, revokedAt: null } })
+    : 0;
+  const canPrintCerts = ["SUPER_ADMIN", "ADMIN", "CENTRE_MANAGER"].includes(session.role);
 
   const [template, judgeUsers, ladder] = await Promise.all([
     prisma.scoringTemplate.findUnique({
@@ -219,6 +226,15 @@ export default async function SittingDetail({ params }: { params: { id: string }
               />
             )}
             <CancelSittingButton sittingId={sitting.id} waiting={waiting} withResults={withResults} />
+            <SendResultsButton scope="sitting" id={sitting.id} unsent={unsentResults} marked={marked.length} />
+            {canPrintCerts && liveCerts > 0 && (
+              <Link
+                href={`/certificates/print?sitting=${sitting.id}`}
+                className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted"
+              >
+                Print certificates ({liveCerts})
+              </Link>
+            )}
             <Link
               href={`/exams/sittings/${sitting.id}/order`}
               className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted"
