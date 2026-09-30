@@ -145,6 +145,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       const fresh = await lockExam(tx, exam.id);
       if (!fresh) throw new ExamPanelError("NOT_FOUND", "This exam no longer exists.", 404);
       if (fresh.status === "completed") throw new ExamPanelError("ALREADY_COMPLETED", COMPLETED_MESSAGE, 409);
+      if (fresh.status === "absent") {
+        throw new ExamPanelError("RIDER_ABSENT", "This rider is marked absent. Undo that on the sitting page if they've arrived.", 409);
+      }
       const judgeRow = isCoJudgeCard ? fresh.judges.find((j) => j.judgeId === card.judgeId) : null;
       if (isCoJudgeCard && !judgeRow) {
         throw new ExamPanelError("JUDGE_NOT_ON_EXAM", "That judge is no longer on this exam's jury.", 400);
@@ -269,6 +272,9 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       const fresh = await lockExam(tx, exam.id);
       if (!fresh) throw new ExamPanelError("NOT_FOUND", "This exam no longer exists.", 404);
       if (fresh.status === "completed") throw new ExamPanelError("ALREADY_COMPLETED", COMPLETED_MESSAGE, 409);
+      if (fresh.status === "absent") {
+        throw new ExamPanelError("RIDER_ABSENT", "This rider is marked absent. Undo that on the sitting page if they've arrived.", 409);
+      }
       const judgeRow = card.judgeId ? fresh.judges.find((j) => j.judgeId === card.judgeId) : null;
       if (card.judgeId && !judgeRow) {
         throw new ExamPanelError("JUDGE_NOT_ON_EXAM", "That judge is no longer on this exam's jury.", 400);

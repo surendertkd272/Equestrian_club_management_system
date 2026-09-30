@@ -43,6 +43,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (exam.status === "completed") {
     return NextResponse.json({ error: "ALREADY_COMPLETED" }, { status: 409 });
   }
+  if (exam.status === "absent") {
+    return NextResponse.json(
+      { error: "RIDER_ABSENT", message: "This rider is marked absent. Undo that first if they've arrived." },
+      { status: 409 },
+    );
+  }
 
   const pool = exam.sitting.examiners;
   const isManager = MANAGER_ROLES.has(session.role);
@@ -77,7 +83,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   // Atomic first-come lock: only succeeds while the exam is still unassigned.
   const res = await prisma.exam.updateMany({
-    where: { id: exam.id, examinerId: null },
+    where: { id: exam.id, examinerId: null, status: { in: ["scheduled", "in_progress"] } },
     data: { examinerId: me.examinerId, examinerName: me.examinerName, status: "in_progress" },
   });
   if (res.count === 0) {

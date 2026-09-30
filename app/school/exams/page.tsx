@@ -75,6 +75,9 @@ export default async function SchoolExamsPage() {
         level: true,
         date: true,
         status: true,
+        time: true,
+        runOrder: true,
+        sitting: { select: { slotMinutes: true } },
         rider: { select: { firstName: true, lastName: true } },
       },
     }),
@@ -142,7 +145,10 @@ export default async function SchoolExamsPage() {
                     <span className="ml-2 text-xs text-muted-foreground">Level {e.level}</span>
                   </span>
                   <span className="flex items-center gap-2 text-xs">
-                    <span className="text-muted-foreground">{formatDate(e.date)}</span>
+                    <span className="text-muted-foreground">
+                      {formatDate(e.date)}
+                      {e.sitting?.slotMinutes ? ` · ${e.time}${e.runOrder ? ` (#${e.runOrder})` : ""}` : ""}
+                    </span>
                     <Badge variant="warning">{formatEnum(e.status)}</Badge>
                   </span>
                 </li>

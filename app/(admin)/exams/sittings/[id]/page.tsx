@@ -8,8 +8,8 @@ import { formatDate } from "@/lib/utils";
 import { can } from "@/lib/permissions";
 import { ExportCsvButton } from "@/components/ui/export-csv";
 import { RescheduleForm, CancelSittingButton } from "../../exam-actions";
-import { SittingRidersTable } from "./riders-table";
-import { PanelEditor } from "../../panel-editor";
+import { SittingRidersTable, PickNextButton } from "./riders-table";
+import { PanelEditor, PoolEditor } from "../../panel-editor";
 import { AddLateRiders } from "../../add-riders";
 import { JudgeBadges, JudgeReadinessBanner, type JudgeRow } from "../../judge-readiness";
 import { examinerReadiness } from "@/lib/examiner-readiness";
@@ -43,8 +43,9 @@ export default async function SittingDetail({ params }: { params: { id: string }
         include: {
           rider: { select: { firstName: true, lastName: true, school: true, schoolRef: { select: { name: true } } } },
           judges: { where: { judgeId: session.userId }, select: { submittedAt: true } },
+          horseAllocation: { select: { horse: { select: { name: true } } } },
         },
-        orderBy: { rider: { firstName: "asc" } },
+        orderBy: [{ runOrder: { sort: "asc", nulls: "last" } }, { rider: { firstName: "asc" } }],
       },
     },
   });
@@ -65,7 +66,8 @@ export default async function SittingDetail({ params }: { params: { id: string }
   ) {
     redirect("/exams");
   }
-  const unassigned = sitting.exams.filter((e) => !e.examinerId && e.status !== "completed").length;
+  const unassigned = sitting.exams.filter((e) => !e.examinerId && e.status === "scheduled").length;
+  const absentCount = sitting.exams.filter((e) => e.status === "absent").length;
   // Managers (anyone who can schedule exams) can move the sitting, cancel it,
   // or take a rider off it. A rider with a result on record stays put.
   const canSchedule = can(session.role, "exam.schedule");
@@ -108,6 +110,24 @@ export default async function SittingDetail({ params }: { params: { id: string }
   // People who could join the panel: this centre's eligible, active judges
   // whose access lasts to the exam, not already in the pool or on the panel.
   const taken = new Set([...sitting.examiners.map((x) => x.examinerId), ...sitting.panelJudgeIds]);
+  // Examiners who could join the pool: active, access lasting to the exam,
+  // not already in it or on the panel.
+  const poolCandidates = canSchedule
+    ? (
+        await prisma.user.findMany({
+          where: {
+            centreId: sitting.centreId,
+            role: "EXAMINER",
+            status: "active",
+            OR: [{ accessExpiresAt: null }, { accessExpiresAt: { gte: sitting.date } }],
+          },
+          select: { id: true, name: true, accessExpiresAt: true, mustChangePassword: true },
+          orderBy: { name: "asc" },
+        })
+      )
+        .filter((u) => !taken.has(u.id))
+        .map((u) => ({ id: u.id, label: examinerLabel(u) }))
+    : [];
   const panelCandidates = canPanel
     ? (
         await prisma.user.findMany({
@@ -149,7 +169,18 @@ export default async function SittingDetail({ params }: { params: { id: string }
     id: e.id,
     name: `${e.rider.firstName} ${e.rider.lastName}`,
     school: e.rider.schoolRef?.name ?? e.rider.school ?? "",
-    state: e.status === "completed" ? ("completed" as const) : !e.examinerId ? ("unassigned" as const) : ("marking" as const),
+    state:
+      e.status === "completed"
+        ? ("completed" as const)
+        : e.status === "absent"
+          ? ("absent" as const)
+          : !e.examinerId
+            ? ("unassigned" as const)
+            : ("marking" as const),
+    time: sitting.slotMinutes ? e.time : null,
+    runOrder: sitting.slotMinutes ? e.runOrder : null,
+    horse: e.horseAllocation?.horse.name ?? null,
+    canMarkAbsent: canSchedule || inPool,
     examinerName: e.examinerName,
     mine: e.examinerId === session.userId,
     myCard: e.judges[0] ? (e.judges[0].submittedAt ? ("done" as const) : ("todo" as const)) : null,
@@ -163,7 +194,8 @@ export default async function SittingDetail({ params }: { params: { id: string }
         <h1 className="text-2xl font-bold">Exam sitting — {title}</h1>
         <p className="text-sm text-muted-foreground">
           {formatDate(sitting.date)} · {sitting.exams.length} rider{sitting.exams.length === 1 ? "" : "s"} ·{" "}
-          {unassigned} waiting
+          {unassigned} waiting{absentCount ? ` · ${absentCount} absent` : ""}
+          {sitting.slotMinutes ? ` · ${sitting.slotMinutes}-minute slots` : ""}
         </p>
         {sitting.examDay && (
           <p className="mt-1 text-sm">
@@ -187,6 +219,12 @@ export default async function SittingDetail({ params }: { params: { id: string }
               />
             )}
             <CancelSittingButton sittingId={sitting.id} waiting={waiting} withResults={withResults} />
+            <Link
+              href={`/exams/sittings/${sitting.id}/order`}
+              className="inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium hover:bg-muted"
+            >
+              Running order &amp; horses
+            </Link>
             {ladder && (
               <AddLateRiders mode="sitting" sittingId={sitting.id} level={sitting.level} levelName={title} riders={lateRiders} />
             )}
@@ -201,8 +239,15 @@ export default async function SittingDetail({ params }: { params: { id: string }
           <CardTitle className="text-base">Examiner Pool</CardTitle>
           <CardDescription>Each examiner picks a rider from the queue and leads their card.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <JudgeBadges judges={poolRows} />
+          {canSchedule && (
+            <PoolEditor
+              sittingId={sitting.id}
+              pool={poolRows.map((j) => ({ id: j.id, name: j.name }))}
+              candidates={poolCandidates}
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -236,7 +281,13 @@ export default async function SittingDetail({ params }: { params: { id: string }
         <CardHeader>
           <CardTitle className="text-base">Riders</CardTitle>
           {inPool && unassigned > 0 && (
-            <p className="text-xs text-muted-foreground">Pick a rider to start marking — it locks to you.</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <PickNextButton sittingId={sitting.id} />
+              <p className="text-xs text-muted-foreground">
+                {sitting.slotMinutes ? "Takes the next rider in the running order" : "Or pick a rider below"} — it
+                locks to you.
+              </p>
+            </div>
           )}
           {onPanel && (
             <p className="text-xs text-muted-foreground">You&rsquo;re on this sitting&rsquo;s panel — mark your card for each rider.</p>

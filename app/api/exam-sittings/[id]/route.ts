@@ -10,6 +10,8 @@ import { audit } from "@/lib/audit";
 import { parseDateOnly } from "@/lib/schemas/attendance";
 import { ExamPanelError, notifyIfSittingComplete } from "@/lib/exam-panel";
 import { OPEN_EXAM_STATUSES, removableExamInclude, removalProblem, removalSnapshot } from "@/lib/exam-schedule";
+import { shiftTime, syncExamHorsesTx, toMinutes } from "@/lib/exam-running-order";
+import { resolveCentreTz } from "@/lib/centre-tz";
 
 const patchSchema = z
   .object({
@@ -65,6 +67,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const d = parsed.data;
 
   let moved = 0;
+  let released: { examId: string; horse: string; reason: string }[] = [];
   let before: { date: Date; notes: string | null };
   try {
     ({ moved, before } = await prisma.$transaction(async (tx) => {
@@ -98,17 +101,38 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       });
       let count = 0;
       if (d.date || d.time) {
-        const res = await tx.exam.updateMany({
+        const open = await tx.exam.findMany({
           where: { sittingId: sitting.id, status: { in: OPEN_EXAM_STATUSES }, reopenedAt: null },
-          data: {
-            ...(d.date ? { date: parseDateOnly(d.date) } : {}),
-            ...(d.time ? { time: d.time } : {}),
-          },
+          select: { id: true, time: true },
         });
-        count = res.count;
+        // With a running order each rider has their own slot: move them all by
+        // the same amount rather than stacking everyone on the new start time.
+        const delta =
+          d.time && sitting.slotMinutes && open.length
+            ? toMinutes(d.time) - Math.min(...open.map((e) => toMinutes(e.time)))
+            : null;
+        if (delta !== null) {
+          for (const e of open) {
+            await tx.exam.update({
+              where: { id: e.id },
+              data: { time: shiftTime(e.time, delta), ...(d.date ? { date: parseDateOnly(d.date) } : {}) },
+            });
+          }
+        } else {
+          await tx.exam.updateMany({
+            where: { id: { in: open.map((e) => e.id) } },
+            data: {
+              ...(d.date ? { date: parseDateOnly(d.date) } : {}),
+              ...(d.time ? { time: d.time } : {}),
+            },
+          });
+        }
+        count = open.length;
+        // Booked horses follow their rider's new slot (or are released on a clash).
+        released = await syncExamHorsesTx(tx, open.map((e) => e.id), await resolveCentreTz(sitting.centreId));
       }
       return { moved: count, before: { date: sitting.date, notes: sitting.notes } };
-    }));
+    }, { timeout: 30_000 }));
   } catch (e) {
     return panelErrorResponse(e);
   }
@@ -119,9 +143,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     tableName: "examSitting",
     rowId: g.sitting.id,
     before,
-    after: { ...d, examsMoved: moved },
+    after: { ...d, examsMoved: moved, horsesReleased: released.length },
   });
-  return NextResponse.json({ ok: true, examsMoved: moved });
+  return NextResponse.json({ ok: true, examsMoved: moved, horsesReleased: released });
 }
 
 // DELETE — cancel the sitting: every rider still waiting is taken off the

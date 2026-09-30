@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { patchJson, deleteJson } from "@/lib/client/post-json";
@@ -11,6 +11,41 @@ import { Save, FileEdit, RotateCcw } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
 
 type SubmitResult = { passed?: boolean | null; completed?: boolean; waitingFor?: string[] };
+type Card = { scores: Record<string, number | string>; deductions: number; timeFaults: number };
+type LocalCopy = Card & { at: number };
+
+// A judge marks on a phone in the arena, where the signal comes and goes.
+// Marks used to live only in the open page until Save was pressed: a failed
+// save followed by a reload lost the card. Now every change is also kept on
+// the phone (localStorage, per judge per exam) until the server has it, and
+// drafts save themselves when the judge pauses and whenever the connection
+// comes back. Wrapped in try/catch: storage can be full, blocked or private.
+const AUTOSAVE_MS = 15_000;
+const localKey = (cardKey: string) => `ew:exam-card:${cardKey}`;
+function readLocal(cardKey: string): LocalCopy | null {
+  try {
+    const raw = window.localStorage.getItem(localKey(cardKey));
+    return raw ? (JSON.parse(raw) as LocalCopy) : null;
+  } catch {
+    return null;
+  }
+}
+function writeLocal(cardKey: string, c: LocalCopy) {
+  try {
+    window.localStorage.setItem(localKey(cardKey), JSON.stringify(c));
+  } catch {
+    /* storage full or blocked — the in-page copy still stands */
+  }
+}
+function clearLocal(cardKey: string) {
+  try {
+    window.localStorage.removeItem(localKey(cardKey));
+  } catch {
+    /* ignore */
+  }
+}
+const sameCard = (a: Card, b: Card) =>
+  JSON.stringify(a.scores) === JSON.stringify(b.scores) && a.deductions === b.deductions && a.timeFaults === b.timeFaults;
 
 export function ExamScorer({
   examId,
@@ -26,7 +61,10 @@ export function ExamScorer({
   cardSubmitted = false,
   waitingFor = [],
   canReopen = false,
+  cardKey,
 }: {
+  // Identifies this judge's card on this exam, for the copy kept on the phone.
+  cardKey: string;
   examId: string;
   status: string;
   rubric: RubricCategory[];
@@ -71,6 +109,11 @@ export function ExamScorer({
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(
     Object.keys(initialScores).length > 0 ? new Date() : null,
   );
+  // "offline": the last autosave couldn't reach the server — marks are safe
+  // on the phone and go up when the connection is back.
+  const [sync, setSync] = useState<"idle" | "saving" | "offline" | "error">("idle");
+  const [restoredAt, setRestoredAt] = useState<number | null>(null);
+  const busyRef = useRef(false);
   const isCompleted = status === "completed";
   const locked = isCompleted || cardSubmitted;
   const adjusted = Math.max(0, total - deductions - timeFaults);
@@ -82,6 +125,94 @@ export function ExamScorer({
     JSON.stringify(scores) !== JSON.stringify(savedSnapshot.scores) ||
     deductions !== savedSnapshot.deductions ||
     timeFaults !== savedSnapshot.timeFaults;
+
+  // On opening: a copy on this phone that the server never got (a save that
+  // failed, a reload, a dead battery) is put back on the card.
+  useEffect(() => {
+    if (locked) {
+      clearLocal(cardKey);
+      return;
+    }
+    const local = readLocal(cardKey);
+    if (!local) return;
+    const server = { scores: initialScores, deductions: initialDeductions ?? 0, timeFaults: initialTimeFaults ?? 0 };
+    if (sameCard(local, server)) {
+      clearLocal(cardKey);
+      return;
+    }
+    setEngineInitial(local.scores);
+    setScores(local.scores);
+    setDeductions(local.deductions);
+    setTimeFaults(local.timeFaults);
+    setEngineKey((k) => k + 1);
+    setRestoredAt(local.at);
+    // Once, on mount — the server copy it compares against is the initial one.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep the phone's copy current while there are unsaved marks.
+  useEffect(() => {
+    if (locked || !isDirty) return;
+    writeLocal(cardKey, { scores, deductions, timeFaults, at: Date.now() });
+  }, [cardKey, locked, isDirty, scores, deductions, timeFaults]);
+
+  const body = useCallback(
+    (final: boolean, allowIncomplete = false) => ({
+      scores,
+      final,
+      ...(allowIncomplete ? { allowIncomplete: true } : {}),
+      ...(judgeId ? { judgeId } : {}),
+      ...(canEditAdjustments ? { deductions, timeFaults } : {}),
+    }),
+    [scores, judgeId, canEditAdjustments, deductions, timeFaults],
+  );
+
+  // Quiet draft save: no toasts, just the status line.
+  const autosave = useCallback(async () => {
+    if (busyRef.current || locked) return;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      setSync("offline");
+      return;
+    }
+    busyRef.current = true;
+    setSync("saving");
+    const sent = { scores: { ...scores }, deductions, timeFaults };
+    const res = await patchJson<SubmitResult>(`/api/exams/${examId}/score`, body(false));
+    busyRef.current = false;
+    if (!res.ok) {
+      setSync(res.status === 0 ? "offline" : "error");
+      return;
+    }
+    setSavedSnapshot(sent);
+    setLastSavedAt(new Date());
+    setSync("idle");
+    setRestoredAt(null);
+    // Only drop the phone copy if nothing changed while the save was in flight.
+    const local = readLocal(cardKey);
+    if (!local || sameCard(local, sent)) clearLocal(cardKey);
+  }, [busyRef, locked, scores, deductions, timeFaults, examId, body, cardKey]);
+
+  // Save a draft by itself once the judge pauses.
+  useEffect(() => {
+    if (!isDirty || locked) return;
+    const t = setTimeout(autosave, AUTOSAVE_MS);
+    return () => clearTimeout(t);
+  }, [isDirty, locked, autosave]);
+
+  // Connection back, or the phone about to sleep: save now.
+  useEffect(() => {
+    if (!isDirty || locked) return;
+    const onOnline = () => void autosave();
+    const onHide = () => {
+      if (document.visibilityState === "hidden") void autosave();
+    };
+    window.addEventListener("online", onOnline);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      window.removeEventListener("online", onOnline);
+      document.removeEventListener("visibilitychange", onHide);
+    };
+  }, [isDirty, locked, autosave]);
 
   // Warn the examiner before closing the tab when there are unsaved
   // changes — the bridge case the user flagged where an exam halts and
@@ -99,15 +230,16 @@ export function ExamScorer({
 
   async function save(final: boolean, allowIncomplete = false) {
     setBusy(final ? "submit" : "draft");
-    const res = await patchJson<SubmitResult>(`/api/exams/${examId}/score`, {
-      scores,
-      final,
-      ...(allowIncomplete ? { allowIncomplete: true } : {}),
-      ...(judgeId ? { judgeId } : {}),
-      ...(canEditAdjustments ? { deductions, timeFaults } : {}),
-    });
+    busyRef.current = true;
+    const res = await patchJson<SubmitResult>(`/api/exams/${examId}/score`, body(final, allowIncomplete));
+    busyRef.current = false;
     setBusy(null);
     if (!res.ok) {
+      if (res.status === 0) {
+        setSync("offline");
+        toast.error("No connection — your marks are kept on this phone and will save when you're back online.");
+        return;
+      }
       // Submitting a partially-filled card is irreversible and scores the
       // blanks as zero, so make the examiner say so out loud rather than
       // discovering it after the parents have been notified.
@@ -130,6 +262,9 @@ export function ExamScorer({
     }
     setSavedSnapshot({ scores: { ...scores }, deductions, timeFaults });
     setLastSavedAt(new Date());
+    setSync("idle");
+    setRestoredAt(null);
+    clearLocal(cardKey);
     if (final) {
       if (res.data.completed === false) {
         const names = res.data.waitingFor ?? [];
@@ -169,6 +304,8 @@ export function ExamScorer({
       return;
     }
     toast.success("Draft reset");
+    clearLocal(cardKey);
+    setRestoredAt(null);
     setScores({});
     setTotal(0);
     setSavedSnapshot({ scores: {}, deductions, timeFaults });
@@ -178,8 +315,30 @@ export function ExamScorer({
     router.refresh();
   }
 
+  function discardRestored() {
+    clearLocal(cardKey);
+    setRestoredAt(null);
+    setEngineInitial(savedSnapshot.scores);
+    setScores(savedSnapshot.scores);
+    setDeductions(savedSnapshot.deductions);
+    setTimeFaults(savedSnapshot.timeFaults);
+    setEngineKey((k) => k + 1);
+  }
+
   return (
     <div className="space-y-4">
+      {restoredAt && !locked && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-warning/40 bg-warning-soft px-3 py-2 text-sm" role="status">
+          <span>
+            Put back marks this phone kept at{" "}
+            {new Date(restoredAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} that hadn&rsquo;t
+            reached the server. They save by themselves, or press Save draft.
+          </span>
+          <Button size="sm" variant="ghost" onClick={discardRestored}>
+            Discard them
+          </Button>
+        </div>
+      )}
       <ScoringEngine
         key={engineKey}
         rubricConfig={rubric}
@@ -226,7 +385,13 @@ export function ExamScorer({
       <div className="sticky bottom-2 space-y-2 rounded-lg border bg-card p-2.5 shadow-lg sm:bottom-4 sm:p-4">
         {!locked && (
           <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-2 py-1 text-[11px]">
-            {isDirty ? (
+            {isDirty && sync === "offline" ? (
+              <span className="font-semibold text-amber-700">● Offline — kept on this phone</span>
+            ) : isDirty && sync === "saving" ? (
+              <span className="text-muted-foreground">Saving…</span>
+            ) : isDirty && sync === "error" ? (
+              <span className="font-semibold text-destructive">● Couldn&rsquo;t save — press Save draft</span>
+            ) : isDirty ? (
               <span className="font-semibold text-amber-700">● Unsaved changes</span>
             ) : lastSavedAt ? (
               <span className="text-emerald-700">✓ Saved</span>

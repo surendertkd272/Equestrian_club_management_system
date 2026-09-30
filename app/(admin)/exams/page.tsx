@@ -227,6 +227,7 @@ export default async function ExamsPage({
                 <option value="scheduled">Scheduled</option>
                 <option value="in_progress">In Progress</option>
                 <option value="completed">Completed</option>
+                <option value="absent">Absent</option>
               </select>
             </div>
             <div>
