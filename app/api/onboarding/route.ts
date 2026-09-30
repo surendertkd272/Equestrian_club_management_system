@@ -97,7 +97,6 @@ export async function POST(req: NextRequest) {
     const missing: string[] = [];
     if (!d.parentName) missing.push("parentName");
     if (!d.parentRelation) missing.push("parentRelation");
-    if (!d.parentPhone) missing.push("parentPhone");
     if (d.parentConsentAgreed !== true) missing.push("parentConsentAgreed");
     if (missing.length > 0) {
       return NextResponse.json(
@@ -113,7 +112,7 @@ export async function POST(req: NextRequest) {
       signedAt: new Date().toISOString(),
       parentName: d.parentName,
       parentRelation: d.parentRelation,
-      parentPhone: d.parentPhone,
+      parentPhone: d.parentPhone || null,
       parentEmail: d.parentEmail || null,
       ip,
       ua,

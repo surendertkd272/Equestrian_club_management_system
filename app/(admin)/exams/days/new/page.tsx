@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 // Book one exam day: every rider sitting that date, each at their own level,
 // with an examiner pool per level. The server creates one sitting per level.
-export default async function NewExamDayPage() {
+export default async function NewExamDayPage({ searchParams }: { searchParams: { resit?: string } }) {
   const session = await requireSession();
   if (!can(session.role, "exam.schedule")) redirect("/exams");
   const orgId = await getOrgIdForSession(session);
@@ -38,8 +38,8 @@ export default async function NewExamDayPage() {
     prisma.rider.findMany({
       where: { centreId, status: { not: "withdrawn" } },
       select: {
-        id: true, firstName: true, lastName: true, currentLevel: true, status: true,
-        school: true, schoolRef: { select: { name: true } },
+        id: true, firstName: true, lastName: true, currentLevel: true, status: true, schoolClass: true, examReadyLevel: true,
+        school: true, schoolRef: { select: { name: true } }, batch: { select: { name: true } },
       },
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
@@ -54,6 +54,30 @@ export default async function NewExamDayPage() {
     }),
     levelLadder(prisma, centreId),
   ]);
+  // Re-sits: a rider whose latest exam was not passed, or who was absent,
+  // and who isn't booked again yet. Coach nominations take precedence.
+  const [lastExams, openBookings] = await Promise.all([
+    prisma.exam.findMany({
+      where: { centreId, OR: [{ status: "absent" }, { status: "completed", passed: false }, { status: "completed", passed: true }] },
+      orderBy: { date: "desc" },
+      select: { riderId: true, level: true, status: true, passed: true, sitting: { select: { examDayId: true } } },
+    }),
+    prisma.exam.findMany({ where: { centreId, status: { in: ["scheduled", "in_progress"] } }, select: { riderId: true } }),
+  ]);
+  const booked = new Set(openBookings.map((e) => e.riderId));
+  const latest = new Map<string, (typeof lastExams)[number]>();
+  for (const e of lastExams) if (!latest.has(e.riderId)) latest.set(e.riderId, e);
+  const resitOf = (riderId: string) => {
+    const e = latest.get(riderId);
+    return e && !booked.has(riderId) && (e.status === "absent" || e.passed === false) ? e.level : null;
+  };
+  // "Book re-sits" from a finished day pre-fills its riders who didn't pass or were absent.
+  const initialAssign: Record<string, number> = {};
+  if (searchParams.resit) {
+    for (const e of lastExams) {
+      if (e.sitting?.examDayId === searchParams.resit && resitOf(e.riderId) === e.level) initialAssign[e.riderId] = e.level;
+    }
+  }
   const levels = Array.from(ladder.byRank.entries())
     .sort((a, b) => a[0] - b[0])
     .map(([rank, t]) => ({ rank, name: t.levelName }));
@@ -89,14 +113,23 @@ export default async function NewExamDayPage() {
           <NewExamDayForm
             levels={levels}
             examiners={examiners.map((u) => ({ id: u.id, name: examinerLabel(u) }))}
-            riders={riders.map((r) => ({
-              id: r.id,
-              name: `${r.firstName} ${r.lastName}`,
-              school: r.schoolRef?.name ?? r.school ?? "",
-              currentLevel: r.currentLevel,
-              suggested: suggestedLevel(ladder, r.currentLevel),
-              blocked: bookingBlockReason(r.status),
-            }))}
+            initialAssign={initialAssign}
+            riders={riders.map((r) => {
+              const resit = resitOf(r.id);
+              const nominated = r.examReadyLevel && ladder.byRank.has(r.examReadyLevel) ? r.examReadyLevel : null;
+              return {
+                id: r.id,
+                name: `${r.firstName} ${r.lastName}`,
+                school: r.schoolRef?.name ?? r.school ?? "",
+                schoolClass: r.schoolClass ?? "",
+                batch: r.batch?.name ?? "",
+                currentLevel: r.currentLevel,
+                suggested: nominated ?? resit ?? suggestedLevel(ladder, r.currentLevel),
+                resit,
+                nominated,
+                blocked: bookingBlockReason(r.status),
+              };
+            })}
           />
         </CardContent>
       </Card>

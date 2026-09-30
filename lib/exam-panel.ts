@@ -354,6 +354,10 @@ async function sendResultNotifications(
   // A rider marked in a sitting is covered by the sitting's summary; the
   // manager still hears about every correction individually.
   const tellManager = !exam.sittingId || corrected;
+  // A sitting holding its results tells the family only when a manager
+  // publishes them (announceResults), so a result corrected on the day never
+  // reaches a parent first as the wrong one.
+  const held = await resultsHeld(exam.sittingId);
 
   if (passed === true) {
     if (tellManager) await notifyCentreManager(exam.centreId, {
@@ -367,6 +371,51 @@ async function sendResultNotifications(
       link: `/exams/${exam.id}`,
       payload: { examId: exam.id, riderId: exam.riderId, totalScore: total, max },
     });
+    if (!held) await tellFamilyResult(exam, { total, max, passed: true, corrected, certificateMinted: r.certificateMinted }, riderName, parentPhone);
+  } else {
+    if (tellManager) await notifyCentreManager(exam.centreId, {
+      type: "exam.failed",
+      title: corrected
+        ? `${riderName}'s Level ${exam.level} result was corrected — did not pass`
+        : `${riderName} did not pass Level ${exam.level}`,
+      body:
+        `Score ${total} / ${max}. Coach can re-schedule.` +
+        (r.revokedCertificateIds.length > 0 ? " The certificate from the earlier result was revoked." : ""),
+      link: `/exams/${exam.id}`,
+      payload: { examId: exam.id, riderId: exam.riderId, totalScore: total, max },
+    });
+    if (!held) await tellFamilyResult(exam, { total, max, passed: false, corrected, certificateMinted: false }, riderName, parentPhone);
+  }
+  // The examiner who pressed Submit already saw the result on screen.
+  if (exam.examinerId && exam.examinerId !== actorUserId) {
+    await notify({
+      userId: exam.examinerId,
+      centreId: exam.centreId,
+      type: passed ? "exam.passed" : "exam.failed",
+      title: `Exam submitted — ${passed ? "PASS" : "FAIL"}`,
+      body: `${riderName} · Level ${exam.level} · ${total}/${max}`,
+      link: `/exams/${exam.id}`,
+    });
+  }
+}
+
+// Is this sitting holding its results back from families?
+export async function resultsHeld(sittingId: string | null): Promise<boolean> {
+  if (!sittingId) return false;
+  const s = await prisma.examSitting.findUnique({ where: { id: sittingId }, select: { holdResults: true, resultsPublishedAt: true } });
+  return !!s?.holdResults && !s.resultsPublishedAt;
+}
+
+// What the rider and their family hear about a result: in-app for both, and
+// for a pass an SMS + WhatsApp to the parent.
+async function tellFamilyResult(
+  exam: { id: string; centreId: string; riderId: string; level: number },
+  r: { total: number; max: number; passed: boolean; corrected: boolean; certificateMinted: boolean },
+  riderName: string,
+  parentPhone: string | null | undefined,
+): Promise<void> {
+  const { total, max, corrected } = r;
+  if (r.passed) {
     // In-app notification to the rider (student portal) and every linked parent.
     await notifyRiderAndParents(exam.riderId, {
       centreId: exam.centreId,
@@ -403,17 +452,6 @@ async function sendResultNotifications(
       });
     }
   } else {
-    if (tellManager) await notifyCentreManager(exam.centreId, {
-      type: "exam.failed",
-      title: corrected
-        ? `${riderName}'s Level ${exam.level} result was corrected — did not pass`
-        : `${riderName} did not pass Level ${exam.level}`,
-      body:
-        `Score ${total} / ${max}. Coach can re-schedule.` +
-        (r.revokedCertificateIds.length > 0 ? " The certificate from the earlier result was revoked." : ""),
-      link: `/exams/${exam.id}`,
-      payload: { examId: exam.id, riderId: exam.riderId, totalScore: total, max },
-    });
     // No "you failed" SMS — the coach delivers that in person. Parents get a
     // softer in-app message so they're informed without an SMS ping.
     await notifyRiderAndParents(exam.riderId, {
@@ -427,15 +465,29 @@ async function sendResultNotifications(
       payload: { examId: exam.id },
     });
   }
-  // The examiner who pressed Submit already saw the result on screen.
-  if (exam.examinerId && exam.examinerId !== actorUserId) {
-    await notify({
-      userId: exam.examinerId,
-      centreId: exam.centreId,
-      type: passed ? "exam.passed" : "exam.failed",
-      title: `Exam submitted — ${passed ? "PASS" : "FAIL"}`,
-      body: `${riderName} · Level ${exam.level} · ${total}/${max}`,
-      link: `/exams/${exam.id}`,
-    });
+}
+
+// Publishing a held sitting: every result in it goes to the families now.
+export async function announceResults(examIds: string[]): Promise<number> {
+  const exams = await prisma.exam.findMany({
+    where: { id: { in: examIds }, status: "completed" },
+    select: {
+      id: true, centreId: true, riderId: true, level: true, totalScore: true, passed: true, rubricSnapshotJson: true,
+      rider: { select: { firstName: true, lastName: true, mobile: true, fatherPhone: true, motherPhone: true } },
+    },
+  });
+  for (const e of exams) {
+    const { max } = computeTotal(parseRubric(e.rubricSnapshotJson), {});
+    try {
+      await tellFamilyResult(
+        e,
+        { total: e.totalScore ?? 0, max, passed: e.passed === true, corrected: false, certificateMinted: e.passed === true },
+        `${e.rider.firstName} ${e.rider.lastName}`,
+        e.rider.fatherPhone ?? e.rider.motherPhone ?? e.rider.mobile,
+      );
+    } catch (err) {
+      console.warn("[exam-panel] announce failed", e.id, err);
+    }
   }
+  return exams.length;
 }

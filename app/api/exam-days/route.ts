@@ -40,6 +40,8 @@ const schema = z.object({
   // Optional jury panel per level: co-judges on every rider of that level.
   panels: z.record(z.array(z.string().min(1)).max(MAX_EXAMINERS_PER_POOL)).optional(),
   allowSkipLevels: z.boolean().optional(),
+  // Keep results off the family views until a manager publishes them.
+  holdResults: z.boolean().optional(),
   centreId: z.string().optional(),
 });
 
@@ -94,7 +96,7 @@ export async function POST(req: NextRequest) {
 
     const result = await prisma.$transaction(async (tx) => {
       const day = await tx.examDay.create({
-        data: { centreId, name: d.name, date, time: d.time, notes: d.notes ?? null, createdBy: session.userId },
+        data: { centreId, name: d.name, date, time: d.time, notes: d.notes ?? null, createdBy: session.userId, holdResults: !!d.holdResults },
       });
       const sittings: { level: number; group: number | null; id: string; riders: number }[] = [];
       for (const level of levels) {
@@ -109,6 +111,7 @@ export async function POST(req: NextRequest) {
             notes: d.notes ?? null,
             examDayId: day.id,
             groupNo: group,
+            holdResults: !!d.holdResults,
             pool: pools.get(level)!,
             panel: panels.get(level)!,
             riderIds,

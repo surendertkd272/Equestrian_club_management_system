@@ -4,6 +4,7 @@
 // session role alone, since access is gated on the explicit ParentLink row.
 
 import { prisma } from "./prisma";
+import { familyExamWhere, familyCertWhere } from "@/lib/exam-visibility";
 import { bindTenantOrg, runWithRlsBypass } from "./tenant-context";
 
 export type ChildSummary = {
@@ -65,7 +66,7 @@ export async function getParentChildren(parentUserId: string): Promise<ChildSumm
       select: { riderId: true, date: true },
     }),
     prisma.certificate.findMany({
-      where: { riderId: { in: riderIds } },
+      where: { riderId: { in: riderIds }, ...familyCertWhere },
       orderBy: { issuedAt: "desc" },
       select: { riderId: true, serialNo: true },
     }),
@@ -162,7 +163,7 @@ export async function getChildDetail(parentUserId: string, riderId: string) {
       orderBy: { updatedAt: "desc" },
     }),
     prisma.exam.findMany({
-      where: { riderId },
+      where: { riderId, ...familyExamWhere },
       orderBy: { date: "desc" },
       select: {
         id: true, date: true, level: true, status: true, totalScore: true, passed: true, examinerName: true,
@@ -174,7 +175,7 @@ export async function getChildDetail(parentUserId: string, riderId: string) {
       take: 10,
     }),
     prisma.certificate.findMany({
-      where: { riderId },
+      where: { riderId, ...familyCertWhere },
       orderBy: { issuedAt: "desc" },
       select: { id: true, serialNo: true, levelName: true, type: true, issuedAt: true },
     }),

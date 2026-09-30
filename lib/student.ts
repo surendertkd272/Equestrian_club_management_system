@@ -3,6 +3,7 @@
 // the route handler passes session.userId and we resolve from there.
 
 import { prisma } from "./prisma";
+import { familyExamWhere, familyCertWhere } from "@/lib/exam-visibility";
 import { bindTenantOrg, runWithRlsBypass } from "./tenant-context";
 
 // Canonical month key for the monthly-skill catalog ("YYYY-MM"), in IST so it
@@ -60,7 +61,7 @@ export async function getStudentSummary(userId: string) {
       select: { date: true, level: true, examinerName: true },
     }),
     prisma.certificate.findFirst({
-      where: { riderId: rider.id },
+      where: { riderId: rider.id, ...familyCertWhere },
       orderBy: { issuedAt: "desc" },
       select: { serialNo: true, levelName: true, issuedAt: true },
     }),
@@ -113,13 +114,13 @@ export async function getStudentDetail(userId: string) {
       include: { marks: { where: { riderId: rider.id }, select: { rating: true, coachNotes: true } } },
     }),
     prisma.exam.findMany({
-      where: { riderId: rider.id },
+      where: { riderId: rider.id, ...familyExamWhere },
       orderBy: { date: "desc" },
       take: 8,
       select: { id: true, date: true, level: true, status: true, totalScore: true, passed: true, examinerName: true },
     }),
     prisma.certificate.findMany({
-      where: { riderId: rider.id },
+      where: { riderId: rider.id, ...familyCertWhere },
       orderBy: { issuedAt: "desc" },
       select: { id: true, serialNo: true, levelName: true, type: true, issuedAt: true },
     }),

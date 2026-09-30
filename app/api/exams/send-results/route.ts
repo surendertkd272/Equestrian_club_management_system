@@ -47,6 +47,12 @@ export async function POST(req: NextRequest) {
   if (fence) return NextResponse.json({ error: fence }, { status: 403 });
 
   const inScope = d.scope === "sitting" ? { sittingId: d.id } : { sitting: { examDayId: d.id } };
+  const heldCount = await prisma.examSitting.count({
+    where: { ...(d.scope === "sitting" ? { id: d.id } : { examDayId: d.id }), holdResults: true, resultsPublishedAt: null },
+  });
+  if (heldCount > 0) {
+    return NextResponse.json({ error: "RESULTS_HELD", message: "These results are held — publish them first." }, { status: 409 });
+  }
   const due = {
     ...inScope,
     status: "completed",

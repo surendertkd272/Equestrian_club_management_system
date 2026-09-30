@@ -82,7 +82,7 @@ export default async function StudentHome() {
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
-    loadRiderExamHistory(rider.id, rider.centreId, { take: 10 }),
+    loadRiderExamHistory(rider.id, rider.centreId, { take: 10, familyView: true }),
   ]);
 
   return (
@@ -348,7 +348,10 @@ export default async function StudentHome() {
                       <span>
                         <Badge variant="outline">{formatEnum(c.type)}</Badge> {c.levelName}
                       </span>
-                      <span className="font-mono text-xs text-muted-foreground">
+                      <span className="flex items-center gap-2 font-mono text-xs text-muted-foreground">
+                        <Link href={`/student/certificates/${c.id}`} className="font-sans text-primary underline">
+                          View / print
+                        </Link>
                         {c.serialNo} · {formatDate(c.issuedAt)}
                       </span>
                     </li>

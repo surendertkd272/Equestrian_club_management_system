@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { familyExamWhere } from "@/lib/exam-visibility";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -46,6 +47,7 @@ export default async function SchoolExamsPage() {
         rider: ctx.riderWhere,
         status: "completed",
         totalScore: { not: null },
+        ...familyExamWhere,
       },
       orderBy: [{ level: "asc" }, { totalScore: "desc" }],
       select: {
@@ -63,7 +65,7 @@ export default async function SchoolExamsPage() {
     // Every scored exam at the CENTRE, for ranking only. Scores and levels
     // only — no names, no rider ids leave this query into the page.
     prisma.exam.findMany({
-      where: { centreId: ctx.centreId, status: "completed", totalScore: { not: null } },
+      where: { centreId: ctx.centreId, status: "completed", totalScore: { not: null }, ...familyExamWhere },
       select: { level: true, totalScore: true },
     }),
     prisma.exam.findMany({

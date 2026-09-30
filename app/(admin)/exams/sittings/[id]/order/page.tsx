@@ -10,6 +10,7 @@ import { resolveCentreTz } from "@/lib/centre-tz";
 import { startOfDayInTz, endOfDayInTz } from "@/lib/tz";
 import { DEFAULT_WORKLOAD_CAP_MIN } from "@/lib/schemas/horse";
 import { RunningOrderEditor } from "./editor";
+import { SlotNoticeButton } from "../../../slot-notice-button";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,10 @@ export default async function RunningOrderPage({ params }: { params: { id: strin
   }
   const held = new Set(holds.map((h) => h.horseId));
   const title = sittingLabel(template?.levelName ?? `Level ${sitting.level}`, sitting.groupNo);
+  const slotKey = (e: (typeof sitting.exams)[number]) => `${e.date.toISOString().slice(0, 10)} ${e.time}`;
+  const waitingExams = sitting.slotMinutes ? sitting.exams.filter((e) => e.status === "scheduled") : [];
+  const freshSlots = waitingExams.filter((e) => !e.slotNotified).length;
+  const changedSlots = waitingExams.filter((e) => e.slotNotified && e.slotNotified !== slotKey(e)).length;
   const firstSlot = sitting.exams.find((e) => e.runOrder)?.time ?? sitting.examDay?.time ?? sitting.exams[0]?.time ?? "09:00";
 
   return (
@@ -92,6 +97,7 @@ export default async function RunningOrderPage({ params }: { params: { id: strin
           {sitting.slotMinutes ? ` · ${sitting.slotMinutes}-minute slots` : " · no running order yet"}
         </p>
       </div>
+      {canEdit && <SlotNoticeButton scope="sitting" id={sitting.id} fresh={freshSlots} changed={changedSlots} />}
       <RunningOrderEditor
         sittingId={sitting.id}
         title={title}

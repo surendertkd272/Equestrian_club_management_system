@@ -46,7 +46,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const d = parsed.data;
   const day = await prisma.examDay.findUnique({
     where: { id: params.id },
-    select: { id: true, centreId: true, date: true, time: true },
+    select: { id: true, centreId: true, date: true, time: true, holdResults: true },
   });
   if (!day) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
   const fence = await centreFence(session, day.centreId);
@@ -113,7 +113,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           const group = numbered ? ++next : null;
           const id = await createSittingTx(tx, {
             centreId: day.centreId, level, date: day.date, time: day.time, examDayId: day.id,
-            groupNo: group, pool, panel, riderIds: ids,
+            groupNo: group, holdResults: day.holdResults, pool, panel, riderIds: ids,
             rubric: ladder.byRank.get(level)!.categoriesJson, priorFails,
           });
           out.push({ level, sittingId: id, group, added: ids.length, newSitting: true });

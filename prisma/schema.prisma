@@ -944,6 +944,11 @@ model Rider {
   allergies              String?
   // Riding profile
   currentLevel           String? // links logically to ProgressLevel.name
+  // A coach saying the rider is ready to sit a level (its rank on the ladder).
+  examReadyLevel         Int?
+  examReadyAt            DateTime?
+  examReadyBy            String?
+  examReadyNote          String?
   joiningDate            DateTime  @default(now())
   batchId                String?
   coachId                String?
@@ -2302,6 +2307,12 @@ model Exam {
   // When the result (pass or not) was last emailed to the family, and by whom.
   resultEmailSentAt  DateTime?
   resultEmailSentBy  String?
+  // Arrived at the gate on the exam day (null = not checked in).
+  checkedInAt        DateTime?
+  // The slot ("YYYY-MM-DD HH:MM") last sent to the family, and when — so a
+  // later change can be spotted and sent as an update.
+  slotNotified       String?
+  slotNotifiedAt     DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -2386,6 +2397,9 @@ model ExamSitting {
   groupNo             Int?
   // Minutes per rider in the running order; null = no running order yet.
   slotMinutes         Int?
+  // Results held back from families until a manager publishes them.
+  holdResults         Boolean   @default(false)
+  resultsPublishedAt  DateTime?
   // The sitting's jury panel: judges seated as co-judges on EVERY rider in
   // the sitting (on top of whichever pool examiner leads each one). Riders
   // added later get them too. Never overlaps the claim pool.
@@ -2415,6 +2429,8 @@ model ExamDay {
   createdBy           String?
   // Set once when the last rider of the day is marked (one summary message).
   completedNotifiedAt DateTime?
+  // New sittings on the day hold their results until published.
+  holdResults         Boolean   @default(false)
   createdAt           DateTime  @default(now())
 
   centre   Centre        @relation(fields: [centreId], references: [id], onDelete: Cascade)
