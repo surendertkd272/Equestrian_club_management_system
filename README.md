@@ -1,6 +1,6 @@
 # Equiwings Central Admin Panel
 
-Phase-1 build from `Equiwings_Central_Admin_Panel_Spec.md`. Multi-tenant equestrian-centre management — riders, horses, vet, exams, competitions, certificates, reports, and analytics all on one runnable Next.js app.
+Phase-1 build from `Equiwings_Central_Admin_Panel_Spec.md`. Competition management (spec §4.6 / §4.14) was removed in #62 and is out of scope. Multi-tenant equestrian-centre management — riders, horses, vet, exams, certificates, reports, and analytics all on one runnable Next.js app.
 
 ## What's in this build
 
@@ -13,8 +13,7 @@ All Phase-1 spec sections (§4.1–§4.23) have working UI and proven end-to-end
 | §4.3 Progress Monitoring (per-skill checklist + cohort heatmap) | ✓ |
 | §4.4 / §4.16–4.19 Exams (scheduling, scoring engine ported from exam module, templates) | ✓ |
 | §4.5 Monthly Parent Report Card (print/PDF) | ✓ |
-| §4.6 / §4.14 Competitions + Public live scoreboard | ✓ |
-| §4.7 Performance Analytics (trends, medal leaderboard, level distribution) | ✓ |
+| §4.7 Performance Analytics (trends, level distribution) | ✓ |
 | §4.8 Staff onboarding | ✓ |
 | §4.8b Staff Attendance + Leave Requests (PRD §4 Module 2) | ✓ |
 | Parent Portal (PRD §3 / Phase 2) — read-only child view, scoped via ParentLink | ✓ |
@@ -81,7 +80,6 @@ After `npm run db:seed`, you get:
 | Examiner | `examiner.<slug>@equiwings.in` | scores exams + issues certs |
 | Stable Manager | `stablemanager.<slug>@equiwings.in` | stable + tack ops |
 | Inventory Manager | `inventorymanager.<slug>@equiwings.in` | tack + medicine stock |
-| Competition Manager | `competitionmanager.<slug>@equiwings.in` | tournament planning |
 | Groom | `groom.<slug>@equiwings.in` | grooming + feeding tasks |
 | Farrier | `farrier.<slug>@equiwings.in` | shoeing specialist |
 | Accountant | `accountant.<slug>@equiwings.in` | finance read/write |
@@ -94,7 +92,6 @@ All passwords are `password`. The seed creates 1 + (12 × 4) = **49 accounts** t
 - **Onboarding wizard** — http://localhost:3000/onboarding?centre=ghrc
 - **Certificate verification** — http://localhost:3000/verify/EW-L1-XXXXXXXX (issued certs only)
 - **Tack QR scan** — http://localhost:3000/tack/by-code/EW-TACK-XXXXXX (auth-bounced)
-- **Live competition scoreboard** — http://localhost:3000/events/SLUG/live (when status=live)
 
 ## Payments — Razorpay setup
 
@@ -162,14 +159,13 @@ The schema uses Prisma-portable types (Json columns are stored as TEXT on SQLite
 ```
 app/
   (admin)/             # Authenticated shell: dashboard, riders, attendance, exams, vet,
-                       # horses, tack, competitions, reports, analytics, etc.
+                       # horses, tack, reports, analytics, etc.
   api/
     auth/              # login / logout
     onboarding/        # public rider sign-up POST
     payments/razorpay/ # order / verify / mock
     webhooks/razorpay/ # async payment webhook (HMAC-signed)
     [+ ~20 other API routes for tasks, exams, medicines, horses, etc.]
-  events/[slug]/live/  # public competition scoreboard
   onboarding/          # public 6-step rider wizard
   tack/by-code/[code]/ # public QR scan landing
   verify/[serial]/     # public certificate verify
@@ -212,7 +208,6 @@ prisma/
 | §4.3 Progress | `app/(admin)/progress/`, `app/(admin)/riders/[id]/progress/` |
 | §4.4 / §4.16–4.19 Exams | `app/(admin)/exams/`, `components/scoring/` |
 | §4.5 Reports | `app/(admin)/reports/[riderId]/` (print-friendly A4) |
-| §4.6 / §4.14 Competitions | `app/(admin)/competitions/`, `app/events/[slug]/live/` |
 | §4.7 Analytics | `app/(admin)/analytics/`, `app/(admin)/riders/[id]/analytics/` |
 | §4.9 Tasks | `app/(admin)/tasks/` |
 | §4.10 / §4.11 Tack | `app/(admin)/tack/`, `app/tack/by-code/[code]/` |

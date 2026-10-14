@@ -1,5 +1,5 @@
 import {
-  Trophy, Medal, ClipboardList, PawPrint, HeartPulse, Syringe, Pill, Bandage, Hourglass,
+  ClipboardList, PawPrint, HeartPulse, Syringe, Pill, Bandage, Hourglass,
   GraduationCap, Award, FilePen, CalendarCheck, ClipboardCheck, ListChecks, IndianRupee,
   CalendarClock, Users, Shuffle, AlarmClock, CheckCircle2, Activity, Building2, Clock,
   AlertTriangle, RefreshCw, type LucideIcon,
@@ -13,8 +13,6 @@ const KPI_ICON_RULES: [RegExp, LucideIcon][] = [
   [/tenant|centre|club\b|^org/, Building2],
   [/cron|sweep|sync/, RefreshCw],
   [/trial/, Clock],
-  [/competition/, Trophy],
-  [/placement|medal/, Medal],
   [/entr(y|ies)/, ClipboardList],
   [/horse/, PawPrint],
   [/injur/, HeartPulse],

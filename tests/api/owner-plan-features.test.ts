@@ -228,8 +228,7 @@ describe("POST /api/owner/tenants/[id]/features", () => {
     const org = await mkOrg();
     await prisma.organisation.update({ where: { id: org.id }, data: { plan: "enterprise" } });
 
-    // Turn competitions OFF (Enterprise has it on by default after applyPlan,
-    // but our raw org just has the default = no feature rows yet).
+    // Turn farriery ON (our raw org has no feature rows yet, so it starts OFF).
     const r = await toggleFeature(
       mockReq("http://localhost", {
         method: "POST",
