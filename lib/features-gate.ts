@@ -144,7 +144,7 @@ export function featureDeniedResponse(key: FeatureKey) {
 // feature, and either returns null (allowed) or a NextResponse to return
 // immediately. Usage:
 //
-//   const block = await blockIfFeatureOff(session, "competitions");
+//   const block = await blockIfFeatureOff(session, "farriery");
 //   if (block) return block;
 //
 export async function blockIfFeatureOff(

@@ -1,4 +1,4 @@
-// Batch E — task.kind, exam support staff, teams + medal rollup, horse
+// Batch E — task.kind, exam support staff, teams, horse
 // workload guard (already in place; verified here for completeness).
 
 import { describe, it, expect, beforeEach, vi } from "vitest";

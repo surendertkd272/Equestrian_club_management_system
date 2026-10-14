@@ -37,7 +37,7 @@ export default async function TeamsPage() {
     }),
   ]);
 
-  // Resolve member rider names + roll up medals per team.
+  // Resolve member rider names.
   const allMemberRiderIds = Array.from(new Set(teams.flatMap((t) => t.members.map((m) => m.riderId))));
   const memberRiders = allMemberRiderIds.length
     ? await prisma.rider.findMany({

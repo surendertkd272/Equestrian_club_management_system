@@ -64,7 +64,7 @@ export function ChartCard({
 
 // ── HeroCard ─────────────────────────────────────────────────────────────────
 // The illustrated gradient centrepiece that gives a dashboard its identity
-// (next competition / featured rider / spotlight horse). Pure gradient + icon
+// (next exam / featured rider / spotlight horse). Pure gradient + icon
 // watermark — no image assets required.
 export function HeroCard({
   kicker,

@@ -30,13 +30,6 @@ WITH expected(table_name) AS (
     ('PlatformUser'), ('PlatformAuditLog'),
     ('Centre'), ('User'), ('Rider'), ('Horse'),
     ('Batch'), ('Lesson'), ('Attendance'),
-    ('Competition'), ('CompetitionEntry'), ('CompetitionRound'),
-    ('CompetitionRoundScore'), ('CompetitionOfficial'),
-    ('JumpEffort'), ('CourseFence'),
-    ('DressageTest'), ('DressageScoresheet'),
-    ('GymkhanaGame'), ('GymkhanaResult'),
-    ('VetCheck'), ('StableAllocation'), ('DrugTest'), ('Protest'),
-    ('ExternalEntry'), ('TicketTier'), ('Ticket'),
     ('Exam'), ('Certificate'), ('Accreditation'),
     ('Invoice'), ('Payment'), ('Expense'), ('Vendor'),
     ('FeePlan'), ('Medicine'), ('FarrierVisit'),
@@ -65,13 +58,6 @@ WITH expected(table_name) AS (
     ('PlatformUser'), ('PlatformAuditLog'),
     ('Centre'), ('User'), ('Rider'), ('Horse'),
     ('Batch'), ('Lesson'), ('Attendance'),
-    ('Competition'), ('CompetitionEntry'), ('CompetitionRound'),
-    ('CompetitionRoundScore'), ('CompetitionOfficial'),
-    ('JumpEffort'), ('CourseFence'),
-    ('DressageTest'), ('DressageScoresheet'),
-    ('GymkhanaGame'), ('GymkhanaResult'),
-    ('VetCheck'), ('StableAllocation'), ('DrugTest'), ('Protest'),
-    ('ExternalEntry'), ('TicketTier'), ('Ticket'),
     ('Exam'), ('Certificate'), ('Accreditation'),
     ('Invoice'), ('Payment'), ('Expense'), ('Vendor'),
     ('FeePlan'), ('Medicine'), ('FarrierVisit'),
@@ -134,8 +120,7 @@ SELECT
   (SELECT count(*) FROM "Centre")       AS centres,
   (SELECT count(*) FROM "User")         AS users,
   (SELECT count(*) FROM "Rider")        AS riders,
-  (SELECT count(*) FROM "Horse")        AS horses,
-  (SELECT count(*) FROM "Competition")  AS competitions;
+  (SELECT count(*) FROM "Horse")        AS horses;
 
 -- ---------------------------------------------------------------------
 -- 6. Session info — confirms the connection path. Direct vs pooled both

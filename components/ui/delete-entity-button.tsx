@@ -8,7 +8,7 @@ import { Trash2 } from "lucide-react";
 import { openConfirm } from "@/components/ui/confirm-dialog";
 
 // Generic guarded DELETE button for a single entity. The server enforces the
-// real rules (e.g. can't delete a live/completed competition → 409); we just
+// real rules (e.g. can't delete a record other rows depend on → 409); we just
 // confirm, fire, and surface the server's message.
 export function DeleteEntityButton({
   endpoint,

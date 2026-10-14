@@ -97,11 +97,6 @@ async function main() {
     "Attendance",
     "Exam",
     "Certificate",
-    "PrizeAward",
-    "StartListEntry",
-    "CompetitionClass",
-    "Sponsor",
-    "Competition",
     "HorseAllocation",
     "FarrierVisit",
     "VaccinationSchedule",
@@ -208,7 +203,6 @@ async function main() {
     "COACH",
     "STABLE_MANAGER",
     "INVENTORY_MANAGER",
-    "COMPETITION_MANAGER",
     "GROOM",
     "FARRIER",
     "VET",
@@ -406,24 +400,6 @@ async function main() {
   });
 
   // ─────────────────────────────────────────────────────────────
-  console.log("\n=== COMPETITIONS ==");
-  await tryStep("competitions", async () => {
-    await prisma.competition.create({
-      data: {
-        centreId: centreA.id,
-        name: "Smoke Cup 2026",
-        slug: "smoke-cup-2026",
-        scope: "internal",
-        startDate: new Date(),
-        endDate: new Date(Date.now() + 86400000),
-        venue: "Main Arena",
-        classesJson: JSON.stringify([{ name: "Open", fee: 500 }]),
-      },
-    });
-    pass("competitions", "1 created");
-  });
-
-  // ─────────────────────────────────────────────────────────────
   console.log("\n=== NOTIFICATIONS ==");
   await tryStep("notifications", async () => {
     for (let i = 0; i < 6; i++) {
@@ -612,19 +588,18 @@ async function main() {
   console.log("\n=== CMD+K SEARCH SHAPES ==");
   await tryStep("cmdk_search", async () => {
     // Mimic /api/search hits for each of the 9 domains.
-    const [r, h, e, c, b, m, cert] = await Promise.all([
+    const [r, h, e, b, m, cert] = await Promise.all([
       prisma.rider.findFirst({ where: { centreId: centreA.id } }),
       prisma.horse.findFirst({ where: { centreId: centreA.id } }),
       prisma.exam.findFirst({ where: { centreId: centreA.id } }),
-      prisma.competition.findFirst({ where: { centreId: centreA.id } }),
       prisma.batch.findFirst({ where: { centreId: centreA.id } }),
       prisma.medicine.findFirst({ where: { centreId: centreA.id } }),
       prisma.certificate.findFirst({ where: { centreId: centreA.id } }),
     ]);
-    for (const [name, row] of Object.entries({ rider: r, horse: h, exam: e, competition: c, batch: b, medicine: m, certificate: cert })) {
+    for (const [name, row] of Object.entries({ rider: r, horse: h, exam: e, batch: b, medicine: m, certificate: cert })) {
       if (!row) throw new Error(`no ${name} present for search domain`);
     }
-    pass("cmdk_search", `all 7 cross-centre domains seeded`);
+    pass("cmdk_search", `all 6 cross-centre domains seeded`);
   });
 
   // ─────────────────────────────────────────────────────────────

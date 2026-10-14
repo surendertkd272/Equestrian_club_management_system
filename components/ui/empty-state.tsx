@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 
 // Empty-state hero. Used instead of "No data" so users know where to click
 // next. Use this on every list page that can land empty (riders, horses,
-// medicines, competitions, etc.) — onboarding teach-through.
+// medicines, etc.) — onboarding teach-through.
 export function EmptyState({
   icon,
   title,

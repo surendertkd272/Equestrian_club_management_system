@@ -1,4 +1,4 @@
-// Batch C — consumables + competition operations.
+// Batch C — consumables.
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { resetDb } from "../helpers/db";

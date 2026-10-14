@@ -1540,16 +1540,6 @@ model ConsumableMovement {
   @@index([consumableId, at])
 }
 
-// ──────────────────────────────────────────────────────────────────────────
-// COMPETITION OPERATIONS (PDF §4 — Event Operations)
-// ──────────────────────────────────────────────────────────────────────────
-// Four small models that flesh out the existing Competition flow:
-//   StartListEntry  — running order per class on event day
-//   PrizeAward      — what was awarded for each placement
-//   Sponsor         — who funded the event + their contribution
-// "Draw of lots" is handled inline: a single Competition-level boolean
-// (`drawCompleted`) plus per-entry `drawOrder`. No separate table needed.
-
 // PDF §4 — Farrier Schedule. One row per visit (past or planned). Combined
 // with the FARRIER role + farriery feature flag this completes the spec.
 // `scheduledAt` is when the visit is *planned*; `completedAt` records when it
@@ -1895,98 +1885,6 @@ model Task {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
-// COMPETITIONS (§4.14)
-// ──────────────────────────────────────────────────────────────────────────
-
-// One round / heat / phase within a class. Examples:
-//   • Jumping: round 1 + jump-off → two rows per class
-//   • Eventing: dressage / cross-country / show-jumping → three rows
-//   • Dressage: single round most of the time
-
-// One row per (round, entry, fence number, effort). Captures fence-by-fence
-// detail for show-jumping rounds. The aggregate `faults` on
-// CompetitionRoundScore and CompetitionEntry remains canonical for
-// placement — this table powers the detailed scoresheet and lets the
-// frontend show "5 faults = 1 rail at jump 4 + 1 refusal at 7a".
-//
-// Faults math (FEI Table A):
-//   • knockdown      = 4 faults
-//   • 1st refusal    = 4 faults
-//   • 2nd refusal    = 4 faults
-//   • 3rd refusal    = elimination
-//   • fall of horse or rider = elimination
-//   • time over allowed = ceil((time − timeAllowedSec) / 4) faults
-//
-// We don't enforce eliminations programmatically — the judge marks it,
-// and the API recomputes the aggregate `faults` on the round score.
-
-// Dressage test catalog — SUPER_ADMIN curated. One row per official test
-// (Prelim 14, Novice 27, Elementary 43...). Federation `body` tracks
-// origin; centres can also add custom internal tests with body="custom".
-//
-// movementsJson shape:
-//   [{ no: 1, letter: "A,X", description: "Enter working trot", coefficient: 1 },
-//    { no: 2, letter: "C", description: "Track left, working trot rising", coefficient: 1 },
-//    ...]
-// collectiveMarksJson shape (end-of-test marks):
-//   [{ name: "Paces", coefficient: 1 },
-//    { name: "Impulsion", coefficient: 1 },
-//    { name: "Submission", coefficient: 1 },
-//    { name: "Rider position", coefficient: 1 }]
-// maxScore = (sum of movement coefficients × 10) + (sum of collective coefficients × 10).
-
-// One scoresheet per (round, entry, judge). Captures one judge's marks
-// for one ride. marksJson is [{ no: 1, mark: 7.5, comment: "..." }, ...],
-// collectiveMarksJson [{ name: "Paces", mark: 7, comment: "..." }, ...].
-// `percentage` is server-computed at submit time.
-
-// Gymkhana game template. A gymkhana day = N games per class. Riders
-// play every game; combined ranking = sum of per-game positions.
-// scoringType "time" → fastest wins (faults add penaltyPerFault seconds);
-// scoringType "points" → highest points wins (judge-assigned).
-
-// Course design — fence-by-fence layout. Renders as a strip chart on the
-// round detail page + appears on the printed course program.
-
-// Vet checks — pre/post-event horse soundness inspections.
-
-// Stable allocation for visiting horses. Free-text horse/rider names
-// because cross-tenant visitors don't have rows in Horse/Rider.
-
-// Drug test (medication control) — chain-of-custody record. The lab
-// result is stored as a status only; detailed reports stay with the lab.
-
-// Protest / appeal record.
-
-// External rider entry — submitted via the public competition page by
-// visiting competitors who aren't users of the host academy. We hold them
-// in a pending queue until the organiser approves; on approval, we mint
-// a CompetitionEntry against a synthetic Rider row scoped to the host
-// centre (so the rest of the system can render the start list etc.
-// without special-casing externals).
-//
-// Two-step verification: the entrant gets a magic-link email; clicking it
-// flips `verifiedAt`. Unverified entries get auto-purged after 7 days.
-
-// Ticket tier for spectator sales. Owner-defined: name, price, capacity.
-// Capacity null = unlimited. Public ticket-buy uses the tier's price to
-// mint Razorpay orders; tickets without a price are "free" tickets that
-// just need an email + a head-count.
-
-// Issued ticket. One row per quantity (so "Family of 4 × 1" = 4 rows).
-// QR code is just the ticket id — the scanner posts the id to /check-in
-// and we flip checkedInAt + record the user who scanned.
-
-// Competition officials — judges, TDs, course designers, stewards. Distinct
-// from the per-ride judging mechanics above; this table records who was
-// in which role at the show, for the official record + the printed program.
-// One row per (competition, user, role). User can hold multiple roles in
-// the same comp (e.g., judge in two classes + TD overall).
-
-// Score for one (entry, round) pair. The aggregate that drives placement
-// lives on CompetitionEntry; per-round detail lives here.
-
-// ──────────────────────────────────────────────────────────────────────────
 // FINANCE (§4.20)
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -2140,9 +2038,6 @@ model Certificate {
   // Source exam for promotion certificates. Optional so participation and
   // winner-style certs (issued without a formal exam) still fit the table.
   examId            String?
-  // Source competition for winner / participation certificates. Issued
-  // automatically when an entry is placed (1st/2nd/3rd) or when a comp is
-  // marked complete (all non-withdrawn entries get participation certs).
   type              String // promotion | participation | winner | event_attendance
   levelName         String?
   serialNo          String    @unique
@@ -2150,7 +2045,7 @@ model Certificate {
   qrCode            String
   signedBy          String?
   // Bulk-issue grouping. When the bulk panel mints N certs from one
-  // event/exam-sitting/competition, every cert in the batch shares this
+  // event or exam sitting, every cert in the batch shares this
   // value so we can show "Bulk batch · 27 issued · 14 Mar".
   batchTag          String?
   // Revocation — soft state so the verify page can render REVOKED instead
@@ -2708,8 +2603,7 @@ model EquipmentStockMovement {
 // EVENTS (clinics, schooling, demos, parent days, fundraisers, externals)
 // ──────────────────────────────────────────────────────────────────────────
 //
-// Distinct from `Competition` (which carries classes / draw / prizes /
-// scoreboard). Events are simpler logistical gatherings — a clinic, a
+// Events are logistical gatherings with no scoring — a clinic, a
 // schooling day, a fundraiser. Some events live entirely at one centre;
 // "external" events are off-site (members travelling to another club).
 

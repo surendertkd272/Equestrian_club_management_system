@@ -135,7 +135,6 @@ sends:
 - `ew_absence_streak`
 - `ew_birthday`
 - `ew_exam_result`
-- `ew_competition_placement`
 - `ew_enrolment_approved` — fires when an admin approves a self-enrolled
   rider; body params: `{rider name}`, `{amount with ₹ prefix}`, `{pay URL}`.
   Sample body: *"Hi! {{1}}'s registration has been approved. Pay {{2}}

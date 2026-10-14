@@ -221,7 +221,7 @@ describe("Plan + feature toggles — admin-only", () => {
     const r = await toggleFeature(
       mockReq("http://localhost", {
         method: "POST",
-        body: JSON.stringify({ featureKey: "competitions", enabled: true }),
+        body: JSON.stringify({ featureKey: "farriery", enabled: true }),
       }),
       { params: { id: org.id } },
     );
